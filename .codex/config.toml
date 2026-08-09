@@ -1,0 +1,11 @@
+# Project-scoped defaults. A new Codex session must trust this project before
+# this layer is loaded. Explicit runtime or CLI overrides can take precedence.
+model = "gpt-5.6-sol"
+model_reasoning_effort = "ultra"
+
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3
+default_subagent_model = "gpt-5.6-terra"
+default_subagent_reasoning_effort = "max"
+interrupt_message = true
