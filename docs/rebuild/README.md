@@ -8,8 +8,9 @@ Infrastructure rebuild documents
 
 This directory converts the historical recovery specification in
 [plan.md](../../plan.md) into accepted implementation contracts. Stage 0 was
-accepted and the offline Stage 1 slice was authorized on 2026-08-09. Documented
-behavior is not considered implemented until its executable evidence passes.
+accepted and the offline Stage 1 slice was implemented on 2026-08-09. Later
+documented behavior is not considered implemented until its executable
+evidence passes.
 
 Two user decisions narrow the work:
 
@@ -26,6 +27,7 @@ Two user decisions narrow the work:
 - [Implementation roadmap](../../ROADMAP.md)
 - [Parallel execution and agent cadence](PARALLEL_EXECUTION.md)
 - [Migration reconstruction map](MIGRATION_RECONSTRUCTION.md)
+- [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md)
 
 ### Detailed contracts
 

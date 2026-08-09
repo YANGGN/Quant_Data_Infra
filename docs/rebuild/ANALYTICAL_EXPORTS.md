@@ -434,7 +434,8 @@ operational SQLite store.
 
 ## Acceptance evidence
 
-The export layer remains Proposed until the applicable evidence is recorded.
+The export contract is Accepted, but the later-stage export layer remains
+unimplemented until the applicable evidence is recorded and authorized.
 
 ### Authority and source safety
 

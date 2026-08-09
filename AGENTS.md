@@ -18,8 +18,8 @@ Its authority order is:
 5. `plan.md` as recovery evidence and historical context.
 
 The rebuild documents and ADRs are Accepted as the current target contracts.
-Only Stage 1 is authorized for executable implementation. Later stages still
-require their roadmap exit gates and explicit authorization.
+The offline Stage 1 vertical slice is implemented and fixture-validated. Later
+stages still require their roadmap exit gates and explicit authorization.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit
@@ -46,9 +46,12 @@ Once already inside WSL, run the Linux command directly. Prefer `rg`/`rg
 --files` when a Linux installation is available; otherwise use Linux `find`
 and `grep`. Use `python3`, not a Windows Python executable.
 
-Discover the executable toolchain before invoking it. Stage 1 uses Python 3.11
-standard-library commands documented by the implementation itself; do not
-invent unavailable package-manager, framework, or live-provider commands.
+Discover the executable toolchain before invoking it. The current dependency-
+free Stage 1 validation command is
+`PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -t . -v`.
+The deterministic rebuild CLI requires explicit project and empty store roots;
+see `README.md`. Do not invent unavailable package-manager, framework, or
+live-provider commands.
 
 ## Model routing
 

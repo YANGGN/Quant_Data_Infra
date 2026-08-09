@@ -1,8 +1,10 @@
 # Stage 1 Migration Reconstruction Map
 
-Status: Accepted  
-Decision date: 2026-08-09  
+Status: Implemented
+Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
+
+Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md)
 
 ## Purpose
 
@@ -15,19 +17,16 @@ allocated during Stage 1 without updating this map first.
 
 | ID | Store | Local ordinal | Immutable resource | SHA-256 status | Reconstruction state |
 | --- | --- | ---: | --- | --- | --- |
-| `market:0001_foundation` | market | 1 | `quant_data/migrations/market/0001_foundation.sql` | Pending immutable resource review | `unresolved` |
-| `market:0002_vertical_slice` | market | 2 | `quant_data/migrations/market/0002_vertical_slice.sql` | Pending immutable resource review | `unresolved` |
-| `macro:0001_foundation` | macro | 1 | `quant_data/migrations/macro/0001_foundation.sql` | Pending immutable resource review | `unresolved` |
-| `macro:0002_vertical_slice` | macro | 2 | `quant_data/migrations/macro/0002_vertical_slice.sql` | Pending immutable resource review | `unresolved` |
-| `company:0001_foundation` | company | 1 | `quant_data/migrations/company/0001_foundation.sql` | Pending immutable resource review | `unresolved` |
-| `news:0001_foundation` | news | 1 | `quant_data/migrations/news/0001_foundation.sql` | Pending immutable resource review | `unresolved` |
+| `market:0001_foundation` | market | 1 | `quant_data/migrations/market/0001_foundation.sql` | `55cdbe19de5961dce2938678cd38ccbd44c9f7ec517c09967485bda25c2e1550` | `fixture_validated` |
+| `market:0002_vertical_slice` | market | 2 | `quant_data/migrations/market/0002_vertical_slice.sql` | `7faad5928d0b2f32443e7db8a3bcd7b59f8e42b1e36804ec85ed16f675bc5163` | `fixture_validated` |
+| `macro:0001_foundation` | macro | 1 | `quant_data/migrations/macro/0001_foundation.sql` | `f22517e930277df4fb157ce47ba982d94fefcaf21c06e5b0d21af3b8f1920395` | `fixture_validated` |
+| `macro:0002_vertical_slice` | macro | 2 | `quant_data/migrations/macro/0002_vertical_slice.sql` | `f710ebc7593ad8d78ba06c959fc745dfa9e051172340e7f8b9a70f7826cfe7a4` | `fixture_validated` |
+| `company:0001_foundation` | company | 1 | `quant_data/migrations/company/0001_foundation.sql` | `081c609509c4337b74a706739c0506aa6beefb0a4de430801619781b9aad7915` | `fixture_validated` |
+| `news:0001_foundation` | news | 1 | `quant_data/migrations/news/0001_foundation.sql` | `521f54561714ba9b3c67dec4b6c9eaf703ec521a8b1250193ffb40c9e9eb1097` | `fixture_validated` |
 
-“Pending” is a checksum state, not permission to apply a resource. The primary
-integration owner fixes each digest in this table and the canonical registry
-after reviewing the final bytes and before the migration runner may apply it.
-At that point the state remains `unresolved` until the Stage 1 fixture gate
-passes, then becomes `fixture_validated` in both declarations. These new
-resources can never become `recovered_exact`.
+These digests identify the reviewed new resource bytes and match the canonical
+registry. The complete Stage 1 fixture gate promoted the declarations to
+`fixture_validated`. These new resources can never become `recovered_exact`.
 
 ## Legacy semantic cross-reference
 

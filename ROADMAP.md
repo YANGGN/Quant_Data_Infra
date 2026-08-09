@@ -1,8 +1,8 @@
 # Quant Data Infrastructure Rebuild Roadmap
 
-Status: Accepted  
-Planning baseline: 2026-08-09  
-Scope: accepted implementation sequencing; Stage 1 authorized on 2026-08-09
+Status: Accepted
+Planning baseline: 2026-08-09
+Scope: accepted implementation sequencing; Stage 1 implemented on 2026-08-09
 
 ## 1. Purpose
 
@@ -82,6 +82,10 @@ integration checkpoints are defined in the
 - A fresh Git repository may then be initialized; no lost history is inferred.
 
 ## 5. Stage 1 — Prove one complete vertical slice
+
+Implementation status: **Implemented**. Reproducible results and deterministic
+receipts are recorded in the
+[Stage 1 acceptance evidence](docs/rebuild/STAGE1_EVIDENCE.md).
 
 The first implementation slice is defined in
 [VERTICAL_SLICE_SPEC.md](docs/rebuild/VERTICAL_SLICE_SPEC.md). It deliberately

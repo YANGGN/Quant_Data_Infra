@@ -1,0 +1,3 @@
+series_id,provider,provider_series_code,title,frequency,unit,value_representation,scale,dimensions_json,source_vintage_identity,vintage_at,vintage_precision,source_release_order,available_at,available_precision,is_first_release,period_start,period_end,value,missing_reason
+fixture:philadelphia_fed_rtdsm:EMPLOY,fixture_philadelphia_fed,EMPLOY,Fixture employment index,monthly,fixture_employment_index,level,1,{},2026-07-10,2026-07-10,date,2026-07-10,2026-07-10,date,false,2026-01-01,2026-01-31,101.0,
+fixture:philadelphia_fed_rtdsm:EMPLOY,fixture_philadelphia_fed,EMPLOY,Fixture employment index,monthly,fixture_employment_index,level,1,{},2026-07-10,2026-07-10,date,2026-07-10,2026-07-10,date,false,2026-02-01,2026-02-28,98.5,

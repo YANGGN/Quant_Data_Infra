@@ -1,0 +1,5 @@
+provider,provider_symbol,asset_type,trade_date,open,high,low,close,volume,currency,price_variant,available_at,available_precision
+fixture_fmp,SPY,etf,2026-07-16,635.00,639.00,633.00,638.00,70000000,USD,raw,2026-07-17,date
+fixture_fmp,SPY,etf,2026-07-17,638.00,642.00,637.00,640.00,65000000,USD,raw,2026-07-18,date
+fixture_fmp,^GSPC,index,2026-07-16,6300.00,6340.00,6285.00,6325.00,3100000000,USD,raw,2026-07-17,date
+fixture_fmp,^GSPC,index,2026-07-17,6325.00,6360.00,6310.00,6350.00,3000000000,USD,raw,2026-07-18,date

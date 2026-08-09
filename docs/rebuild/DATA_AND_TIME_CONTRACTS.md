@@ -302,7 +302,7 @@ An `as_of` cutoff accepts either:
 The result audit MUST echo `cutoff`, `cutoff_precision`,
 `date_only_policy`, and `availability_basis`.
 
-The proposed date-only comparison rules are:
+The accepted date-only comparison rules are:
 
 | Availability value | Date cutoff | Datetime cutoff |
 | --- | --- | --- |

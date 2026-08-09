@@ -1,0 +1,121 @@
+{
+  "schema_version": "1.0.0",
+  "fixtures": [
+    {
+      "id": "market.base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.daily_price_import",
+      "evidence_dataset_id": "fixture.market.daily_price_evidence",
+      "canonical_dataset_id": "fixture.market.daily_prices",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/market/base.csv",
+      "sha256": "94476f499859f5430e2e2fb73ebfde3a111e8aedc29673dbc34239dd7839c1cf",
+      "expected_semantic_identity": "897424cc47ac93d7e618aa86e605e1b3a4b90736855bb50712f30236e10eb6e7",
+      "byte_count": 518,
+      "captured_at": "2026-07-18T18:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "symbols": ["SPY", "^GSPC"],
+        "start_date": "2026-07-16",
+        "end_date": "2026-07-17",
+        "price_variant": "raw",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "market_daily_v1",
+        "expected_rows": 4,
+        "expected_missing": 0
+      }
+    },
+    {
+      "id": "market.correction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.daily_price_import",
+      "evidence_dataset_id": "fixture.market.daily_price_evidence",
+      "canonical_dataset_id": "fixture.market.daily_prices",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/market/correction.csv",
+      "sha256": "741b53ef1e5be90fef733eab1d03754803c42a5d7d62457da754915b71e094fe",
+      "expected_semantic_identity": "83662e9045a7adb2391d8726bf482a9c1171d80fe56c7427409952da36f1aedd",
+      "byte_count": 241,
+      "captured_at": "2026-07-20T09:15:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "symbols": ["SPY"],
+        "start_date": "2026-07-17",
+        "end_date": "2026-07-17",
+        "price_variant": "raw",
+        "completeness": "partial"
+      },
+      "metadata": {
+        "normalization_version": "market_daily_v1",
+        "expected_rows": 1,
+        "expected_missing": 0
+      }
+    },
+    {
+      "id": "macro.first_vintage",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.rtdsm_employ_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": null,
+      "store": "macro",
+      "provider": "fixture_philadelphia_fed",
+      "resource": "tests/fixtures/macro/first_vintage.csv",
+      "sha256": "bb9aa263f14038c83881da4f8020b2b69a7d3efc2c9b314dd91cb70eb6ee23b9",
+      "expected_semantic_identity": "93ed1d4344eaaf1e2bf9af0a54b5d2c8e9a66dfd0d153908825f72ac5ce574c0",
+      "byte_count": 739,
+      "captured_at": "2026-06-12T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "series_id": "fixture:philadelphia_fed_rtdsm:EMPLOY",
+        "source_vintage_identity": "2026-06-12",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "macro_rtdsm_v1",
+        "expected_rows": 2,
+        "expected_missing": 1
+      }
+    },
+    {
+      "id": "macro.revised_vintage",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.rtdsm_employ_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": null,
+      "store": "macro",
+      "provider": "fixture_philadelphia_fed",
+      "resource": "tests/fixtures/macro/revised_vintage.csv",
+      "sha256": "05702cd19a02a67ed3c14d3c568718fa30a653c0fe8878937fe914673c3893cc",
+      "expected_semantic_identity": "61e6c8501aed2823c2c041f31c15b6359f3aca8edfd12782ac6ce524f7a67b9f",
+      "byte_count": 728,
+      "captured_at": "2026-07-10T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "series_id": "fixture:philadelphia_fed_rtdsm:EMPLOY",
+        "source_vintage_identity": "2026-07-10",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "macro_rtdsm_v1",
+        "expected_rows": 2,
+        "expected_missing": 0
+      }
+    }
+  ]
+}

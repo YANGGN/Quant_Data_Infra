@@ -23,6 +23,7 @@ data/
 .env.*
 !.env.example
 *.log
+.quant_data_locks/
 
 # Surviving/non-source caches
 sites/quant-data-atlas/.vite/

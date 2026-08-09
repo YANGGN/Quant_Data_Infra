@@ -1,0 +1,569 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "quant-data-stage1",
+  "revision": "2026-08-09.stage1.3",
+  "status": "validated",
+  "compatibility_target": {
+    "api_version": "1.0",
+    "status": "accepted_incremental",
+    "stage1_milestone_status": "validated_non_active",
+    "reserved_tool_names": [
+      "macro.search_series",
+      "macro.describe_series",
+      "macro.get_series",
+      "macro.get_intraday_releases",
+      "macro.release_surprises",
+      "macro.revision_analysis",
+      "macro.align_us_recessions",
+      "macro.standardize_surprises",
+      "macro.get_liquidity_snapshot",
+      "macro.get_liquidity_impulse",
+      "macro.get_credit_conditions",
+      "macro.regime_snapshot",
+      "timeseries.transform",
+      "timeseries.describe",
+      "timeseries.align",
+      "timeseries.correlation",
+      "econometrics.regression",
+      "econometrics.stationarity",
+      "econometrics.rolling_regression",
+      "econometrics.structural_breaks",
+      "econometrics.local_projection",
+      "company.search_issuers",
+      "company.search_filings",
+      "company.get_fundamentals",
+      "company.get_corporate_actions",
+      "company.get_share_count_history",
+      "company.get_earnings_calendar",
+      "company.get_consensus_history",
+      "company.get_guidance_history",
+      "company.get_estimate_revisions",
+      "company.get_earnings_setup",
+      "energy.get_electricity_retail_sales",
+      "energy.get_weekly_fundamentals",
+      "market.search_instruments",
+      "market.get_returns",
+      "market.get_forward_returns",
+      "market.technical_indicators",
+      "market.cross_sectional_performance",
+      "rates.get_funding_conditions",
+      "rates.get_repo_facility_usage",
+      "rates.curve_analytics",
+      "options.search_captures",
+      "options.search_contracts",
+      "options.get_surface_snapshot",
+      "options.surface_diagnostics",
+      "options.screen_contracts",
+      "options.strategy_scenario",
+      "research.point_in_time_panel",
+      "data.quality_audit",
+      "research.event_study",
+      "alpha.signal_diagnostics",
+      "research.walk_forward_backtest",
+      "research.robustness_suite",
+      "stats.multiple_testing",
+      "forecast.evaluate",
+      "news.search",
+      "research.liquidity_credit_state"
+    ],
+    "stage1_tool_names": [
+      "macro.get_series",
+      "timeseries.describe"
+    ]
+  },
+  "stores": [
+    {
+      "id": "market",
+      "default_path": "data/market_data.sqlite",
+      "path_env": "QUANT_MARKET_DB_PATH",
+      "anchor_relation": "store_metadata",
+      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
+      "migration_order": ["market:0001_foundation", "market:0002_vertical_slice"]
+    },
+    {
+      "id": "macro",
+      "default_path": "data/macro_data.sqlite",
+      "path_env": "QUANT_MACRO_DB_PATH",
+      "anchor_relation": "store_metadata",
+      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
+      "migration_order": ["macro:0001_foundation", "macro:0002_vertical_slice"]
+    },
+    {
+      "id": "company",
+      "default_path": "data/company_data.sqlite",
+      "path_env": "QUANT_COMPANY_DB_PATH",
+      "anchor_relation": "store_metadata",
+      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
+      "migration_order": ["company:0001_foundation"]
+    },
+    {
+      "id": "news",
+      "default_path": "data/news_data.sqlite",
+      "path_env": "QUANT_NEWS_DB_PATH",
+      "anchor_relation": "store_metadata",
+      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
+      "migration_order": ["news:0001_foundation"]
+    }
+  ],
+  "migrations": [
+    {
+      "id": "market:0001_foundation",
+      "store": "market",
+      "ordinal": 1,
+      "resource": "quant_data/migrations/market/0001_foundation.sql",
+      "sha256": "55cdbe19de5961dce2938678cd38ccbd44c9f7ec517c09967485bda25c2e1550",
+      "semantic_scope": "New Stage 1 shared market-store control plane; cross-reference recovered semantic 0000.",
+      "dependencies": [],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "market:0002_vertical_slice",
+      "store": "market",
+      "ordinal": 2,
+      "resource": "quant_data/migrations/market/0002_vertical_slice.sql",
+      "sha256": "7faad5928d0b2f32443e7db8a3bcd7b59f8e42b1e36804ec85ed16f675bc5163",
+      "semantic_scope": "Synthetic instruments, daily prices, price versions, and request evidence; cross-reference recovered semantics 0001, 0002, 0014, and 0020.",
+      "dependencies": ["market:0001_foundation"],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "macro:0001_foundation",
+      "store": "macro",
+      "ordinal": 1,
+      "resource": "quant_data/migrations/macro/0001_foundation.sql",
+      "sha256": "f22517e930277df4fb157ce47ba982d94fefcaf21c06e5b0d21af3b8f1920395",
+      "semantic_scope": "New Stage 1 shared macro-store control plane; cross-reference recovered semantic 0000.",
+      "dependencies": [],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "macro:0002_vertical_slice",
+      "store": "macro",
+      "ordinal": 2,
+      "resource": "quant_data/migrations/macro/0002_vertical_slice.sql",
+      "sha256": "f710ebc7593ad8d78ba06c959fc745dfa9e051172340e7f8b9a70f7826cfe7a4",
+      "semantic_scope": "Synthetic EMPLOY-style releases, evidence, snapshots, versions, and membership; cross-reference recovered semantics 0006, 0007, 0013, and 0019.",
+      "dependencies": ["macro:0001_foundation"],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "company:0001_foundation",
+      "store": "company",
+      "ordinal": 1,
+      "resource": "quant_data/migrations/company/0001_foundation.sql",
+      "sha256": "081c609509c4337b74a706739c0506aa6beefb0a4de430801619781b9aad7915",
+      "semantic_scope": "New Stage 1 empty company-store control plane; cross-reference recovered semantic 0000 only.",
+      "dependencies": [],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "news:0001_foundation",
+      "store": "news",
+      "ordinal": 1,
+      "resource": "quant_data/migrations/news/0001_foundation.sql",
+      "sha256": "521f54561714ba9b3c67dec4b6c9eaf703ec521a8b1250193ffb40c9e9eb1097",
+      "semantic_scope": "New Stage 1 empty news-store control plane; cross-reference recovered semantic 0000 only.",
+      "dependencies": [],
+      "reconstruction_state": "fixture_validated"
+    }
+  ],
+  "datasets": [
+    {
+      "id": "fixture.market.daily_price_evidence",
+      "store": "market",
+      "layer": "evidence",
+      "relations": ["market_price_ingestion_requests"],
+      "schema_version": "1.0.0",
+      "active": true
+    },
+    {
+      "id": "fixture.market.instruments",
+      "store": "market",
+      "layer": "canonical",
+      "relations": ["instruments", "instrument_identifiers"],
+      "schema_version": "1.0.0",
+      "active": true
+    },
+    {
+      "id": "fixture.market.daily_prices",
+      "store": "market",
+      "layer": "canonical",
+      "relations": ["prices_daily", "prices_daily_versions"],
+      "schema_version": "1.0.0",
+      "active": true
+    },
+    {
+      "id": "fixture.macro.rtdsm_employ_evidence",
+      "store": "macro",
+      "layer": "evidence",
+      "relations": [
+        "macro_releases",
+        "macro_source_artifacts",
+        "macro_source_snapshots",
+        "macro_snapshot_scopes",
+        "macro_snapshot_observation_membership"
+      ],
+      "schema_version": "1.0.0",
+      "active": true
+    },
+    {
+      "id": "fixture.macro.rtdsm_employ",
+      "store": "macro",
+      "layer": "canonical",
+      "relations": ["macro_series", "macro_observation_versions"],
+      "schema_version": "1.0.0",
+      "active": true
+    }
+  ],
+  "collectors": [
+    {
+      "id": "fixture.market.daily_price_import",
+      "version": "1.0.0",
+      "handler": "market.daily_price_fixture",
+      "network": false,
+      "output_datasets": [
+        "fixture.market.daily_price_evidence",
+        "fixture.market.instruments",
+        "fixture.market.daily_prices"
+      ],
+      "semantic_identity": "scope plus normalized complete batch",
+      "mutation_policy": "append_versions_and_move_current_projection"
+    },
+    {
+      "id": "fixture.macro.rtdsm_employ_import",
+      "version": "1.0.0",
+      "handler": "macro.rtdsm_fixture",
+      "network": false,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ"
+      ],
+      "semantic_identity": "scope plus source vintage plus normalized complete batch",
+      "mutation_policy": "append_versions_and_snapshot_membership"
+    }
+  ],
+  "jobs": [],
+  "tools": [
+    {
+      "id": "macro.get_series",
+      "version": "1.0.0",
+      "handler": "macro.get_series",
+      "read_only": true,
+      "datasets": ["fixture.macro.rtdsm_employ"],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["series_id", "start_date", "end_date", "vintage_mode", "date_only_policy", "limit"],
+        "properties": {
+          "series_id": {"type": "string", "const": "fixture:philadelphia_fed_rtdsm:EMPLOY"},
+          "start_date": {"type": "string", "format": "date"},
+          "end_date": {"type": "string", "format": "date"},
+          "vintage_mode": {"type": "string", "enum": ["latest", "as_of", "first_release"]},
+          "as_of": {"type": ["string", "null"]},
+          "date_only_policy": {"type": "string", "enum": ["completed_date", "calendar_date_inclusive"]},
+          "limit": {"type": "integer", "minimum": 1, "maximum": 10000}
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["contract", "contract_version", "series_id", "metadata", "observations", "warnings", "audit", "provenance", "truncated", "lineage_digest"],
+        "properties": {
+          "contract": {"type": "string", "const": "quant_data.timeseries"},
+          "contract_version": {"type": "string", "const": "1.0.0"},
+          "series_id": {"type": "string"},
+          "metadata": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["provider", "frequency", "unit", "value_representation", "scale"],
+            "properties": {
+              "provider": {"type": "string"},
+              "frequency": {"type": "string"},
+              "unit": {"type": "string"},
+              "value_representation": {"type": "string"},
+              "scale": {"type": "string"}
+            }
+          },
+          "observations": {
+            "type": "array",
+            "maxItems": 10000,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["period_start", "period_end", "value", "missing_reason", "unit", "value_representation", "scale", "vintage_at", "available_at", "available_precision", "captured_at", "captured_precision", "version_id", "evidence_id", "snapshot_id", "run_id", "dimensions", "quality_flags"],
+              "properties": {
+                "period_start": {"type": "string", "format": "date"},
+                "period_end": {"type": "string", "format": "date"},
+                "value": {"type": ["number", "null"]},
+                "missing_reason": {"type": ["string", "null"]},
+                "unit": {"type": "string"},
+                "value_representation": {"type": "string"},
+                "scale": {"type": "string"},
+                "vintage_at": {"type": "string"},
+                "available_at": {"type": ["string", "null"]},
+                "available_precision": {"type": "string"},
+                "captured_at": {"type": "string"},
+                "captured_precision": {"type": "string"},
+                "version_id": {"type": "string"},
+                "evidence_id": {"type": "string"},
+                "snapshot_id": {"type": "string"},
+                "run_id": {"type": "string"},
+                "dimensions": {"type": "object", "additionalProperties": false, "properties": {}},
+                "quality_flags": {"type": "array", "items": {"type": "string"}}
+              }
+            }
+          },
+          "warnings": {"type": "array", "items": {"type": "string"}},
+          "audit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "cutoff", "cutoff_precision", "date_only_policy", "availability_basis", "period_range_rule", "requested_start_date", "requested_end_date", "limit", "selected_count"],
+            "properties": {
+              "mode": {"type": "string"},
+              "cutoff": {"type": ["string", "null"]},
+              "cutoff_precision": {"type": ["string", "null"]},
+              "date_only_policy": {"type": "string"},
+              "availability_basis": {"type": "string"},
+              "period_range_rule": {"type": "string"},
+              "requested_start_date": {"type": "string"},
+              "requested_end_date": {"type": "string"},
+              "limit": {"type": "integer"},
+              "selected_count": {"type": "integer"}
+            }
+          },
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["dataset_id", "store_role", "registry_revision", "store_receipt"],
+            "properties": {
+              "dataset_id": {"type": "string"},
+              "store_role": {"type": "string"},
+              "registry_revision": {"type": "string"},
+              "store_receipt": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["migration_ids", "sha256"],
+                "properties": {
+                  "migration_ids": {"type": "array", "items": {"type": "string"}},
+                  "sha256": {"type": "string"}
+                }
+              }
+            }
+          },
+          "truncated": {"type": "boolean"},
+          "lineage_digest": {"type": "string"}
+        }
+      },
+      "examples": [
+        {
+          "series_id": "fixture:philadelphia_fed_rtdsm:EMPLOY",
+          "start_date": "2026-01-01",
+          "end_date": "2026-02-28",
+          "vintage_mode": "latest",
+          "as_of": null,
+          "date_only_policy": "completed_date",
+          "limit": 100
+        }
+      ],
+      "workload_bounds": {"max_rows": 10000, "max_request_bytes": 8388608, "max_response_bytes": 8388608},
+      "availability_policy": {"modes": ["latest", "as_of", "first_release"], "default_date_only_policy": "completed_date", "period_range_rule": "period_start"}
+    },
+    {
+      "id": "timeseries.describe",
+      "version": "1.0.0",
+      "handler": "timeseries.describe",
+      "read_only": true,
+      "datasets": [],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["series"],
+        "properties": {
+          "series": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["contract", "contract_version", "series_id", "metadata", "observations", "warnings", "audit", "provenance", "truncated", "lineage_digest"],
+            "properties": {
+              "contract": {"type": "string", "const": "quant_data.timeseries"},
+              "contract_version": {"type": "string", "const": "1.0.0"},
+              "series_id": {"type": "string"},
+              "metadata": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["provider", "frequency", "unit", "value_representation", "scale"],
+                "properties": {
+                  "provider": {"type": "string"},
+                  "frequency": {"type": "string"},
+                  "unit": {"type": "string"},
+                  "value_representation": {"type": "string"},
+                  "scale": {"type": "string"}
+                }
+              },
+              "observations": {
+                "type": "array",
+                "maxItems": 10000,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["period_start", "period_end", "value", "missing_reason", "unit", "value_representation", "scale", "vintage_at", "available_at", "available_precision", "captured_at", "captured_precision", "version_id", "evidence_id", "snapshot_id", "run_id", "dimensions", "quality_flags"],
+                  "properties": {
+                    "period_start": {"type": "string", "format": "date"},
+                    "period_end": {"type": "string", "format": "date"},
+                    "value": {"type": ["number", "null"]},
+                    "missing_reason": {"type": ["string", "null"]},
+                    "unit": {"type": "string"},
+                    "value_representation": {"type": "string"},
+                    "scale": {"type": "string"},
+                    "vintage_at": {"type": "string"},
+                    "available_at": {"type": ["string", "null"]},
+                    "available_precision": {"type": "string"},
+                    "captured_at": {"type": "string"},
+                    "captured_precision": {"type": "string"},
+                    "version_id": {"type": "string"},
+                    "evidence_id": {"type": "string"},
+                    "snapshot_id": {"type": "string"},
+                    "run_id": {"type": "string"},
+                    "dimensions": {"type": "object", "additionalProperties": false, "properties": {}},
+                    "quality_flags": {"type": "array", "items": {"type": "string"}}
+                  }
+                }
+              },
+              "warnings": {"type": "array", "items": {"type": "string"}},
+              "audit": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["mode", "cutoff", "cutoff_precision", "date_only_policy", "availability_basis", "period_range_rule", "requested_start_date", "requested_end_date", "limit", "selected_count"],
+                "properties": {
+                  "mode": {"type": "string"},
+                  "cutoff": {"type": ["string", "null"]},
+                  "cutoff_precision": {"type": ["string", "null"]},
+                  "date_only_policy": {"type": "string"},
+                  "availability_basis": {"type": "string"},
+                  "period_range_rule": {"type": "string"},
+                  "requested_start_date": {"type": "string"},
+                  "requested_end_date": {"type": "string"},
+                  "limit": {"type": "integer"},
+                  "selected_count": {"type": "integer"}
+                }
+              },
+              "provenance": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["dataset_id", "store_role", "registry_revision", "store_receipt"],
+                "properties": {
+                  "dataset_id": {"type": "string"},
+                  "store_role": {"type": "string"},
+                  "registry_revision": {"type": "string"},
+                  "store_receipt": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["migration_ids", "sha256"],
+                    "properties": {
+                      "migration_ids": {"type": "array", "items": {"type": "string"}},
+                      "sha256": {"type": "string"}
+                    }
+                  }
+                }
+              },
+              "truncated": {"type": "boolean"},
+              "lineage_digest": {"type": "string"}
+            }
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["contract", "contract_version", "count", "nonmissing_count", "missing_count", "minimum", "maximum", "mean", "first_period", "last_period", "warnings", "audit"],
+        "properties": {
+          "contract": {"type": "string", "const": "quant_data.timeseries_description"},
+          "contract_version": {"type": "string", "const": "1.0.0"},
+          "count": {"type": "integer"},
+          "nonmissing_count": {"type": "integer"},
+          "missing_count": {"type": "integer"},
+          "minimum": {"type": ["number", "null"]},
+          "maximum": {"type": ["number", "null"]},
+          "mean": {"type": ["number", "null"]},
+          "first_period": {"type": ["string", "null"]},
+          "last_period": {"type": ["string", "null"]},
+          "warnings": {"type": "array", "items": {"type": "string"}},
+          "audit": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["input_lineage_digest", "input_cutoff", "input_missing_count"],
+            "properties": {
+              "input_lineage_digest": {"type": "string"},
+              "input_cutoff": {"type": ["string", "null"]},
+              "input_missing_count": {"type": "integer"}
+            }
+          }
+        }
+      },
+      "examples": [
+        {
+          "series": {
+            "contract": "quant_data.timeseries",
+            "contract_version": "1.0.0",
+            "series_id": "fixture:philadelphia_fed_rtdsm:EMPLOY",
+            "metadata": {
+              "provider": "fixture_philadelphia_fed",
+              "frequency": "monthly",
+              "unit": "thousands_of_persons",
+              "value_representation": "level",
+              "scale": "1"
+            },
+            "observations": [],
+            "warnings": [],
+            "audit": {
+              "mode": "latest",
+              "cutoff": null,
+              "cutoff_precision": null,
+              "date_only_policy": "completed_date",
+              "availability_basis": "source_release",
+              "period_range_rule": "period_start",
+              "requested_start_date": "2026-01-01",
+              "requested_end_date": "2026-02-28",
+              "limit": 100,
+              "selected_count": 0
+            },
+            "provenance": {
+              "dataset_id": "fixture.macro.rtdsm_employ",
+              "store_role": "macro",
+              "registry_revision": "2026-08-09.stage1.3",
+              "store_receipt": {
+                "migration_ids": ["macro:0001_foundation", "macro:0002_vertical_slice"],
+                "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+              }
+            },
+            "truncated": false,
+            "lineage_digest": "c756d0e9dcb84cf0991356d936c7d5dde1937fad794c846737363ca29183de7b"
+          }
+        }
+      ],
+      "workload_bounds": {"max_rows": 10000, "max_request_bytes": 8388608, "max_response_bytes": 8388608},
+      "availability_policy": {"inherits_input": true}
+    }
+  ],
+  "dashboard": [
+    {
+      "id": "stage1.overview",
+      "route": "/",
+      "visibility": "local_private",
+      "datasets": [
+        "fixture.market.daily_price_evidence",
+        "fixture.market.instruments",
+        "fixture.market.daily_prices",
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ"
+      ],
+      "tools": ["macro.get_series", "timeseries.describe"],
+      "relations": ["prices_daily", "macro_observation_versions"],
+      "api_routes": ["/api/health", "/api/price-series", "/api/agent-tools", "/api/agent-tools/call"]
+    }
+  ],
+  "exports": [],
+  "presentation_order": {
+    "stores": ["market", "macro", "company", "news"],
+    "tools": ["macro.get_series", "timeseries.describe"]
+  }
+}

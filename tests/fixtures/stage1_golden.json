@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0.0",
+  "approval_status": "fixture_validated",
+  "registry_revision": "2026-08-09.stage1.3",
+  "evidence_sha256": "9c91ceea6fd6589cb5897e9e923b629fec77e649005af55889cdeb5aadd57fb7",
+  "logical_manifest_sha256": "827acd3a1a8f166ca019635797033df8dfddc1f088e67dfba974d666e5706a39",
+  "golden_results_sha256": "a0797bc537d25c7b5f8e558bddd425407b1bd7ceae9bb1bc2c6b72d31086f196",
+  "fixture_semantic_identities": {
+    "market.base": "897424cc47ac93d7e618aa86e605e1b3a4b90736855bb50712f30236e10eb6e7",
+    "market.correction": "83662e9045a7adb2391d8726bf482a9c1171d80fe56c7427409952da36f1aedd",
+    "macro.first_vintage": "93ed1d4344eaaf1e2bf9af0a54b5d2c8e9a66dfd0d153908825f72ac5ce574c0",
+    "macro.revised_vintage": "61e6c8501aed2823c2c041f31c15b6359f3aca8edfd12782ac6ce524f7a67b9f"
+  },
+  "state_counts": {
+    "market": {
+      "instruments": 2,
+      "instrument_identifiers": 2,
+      "market_price_ingestion_requests": 2,
+      "prices_daily": 4,
+      "prices_daily_versions": 5,
+      "ingestion_runs": 2
+    },
+    "macro": {
+      "macro_series": 1,
+      "macro_releases": 2,
+      "macro_source_artifacts": 2,
+      "macro_source_snapshots": 2,
+      "macro_snapshot_scopes": 2,
+      "macro_observation_versions": 4,
+      "macro_snapshot_observation_membership": 4,
+      "ingestion_runs": 2
+    },
+    "company": {
+      "ingestion_runs": 0
+    },
+    "news": {
+      "ingestion_runs": 0
+    }
+  }
+}

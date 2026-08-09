@@ -1,11 +1,13 @@
 # Offline Market/Macro Vertical Slice
 
-Status: Accepted
+Status: Implemented
+
+Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md)
 
 ## 1. Objective
 
 Build the smallest offline system that proves the recovered architecture and
-the proposed data contracts end to end:
+the accepted data contracts end to end:
 
 1. initialize four independent temporary SQLite stores;
 2. ingest controlled market daily-bar and revision-aware macro fixtures;

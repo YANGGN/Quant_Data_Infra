@@ -284,7 +284,8 @@ contract and prove migration compatibility.
 
 ## Acceptance evidence
 
-This ADR moves beyond Proposed only when current executable evidence includes:
+This ADR is Accepted as the target decision. It becomes Implemented only when
+current executable evidence includes:
 
 | Evidence ID | Required proof |
 | --- | --- |
@@ -305,4 +306,5 @@ This ADR moves beyond Proposed only when current executable evidence includes:
 
 The detailed cases and promotion gates are in
 [Test strategy](../rebuild/TEST_STRATEGY.md). Until that evidence exists, callers
-must treat this ADR and all dependent point-in-time claims as proposed.
+must treat the decision as accepted but the dependent implementation claims as
+unproven.
