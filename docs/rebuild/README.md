@@ -38,6 +38,7 @@ Two user decisions narrow the work:
 - [Data and time contracts](DATA_AND_TIME_CONTRACTS.md)
 - [First vertical slice](VERTICAL_SLICE_SPEC.md)
 - [Composable tool platform](TOOL_PLATFORM_SPEC.md)
+- [UI visual direction](UI_VISUAL_DIRECTION.md)
 - [Scheduling and physical-store locking](SCHEDULING_AND_LOCKING.md)
 - [Derived analytical exports](ANALYTICAL_EXPORTS.md)
 - [Test strategy and acceptance](TEST_STRATEGY.md)

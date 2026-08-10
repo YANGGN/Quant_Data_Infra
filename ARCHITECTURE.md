@@ -272,6 +272,13 @@ The local dashboard uses the same read services. Its table inspector exposes onl
 
 ## Local dashboard and Atlas
 
+The dashboard and Atlas share the accepted [UI visual
+direction](docs/rebuild/UI_VISUAL_DIRECTION.md): Inter typography, a restrained
+institutional light palette, thin slate borders, compact radii, subtle depth,
+and semantic financial color. Stage 6 establishes the token and component
+system; Stage 8 reuses it. Shared presentation never permits shared data access
+or weakens the read-only boundaries below.
+
 | Concern | Local dashboard | Quant Data Atlas |
 | --- | --- | --- |
 | Purpose | Inspect current operational stores, ingestion state, tools, charts, and research | Explore a curated analytical snapshot |
@@ -375,5 +382,6 @@ The recovered physical names and semantic migration order in plan Sections 20.1â
 - Public tool inventory and shared primitives: [tool platform specification](docs/rebuild/TOOL_PLATFORM_SPEC.md)
 - Job calendars, overlap prevention, and exit semantics: [scheduling and locking](docs/rebuild/SCHEDULING_AND_LOCKING.md)
 - Parquet, DuckDB, and Atlas publication boundaries: [analytical exports](docs/rebuild/ANALYTICAL_EXPORTS.md)
+- Dashboard and Atlas presentation: [UI visual direction](docs/rebuild/UI_VISUAL_DIRECTION.md)
 - Test layers, fixtures, and acceptance gates: [test strategy](docs/rebuild/TEST_STRATEGY.md)
 - Delivery sequence and exit gates: [roadmap](ROADMAP.md)

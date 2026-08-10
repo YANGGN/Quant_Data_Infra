@@ -384,6 +384,11 @@ Tests assert:
 - the UI structurally renders nulls, warnings, provenance, truncation, and
   nested tool output;
 - persistent navigation remains visible on every implemented page;
+- the accepted shared visual tokens, locally bundled Inter font, responsive
+  layouts, and representative visual-regression states match
+  [the UI visual direction](UI_VISUAL_DIRECTION.md);
+- keyboard navigation, focus visibility, reduced motion, contrast, and 200%
+  zoom remain usable, and no reference-site or remote-font asset is requested;
 - there is no ingestion, SQL-console, arbitrary table, or file-path route; and
 - pre/post logical fingerprints of all stores are identical after every UI and
   tool test.

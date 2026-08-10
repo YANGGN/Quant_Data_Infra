@@ -298,8 +298,14 @@ The contract is defined in
 
 ## 10. Stage 6 — Restore portal and research surfaces
 
+The shared visual and interaction language is defined in
+[UI_VISUAL_DIRECTION.md](docs/rebuild/UI_VISUAL_DIRECTION.md). Stage 6 owns the
+first implementation of these tokens and the common application shell.
+
 ### Deliverables
 
+- ThesisTrade-inspired Inter typography, restrained institutional light
+  palette, shared design tokens, and one persistent application shell.
 - Overview, GDP Vintages, Tables, and Agent Tools first.
 - Charts and shared indicator research after tool contracts stabilize.
 - Algorithms and walk-forward reports after causal timing and cost contracts
@@ -315,6 +321,8 @@ The contract is defined in
 - Indicator calculations have golden vectors and one canonical backend.
 - Backtests use training-only transformations, explicit decision/execution
   times, costs, benchmarks, and deterministic ties.
+- Visual-regression, responsive, keyboard, reduced-motion, contrast, and
+  locally bundled font checks pass without any reference-site runtime asset.
 
 ## 11. Stage 7 — Restore scheduling and operations
 
@@ -349,6 +357,10 @@ Stage 7 work.
 The contract is defined in
 [ANALYTICAL_EXPORTS.md](docs/rebuild/ANALYTICAL_EXPORTS.md).
 
+Atlas presentation also follows the shared [UI visual
+direction](docs/rebuild/UI_VISUAL_DIRECTION.md); it does not create a separate
+theme.
+
 ### Deliverables
 
 - Benchmark evidence before introducing Parquet or DuckDB.
@@ -358,6 +370,8 @@ The contract is defined in
   receipts, and dataset ownership in every export.
 - New staging directory, complete validation, semantic-change detection, and
   atomic promotion for Atlas.
+- Atlas reuses the Stage 6 visual tokens and component language while exposing
+  snapshot identity, freshness, provenance, and unavailable states explicitly.
 
 ### Exit gate
 
@@ -365,6 +379,8 @@ The contract is defined in
 - An export can be reproduced from declared source snapshots.
 - Atlas cannot connect to or mutate operational stores.
 - Partial multi-store exports cannot be promoted.
+- Atlas visual fixtures and accessibility checks pass without remote fonts or
+  reference-site assets.
 
 ## 13. Stage 9 — Controlled repopulation and promotion
 
