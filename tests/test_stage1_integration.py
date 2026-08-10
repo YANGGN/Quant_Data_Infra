@@ -47,16 +47,11 @@ class Stage1IntegrationTests(unittest.TestCase):
             )
             self.assertEqual(golden["schema_version"], "1.0.0")
             self.assertEqual(golden["approval_status"], "fixture_validated")
-            self.assertEqual(evidence["registry_revision"], golden["registry_revision"])
-            self.assertEqual(evidence["sha256"], golden["evidence_sha256"])
-            self.assertEqual(
-                evidence["logical_manifest"]["sha256"],
-                golden["logical_manifest_sha256"],
-            )
-            self.assertEqual(
-                evidence["golden_results_sha256"],
-                golden["golden_results_sha256"],
-            )
+            # Stage 1's approved golden remains immutable historical evidence.
+            # Stage 2 deliberately changes the registry and migration/control
+            # plane hashes, while these fixture identities and domain state
+            # transitions must remain exactly stable.
+            self.assertEqual(evidence["registry_revision"], "2.0.0")
             self.assertEqual(
                 {
                     item["id"]: item["semantic_identity"]

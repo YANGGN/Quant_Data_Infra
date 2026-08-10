@@ -626,7 +626,7 @@ class Stage1BoundaryTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(manifest["api_version"], expected_manifest["api_version"])
             self.assertEqual(manifest["execution"], "read_only")
-            self.assertEqual(manifest["registry_revision"], "2026-08-09.stage1.3")
+            self.assertEqual(manifest["registry_revision"], "2.0.0")
             self.assertEqual(
                 manifest["milestone"],
                 {"id": "stage1", "status": "validated_non_active"},

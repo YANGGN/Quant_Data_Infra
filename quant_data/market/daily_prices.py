@@ -18,7 +18,13 @@ from typing import Any, Mapping
 from ..contracts import IngestionReceipt
 from ..errors import ConflictError, Issue, ResourceLimitError, ValidationError
 from ..fixtures import Fixture, FixtureManifest
-from ..ingestion import IngestionCoordinator, WriteResult
+from ..ingestion import (
+    ArtifactWrite,
+    IngestionCoordinator,
+    QualityWrite,
+    SnapshotWrite,
+    WriteResult,
+)
 from ..json_codec import dumps_strict
 from ..registry import Registry
 from ..stores import StoreMap, StoreRole, read_connection, stable_id
@@ -725,8 +731,57 @@ class DailyPriceImporter:
                 appended_versions += 1
             return WriteResult(
                 written_count=appended_versions,
-                artifact_id=artifact_id,
-                snapshot_id=snapshot_id,
+                artifacts=(
+                    ArtifactWrite(
+                        artifact_id=artifact_id,
+                        dataset_id=fixture.evidence_dataset_id,
+                        content_sha256=fixture.sha256,
+                        media_type="text/csv",
+                        byte_count=fixture.byte_count,
+                        source_reference=fixture.resource_name,
+                        request_scope=dict(scope),
+                        captured_at=captured.raw,
+                        captured_precision=captured.precision.value,
+                        normalization_version=normalization_version,
+                    ),
+                ),
+                snapshot=SnapshotWrite(
+                    snapshot_id=snapshot_id,
+                    dataset_id=fixture.canonical_dataset_id,
+                    semantic_identity=semantic_identity,
+                    scope=dict(scope),
+                    completeness=str(scope["completeness"]),
+                    row_count=len(rows),
+                    captured_at=captured.raw,
+                    captured_precision=captured.precision.value,
+                    validation_state="validated",
+                    artifact_ids=(artifact_id,),
+                ),
+                quality_results=(
+                    QualityWrite(
+                        quality_result_id=stable_id(
+                            "quality_result",
+                            active_run_id,
+                            fixture.canonical_dataset_id,
+                            "fixture.batch_contract",
+                            "1.0.0",
+                        ),
+                        dataset_id=fixture.canonical_dataset_id,
+                        rule_id="fixture.batch_contract",
+                        rule_version="1.0.0",
+                        severity="informational",
+                        outcome="passed",
+                        subject_kind="snapshot",
+                        subject_id=snapshot_id,
+                        artifact_id=artifact_id,
+                        snapshot_id=snapshot_id,
+                        observed={
+                            "fetched_count": len(rows),
+                            "written_count": appended_versions,
+                            "completeness": scope["completeness"],
+                        },
+                    ),
+                ),
             )
 
         return self._coordinator.execute(

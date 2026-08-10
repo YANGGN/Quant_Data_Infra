@@ -14,7 +14,19 @@ from .stores import STORE_ROLES, StoreMap, StoreRole, read_connection
 
 
 _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
-_CONTROL_RELATIONS = ("store_metadata", "schema_migrations", "dataset_registry", "ingestion_runs")
+_CONTROL_RELATIONS = (
+    "store_metadata",
+    "schema_migrations",
+    "dataset_registry",
+    "dataset_identity_contracts",
+    "ingestion_runs",
+    "ingestion_run_outputs",
+    "ingestion_run_failures",
+    "ingestion_artifacts",
+    "ingestion_snapshots",
+    "ingestion_snapshot_artifacts",
+    "data_quality_results",
+)
 _EXCLUDED_COLUMNS = {"applied_at", "registered_at", "started_at", "completed_at"}
 
 
@@ -102,7 +114,7 @@ def store_mutation_fingerprint(
     store_map: StoreMap,
     role: StoreRole | str,
 ) -> dict[str, Any]:
-    """Fingerprint every persistent Stage 1 store field without exclusions."""
+    """Fingerprint every persistent store field without exclusions."""
 
     normalized = StoreRole(role)
     with read_connection(store_map, normalized) as connection:

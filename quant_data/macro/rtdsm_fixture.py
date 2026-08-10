@@ -12,7 +12,13 @@ from decimal import Decimal, InvalidOperation
 from ..contracts import IngestionReceipt
 from ..errors import Issue, ValidationError
 from ..fixtures import Fixture, FixtureManifest
-from ..ingestion import IngestionCoordinator, WriteResult
+from ..ingestion import (
+    ArtifactWrite,
+    IngestionCoordinator,
+    QualityWrite,
+    SnapshotWrite,
+    WriteResult,
+)
 from ..json_codec import dumps_strict, loads_strict
 from ..stores import StoreMap, StoreRole, stable_id
 from ..temporal import TemporalPrecision, TemporalValue, parse_date
@@ -746,6 +752,55 @@ class MacroFixtureImporter:
             )
         return WriteResult(
             written_count=appended_count,
-            artifact_id=artifact_id,
-            snapshot_id=snapshot_id,
+            artifacts=(
+                ArtifactWrite(
+                    artifact_id=artifact_id,
+                    dataset_id=candidate.evidence_dataset_id,
+                    content_sha256=candidate.artifact_sha256,
+                    media_type="text/csv",
+                    byte_count=candidate.artifact_byte_count,
+                    source_reference=candidate.artifact_resource,
+                    request_scope=dict(candidate.request_scope),
+                    captured_at=candidate.captured_at.raw,
+                    captured_precision=candidate.captured_at.precision.value,
+                    normalization_version=candidate.normalization_version,
+                ),
+            ),
+            snapshot=SnapshotWrite(
+                snapshot_id=snapshot_id,
+                dataset_id=candidate.canonical_dataset_id,
+                semantic_identity=candidate.semantic_identity,
+                scope=dict(candidate.request_scope),
+                completeness=str(candidate.request_scope["completeness"]),
+                row_count=len(candidate.observations),
+                captured_at=candidate.captured_at.raw,
+                captured_precision=candidate.captured_at.precision.value,
+                validation_state="validated",
+                artifact_ids=(artifact_id,),
+            ),
+            quality_results=(
+                QualityWrite(
+                    quality_result_id=stable_id(
+                        "quality_result",
+                        run_id,
+                        candidate.canonical_dataset_id,
+                        "fixture.batch_contract",
+                        "1.0.0",
+                    ),
+                    dataset_id=candidate.canonical_dataset_id,
+                    rule_id="fixture.batch_contract",
+                    rule_version="1.0.0",
+                    severity="informational",
+                    outcome="passed",
+                    subject_kind="snapshot",
+                    subject_id=snapshot_id,
+                    artifact_id=artifact_id,
+                    snapshot_id=snapshot_id,
+                    observed={
+                        "fetched_count": len(candidate.observations),
+                        "written_count": appended_count,
+                        "completeness": candidate.request_scope["completeness"],
+                    },
+                ),
+            ),
         )

@@ -1,7 +1,7 @@
 {
+  "schema_id": "quant_data.system_registry",
   "schema_version": "1.0.0",
-  "registry_id": "quant-data-stage1",
-  "revision": "2026-08-09.stage1.3",
+  "registry_version": "2.0.0",
   "status": "validated",
   "compatibility_target": {
     "api_version": "1.0",
@@ -77,32 +77,40 @@
       "default_path": "data/market_data.sqlite",
       "path_env": "QUANT_MARKET_DB_PATH",
       "anchor_relation": "store_metadata",
-      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
-      "migration_order": ["market:0001_foundation", "market:0002_vertical_slice"]
+      "control_tables": ["schema_migrations", "dataset_registry", "dataset_identity_contracts", "ingestion_runs", "ingestion_run_outputs", "ingestion_run_failures", "ingestion_artifacts", "ingestion_snapshots", "ingestion_snapshot_artifacts", "data_quality_results"],
+      "migration_order": ["market:0001_foundation", "market:0002_vertical_slice", "market:0003_control_plane"],
+      "write_coordination": {"scope": "physical_store", "lock_key": "sha256_canonical_path_uri_v1", "multi_store_order": "canonical_path_uri", "timeout_seconds": 5},
+      "backup": {"method": "sqlite_online_backup", "requires_explicit_target": true, "verify": ["integrity_check", "foreign_key_check", "migration_ledger", "dataset_registry"]}
     },
     {
       "id": "macro",
       "default_path": "data/macro_data.sqlite",
       "path_env": "QUANT_MACRO_DB_PATH",
       "anchor_relation": "store_metadata",
-      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
-      "migration_order": ["macro:0001_foundation", "macro:0002_vertical_slice"]
+      "control_tables": ["schema_migrations", "dataset_registry", "dataset_identity_contracts", "ingestion_runs", "ingestion_run_outputs", "ingestion_run_failures", "ingestion_artifacts", "ingestion_snapshots", "ingestion_snapshot_artifacts", "data_quality_results"],
+      "migration_order": ["macro:0001_foundation", "macro:0002_vertical_slice", "macro:0003_control_plane"],
+      "write_coordination": {"scope": "physical_store", "lock_key": "sha256_canonical_path_uri_v1", "multi_store_order": "canonical_path_uri", "timeout_seconds": 5},
+      "backup": {"method": "sqlite_online_backup", "requires_explicit_target": true, "verify": ["integrity_check", "foreign_key_check", "migration_ledger", "dataset_registry"]}
     },
     {
       "id": "company",
       "default_path": "data/company_data.sqlite",
       "path_env": "QUANT_COMPANY_DB_PATH",
       "anchor_relation": "store_metadata",
-      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
-      "migration_order": ["company:0001_foundation"]
+      "control_tables": ["schema_migrations", "dataset_registry", "dataset_identity_contracts", "ingestion_runs", "ingestion_run_outputs", "ingestion_run_failures", "ingestion_artifacts", "ingestion_snapshots", "ingestion_snapshot_artifacts", "data_quality_results"],
+      "migration_order": ["company:0001_foundation", "company:0002_control_plane"],
+      "write_coordination": {"scope": "physical_store", "lock_key": "sha256_canonical_path_uri_v1", "multi_store_order": "canonical_path_uri", "timeout_seconds": 5},
+      "backup": {"method": "sqlite_online_backup", "requires_explicit_target": true, "verify": ["integrity_check", "foreign_key_check", "migration_ledger", "dataset_registry"]}
     },
     {
       "id": "news",
       "default_path": "data/news_data.sqlite",
       "path_env": "QUANT_NEWS_DB_PATH",
       "anchor_relation": "store_metadata",
-      "control_tables": ["schema_migrations", "dataset_registry", "ingestion_runs"],
-      "migration_order": ["news:0001_foundation"]
+      "control_tables": ["schema_migrations", "dataset_registry", "dataset_identity_contracts", "ingestion_runs", "ingestion_run_outputs", "ingestion_run_failures", "ingestion_artifacts", "ingestion_snapshots", "ingestion_snapshot_artifacts", "data_quality_results"],
+      "migration_order": ["news:0001_foundation", "news:0002_control_plane"],
+      "write_coordination": {"scope": "physical_store", "lock_key": "sha256_canonical_path_uri_v1", "multi_store_order": "canonical_path_uri", "timeout_seconds": 5},
+      "backup": {"method": "sqlite_online_backup", "requires_explicit_target": true, "verify": ["integrity_check", "foreign_key_check", "migration_ledger", "dataset_registry"]}
     }
   ],
   "migrations": [
@@ -127,6 +135,16 @@
       "reconstruction_state": "fixture_validated"
     },
     {
+      "id": "market:0003_control_plane",
+      "store": "market",
+      "ordinal": 3,
+      "resource": "quant_data/migrations/market/0003_control_plane.sql",
+      "sha256": "144a0daf4926eb43a1d59e2aa23d190f2becd235ffa098267f972bc62c7a056b",
+      "semantic_scope": "New Stage 2 immutable artifact, snapshot, membership, and quality-result control plane; cross-reference recovered semantic 0000.",
+      "dependencies": ["market:0001_foundation", "market:0002_vertical_slice"],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
       "id": "macro:0001_foundation",
       "store": "macro",
       "ordinal": 1,
@@ -147,6 +165,16 @@
       "reconstruction_state": "fixture_validated"
     },
     {
+      "id": "macro:0003_control_plane",
+      "store": "macro",
+      "ordinal": 3,
+      "resource": "quant_data/migrations/macro/0003_control_plane.sql",
+      "sha256": "144a0daf4926eb43a1d59e2aa23d190f2becd235ffa098267f972bc62c7a056b",
+      "semantic_scope": "New Stage 2 immutable artifact, snapshot, membership, and quality-result control plane; cross-reference recovered semantic 0000.",
+      "dependencies": ["macro:0001_foundation", "macro:0002_vertical_slice"],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
       "id": "company:0001_foundation",
       "store": "company",
       "ordinal": 1,
@@ -154,6 +182,16 @@
       "sha256": "081c609509c4337b74a706739c0506aa6beefb0a4de430801619781b9aad7915",
       "semantic_scope": "New Stage 1 empty company-store control plane; cross-reference recovered semantic 0000 only.",
       "dependencies": [],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "company:0002_control_plane",
+      "store": "company",
+      "ordinal": 2,
+      "resource": "quant_data/migrations/company/0002_control_plane.sql",
+      "sha256": "144a0daf4926eb43a1d59e2aa23d190f2becd235ffa098267f972bc62c7a056b",
+      "semantic_scope": "New Stage 2 empty company-store artifact, snapshot, membership, and quality-result control plane; cross-reference recovered semantic 0000 only.",
+      "dependencies": ["company:0001_foundation"],
       "reconstruction_state": "fixture_validated"
     },
     {
@@ -165,53 +203,102 @@
       "semantic_scope": "New Stage 1 empty news-store control plane; cross-reference recovered semantic 0000 only.",
       "dependencies": [],
       "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "news:0002_control_plane",
+      "store": "news",
+      "ordinal": 2,
+      "resource": "quant_data/migrations/news/0002_control_plane.sql",
+      "sha256": "144a0daf4926eb43a1d59e2aa23d190f2becd235ffa098267f972bc62c7a056b",
+      "semantic_scope": "New Stage 2 empty news-store artifact, snapshot, membership, and quality-result control plane; cross-reference recovered semantic 0000 only.",
+      "dependencies": ["news:0001_foundation"],
+      "reconstruction_state": "fixture_validated"
     }
   ],
   "datasets": [
     {
       "id": "fixture.market.daily_price_evidence",
+      "version": "1.0.0",
       "store": "market",
       "layer": "evidence",
-      "relations": ["market_price_ingestion_requests"],
-      "schema_version": "1.0.0",
+      "physical": {"relations": [{"name": "market_price_ingestion_requests", "kind": "table"}]},
+      "identity": {"stable_fields": ["request_id"], "version_fields": ["semantic_identity"]},
+      "temporal": {"observation_fields": ["captured_at"], "observation_precision": "datetime", "availability_fields": ["captured_at"], "availability_precision": "datetime", "timezone_rule": "source_native_no_conversion", "range_semantics": "inclusive", "vintage_modes": ["latest", "as_of"], "history_basis": "local_capture", "missingness": "not_applicable"},
+      "revision_policy": "immutable_capture",
+      "freshness": {"cadence": "manual", "expected_lag": "P0D", "stale_after": "P30D", "measured_from": "successful_capture", "if_new": true, "health_severity": "informational"},
+      "quality_contract": {"missingness": "not_applicable", "units": "source_declared", "rules": ["fixture_digest", "scope_complete", "ohlc_consistent"], "required_warnings": []},
+      "collector_ids": ["fixture.market.daily_price_import"],
+      "tool_ids": [],
+      "dashboard_ids": ["stage1.overview"],
+      "export_ids": [],
       "active": true
     },
     {
       "id": "fixture.market.instruments",
+      "version": "1.0.0",
       "store": "market",
       "layer": "canonical",
-      "relations": ["instruments", "instrument_identifiers"],
-      "schema_version": "1.0.0",
+      "physical": {"relations": [{"name": "instruments", "kind": "table"}, {"name": "instrument_identifiers", "kind": "table"}]},
+      "identity": {"stable_fields": ["instrument_id"], "version_fields": ["identifier_id", "valid_from"]},
+      "temporal": {"observation_fields": ["valid_from", "valid_through"], "observation_precision": "date", "availability_fields": ["available_at"], "availability_precision": "mixed", "timezone_rule": "source_native_no_conversion", "range_semantics": "inclusive", "vintage_modes": ["latest", "as_of"], "history_basis": "local_capture", "missingness": "explicit_null"},
+      "revision_policy": "append_version",
+      "freshness": {"cadence": "manual", "expected_lag": "P0D", "stale_after": "P30D", "measured_from": "successful_capture", "if_new": true, "health_severity": "warning"},
+      "quality_contract": {"missingness": "explicit_null", "units": "not_applicable", "rules": ["stable_identity_binding", "identifier_unambiguous"], "required_warnings": []},
+      "collector_ids": ["fixture.market.daily_price_import"],
+      "tool_ids": [],
+      "dashboard_ids": ["stage1.overview"],
+      "export_ids": [],
       "active": true
     },
     {
       "id": "fixture.market.daily_prices",
+      "version": "1.0.0",
       "store": "market",
       "layer": "canonical",
-      "relations": ["prices_daily", "prices_daily_versions"],
-      "schema_version": "1.0.0",
+      "physical": {"relations": [{"name": "prices_daily", "kind": "table"}, {"name": "prices_daily_versions", "kind": "table"}]},
+      "identity": {"stable_fields": ["instrument_id", "trade_date", "provider", "price_variant", "currency_segment"], "version_fields": ["version_id", "correction_sequence"]},
+      "temporal": {"observation_fields": ["trade_date"], "observation_precision": "date", "availability_fields": ["available_at", "captured_at"], "availability_precision": "mixed", "timezone_rule": "source_native_no_conversion", "range_semantics": "inclusive", "vintage_modes": ["latest", "as_of"], "history_basis": "local_capture", "missingness": "not_applicable"},
+      "revision_policy": "append_version",
+      "freshness": {"cadence": "manual", "expected_lag": "P0D", "stale_after": "P30D", "measured_from": "successful_capture", "if_new": true, "health_severity": "warning"},
+      "quality_contract": {"missingness": "not_applicable", "units": "currency_and_volume", "rules": ["ohlc_consistent", "volume_nonnegative", "correction_chain"], "required_warnings": []},
+      "collector_ids": ["fixture.market.daily_price_import"],
+      "tool_ids": [],
+      "dashboard_ids": ["stage1.overview"],
+      "export_ids": [],
       "active": true
     },
     {
       "id": "fixture.macro.rtdsm_employ_evidence",
+      "version": "1.0.0",
       "store": "macro",
       "layer": "evidence",
-      "relations": [
-        "macro_releases",
-        "macro_source_artifacts",
-        "macro_source_snapshots",
-        "macro_snapshot_scopes",
-        "macro_snapshot_observation_membership"
-      ],
-      "schema_version": "1.0.0",
+      "physical": {"relations": [{"name": "macro_releases", "kind": "table"}, {"name": "macro_source_artifacts", "kind": "table"}, {"name": "macro_source_snapshots", "kind": "table"}, {"name": "macro_snapshot_scopes", "kind": "table"}, {"name": "macro_snapshot_observation_membership", "kind": "table"}]},
+      "identity": {"stable_fields": ["series_id", "source_vintage_identity"], "version_fields": ["release_id", "artifact_id", "snapshot_id"]},
+      "temporal": {"observation_fields": ["vintage_at"], "observation_precision": "mixed", "availability_fields": ["available_at", "captured_at"], "availability_precision": "mixed", "timezone_rule": "source_native_no_conversion", "range_semantics": "inclusive", "vintage_modes": ["latest", "as_of", "first_release"], "history_basis": "source_vintage", "missingness": "explicit_reason"},
+      "revision_policy": "immutable_capture",
+      "freshness": {"cadence": "manual", "expected_lag": "P0D", "stale_after": "P30D", "measured_from": "successful_capture", "if_new": true, "health_severity": "warning"},
+      "quality_contract": {"missingness": "explicit_reason", "units": "series_contract", "rules": ["fixture_digest", "complete_scope", "release_metadata_consistent"], "required_warnings": []},
+      "collector_ids": ["fixture.macro.rtdsm_employ_import"],
+      "tool_ids": [],
+      "dashboard_ids": ["stage1.overview"],
+      "export_ids": [],
       "active": true
     },
     {
       "id": "fixture.macro.rtdsm_employ",
+      "version": "1.0.0",
       "store": "macro",
       "layer": "canonical",
-      "relations": ["macro_series", "macro_observation_versions"],
-      "schema_version": "1.0.0",
+      "physical": {"relations": [{"name": "macro_series", "kind": "table"}, {"name": "macro_observation_versions", "kind": "table"}]},
+      "identity": {"stable_fields": ["series_id", "period_start", "period_end", "dimensions_digest"], "version_fields": ["source_vintage_identity", "correction_sequence", "version_id"]},
+      "temporal": {"observation_fields": ["period_start", "period_end"], "observation_precision": "date", "availability_fields": ["available_at", "captured_at"], "availability_precision": "mixed", "timezone_rule": "source_native_no_conversion", "range_semantics": "inclusive", "vintage_modes": ["latest", "as_of", "first_release"], "history_basis": "source_vintage", "missingness": "explicit_reason"},
+      "revision_policy": "append_version",
+      "freshness": {"cadence": "manual", "expected_lag": "P0D", "stale_after": "P30D", "measured_from": "successful_capture", "if_new": true, "health_severity": "warning"},
+      "quality_contract": {"missingness": "explicit_reason", "units": "series_contract", "rules": ["series_contract_stable", "period_order", "revision_chain"], "required_warnings": []},
+      "collector_ids": ["fixture.macro.rtdsm_employ_import"],
+      "tool_ids": ["macro.get_series"],
+      "dashboard_ids": ["stage1.overview"],
+      "export_ids": [],
       "active": true
     }
   ],
@@ -221,25 +308,37 @@
       "version": "1.0.0",
       "handler": "market.daily_price_fixture",
       "network": false,
+      "input_datasets": [],
       "output_datasets": [
         "fixture.market.daily_price_evidence",
         "fixture.market.instruments",
         "fixture.market.daily_prices"
       ],
-      "semantic_identity": "scope plus normalized complete batch",
-      "mutation_policy": "append_versions_and_move_current_projection"
+      "semantic_identity": {"includes": ["request_scope", "normalized_complete_batch"], "excludes": ["captured_at", "source_row_order"]},
+      "mutation_policy": {"mode": "append_versions_and_move_current_projection", "unchanged": "zero_persistent_writes"},
+      "workload_bounds": {"max_requests": 1, "max_rows": 10000, "max_bytes": 8388608, "max_seconds": 30},
+      "retry_policy": {"transient_classes": [], "max_attempts": 1, "backoff": "none", "honor_retry_after": false},
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {"mode": "manual_only"}
     },
     {
       "id": "fixture.macro.rtdsm_employ_import",
       "version": "1.0.0",
       "handler": "macro.rtdsm_fixture",
       "network": false,
+      "input_datasets": [],
       "output_datasets": [
         "fixture.macro.rtdsm_employ_evidence",
         "fixture.macro.rtdsm_employ"
       ],
-      "semantic_identity": "scope plus source vintage plus normalized complete batch",
-      "mutation_policy": "append_versions_and_snapshot_membership"
+      "semantic_identity": {"includes": ["request_scope", "source_vintage", "normalized_complete_batch"], "excludes": ["captured_at", "source_row_order"]},
+      "mutation_policy": {"mode": "append_versions_and_snapshot_membership", "unchanged": "zero_persistent_writes"},
+      "workload_bounds": {"max_requests": 1, "max_rows": 10000, "max_bytes": 8388608, "max_seconds": 30},
+      "retry_policy": {"transient_classes": [], "max_attempts": 1, "backoff": "none", "honor_retry_after": false},
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {"mode": "manual_only"}
     }
   ],
   "jobs": [],
@@ -529,14 +628,14 @@
             "provenance": {
               "dataset_id": "fixture.macro.rtdsm_employ",
               "store_role": "macro",
-              "registry_revision": "2026-08-09.stage1.3",
+              "registry_revision": "2.0.0",
               "store_receipt": {
                 "migration_ids": ["macro:0001_foundation", "macro:0002_vertical_slice"],
                 "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
               }
             },
             "truncated": false,
-            "lineage_digest": "c756d0e9dcb84cf0991356d936c7d5dde1937fad794c846737363ca29183de7b"
+            "lineage_digest": "ecdddd3582fa7063d5346f3764b5b7aa581c651c744ba1a2f0cd4ee5bfe2bfff"
           }
         }
       ],

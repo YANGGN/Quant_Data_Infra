@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0.0",
+  "approval_status": "fixture_validated",
+  "registry_revision": "2.0.0",
+  "evidence_sha256": "3501d94b16310bfe25c3e26c7d9f997707757cc0972d73e39cb52029b2ea633b",
+  "stage1_fixture_evidence_sha256": "92f9dd8ae112f1da6156e256510c013d21c86aef0dd2d83b81d58129f21d5d29",
+  "stage1_golden_results_sha256": "8d8ee7164a6a77faaf7b6df8973d3d54dcdeb5473de7444ec47fc25ebc7f0f17",
+  "golden_query_sha256": "ce5fcc3365a00a1b5bf1595244ee697c3df498089ff559e22692b2382d79cb63",
+  "composition_sha256": "17b7ba8ccb291731f78920762835a1440f71cfb5e3fbc6d33afeace369b747ad",
+  "logical_manifest_sha256": "f6c4bd262a0b5ea656c088b60c49658341d45f6d270a2641c3b7cc8c44f4cfa0",
+  "migration_heads": {
+    "market": [
+      "market:0001_foundation",
+      "market:0002_vertical_slice",
+      "market:0003_control_plane"
+    ],
+    "macro": [
+      "macro:0001_foundation",
+      "macro:0002_vertical_slice",
+      "macro:0003_control_plane"
+    ],
+    "company": [
+      "company:0001_foundation",
+      "company:0002_control_plane"
+    ],
+    "news": [
+      "news:0001_foundation",
+      "news:0002_control_plane"
+    ]
+  },
+  "control_plane_counts": {
+    "market": {
+      "store_metadata": 1,
+      "schema_migrations": 3,
+      "dataset_registry": 3,
+      "dataset_identity_contracts": 3,
+      "ingestion_runs": 2,
+      "ingestion_run_outputs": 6,
+      "ingestion_run_failures": 0,
+      "ingestion_artifacts": 2,
+      "ingestion_snapshots": 2,
+      "ingestion_snapshot_artifacts": 2,
+      "data_quality_results": 2
+    },
+    "macro": {
+      "store_metadata": 1,
+      "schema_migrations": 3,
+      "dataset_registry": 2,
+      "dataset_identity_contracts": 2,
+      "ingestion_runs": 2,
+      "ingestion_run_outputs": 4,
+      "ingestion_run_failures": 0,
+      "ingestion_artifacts": 2,
+      "ingestion_snapshots": 2,
+      "ingestion_snapshot_artifacts": 2,
+      "data_quality_results": 2
+    },
+    "company": {
+      "store_metadata": 1,
+      "schema_migrations": 2,
+      "dataset_registry": 0,
+      "dataset_identity_contracts": 0,
+      "ingestion_runs": 0,
+      "ingestion_run_outputs": 0,
+      "ingestion_run_failures": 0,
+      "ingestion_artifacts": 0,
+      "ingestion_snapshots": 0,
+      "ingestion_snapshot_artifacts": 0,
+      "data_quality_results": 0
+    },
+    "news": {
+      "store_metadata": 1,
+      "schema_migrations": 2,
+      "dataset_registry": 0,
+      "dataset_identity_contracts": 0,
+      "ingestion_runs": 0,
+      "ingestion_run_outputs": 0,
+      "ingestion_run_failures": 0,
+      "ingestion_artifacts": 0,
+      "ingestion_snapshots": 0,
+      "ingestion_snapshot_artifacts": 0,
+      "data_quality_results": 0
+    }
+  }
+}

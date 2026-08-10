@@ -1,4 +1,4 @@
-"""Explicit command-line entry point for the offline Stage 1 harness."""
+"""Explicit command-line entry point for deterministic offline stage gates."""
 
 from __future__ import annotations
 
@@ -8,11 +8,21 @@ from collections.abc import Sequence
 
 from .errors import QuantDataError
 from .json_codec import dumps_strict
-from .stage1 import compare_clean_rebuilds, run_clean_rebuild
+from .stage1 import (
+    compare_clean_rebuilds as compare_clean_stage1_rebuilds,
+    run_clean_rebuild as run_clean_stage1_rebuild,
+)
+from .stage2 import compare_clean_stage2_rebuilds, run_clean_stage2_rebuild
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="python3 -m quant_data")
+    parser.add_argument(
+        "--stage",
+        required=True,
+        choices=("stage1", "stage2"),
+        help="Offline acceptance gate to execute",
+    )
     parser.add_argument(
         "--project-root",
         required=True,
@@ -21,11 +31,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--store-root",
         required=True,
-        help="Explicit empty root for four temporary Stage 1 SQLite stores",
+        help="Explicit empty store root (Stage 1) or work root (Stage 2)",
     )
     parser.add_argument(
         "--second-store-root",
-        help="Optional second empty root; when supplied, require equal clean rebuild evidence",
+        help="Optional second empty root; require equal path-free rebuild evidence",
     )
     return parser
 
@@ -33,16 +43,27 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     try:
-        if arguments.second_store_root:
-            evidence = compare_clean_rebuilds(
+        if arguments.stage == "stage1" and arguments.second_store_root:
+            evidence = compare_clean_stage1_rebuilds(
                 project_root=arguments.project_root,
                 first_store_root=arguments.store_root,
                 second_store_root=arguments.second_store_root,
             )
-        else:
-            evidence = run_clean_rebuild(
+        elif arguments.stage == "stage1":
+            evidence = run_clean_stage1_rebuild(
                 project_root=arguments.project_root,
                 store_root=arguments.store_root,
+            )
+        elif arguments.second_store_root:
+            evidence = compare_clean_stage2_rebuilds(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
+            )
+        else:
+            evidence = run_clean_stage2_rebuild(
+                project_root=arguments.project_root,
+                work_root=arguments.store_root,
             )
     except QuantDataError as exc:
         print(dumps_strict({"error": exc.to_dict()}), file=sys.stderr)

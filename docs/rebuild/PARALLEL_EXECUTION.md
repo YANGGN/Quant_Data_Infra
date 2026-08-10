@@ -11,8 +11,9 @@ without bypassing the exit gates in [ROADMAP.md](../../ROADMAP.md) or allowing
 multiple agents to redefine shared semantics. It complements the project agent
 policy in [AGENTS.md](../../AGENTS.md).
 
-Stage 0 and the bounded offline Stage 1 slice were authorized on 2026-08-09.
-This plan does not authorize executable work beyond the current stage gate.
+Stage 0, the bounded offline Stage 1 slice, and the offline Stage 2 four-store
+foundation were authorized on 2026-08-09. Stage 2 is fixture-validated and
+independently verified; this plan does not authorize Stage 3 executable work.
 
 ## 2. Capacity and operating model
 
@@ -42,7 +43,8 @@ B1  Freeze the Stage-1 shared spine
  | +-- Macro vertical-slice lane ----------+--> G1 Stage-1 exit gate
  | +-- Tool/dashboard/test-boundary lane --+
  |
-G2  Four-store foundation (unified runtime mode retired)
+G2  Four-store foundation (fixture-validated; unified runtime mode retired)
+ |  Stage 3 implementation still requires explicit authorization
  |-- in parallel: Market restoration
  |-- in parallel: Macro restoration
  v
@@ -124,16 +126,22 @@ suite, including clean-rebuild equivalence and future-evidence exclusion.
 
 ### Wave 2 — Four-store foundation
 
-After the Stage-1 gate, safe lanes are:
+Status: **Implemented offline and fixture-validated.** Its evidence is
+recorded in [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md). The completed
+scope comprises company/news empty-domain initialization; ten store-local
+migrations; registry reconciliation; shared artifact/snapshot/quality/run-audit
+control-plane conventions; strict routing and physical locks; read-only health;
+cross-store composition receipts; and WAL-safe backup/restore mechanics.
 
-- company-store initialization and temporary fixtures;
-- news-store initialization and temporary fixtures; and
-- migration, health, backup, read-only-factory, and cross-store test mechanics.
-
-The primary owns registry reconciliation, the migration map, shared
+The primary owned registry reconciliation, the migration map, shared
 control-plane conventions, and enforcement of the retired unified runtime mode.
+This foundation does not authorize market or macro restoration, live providers,
+scheduler jobs, exports, Atlas, promotion, or destructive operations.
 
 ### Wave 3 — Market and macro restoration
+
+Status: **Gated and unauthorized.** Stage 2 fixture evidence is not permission
+to begin this wave.
 
 Market and macro may run in parallel because they own distinct operational
 stores. Each lane remains internally ordered as specified in
@@ -176,7 +184,8 @@ connections.
 ### Wave 7 — Scheduling and operations
 
 The physical-path lock primitive is designed and tested earlier as shared
-infrastructure. Actual jobs remain manual-first and Stage 7.
+infrastructure. Stage 2 also supplies offline read-only health and WAL-safe
+backup/restore evidence. Actual jobs remain manual-first and Stage 7.
 
 After the scheduler core freezes, domain job wrappers may run in parallel.
 Receipt schemas, lock identity, multi-lock ordering, retries, aggregate status,

@@ -8,9 +8,9 @@ Infrastructure rebuild documents
 
 This directory converts the historical recovery specification in
 [plan.md](../../plan.md) into accepted implementation contracts. Stage 0 was
-accepted and the offline Stage 1 slice was implemented on 2026-08-09. Later
-documented behavior is not considered implemented until its executable
-evidence passes.
+accepted and the offline Stage 1 slice and Stage 2 four-store foundation were
+implemented on 2026-08-09. Later documented behavior is not considered
+implemented until its executable evidence passes.
 
 Two user decisions narrow the work:
 
@@ -28,6 +28,7 @@ Two user decisions narrow the work:
 - [Parallel execution and agent cadence](PARALLEL_EXECUTION.md)
 - [Migration reconstruction map](MIGRATION_RECONSTRUCTION.md)
 - [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md)
+- [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -77,9 +78,10 @@ either history or semantics.
 - `Implemented`: supported by executable evidence and acceptance results.
 - `Rejected`: considered and intentionally not adopted.
 
-The current planning package is `Accepted`. Only the explicitly authorized
-roadmap stage may be implemented; acceptance of the package does not authorize
-later stages.
+The current planning package is `Accepted`. Stage 1 and the offline Stage 2
+foundation have recorded fixture-validated evidence, and Stage 2 has passed
+independent verification. Only the explicitly authorized roadmap stage may be
+implemented; Stage 3 remains gated and unauthorized.
 
 ## 5. Shared terminology
 

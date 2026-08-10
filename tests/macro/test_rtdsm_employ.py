@@ -357,8 +357,20 @@ class RtdsmEmployTests(unittest.TestCase):
                 conflicting.id
             )
         self.assertEqual(caught.exception.code, "invalid_request")
-        self.assertEqual(before["sha256"], logical_manifest(self.store_map, self.registry)["sha256"])
+        self.assertNotEqual(
+            before["sha256"],
+            logical_manifest(self.store_map, self.registry)["sha256"],
+        )
         self.assertEqual(self._counts()["ingestion_runs"], 1)
+        with read_connection(self.store_map, StoreRole.MACRO) as connection:
+            failure = connection.execute(
+                """
+                SELECT status, error_code FROM ingestion_run_failures
+                WHERE dataset_id=?
+                """,
+                ("fixture.macro.rtdsm_employ",),
+            ).fetchone()
+        self.assertEqual(tuple(failure), ("rejected", "validation_rejected"))
 
     def test_equivalent_decimal_spelling_is_a_semantic_total_no_write(self) -> None:
         self.importer.import_fixture("macro.first_vintage")

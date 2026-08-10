@@ -135,7 +135,11 @@ def _migration_authorizer(
         # Every foundation resource repeats the reviewed IF-NOT-EXISTS ledger
         # declaration.  It is harmless because the runner creates the exact
         # table first; all mutation actions against the ledger remain denied.
-        if action not in {sqlite3.SQLITE_CREATE_TABLE, sqlite3.SQLITE_READ}:
+        if action not in {
+            sqlite3.SQLITE_CREATE_TABLE,
+            sqlite3.SQLITE_CREATE_TRIGGER,
+            sqlite3.SQLITE_READ,
+        }:
             return sqlite3.SQLITE_DENY
     return sqlite3.SQLITE_OK
 
@@ -147,12 +151,18 @@ def _apply_one(
     applied_at: str,
     sql: str,
 ) -> None:
+    # SQLite table-rebuild migrations need foreign-key enforcement disabled
+    # outside the transaction. Every resource is still atomic, and a complete
+    # foreign-key check is mandatory before its ledger row can commit.
+    connection.execute("PRAGMA foreign_keys=OFF")
     try:
         connection.execute("BEGIN IMMEDIATE")
         connection.set_authorizer(_migration_authorizer)
         for statement in _sql_statements(sql):
             connection.execute(statement)
         connection.set_authorizer(None)
+        if tuple(connection.execute("PRAGMA foreign_key_check")):
+            raise MigrationError("Migration leaves foreign-key violations")
         connection.execute(
             """
             INSERT INTO schema_migrations (
@@ -179,6 +189,7 @@ def _apply_one(
         raise MigrationError(f"Migration {declaration.id} failed atomically") from exc
     finally:
         connection.set_authorizer(None)
+        connection.execute("PRAGMA foreign_keys=ON")
 
 
 def migrate_store(
@@ -271,7 +282,7 @@ def _register_datasets(
                         ),
                     )
                 else:
-                    actual = tuple(existing)
+                    actual = tuple(existing[:5])
                     expected = (
                         declaration.store,
                         declaration.layer,
@@ -281,6 +292,68 @@ def _register_datasets(
                     )
                     if actual != expected:
                         raise MigrationError("Store-local dataset declaration conflicts with registry")
+                stored_identity = connection.execute(
+                    """
+                    SELECT identity_sha256, registered_version
+                    FROM dataset_identity_contracts WHERE dataset_id=?
+                    """,
+                    (declaration.id,),
+                ).fetchone()
+                if stored_identity is None:
+                    connection.execute(
+                        """
+                        INSERT INTO dataset_identity_contracts (
+                            dataset_id, identity_sha256, registered_version
+                        ) VALUES (?, ?, ?)
+                        """,
+                        (
+                            declaration.id,
+                            declaration.identity_sha256,
+                            declaration.version,
+                        ),
+                    )
+                elif stored_identity["identity_sha256"] != declaration.identity_sha256:
+                    raise MigrationError(
+                        "Store-local dataset identity conflicts with registry"
+                    )
+            registered_ids = {
+                str(row["dataset_id"])
+                for row in connection.execute("SELECT dataset_id FROM dataset_registry")
+            }
+            expected_ids = {declaration.id for declaration in declarations}
+            if registered_ids != expected_ids:
+                raise MigrationError(
+                    "Store-local dataset inventory does not match the registry"
+                )
+            identity_ids = {
+                str(row["dataset_id"])
+                for row in connection.execute(
+                    "SELECT dataset_id FROM dataset_identity_contracts"
+                )
+            }
+            if identity_ids != expected_ids:
+                raise MigrationError(
+                    "Store-local dataset identity inventory does not match the registry"
+                )
+            store = registry.store(role.value)
+            actual_relations = {
+                str(row["name"])
+                for row in connection.execute(
+                    """
+                    SELECT name FROM sqlite_master
+                    WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'
+                    """
+                )
+            }
+            expected_relations = {
+                store.anchor_relation,
+                *store.control_tables,
+                *(relation for declaration in declarations for relation in declaration.relations),
+            }
+            if actual_relations != expected_relations:
+                raise MigrationError(
+                    "Store relation ownership does not match the registry"
+                )
             connection.commit()
         except Exception:
             connection.rollback()

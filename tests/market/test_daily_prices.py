@@ -354,25 +354,18 @@ class DailyPriceMarketTests(unittest.TestCase):
         )
         self.assertEqual(earlier_before["lineage_digest"], earlier_after["lineage_digest"])
 
-    def test_store_receipt_hash_includes_applied_migration_checksums(self) -> None:
+    def test_store_receipt_is_stable_when_ledger_tampering_is_rejected(self) -> None:
         self.importer.import_fixture("market.base")
         before = self.repository.get_prices(self._query())
         with sqlite3.connect(self.store_map.market) as connection:
-            connection.execute(
-                "UPDATE schema_migrations SET sha256=? WHERE ordinal=2",
-                ("f" * 64,),
-            )
-            connection.commit()
+            with self.assertRaises(sqlite3.IntegrityError):
+                connection.execute(
+                    "UPDATE schema_migrations SET sha256=? WHERE ordinal=2",
+                    ("f" * 64,),
+                )
+            connection.rollback()
         after = self.repository.get_prices(self._query())
-        self.assertEqual(
-            before["provenance"]["store_receipt"]["migration_ids"],
-            after["provenance"]["store_receipt"]["migration_ids"],
-        )
-        self.assertNotEqual(
-            before["provenance"]["store_receipt"]["sha256"],
-            after["provenance"]["store_receipt"]["sha256"],
-        )
-        self.assertNotEqual(before["lineage_digest"], after["lineage_digest"])
+        self.assertEqual(before, after)
 
     def test_query_validation_and_deterministic_limit(self) -> None:
         self.importer.import_fixture("market.base")
@@ -453,7 +446,7 @@ class DailyPriceMarketTests(unittest.TestCase):
         after = logical_manifest(self.store_map, self.registry)
         self.assertEqual(before["sha256"], after["sha256"])
         self.assertEqual(result["provenance"]["store_role"], "market")
-        self.assertEqual(len(result["provenance"]["store_receipt"]["migration_ids"]), 2)
+        self.assertEqual(len(result["provenance"]["store_receipt"]["migration_ids"]), 3)
         with read_connection(self.store_map, StoreRole.MARKET) as connection:
             self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
             self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])

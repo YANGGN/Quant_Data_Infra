@@ -4,9 +4,10 @@
 
 This workspace began as a documentation-only recovery package. On 2026-08-09
 the user accepted the Stage 0 planning baseline, authorized a fresh Git
-baseline, and authorized the bounded offline Stage 1 vertical slice. Do not
-claim that a documented contract is implemented until its executable evidence
-passes the applicable gate, and do not invent historical behavior.
+baseline, and authorized the bounded offline Stage 1 vertical slice and Stage
+2 four-store foundation. Do not claim that a documented contract is implemented
+until its executable evidence passes the applicable gate, and do not invent
+historical behavior.
 
 Before cross-cutting work, read [the rebuild documentation index](docs/rebuild/README.md).
 Its authority order is:
@@ -18,8 +19,10 @@ Its authority order is:
 5. `plan.md` as recovery evidence and historical context.
 
 The rebuild documents and ADRs are Accepted as the current target contracts.
-The offline Stage 1 vertical slice is implemented and fixture-validated. Later
-stages still require their roadmap exit gates and explicit authorization.
+The offline Stage 1 vertical slice and Stage 2 four-store foundation are
+implemented and fixture-validated; Stage 2 has also passed independent
+verification. Stage 3 and later stages still require their roadmap exit gates
+and explicit authorization.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit
@@ -47,11 +50,11 @@ Once already inside WSL, run the Linux command directly. Prefer `rg`/`rg
 and `grep`. Use `python3`, not a Windows Python executable.
 
 Discover the executable toolchain before invoking it. The current dependency-
-free Stage 1 validation command is
+free validation command is
 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -t . -v`.
-The deterministic rebuild CLI requires explicit project and empty store roots;
-see `README.md`. Do not invent unavailable package-manager, framework, or
-live-provider commands.
+The deterministic rebuild CLI requires explicit `--stage`, project, and empty
+store/work roots; see `README.md`. Do not invent unavailable package-manager,
+framework, or live-provider commands.
 
 ## Model routing
 

@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Status and scope
 
-This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). Stage 1 is authorized, but a contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
+This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice and independently verified Stage 2 four-store foundation are implemented with fixture-validated evidence; Stage 3 remains gated and unauthorized. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
 
 The principal decisions are recorded in:
 
@@ -28,7 +28,7 @@ The rebuild targets Python 3.11 or later, SQLite through the standard-library sq
 - Give tools and the local dashboard fixed, validated, read-only interfaces.
 - Make every fill, transformation, exclusion, aggregation, and availability choice visible to the caller.
 - Publish Atlas only from validated, read-only analytical snapshots.
-- Keep configuration, ownership, migrations, freshness, exposure, and export intent consistent through one future machine-readable registry.
+- Keep configuration, ownership, migrations, freshness, exposure, and export intent consistent through one machine-readable registry.
 
 ### Non-goals
 
@@ -143,15 +143,45 @@ See [ADR 0003](docs/adr/0003-three-layer-data-architecture.md) for consequences 
 
 ## Store-local control plane
 
-Every store carries three recovered control-plane concepts:
+Every Stage 2 store carries the same ten control-plane relations:
 
-- **schema_migrations** records ordered, immutable applied migrations and their checksums;
-- **dataset_registry** records the store-local applied state of datasets owned by that store; and
-- **ingestion_runs** records durable outcomes for logical write work.
+- **schema_migrations** records ordered, immutable applied migrations and their
+  checksums;
+- **dataset_registry** and **dataset_identity_contracts** record the store-local
+  applied state and immutable identity contract of datasets owned by that store;
+- **ingestion_runs**, **ingestion_run_outputs**, and
+  **ingestion_run_failures** record durable work outcomes, declared outputs,
+  and immutable failure audits;
+- **ingestion_artifacts**, **ingestion_snapshots**, and
+  **ingestion_snapshot_artifacts** retain immutable evidence and its snapshot
+  lineage; and
+- **data_quality_results** retains immutable quality outcomes tied to the
+  published work.
 
-The future system registry is declarative source configuration. The store-local dataset registry is runtime evidence. Neither replaces the other. Startup and health checks reconcile them and fail closed on missing ownership, an unexpected migration state, or a dataset mapped to the wrong physical store.
+The system registry is declarative source configuration; the implemented Stage 2
+revision is `2.0.0`. The store-local dataset registry is runtime evidence.
+Neither replaces the other. Startup and health checks reconcile them and fail
+closed on missing ownership, an unexpected migration state, or a dataset mapped
+to the wrong physical store.
 
-Applied migration SQL is immutable. A correction is a new migration. The recovered semantic migration sequence runs through 0031, but byte-exact DDL, checksums, indexes, and triggers remain evidence that must be reconstructed and fixture-tested before parity is asserted. In particular, the filing/issuer membership object associated with migration 0031 is a derived view with supporting invariants, not a guessed physical join table.
+The physical dataset-layer contract is exactly `evidence`, `canonical`, and
+`derived`. The Stage 2 forward-preserving table rebuild aligns the SQLite
+constraint to that contract. It may disable foreign-key enforcement only inside
+the atomic rebuild, and must pass `foreign_key_check` before the migration
+ledger advances. Immutable control-plane identities reject `INSERT OR REPLACE`
+even if recursive triggers are off; library connections enable recursive
+triggers as an additional defense. A running run's identity is immutable, and
+a failed run ID is durable audit evidence that cannot be reused by a later
+failed or successful attempt.
+
+Applied migration SQL is immutable. A correction is a new migration. The ten
+currently allocated Stage 1 and Stage 2 resources are fixture-validated
+deliberate reconstructions, never claims of `recovered_exact` parity. The
+recovered semantic migration sequence runs through 0031, but byte-exact DDL,
+checksums, indexes, and triggers beyond the reviewed resources remain evidence
+that must be reconstructed and fixture-tested before parity is asserted. In
+particular, the filing/issuer membership object associated with migration 0031
+is a derived view with supporting invariants, not a guessed physical join table.
 
 Run status distinguishes succeeded, partial, failed, and unchanged behavior. External scheduler receipts may record a poll that made no database writes; they must not manufacture an ingestion run merely to record an unchanged release.
 
@@ -178,7 +208,13 @@ Cross-store composition follows this sequence:
 5. Join in application memory using stable identities.
 6. Return provenance, exclusions, missingness, warnings, and truncation with the result.
 
-There is no claim of one atomic transaction across stores. A composed result must report the contributing store snapshots or read-copy receipts.
+The implemented Stage 2 foundation composes bounded capture/snapshot evidence
+only when a dataset declares `captured_at` as its availability field; it never
+substitutes ingestion completion time. Each contributing store is read under a
+SQLite read transaction with start and completion state receipts. There is no
+claim of one atomic transaction across stores: the result explicitly reports
+`best_effort_multi_store` consistency and `none_best_effort` cohort evidence,
+along with the contributing store receipts.
 
 ## Ingestion and mutation path
 
@@ -200,6 +236,13 @@ Domain validation includes OHLC consistency, nonnegative volume, duplicate natur
 ## Read paths and public boundaries
 
 Dashboard and tool connections use SQLite URI read-only mode, set PRAGMA query_only = ON, use bound parameters, and route through fixed queries or service functions. Caller input never selects SQL, a table outside an allowlist, or a database path.
+
+At Stage 2, the only validated public tool names are `macro.get_series` and
+`timeseries.describe`; all 57 compatibility names remain reserved, with no
+other validated public tool at this stage. Read-only health reconciles every
+explicit store against the registry without initializing or mutating a store.
+It compares exact reviewed `sqlite_master` schema SQL, not relation and trigger
+names alone.
 
 Tool contracts are versioned, deterministic, strict JSON:
 
@@ -238,6 +281,11 @@ The exporter must never recursively clean an empty, unresolved, broad, repositor
 
 ## Deployment modes
 
+The implemented Stage 2 boundary is offline only. It does not install or run
+scheduler jobs, fetch live providers, create exports or Atlas snapshots,
+promote data, perform destructive storage operations, or restore the broader
+Stage 3 market and macro domains.
+
 ### Isolated development and test
 
 All four paths are explicitly redirected to temporary locations. Tests must never fall back to live or default databases. Migrations, collectors, point-in-time queries, failure cases, backup, and restore run against fixtures.
@@ -266,7 +314,9 @@ A legacy unified file is not a supported runtime layout and cannot be auto-disco
 - If two logical store declarations resolve to one physical file, configuration validation fails closed; physical identity checks prevent the alias from bypassing coordination before rejection.
 - A collector does not hold a database lock during network I/O or retry delay.
 - Partial, stale, and truncated results are explicit states, never silent success.
-- WAL-aware online backup or SQLite backup is used instead of copying a live database file.
+- The Stage 2 foundation uses WAL-safe SQLite online backup rather than copying
+  a live database file, and verifies source, backup, and restored logical
+  evidence without mutating the source or backup cohort.
 - Restore drills validate integrity, migration state, dataset ownership, and representative point-in-time queries on the restored copy.
 - Atlas staging or deployment failure cannot modify the last promoted snapshot.
 

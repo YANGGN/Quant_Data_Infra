@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import unittest
 import hashlib
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
@@ -130,11 +131,102 @@ class StoreAndMigrationTests(unittest.TestCase):
         second = logical_manifest(self.store_map, self.registry)
         self.assertEqual(first_status, second_status)
         self.assertEqual(first["sha256"], second["sha256"])
-        self.assertEqual(len(first_status["market"]), 2)
-        self.assertEqual(len(first_status["macro"]), 2)
-        self.assertEqual(len(first_status["company"]), 1)
-        self.assertEqual(len(first_status["news"]), 1)
+        self.assertEqual(len(first_status["market"]), 3)
+        self.assertEqual(len(first_status["macro"]), 3)
+        self.assertEqual(len(first_status["company"]), 2)
+        self.assertEqual(len(first_status["news"]), 2)
         self.assertFalse((PROJECT_ROOT / "data").exists())
+
+    def test_stage2_registry_rebuild_preserves_stage1_rows_and_foreign_keys(self) -> None:
+        stage2_ids = {
+            "market:0003_control_plane",
+            "macro:0003_control_plane",
+            "company:0002_control_plane",
+            "news:0002_control_plane",
+        }
+        stage1_registry = replace(
+            self.registry,
+            registry_version="1.0.0",
+            migrations=tuple(
+                item for item in self.registry.migrations if item.id not in stage2_ids
+            ),
+            stores=tuple(
+                replace(
+                    store,
+                    control_tables=(
+                        "schema_migrations",
+                        "dataset_registry",
+                        "ingestion_runs",
+                    ),
+                    migration_order=tuple(
+                        item for item in store.migration_order if item not in stage2_ids
+                    ),
+                )
+                for store in self.registry.stores
+            ),
+        )
+        migrate_store(
+            self.store_map,
+            stage1_registry,
+            StoreRole.MARKET,
+            applied_at="2026-08-09T11:00:00-04:00",
+        )
+        connection = sqlite3.connect(self.store_map.market)
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute(
+            """
+            INSERT INTO dataset_registry (
+                dataset_id, store_role, layer, schema_version, relations_json,
+                active, registered_at
+            ) VALUES ('test.upgrade', 'market', 'canonical', '1.0.0', '[]', 0, ?)
+            """,
+            ("2026-08-09T11:00:00-04:00",),
+        )
+        connection.execute(
+            """
+            INSERT INTO ingestion_runs (
+                run_id, dataset_id, semantic_identity, command, scope_json,
+                status, started_at, fetched_count, code_version
+            ) VALUES ('test-upgrade-run', 'test.upgrade', ?, 'test.upgrade',
+                      '{}', 'running', ?, 0, 'test')
+            """,
+            ("e" * 64, "2026-08-09T11:00:00-04:00"),
+        )
+        connection.commit()
+        connection.close()
+
+        migrate_store(
+            self.store_map,
+            self.registry,
+            StoreRole.MARKET,
+            applied_at="2026-08-09T12:00:00-04:00",
+        )
+        connection = sqlite3.connect(self.store_map.market)
+        connection.execute("PRAGMA foreign_keys=ON")
+        self.assertEqual(
+            connection.execute(
+                "SELECT layer FROM dataset_registry WHERE dataset_id='test.upgrade'"
+            ).fetchone(),
+            ("canonical",),
+        )
+        self.assertEqual(
+            connection.execute(
+                "SELECT dataset_id FROM ingestion_runs WHERE run_id='test-upgrade-run'"
+            ).fetchone(),
+            ("test.upgrade",),
+        )
+        self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
+        connection.execute(
+            """
+            INSERT INTO dataset_registry (
+                dataset_id, store_role, layer, schema_version, relations_json,
+                active, registered_at
+            ) VALUES ('test.derived', 'market', 'derived', '1.0.0', '[]', 0, ?)
+            """,
+            ("2026-08-09T12:00:00-04:00",),
+        )
+        connection.rollback()
+        connection.close()
 
     def test_duplicate_physical_store_path_fails_closed(self) -> None:
         path = self.root / "same.sqlite"
@@ -163,22 +255,25 @@ class StoreAndMigrationTests(unittest.TestCase):
                 pass
         self.assertEqual(getattr(caught.exception, "code", None), "store_unavailable")
 
-    def test_applied_ledger_tamper_fails_before_later_work(self) -> None:
+    def test_applied_ledger_is_immutable_before_later_work(self) -> None:
         initialize_all(self.store_map, self.registry)
         connection = sqlite3.connect(self.store_map.market)
-        connection.execute(
-            "UPDATE schema_migrations SET sha256=? WHERE ordinal=1",
-            ("0" * 64,),
-        )
-        connection.commit()
+        with self.assertRaises(sqlite3.IntegrityError):
+            connection.execute(
+                "UPDATE schema_migrations SET sha256=? WHERE ordinal=1",
+                ("0" * 64,),
+            )
+        connection.rollback()
         connection.close()
-        with self.assertRaises(MigrationError):
+        self.assertEqual(
             migrate_store(
                 self.store_map,
                 self.registry,
                 StoreRole.MARKET,
                 applied_at="2026-08-09T12:00:00-04:00",
-            )
+            ),
+            self.registry.store("market").migration_order,
+        )
 
     def test_resource_tamper_after_registry_load_advances_no_ledger(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:
@@ -232,7 +327,7 @@ class StoreAndMigrationTests(unittest.TestCase):
             connection = sqlite3.connect(stores.market)
             count = connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
             connection.close()
-            self.assertEqual(count, 2)
+            self.assertEqual(count, 3)
 
     def test_inline_transaction_control_cannot_escape_atomic_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:
@@ -274,14 +369,83 @@ class StoreAndMigrationTests(unittest.TestCase):
             self.assertIsNone(escaped)
             self.assertEqual(ledger_count, 0)
 
+    def test_migration_table_rebuild_mode_rejects_foreign_key_violations(self) -> None:
+        with tempfile.TemporaryDirectory() as project_directory:
+            project = Path(project_directory)
+            shutil.copytree(PROJECT_ROOT / "config", project / "config")
+            shutil.copytree(
+                PROJECT_ROOT / "quant_data" / "migrations",
+                project / "quant_data" / "migrations",
+            )
+            resource = project / "quant_data" / "migrations" / "market" / "0001_foundation.sql"
+            resource_bytes = b"""
+CREATE TABLE parent(id TEXT PRIMARY KEY) STRICT;
+CREATE TABLE child(
+    id TEXT PRIMARY KEY,
+    parent_id TEXT NOT NULL REFERENCES parent(id)
+) STRICT;
+INSERT INTO child(id, parent_id) VALUES ('child', 'missing');
+"""
+            resource.write_bytes(resource_bytes)
+            registry_path = project / "config" / "system_registry.json"
+            raw = loads_strict(registry_path.read_bytes())
+            raw["migrations"][0]["sha256"] = hashlib.sha256(resource_bytes).hexdigest()
+            registry_path.write_text(dumps_strict(raw), encoding="utf-8")
+            copied_registry = load_registry(
+                registry_path,
+                project_root=project,
+                environment={},
+            )
+            stores = temporary_store_map(project / "stores")
+            with self.assertRaises(MigrationError):
+                migrate_store(
+                    stores,
+                    copied_registry,
+                    StoreRole.MARKET,
+                    applied_at="2026-08-09T12:00:00-04:00",
+                )
+            connection = sqlite3.connect(stores.market)
+            self.assertIsNone(
+                connection.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='child'"
+                ).fetchone()
+            )
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0],
+                0,
+            )
+            connection.close()
+
     def test_mutation_fingerprint_includes_volatile_control_fields(self) -> None:
         initialize_all(self.store_map, self.registry)
+        connection = sqlite3.connect(self.store_map.market)
+        connection.execute("PRAGMA foreign_keys=ON")
+        connection.execute(
+            """
+            INSERT INTO ingestion_runs (
+                run_id, dataset_id, semantic_identity, command, scope_json,
+                status, started_at, fetched_count, code_version
+            ) VALUES (?, ?, ?, ?, ?, 'running', ?, ?, ?)
+            """,
+            (
+                "run_fingerprint_probe",
+                "fixture.market.daily_prices",
+                "1" * 64,
+                "test.fingerprint",
+                "{}",
+                "2026-08-09T12:00:00-04:00",
+                0,
+                "test",
+            ),
+        )
+        connection.commit()
+        connection.close()
         logical_before = logical_manifest(self.store_map, self.registry)
         mutation_before = mutation_fingerprint(self.store_map)
         connection = sqlite3.connect(self.store_map.market)
         connection.execute(
-            "UPDATE schema_migrations SET applied_at=? WHERE ordinal=1",
-            ("2026-08-09T12:00:01-04:00",),
+            "UPDATE ingestion_runs SET completed_at=? WHERE run_id=?",
+            ("2026-08-09T12:00:01-04:00", "run_fingerprint_probe"),
         )
         connection.commit()
         connection.close()

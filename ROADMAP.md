@@ -2,7 +2,7 @@
 
 Status: Accepted
 Planning baseline: 2026-08-09
-Scope: accepted implementation sequencing; Stage 1 implemented on 2026-08-09
+Scope: accepted implementation sequencing; Stages 1 and 2 implemented offline on 2026-08-09
 
 ## 1. Purpose
 
@@ -22,9 +22,10 @@ The following decisions apply to every stage:
 - Do not search for or reconstruct the lost Git history. When implementation
   begins, create a fresh repository baseline from the accepted planning
   documents.
-- Stage 0 is complete and Stage 1 is authorized as an offline fixture-only
-  implementation. Later stages remain gated and are not authorized by this
-  status change.
+- Stage 0 is complete. The offline Stage 1 vertical slice and Stage 2
+  four-store foundation are fixture-validated implementations; Stage 2 has
+  also passed independent verification. Stage 3 and later stages remain gated
+  and are not authorized by this status change.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -46,7 +47,7 @@ The following decisions apply to every stage:
 | --- | --- | --- | --- |
 | 0 | Planning package accepted | No | Architecture, ADRs, contracts, and scope are approved |
 | 1 | One complete vertical slice | No; fixtures only | End-to-end contracts work on temporary stores |
-| 2 | Four-store persistence foundation | No | All stores initialize and migrate independently |
+| 2 | Four-store persistence foundation | No | Independently verified offline evidence; Stage 3 remains closed |
 | 3 | Market and macro restoration | Controlled only after offline gates | Identity, revision, and as-of behavior pass |
 | 4 | Company, news, and options restoration | Controlled only after offline gates | Domain-specific immutable/versioned contracts pass |
 | 5 | Composable 57-tool platform | No live access except separately approved intraday tool | Schemas, routing, limits, and strict JSON pass |
@@ -117,6 +118,10 @@ architecture cannot pass by implementing only the simpler case.
 
 ## 6. Stage 2 — Establish the four-store foundation
 
+Implementation status: **Implemented — fixture-validated**. The approved
+offline evidence is recorded in [Stage 2 acceptance evidence](docs/rebuild/STAGE2_EVIDENCE.md).
+It is a bounded foundation, not authorization for Stage 3.
+
 ### Deliverables
 
 - Independent market, macro, company, and news initialization.
@@ -130,6 +135,33 @@ architecture cannot pass by implementing only the simpler case.
   retired; duplicate physical store identities fail closed.
 - Read-only connection factories and host-selected database routing.
 
+### Recorded Stage 2 foundation
+
+- Registry revision `2.0.0` fixes four distinct operational stores, ten
+  fixture-validated store-local migrations, exactly 57 reserved compatibility
+  names, and only the two validated public tools.
+- The shared control plane covers artifacts, snapshots, quality results,
+  ingestion-run outputs, and immutable failure audits. Company and news have
+  only empty-domain foundations.
+- The physical layer contract is exactly `evidence`, `canonical`, and
+  `derived`. A forward-preserving Stage 2 table rebuild uses temporary
+  foreign-key disablement only inside its atomic boundary and requires
+  `foreign_key_check` before ledger advancement.
+- Immutable identities resist `INSERT OR REPLACE` even with recursive triggers
+  off; library connections enable recursive triggers, running-run identities
+  and failed run IDs cannot be reused, and health reconciles exact reviewed
+  SQLite schema SQL.
+- Routing rejects unified and duplicate physical identities; locks use the
+  resolved physical store identity and deterministic multi-lock order.
+- Cross-store composition applies a declared `captured_at` cutoff and reports
+  its honest `best_effort_multi_store` cohort semantics rather than claiming a
+  cross-file atomic read.
+- Read-only health reconciliation and WAL-safe SQLite online backup/restore
+  prove equal source, backup, and restored logical evidence without mutating
+  the source cohort.
+- Live providers, scheduler installation or jobs, exports or Atlas, promotion,
+  destructive storage operations, and Stage 3 domain restoration are excluded.
+
 ### Exit gate
 
 - Fresh and repeated initialization is idempotent for all four stores.
@@ -139,7 +171,13 @@ architecture cannot pass by implementing only the simpler case.
 - Cross-store composition uses bounded application-level joins under one
   declared cutoff.
 
+Stage 2 evidence records fixture validation and the independent verifier pass.
+That completed gate does not authorize Stage 3 executable work.
+
 ## 7. Stage 3 — Restore market and macro domains
+
+Status: **Gated and unauthorized.** Stage 2's independently verified fixture
+foundation does not implement the broader market or macro restoration below.
 
 ### Market sequence
 
@@ -247,6 +285,11 @@ The contract is defined in
 
 The contract is defined in
 [SCHEDULING_AND_LOCKING.md](docs/rebuild/SCHEDULING_AND_LOCKING.md).
+
+Stage 2 provides only an offline, fixture-validated read-only health and
+WAL-safe backup/restore foundation. Manual operational rehearsals, job
+definitions, scheduler installation, and scheduler-owned receipts remain
+Stage 7 work.
 
 ### Deliverables
 
