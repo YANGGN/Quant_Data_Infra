@@ -10,7 +10,7 @@ from ..registry import MigrationDeclaration, Registry
 from ..stores import StoreMap, StoreRole, read_connection
 
 
-_EXPECTED_REGISTRY_VERSION = "2.0.0"
+_COMPATIBLE_REGISTRY_VERSIONS = frozenset({"2.0.0", "2.1.0"})
 _EXPECTED_STORE_ROLE = StoreRole.NEWS
 _EXPECTED_MIGRATIONS = (
     (
@@ -58,8 +58,8 @@ def _unavailable(reason: str) -> StoreUnavailableError:
 def _approved_migrations(registry: Registry) -> tuple[MigrationDeclaration, ...]:
     """Return the reviewed Stage 2 declarations or fail before opening SQLite."""
 
-    if registry.registry_version != _EXPECTED_REGISTRY_VERSION:
-        raise _unavailable("registry version is not the approved Stage 2 version")
+    if registry.registry_version not in _COMPATIBLE_REGISTRY_VERSIONS:
+        raise _unavailable("registry version is not compatible with the Stage 2 foundation")
     store = registry.store(_EXPECTED_STORE_ROLE.value)
     if (
         store.id != _EXPECTED_STORE_ROLE.value

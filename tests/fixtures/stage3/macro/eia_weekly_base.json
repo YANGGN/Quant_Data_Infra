@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "eia_weekly",
+  "provider": "fixture_eia",
+  "captured_at": "2026-07-17T17:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"dataset": "weekly_fundamentals", "series_ids": ["W.PET.STOCK"], "period": "2026-07-10"},
+  "payload": {
+    "series": [{"series_id": "macro.eia.weekly.petroleum_stock", "provider_series_code": "W.PET.STOCK", "title": "Weekly petroleum stock", "frequency": "weekly", "unit": "million_barrels", "value_representation": "level", "scale": "1", "dimensions": {"product": "petroleum"}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "2026-07-17", "vintage_at": "2026-07-17", "vintage_precision": "date", "published_at": "2026-07-17", "published_precision": "date", "available_at": "2026-07-17", "available_precision": "date", "source_release_order": 1, "release_stage": "release", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.eia.weekly.petroleum_stock", "release_identity": "2026-07-17", "period_start": "2026-07-10", "period_end": "2026-07-10", "dimensions": {"product": "petroleum"}, "value": "425.0", "missing_reason": null, "source_row": 1}],
+    "weekly_rows": [{"series_id": "W.PET.STOCK", "period": "2026-07-10", "content_sha256": "1111111111111111111111111111111111111111111111111111111111111111"}]
+  }
+}

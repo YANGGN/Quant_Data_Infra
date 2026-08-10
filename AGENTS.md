@@ -4,10 +4,10 @@
 
 This workspace began as a documentation-only recovery package. On 2026-08-09
 the user accepted the Stage 0 planning baseline, authorized a fresh Git
-baseline, and authorized the bounded offline Stage 1 vertical slice and Stage
-2 four-store foundation. Do not claim that a documented contract is implemented
-until its executable evidence passes the applicable gate, and do not invent
-historical behavior.
+baseline, and authorized the bounded offline Stage 1 vertical slice, Stage 2
+four-store foundation, and Stage 3 market/macro fixture restoration. Do not
+claim that a documented contract is implemented until its executable evidence
+passes the applicable gate, and do not invent historical behavior.
 
 Before cross-cutting work, read [the rebuild documentation index](docs/rebuild/README.md).
 Its authority order is:
@@ -21,8 +21,10 @@ Its authority order is:
 The rebuild documents and ADRs are Accepted as the current target contracts.
 The offline Stage 1 vertical slice and Stage 2 four-store foundation are
 implemented and fixture-validated; Stage 2 has also passed independent
-verification. Stage 3 and later stages still require their roadmap exit gates
-and explicit authorization.
+verification. The bounded offline Stage 3 market/macro scope is implemented
+and fixture-validated and has passed independent SolUltra verification. Stage
+4 and later stages still require explicit authorization and their own roadmap
+exit gates; do not treat the Stage 3 pass as permission to start them.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit

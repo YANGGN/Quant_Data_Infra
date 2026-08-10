@@ -1,0 +1,103 @@
+{
+  "schema_version": "1.0.0",
+  "approval_status": "fixture_validated",
+  "registry_revision": "2.1.0",
+  "evidence_sha256": "94d3ffb95485ed3c2fea119ea56fdaa4db076f57eab08d204ea734ee893b3854",
+  "stage2_evidence_sha256": "3501d94b16310bfe25c3e26c7d9f997707757cc0972d73e39cb52029b2ea633b",
+  "stage3_fixture_evidence_sha256": "7012b0d3c0c66d1f13008f227d3fd3758151310914dfae078bef0195e1424519",
+  "golden_query_sha256": "bc96b310b1a0db88f8f9a1c97e8ea48356dd10a0f2f288e1251679e2285d737a",
+  "logical_manifest_sha256": "7f666a76c43c2493f8f0fbb1b904a3c519cdbc705f2cb7ac26cc5c8a8cae6523",
+  "migration_heads": {
+    "market": [
+      "market:0001_foundation",
+      "market:0002_vertical_slice",
+      "market:0003_control_plane",
+      "market:0004_instrument_catalog",
+      "market:0005_instrument_classifications",
+      "market:0006_controlled_universes"
+    ],
+    "macro": [
+      "macro:0001_foundation",
+      "macro:0002_vertical_slice",
+      "macro:0003_control_plane",
+      "macro:0004_stage3_core",
+      "macro:0005_gdp_vintages",
+      "macro:0006_treasury_yield_curves",
+      "macro:0007_economic_calendar",
+      "macro:0008_soma_summary_only",
+      "macro:0009_eia_electricity_retail",
+      "macro:0010_eia_weekly_fundamentals",
+      "macro:0011_us_recession_periods"
+    ],
+    "company": [
+      "company:0001_foundation",
+      "company:0002_control_plane"
+    ],
+    "news": [
+      "news:0001_foundation",
+      "news:0002_control_plane"
+    ]
+  },
+  "dataset_counts": {
+    "fixture.market.catalog_evidence": {
+      "market_instrument_catalog_snapshots": 4,
+      "market_universe_snapshot_memberships": 7
+    },
+    "fixture.market.instrument_classifications": {
+      "instrument_classifications": 2
+    },
+    "fixture.market.controlled_universes": {
+      "market_universes": 1,
+      "market_universe_membership_versions": 4,
+      "market_universe_memberships": 2
+    },
+    "fixture.macro.stage3_catalog": {
+      "macro_series_dimensions": 9,
+      "macro_observations": 15
+    },
+    "fixture.macro.gdp_vintages": {
+      "gdp_vintages": 2
+    },
+    "fixture.macro.treasury_yield_curves": {
+      "treasury_yield_curves": 1,
+      "treasury_yield_curve_versions": 3
+    },
+    "fixture.macro.economic_calendar": {
+      "economic_calendar": 1,
+      "economic_calendar_event_versions": 1
+    },
+    "fixture.macro.soma_evidence": {
+      "soma_source_artifacts": 1,
+      "soma_snapshots": 1,
+      "soma_snapshot_artifacts": 1
+    },
+    "fixture.macro.soma_summary": {
+      "soma_summary_components": 2
+    },
+    "fixture.macro.eia_retail_evidence": {
+      "eia_electricity_source_artifacts": 3,
+      "eia_electricity_source_snapshots": 3,
+      "eia_electricity_snapshot_scopes": 3,
+      "eia_electricity_snapshot_artifacts": 3,
+      "eia_electricity_snapshot_versions": 3,
+      "eia_electricity_ingestion_pages": 3
+    },
+    "fixture.macro.eia_retail": {
+      "eia_electricity_snapshot_membership": 5,
+      "eia_electricity_retail_sales_versions": 5,
+      "eia_electricity_retail_sales": 2
+    },
+    "fixture.macro.eia_weekly_evidence": {
+      "eia_weekly_source_artifacts": 2,
+      "eia_weekly_source_snapshots": 2,
+      "eia_weekly_snapshot_artifacts": 2
+    },
+    "fixture.macro.eia_weekly": {
+      "eia_weekly_snapshot_versions": 1,
+      "eia_weekly_fundamental_versions": 1
+    },
+    "fixture.macro.recession_periods": {
+      "us_recession_periods": 1
+    }
+  }
+}

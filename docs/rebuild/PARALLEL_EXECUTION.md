@@ -11,9 +11,11 @@ without bypassing the exit gates in [ROADMAP.md](../../ROADMAP.md) or allowing
 multiple agents to redefine shared semantics. It complements the project agent
 policy in [AGENTS.md](../../AGENTS.md).
 
-Stage 0, the bounded offline Stage 1 slice, and the offline Stage 2 four-store
-foundation were authorized on 2026-08-09. Stage 2 is fixture-validated and
-independently verified; this plan does not authorize Stage 3 executable work.
+Stage 0, the bounded offline Stage 1 slice, the offline Stage 2 four-store
+foundation, and the bounded Stage 3 market/macro fixture scope were authorized
+on 2026-08-09. Stage 2 is fixture-validated and independently verified. Stage
+3 is fixture-validated and independently verified. This plan does not itself
+authorize Stage 4 executable work.
 
 ## 2. Capacity and operating model
 
@@ -44,11 +46,12 @@ B1  Freeze the Stage-1 shared spine
  | +-- Tool/dashboard/test-boundary lane --+
  |
 G2  Four-store foundation (fixture-validated; unified runtime mode retired)
- |  Stage 3 implementation still requires explicit authorization
+ |  Stage 3 separately authorized for bounded offline fixture restoration
  |-- in parallel: Market restoration
  |-- in parallel: Macro restoration
  v
-G3  Stage-3 exit gate
+G3  Stage-3 primary fixture gate and SolUltra verification passed
+ |  Stage 4 requires separate explicit authorization
  |-- in parallel: Company restoration
  |-- in parallel: News restoration
  |-- in parallel: Options restoration (options shares the market store)
@@ -135,13 +138,20 @@ cross-store composition receipts; and WAL-safe backup/restore mechanics.
 
 The primary owned registry reconciliation, the migration map, shared
 control-plane conventions, and enforcement of the retired unified runtime mode.
-This foundation does not authorize market or macro restoration, live providers,
-scheduler jobs, exports, Atlas, promotion, or destructive operations.
+This foundation did not itself authorize market or macro restoration, live
+providers, scheduler jobs, exports, Atlas, promotion, or destructive
+operations. Stage 3 required its own bounded authorization.
 
 ### Wave 3 — Market and macro restoration
 
-Status: **Gated and unauthorized.** Stage 2 fixture evidence is not permission
-to begin this wave.
+Status: **Implemented — fixture-validated and independently verified.**
+Evidence is recorded in
+[Stage 3 acceptance evidence](STAGE3_EVIDENCE.md). The completed bounded scope
+has three market and eight macro forward migrations, 25 new reviewed synthetic
+fixtures, and explicit no-write, point-in-time, tombstone/restoration,
+backup/restore, and two-root evidence checks. It adds no live provider or
+network access, jobs, exports, public tools, company/news/options restoration,
+or CUSIP-level SOMA storage.
 
 Market and macro may run in parallel because they own distinct operational
 stores. Each lane remains internally ordered as specified in
@@ -150,10 +160,13 @@ survivorship-sensitive or vintage-sensitive research.
 
 A third lane may build independent property, recovery, and cross-store cutoff
 tests. It must not change shared temporal semantics or approve new goldens.
+Independent verification inspected the integrated workspace and reproduced the
+gate. That pass does not itself authorize Stage 4.
 
 ### Wave 4 — Company, news, and options restoration
 
-Executable Wave 4 work starts only after the Stage-3 `G3` exit gate passes.
+Status: **Closed pending explicit authorization.** The Stage-3 `G3` gate has
+passed, but executable Wave 4 work requires a separate user authorization.
 Company, news, and options are then three parallel domain lanes. Options is a
 market-store domain, so its migration window and physical writes must not
 overlap market migration work. The primary owns any multi-store context used by

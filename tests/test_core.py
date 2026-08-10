@@ -21,7 +21,7 @@ from quant_data.fingerprint import logical_manifest, mutation_fingerprint
 from quant_data.fixtures import FixtureManifest
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.migrations import initialize_all, migrate_store
-from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry
+from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage2_registry_profile
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap, StoreRole, read_connection
 from quant_data.temporal import (
@@ -131,13 +131,20 @@ class StoreAndMigrationTests(unittest.TestCase):
         second = logical_manifest(self.store_map, self.registry)
         self.assertEqual(first_status, second_status)
         self.assertEqual(first["sha256"], second["sha256"])
-        self.assertEqual(len(first_status["market"]), 3)
-        self.assertEqual(len(first_status["macro"]), 3)
+        self.assertEqual(
+            len(first_status["market"]),
+            len(self.registry.migrations_for("market")),
+        )
+        self.assertEqual(
+            len(first_status["macro"]),
+            len(self.registry.migrations_for("macro")),
+        )
         self.assertEqual(len(first_status["company"]), 2)
         self.assertEqual(len(first_status["news"]), 2)
         self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_stage2_registry_rebuild_preserves_stage1_rows_and_foreign_keys(self) -> None:
+        stage2_registry = stage2_registry_profile(self.registry)
         stage2_ids = {
             "market:0003_control_plane",
             "macro:0003_control_plane",
@@ -145,10 +152,10 @@ class StoreAndMigrationTests(unittest.TestCase):
             "news:0002_control_plane",
         }
         stage1_registry = replace(
-            self.registry,
+            stage2_registry,
             registry_version="1.0.0",
             migrations=tuple(
-                item for item in self.registry.migrations if item.id not in stage2_ids
+                item for item in stage2_registry.migrations if item.id not in stage2_ids
             ),
             stores=tuple(
                 replace(
@@ -162,7 +169,7 @@ class StoreAndMigrationTests(unittest.TestCase):
                         item for item in store.migration_order if item not in stage2_ids
                     ),
                 )
-                for store in self.registry.stores
+                for store in stage2_registry.stores
             ),
         )
         migrate_store(
@@ -197,7 +204,7 @@ class StoreAndMigrationTests(unittest.TestCase):
 
         migrate_store(
             self.store_map,
-            self.registry,
+            stage2_registry,
             StoreRole.MARKET,
             applied_at="2026-08-09T12:00:00-04:00",
         )
@@ -327,7 +334,10 @@ class StoreAndMigrationTests(unittest.TestCase):
             connection = sqlite3.connect(stores.market)
             count = connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
             connection.close()
-            self.assertEqual(count, 3)
+            self.assertEqual(
+                count,
+                len(copied_registry.migrations_for(StoreRole.MARKET.value)),
+            )
 
     def test_inline_transaction_control_cannot_escape_atomic_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:

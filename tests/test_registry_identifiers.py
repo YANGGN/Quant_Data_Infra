@@ -6,7 +6,7 @@ from pathlib import Path
 
 from quant_data.errors import RegistryError
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry
+from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage2_registry_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -84,7 +84,15 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(len(registry.migrations), 10)
+        self.assertEqual(registry.registry_version, "2.1.0")
+        self.assertEqual(len(registry.migrations), 21)
+        self.assertEqual(len(registry.datasets), 19)
+        self.assertEqual(len(registry.collectors), 14)
+        stage2 = stage2_registry_profile(registry)
+        self.assertEqual(stage2.registry_version, "2.0.0")
+        self.assertEqual(len(stage2.migrations), 10)
+        self.assertEqual(len(stage2.datasets), 5)
+        self.assertEqual(len(stage2.collectors), 2)
         self.assertEqual(
             tuple(registry.raw["compatibility_target"]["reserved_tool_names"]),
             PUBLIC_TOOL_NAMES,

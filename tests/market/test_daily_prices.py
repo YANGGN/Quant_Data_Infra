@@ -446,7 +446,10 @@ class DailyPriceMarketTests(unittest.TestCase):
         after = logical_manifest(self.store_map, self.registry)
         self.assertEqual(before["sha256"], after["sha256"])
         self.assertEqual(result["provenance"]["store_role"], "market")
-        self.assertEqual(len(result["provenance"]["store_receipt"]["migration_ids"]), 3)
+        self.assertEqual(
+            len(result["provenance"]["store_receipt"]["migration_ids"]),
+            len(self.registry.migrations_for("market")),
+        )
         with read_connection(self.store_map, StoreRole.MARKET) as connection:
             self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
             self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])

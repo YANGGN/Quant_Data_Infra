@@ -1,0 +1,20 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "treasury",
+  "provider": "fixture_fmp",
+  "captured_at": "2026-07-18T18:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"curve_variant": "par_yield", "curve_date": "2026-07-17", "tenors": ["2Y", "10Y"]},
+  "payload": {
+    "series": [
+      {"series_id": "macro.treasury.par_yield.2y", "provider_series_code": "2year", "title": "Treasury par yield 2Y", "frequency": "daily", "unit": "percent", "value_representation": "rate", "scale": "1", "dimensions": {"tenor": "2Y"}, "availability_basis": "local_capture", "supported_modes": ["latest", "as_of"]},
+      {"series_id": "macro.treasury.par_yield.10y", "provider_series_code": "10year", "title": "Treasury par yield 10Y", "frequency": "daily", "unit": "percent", "value_representation": "rate", "scale": "1", "dimensions": {"tenor": "10Y"}, "availability_basis": "local_capture", "supported_modes": ["latest", "as_of"]}
+    ],
+    "releases": [{"source_vintage_identity": "capture:2026-07-18T18:00:00-04:00", "vintage_at": "2026-07-18T18:00:00-04:00", "vintage_precision": "datetime", "published_at": null, "published_precision": "unknown", "available_at": "2026-07-18T18:00:00-04:00", "available_precision": "datetime", "source_release_order": 1, "release_stage": "current_state", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [
+      {"series_id": "macro.treasury.par_yield.2y", "release_identity": "capture:2026-07-18T18:00:00-04:00", "period_start": "2026-07-17", "period_end": "2026-07-17", "dimensions": {"tenor": "2Y"}, "value": "4.10", "missing_reason": null, "source_row": 1},
+      {"series_id": "macro.treasury.par_yield.10y", "release_identity": "capture:2026-07-18T18:00:00-04:00", "period_start": "2026-07-17", "period_end": "2026-07-17", "dimensions": {"tenor": "10Y"}, "value": "4.35", "missing_reason": null, "source_row": 2}
+    ],
+    "curves": [{"curve_date": "2026-07-17", "curve_variant": "par_yield", "tenor": "2Y", "series_id": "macro.treasury.par_yield.2y"}, {"curve_date": "2026-07-17", "curve_variant": "par_yield", "tenor": "10Y", "series_id": "macro.treasury.par_yield.10y"}]
+  }
+}

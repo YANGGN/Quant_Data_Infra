@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "economic_calendar",
+  "provider": "fixture_fmp",
+  "captured_at": "2026-06-12T09:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"country": "US", "date": "2026-06-12"},
+  "payload": {
+    "series": [{"series_id": "macro.calendar.cpi.actual", "provider_series_code": "CPI", "title": "Consumer price index actual", "frequency": "event", "unit": "percent", "value_representation": "rate", "scale": "1", "dimensions": {"country": "US"}, "availability_basis": "local_capture", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "capture:calendar:2026-06-12", "vintage_at": "2026-06-12T09:00:00-04:00", "vintage_precision": "datetime", "published_at": "2026-06-12T08:30:00-04:00", "published_precision": "datetime", "available_at": "2026-06-12T08:30:00-04:00", "available_precision": "datetime", "source_release_order": 1, "release_stage": "event", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.calendar.cpi.actual", "release_identity": "capture:calendar:2026-06-12", "period_start": "2026-05-01", "period_end": "2026-05-31", "dimensions": {"country": "US"}, "value": "0.2", "missing_reason": null, "source_row": 1}],
+    "calendar_events": [{"provider_event_id": "fixture-cpi-2026-06", "event_at": "2026-06-12T08:30:00-04:00", "country": "US", "name": "CPI", "actual": "0.2", "consensus": "0.2"}]
+  }
+}

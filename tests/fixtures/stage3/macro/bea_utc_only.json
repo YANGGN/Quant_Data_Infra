@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "bea",
+  "provider": "fixture_bea",
+  "captured_at": "2026-06-30T13:05:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"table": "personal_income", "line": "1"},
+  "payload": {
+    "parsed_table": {"TableName": "Personal Income", "UTCProductionTime": "2026-06-30T16:05:00Z", "Rows": [{"LineNumber": "1", "Value": "100.0"}]},
+    "series": [{"series_id": "macro.bea.personal_income", "provider_series_code": "PI", "title": "Personal income", "frequency": "monthly", "unit": "billions_usd", "value_representation": "level", "scale": "1", "dimensions": {}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "2026-06-30", "vintage_at": "2026-06-30", "vintage_precision": "date", "published_at": "2026-06-30", "published_precision": "date", "available_at": "2026-06-30", "available_precision": "date", "source_release_order": 1, "release_stage": "release", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.bea.personal_income", "release_identity": "2026-06-30", "period_start": "2026-05-01", "period_end": "2026-05-31", "dimensions": {}, "value": "100.0", "missing_reason": null, "source_row": 1}]
+  }
+}

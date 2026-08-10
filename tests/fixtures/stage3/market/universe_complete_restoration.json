@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_kind": "market_catalog_snapshot",
+  "instruments": [],
+  "classifications": [],
+  "index_manifest": [],
+  "universe": {
+    "universe_key": "fixture.market.universe.liquid",
+    "display_name": "Synthetic liquid market universe",
+    "completeness": "complete",
+    "available_at": "2026-07-23T10:00:00-04:00",
+    "available_precision": "datetime",
+    "members": [
+      {
+        "instrument_key": "fixture.market.instrument.acme",
+        "effective_from": "2024-01-01",
+        "effective_through": null
+      },
+      {
+        "instrument_key": "fixture.market.instrument.spy",
+        "effective_from": "2024-01-01",
+        "effective_through": null
+      }
+    ]
+  }
+}

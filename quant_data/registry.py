@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -104,6 +105,36 @@ PUBLIC_TOOL_NAMES = (
 
 STAGE1_TOOL_NAMES = ("macro.get_series", "timeseries.describe")
 _STAGE1_HANDLERS = {name: name for name in STAGE1_TOOL_NAMES}
+
+_STAGE2_MIGRATION_IDS = frozenset(
+    {
+        "market:0001_foundation",
+        "market:0002_vertical_slice",
+        "market:0003_control_plane",
+        "macro:0001_foundation",
+        "macro:0002_vertical_slice",
+        "macro:0003_control_plane",
+        "company:0001_foundation",
+        "company:0002_control_plane",
+        "news:0001_foundation",
+        "news:0002_control_plane",
+    }
+)
+_STAGE2_DATASET_IDS = frozenset(
+    {
+        "fixture.market.daily_price_evidence",
+        "fixture.market.instruments",
+        "fixture.market.daily_prices",
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+    }
+)
+_STAGE2_COLLECTOR_IDS = frozenset(
+    {
+        "fixture.market.daily_price_import",
+        "fixture.macro.rtdsm_employ_import",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1206,5 +1237,100 @@ def load_registry(
         collectors=collectors,
         tools=tuple(tools),
         dashboard=dashboard,
+        raw=raw,
+    )
+
+
+def stage2_registry_profile(registry: Registry) -> Registry:
+    """Project the validated additive registry back to the Stage 2 contract.
+
+    Stage 1 and Stage 2 evidence is immutable historical evidence.  Later
+    additive registry revisions may append migrations, datasets, and offline
+    collectors, but must not silently rewrite those earlier acceptance
+    receipts.  This allow-listed projection is derived only from an already
+    validated canonical registry and retains the original resource bytes.
+    """
+
+    migration_ids = {item.id for item in registry.migrations}
+    dataset_ids = {item.id for item in registry.datasets}
+    collector_ids = {str(item["id"]) for item in registry.collectors}
+    if (
+        not _STAGE2_MIGRATION_IDS.issubset(migration_ids)
+        or not _STAGE2_DATASET_IDS.issubset(dataset_ids)
+        or not _STAGE2_COLLECTOR_IDS.issubset(collector_ids)
+        or registry.registry_version.split(".", 1)[0] != "2"
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 2 profile")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id in _STAGE2_MIGRATION_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) in _STAGE2_COLLECTOR_IDS
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id in _STAGE2_COLLECTOR_IDS
+            ),
+        )
+        for item in registry.datasets
+        if item.id in _STAGE2_DATASET_IDS
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id in _STAGE2_MIGRATION_IDS
+            ),
+        )
+        for store in registry.stores
+    )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.0.0"
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] in _STAGE2_MIGRATION_IDS
+    ]
+    raw["datasets"] = [
+        {
+            **item,
+            "collector_ids": [
+                collector_id
+                for collector_id in item["collector_ids"]
+                if collector_id in _STAGE2_COLLECTOR_IDS
+            ],
+        }
+        for item in raw["datasets"]
+        if item["id"] in _STAGE2_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] in _STAGE2_COLLECTOR_IDS
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id in _STAGE2_MIGRATION_IDS
+        ]
+
+    return replace(
+        registry,
+        registry_version="2.0.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
         raw=raw,
     )

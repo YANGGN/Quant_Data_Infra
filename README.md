@@ -1,13 +1,14 @@
 # Quant Data Infrastructure
 
 This repository is a clean rebuild of a personal quant-data platform. The
-current executable scope is the accepted, independently verified offline
-Stage 2 foundation: four explicitly routed SQLite stores, reviewed synthetic market
-and macro fixtures, a shared artifact/snapshot/quality/run-audit control
-plane, point-in-time reads, two read-only tools, read-only health, and
-WAL-safe online backup and restore. It has no live providers, scheduler jobs
-or installation, exports, Atlas, promotion, credentials, destructive storage
-operations, or default database fallback.
+current executable scope is the bounded offline Stage 3 market and macro
+restoration, which is fixture-validated and independently verified. It extends the independently
+verified Stage 2 foundation of four explicitly routed SQLite stores, reviewed
+synthetic fixtures, a shared artifact/snapshot/quality/run-audit control plane,
+point-in-time reads, two read-only tools, read-only health, and WAL-safe online
+backup and restore. It has no live providers or network collection, scheduler
+jobs or installation, exports, Atlas, promotion, credentials, destructive
+storage operations, or default database fallback.
 
 The target design and sequencing are documented in [ARCHITECTURE.md](ARCHITECTURE.md),
 [ROADMAP.md](ROADMAP.md), and the [rebuild documentation index](docs/rebuild/README.md).
@@ -17,7 +18,9 @@ byte-exact recovery of the lost application.
 The preserved Stage 1 slice and its historical hashes are recorded in the
 [Stage 1 acceptance evidence](docs/rebuild/STAGE1_EVIDENCE.md). The current
 four-store foundation and its approved deterministic receipts are recorded in
-the [Stage 2 acceptance evidence](docs/rebuild/STAGE2_EVIDENCE.md).
+the [Stage 2 acceptance evidence](docs/rebuild/STAGE2_EVIDENCE.md). The bounded
+Stage 3 primary-gate receipts are recorded in the
+[Stage 3 acceptance evidence](docs/rebuild/STAGE3_EVIDENCE.md).
 
 ## Validate Stage 1
 
@@ -68,11 +71,36 @@ same dependency-free command above; its current implementation result and
 separate independent-verifier status are recorded in the
 [Stage 2 acceptance evidence](docs/rebuild/STAGE2_EVIDENCE.md).
 
+## Validate Stage 3
+
+Run the deterministic Stage 3 two-rebuild gate with two explicit empty work
+roots under `/tmp`:
+
+```bash
+cd /home/volatility/Python_Projects/Quant_Data_Infra
+first_root="$(mktemp -d /tmp/quant-data-stage3-first.XXXXXX)"
+second_root="$(mktemp -d /tmp/quant-data-stage3-second.XXXXXX)"
+PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -m quant_data \
+  --stage stage3 \
+  --project-root /home/volatility/Python_Projects/Quant_Data_Infra \
+  --store-root "$first_root" \
+  --second-store-root "$second_root"
+```
+
+The gate upgrades a verified Stage 2 cohort under each work root, imports only
+the 25 reviewed Stage 3 synthetic fixtures, and compares strict path-free
+evidence from both roots. It verifies replay and rejected-capture no-write
+behavior, point-in-time results, source-read/backup/restore non-mutation, and
+equal restored health. It refuses a nonempty work root and emits strict JSON.
+The primary fixture gate and independent SolUltra verification have passed.
+Stage 4 remains unimplemented and requires separate explicit authorization.
+
 ## Current public boundary
 
 Only `macro.get_series` and `timeseries.describe` are validated public tools.
 All 57 compatibility names remain reserved; no other public tool is validated
 at this stage. Application hosts must construct `StoreMap.four_explicit(...)`
 and supply all four paths. Public callers cannot select a database path, submit
-SQL, or initialize a store. Stage 3 market and macro restoration remains gated
-and unauthorized.
+SQL, or initialize a store. Stage 3 adds no public tools, jobs, or exports;
+company, news, and options restoration remain closed until Stage 4 is
+explicitly authorized.

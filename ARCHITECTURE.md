@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Status and scope
 
-This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice and independently verified Stage 2 four-store foundation are implemented with fixture-validated evidence; Stage 3 remains gated and unauthorized. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
+This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. Stage 4 remains unimplemented and requires separate explicit authorization. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
 
 The principal decisions are recorded in:
 
@@ -158,11 +158,13 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration; the implemented Stage 2
-revision is `2.0.0`. The store-local dataset registry is runtime evidence.
-Neither replaces the other. Startup and health checks reconcile them and fail
-closed on missing ownership, an unexpected migration state, or a dataset mapped
-to the wrong physical store.
+The system registry is declarative source configuration; the current Stage 3
+revision is `2.1.0`, with 21 fixture-validated migrations, 19 datasets, and 14
+collectors. The historical Stage 2 projection remains revision `2.0.0` so that
+its fixed evidence can be rebuilt without rewriting history. The store-local
+dataset registry is runtime evidence. Neither replaces the other. Startup and
+health checks reconcile them and fail closed on missing ownership, an unexpected
+migration state, or a dataset mapped to the wrong physical store.
 
 The physical dataset-layer contract is exactly `evidence`, `canonical`, and
 `derived`. The Stage 2 forward-preserving table rebuild aligns the SQLite
@@ -174,14 +176,27 @@ triggers as an additional defense. A running run's identity is immutable, and
 a failed run ID is durable audit evidence that cannot be reused by a later
 failed or successful attempt.
 
-Applied migration SQL is immutable. A correction is a new migration. The ten
-currently allocated Stage 1 and Stage 2 resources are fixture-validated
-deliberate reconstructions, never claims of `recovered_exact` parity. The
-recovered semantic migration sequence runs through 0031, but byte-exact DDL,
-checksums, indexes, and triggers beyond the reviewed resources remain evidence
-that must be reconstructed and fixture-tested before parity is asserted. In
-particular, the filing/issuer membership object associated with migration 0031
-is a derived view with supporting invariants, not a guessed physical join table.
+Applied migration SQL is immutable. A correction is a new migration. The 21
+currently allocated Stage 1 through Stage 3 resources are fixture-validated
+deliberate forward reconstructions, never claims of `recovered_exact` parity.
+Stage 3 adds three market and eight macro resources; its exact allocation and
+reviewed hashes are in the [migration reconstruction map](docs/rebuild/MIGRATION_RECONSTRUCTION.md).
+The recovered semantic migration sequence runs through 0031, but byte-exact
+DDL, checksums, indexes, and triggers beyond the reviewed resources remain
+evidence that must be reconstructed and fixture-tested before parity is
+asserted. In particular, the filing/issuer membership object associated with
+migration 0031 is a derived view with supporting invariants, not a guessed
+physical join table.
+
+The Stage 3 fixture scope adds dated market catalog identifiers,
+effective-dated classifications and controlled universes, and the recovered
+nine FMP index identities. Its macro scope adds a generic catalog, GDP
+vintages, Treasury curves, an economic calendar, aggregate-only SOMA summaries,
+EIA retail and weekly facts, and a completed U.S. recession chronology. It uses
+25 reviewed synthetic fixtures (29 including the preserved Stage 1 fixtures),
+not provider access. The primary fixture gate and independent verification
+verify its point-in-time, semantic no-write, complete-scope
+tombstone/restoration, backup, restore, and read-only boundaries.
 
 Run status distinguishes succeeded, partial, failed, and unchanged behavior. External scheduler receipts may record a poll that made no database writes; they must not manufacture an ingestion run merely to record an unchanged release.
 
@@ -237,12 +252,12 @@ Domain validation includes OHLC consistency, nonnegative volume, duplicate natur
 
 Dashboard and tool connections use SQLite URI read-only mode, set PRAGMA query_only = ON, use bound parameters, and route through fixed queries or service functions. Caller input never selects SQL, a table outside an allowlist, or a database path.
 
-At Stage 2, the only validated public tool names are `macro.get_series` and
-`timeseries.describe`; all 57 compatibility names remain reserved, with no
-other validated public tool at this stage. Read-only health reconciles every
-explicit store against the registry without initializing or mutating a store.
-It compares exact reviewed `sqlite_master` schema SQL, not relation and trigger
-names alone.
+At the current Stage 3 boundary, the only validated public tool names are
+`macro.get_series` and `timeseries.describe`; all 57 compatibility names remain
+reserved, with no other validated public tool, job, or export. Read-only health
+reconciles every explicit store against the registry without initializing or
+mutating a store. It compares exact reviewed `sqlite_master` schema SQL, not
+relation and trigger names alone.
 
 Tool contracts are versioned, deterministic, strict JSON:
 
@@ -281,10 +296,12 @@ The exporter must never recursively clean an empty, unresolved, broad, repositor
 
 ## Deployment modes
 
-The implemented Stage 2 boundary is offline only. It does not install or run
-scheduler jobs, fetch live providers, create exports or Atlas snapshots,
-promote data, perform destructive storage operations, or restore the broader
-Stage 3 market and macro domains.
+The implemented boundary remains offline only. Stage 3 imports reviewed
+synthetic market and macro fixtures into explicit temporary roots; it does not
+fetch live providers or use a network, install or run scheduler jobs, create
+exports or Atlas snapshots, promote data, perform destructive storage
+operations, restore company/news/options domains, or add CUSIP-level SOMA
+storage or a source path.
 
 ### Isolated development and test
 

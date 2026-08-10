@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "recession",
+  "provider": "fixture_nber",
+  "captured_at": "2026-07-01T12:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"chronology": "us", "completed_periods_only": true},
+  "payload": {
+    "series": [],
+    "releases": [],
+    "observations": [],
+    "recession_periods": [{"peak_month": "2020-02-01", "trough_month": "2020-04-01", "status": "completed", "available_at": "2026-07-01T12:00:00-04:00", "available_precision": "datetime"}]
+  }
+}

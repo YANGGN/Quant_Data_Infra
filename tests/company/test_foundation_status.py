@@ -40,7 +40,7 @@ class CompanyFoundationStatusTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def test_status_reports_the_exact_empty_stage2_company_contract(self) -> None:
-        self.assertEqual(self.registry.registry_version, "2.0.0")
+        self.assertEqual(self.registry.registry_version, "2.1.0")
         self.assertEqual(
             [
                 (migration.id, migration.sha256)
@@ -63,7 +63,7 @@ class CompanyFoundationStatusTests(unittest.TestCase):
             company_foundation_status(self.store_map, self.registry),
             {
                 "store_role": "company",
-                "registry_version": "2.0.0",
+                "registry_version": self.registry.registry_version,
                 "contract_version": "stage2",
                 "migrations": [
                     {

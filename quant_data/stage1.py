@@ -20,7 +20,12 @@ from .json_codec import dumps_strict, loads_strict
 from .macro import MacroFixtureImporter, MacroSeriesQuery, MacroSeriesRepository
 from .market import DailyPriceImporter, DailyPriceQuery, DailyPriceRepository
 from .migrations import initialize_all
-from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from .registry import (
+    CANONICAL_REGISTRY_PATH,
+    Registry,
+    load_registry,
+    stage2_registry_profile,
+)
 from .stores import STORE_ROLES, StoreMap, StoreRole, read_connection
 
 
@@ -226,10 +231,12 @@ def run_clean_rebuild(
     project = Path(project_root).expanduser().resolve(strict=True)
     root = _prepare_clean_root(store_root)
     store_map = explicit_store_map(root)
-    registry = load_registry(
-        project / CANONICAL_REGISTRY_PATH,
-        project_root=project,
-        environment={},
+    registry = stage2_registry_profile(
+        load_registry(
+            project / CANONICAL_REGISTRY_PATH,
+            project_root=project,
+            environment={},
+        )
     )
     fixture_manifest = FixtureManifest.load(
         project / FIXTURE_MANIFEST_PATH,

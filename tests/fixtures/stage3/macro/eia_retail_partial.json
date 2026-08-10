@@ -1,0 +1,9 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "eia_retail",
+  "provider": "fixture_eia",
+  "captured_at": "2026-06-21T17:00:00-04:00",
+  "capture_state": "partial",
+  "request_scope": {"dataset": "electricity_retail", "period": "2026-05", "scope": "US", "complete": false, "tombstone_authoritative": false},
+  "payload": {"series": [], "releases": [], "observations": [], "retail_snapshot": {"scope": "US:2026-05", "complete": false, "tombstone_authoritative": false, "pages": [{"page": 1, "row_count": 1}]}}
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "bis",
+  "provider": "fixture_bis",
+  "captured_at": "2026-06-30T12:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"dataset": "credit_to_gdp", "country": "US"},
+  "payload": {
+    "series": [{"series_id": "macro.bis.credit_to_gdp", "provider_series_code": "BIS.CREDIT.GDP.US", "title": "Credit to GDP", "frequency": "quarterly", "unit": "percent", "value_representation": "ratio", "scale": "1", "dimensions": {"country": "US"}, "availability_basis": "source_vintage", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "2026-Q2", "vintage_at": "2026-06-30", "vintage_precision": "date", "published_at": "2026-06-30", "published_precision": "date", "available_at": "2026-06-30", "available_precision": "date", "source_release_order": 1, "release_stage": "release", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.bis.credit_to_gdp", "release_identity": "2026-Q2", "period_start": "2026-01-01", "period_end": "2026-03-31", "dimensions": {"country": "US"}, "value": "255.0", "missing_reason": null, "source_row": 1}]
+  }
+}

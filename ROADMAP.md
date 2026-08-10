@@ -2,7 +2,8 @@
 
 Status: Accepted
 Planning baseline: 2026-08-09
-Scope: accepted implementation sequencing; Stages 1 and 2 implemented offline on 2026-08-09
+Scope: accepted implementation sequencing; Stages 1 through 3 implemented on
+2026-08-09, with Stages 2 and 3 independently verified
 
 ## 1. Purpose
 
@@ -24,8 +25,9 @@ The following decisions apply to every stage:
   documents.
 - Stage 0 is complete. The offline Stage 1 vertical slice and Stage 2
   four-store foundation are fixture-validated implementations; Stage 2 has
-  also passed independent verification. Stage 3 and later stages remain gated
-  and are not authorized by this status change.
+  also passed independent verification. The bounded offline Stage 3 market and
+  macro scope is fixture-validated and independently verified. Stage 4 and
+  later stages remain closed until separately and explicitly authorized.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -47,8 +49,8 @@ The following decisions apply to every stage:
 | --- | --- | --- | --- |
 | 0 | Planning package accepted | No | Architecture, ADRs, contracts, and scope are approved |
 | 1 | One complete vertical slice | No; fixtures only | End-to-end contracts work on temporary stores |
-| 2 | Four-store persistence foundation | No | Independently verified offline evidence; Stage 3 remains closed |
-| 3 | Market and macro restoration | Controlled only after offline gates | Identity, revision, and as-of behavior pass |
+| 2 | Four-store persistence foundation | No | Independently verified offline evidence |
+| 3 | Bounded market and macro restoration | No; reviewed fixtures only | Independently verified offline evidence; Stage 4 requires separate authorization |
 | 4 | Company, news, and options restoration | Controlled only after offline gates | Domain-specific immutable/versioned contracts pass |
 | 5 | Composable 57-tool platform | No live access except separately approved intraday tool | Schemas, routing, limits, and strict JSON pass |
 | 6 | Local portal and research surfaces | No mutation through UI | Read-only APIs and browser contracts pass |
@@ -120,7 +122,8 @@ architecture cannot pass by implementing only the simpler case.
 
 Implementation status: **Implemented — fixture-validated**. The approved
 offline evidence is recorded in [Stage 2 acceptance evidence](docs/rebuild/STAGE2_EVIDENCE.md).
-It is a bounded foundation, not authorization for Stage 3.
+It is a bounded foundation; Stage 3 required its own explicit authorization
+and acceptance evidence.
 
 ### Deliverables
 
@@ -160,7 +163,8 @@ It is a bounded foundation, not authorization for Stage 3.
   prove equal source, backup, and restored logical evidence without mutating
   the source cohort.
 - Live providers, scheduler installation or jobs, exports or Atlas, promotion,
-  destructive storage operations, and Stage 3 domain restoration are excluded.
+  and destructive storage operations are excluded. The bounded Stage 3 fixture
+  scope is separately recorded below.
 
 ### Exit gate
 
@@ -172,19 +176,43 @@ It is a bounded foundation, not authorization for Stage 3.
   declared cutoff.
 
 Stage 2 evidence records fixture validation and the independent verifier pass.
-That completed gate does not authorize Stage 3 executable work.
+It did not by itself authorize Stage 3 executable work.
 
 ## 7. Stage 3 — Restore market and macro domains
 
-Status: **Gated and unauthorized.** Stage 2's independently verified fixture
-foundation does not implement the broader market or macro restoration below.
+Status: **Implemented — fixture-validated and independently verified.** The
+user authorized this bounded offline fixture scope
+after Stage 2. Its deterministic evidence is recorded in the
+[Stage 3 acceptance evidence](docs/rebuild/STAGE3_EVIDENCE.md). This status
+does not open Stage 4, live collection, jobs, exports, or new public tools.
 
-### Market sequence
+### Fixture-validated scope
+
+- Registry revision `2.1.0` declares 21 fixture-validated migrations, 19
+  datasets, 14 collectors, the same two validated public tools, 57 reserved
+  names, and no jobs or exports.
+- Market adds canonical instrument/catalog evidence, dated provider identifiers,
+  effective-dated classifications, controlled universe membership, complete
+  scope tombstones and restoration, and exactly the nine recovered FMP index
+  identities. The Stage 1 daily-price fixture remains preserved; no live price
+  provider is restored.
+- Macro adds a generic series catalog and observations, GDP vintage provenance,
+  Treasury curves, an economic calendar, aggregate-only SOMA evidence and
+  summaries, EIA electricity-retail and weekly-fundamentals contracts, and a
+  completed U.S. recession chronology. BLS, BIS, Chicago Fed, and BEA fixtures
+  exercise the generic semantic gate; they do not connect to providers.
+- The gate imports 25 reviewed synthetic Stage 3 fixtures (29 including the
+  preserved Stage 1 fixtures), rejects incomplete or internally inconsistent
+  complete EIA retail captures without mutation, verifies volatile-only
+  BLS/BEA metadata replays as no-ops, and compares source, backup, restored,
+  and two-root path-free evidence.
+
+### Market and macro contract coverage
 
 1. Canonical instruments and dated provider identifiers.
 2. Controlled universes and classifications.
-3. Daily price evidence, canonical facts, correction history, and quality
-   checks.
+3. Preserved daily-price evidence, canonical facts, correction history, and
+   quality checks from the Stage 1 vertical slice.
 4. The nine recovered FMP index identities.
 5. Effective-dated universe membership before survivorship-sensitive
    cross-sectional research is presented as safe.
@@ -206,7 +234,14 @@ foundation does not implement the broader market or macro restoration below.
   are all fixture-tested.
 - No CUSIP-level SOMA storage or source path exists.
 
+The primary fixture gate and read-only SolUltra verification passed these
+bounded checks and reproduced the acceptance evidence. That completes `G3` but
+does not itself authorize Stage 4.
+
 ## 8. Stage 4 — Restore company, news, and options
+
+Status: **Closed pending explicit authorization.** The Stage 3 `G3` gate has
+passed, but no executable Stage 4 work is authorized by that result alone.
 
 ### Company
 

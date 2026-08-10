@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "soma",
+  "provider": "fixture_new_york_fed",
+  "captured_at": "2026-07-22T18:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"as_of_date": "2026-07-22", "summary_only": true},
+  "payload": {
+    "series": [{"series_id": "macro.soma.total.treasuries", "provider_series_code": "SOMA-TOTAL", "title": "SOMA Treasury summary", "frequency": "weekly", "unit": "millions_usd", "value_representation": "level", "scale": "1", "dimensions": {"category": "treasuries"}, "availability_basis": "local_capture", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "summary:2026-07-22", "vintage_at": "2026-07-22", "vintage_precision": "date", "published_at": null, "published_precision": "unknown", "available_at": "2026-07-22T18:00:00-04:00", "available_precision": "datetime", "source_release_order": 1, "release_stage": "current_state", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.soma.total.treasuries", "release_identity": "summary:2026-07-22", "period_start": "2026-07-22", "period_end": "2026-07-22", "dimensions": {"category": "treasuries"}, "value": "5050000", "missing_reason": null, "source_row": 1}],
+    "latest_summary_release": {"release_id": "summary:2026-07-22", "as_of_date": "2026-07-22", "components": [{"category": "treasuries", "metric": "market_value", "unit": "millions_usd", "value": "5050000"}, {"category": "agency_mbs", "metric": "market_value", "unit": "millions_usd", "value": "2200000"}]}
+  }
+}

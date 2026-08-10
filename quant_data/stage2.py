@@ -26,7 +26,12 @@ from .macro import MacroSeriesQuery, MacroSeriesRepository
 from .market import DailyPriceQuery, DailyPriceRepository
 from .news import news_foundation_status
 from .operations import all_store_health, backup_all, restore_all
-from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from .registry import (
+    CANONICAL_REGISTRY_PATH,
+    Registry,
+    load_registry,
+    stage2_registry_profile,
+)
 from .stage1 import explicit_store_map, run_clean_rebuild as run_clean_stage1_rebuild
 from .stores import STORE_ROLES, StoreMap, StoreRole, read_connection
 
@@ -246,10 +251,12 @@ def run_clean_stage2_rebuild(
         project_root=project,
         store_root=source_root,
     )
-    registry = load_registry(
-        project / CANONICAL_REGISTRY_PATH,
-        project_root=project,
-        environment={},
+    registry = stage2_registry_profile(
+        load_registry(
+            project / CANONICAL_REGISTRY_PATH,
+            project_root=project,
+            environment={},
+        )
     )
     source_map = explicit_store_map(source_root)
 

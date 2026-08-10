@@ -1,0 +1,20 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "gdp",
+  "provider": "fixture_bea",
+  "captured_at": "2026-05-30T17:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"archive": "national_accounts", "release": "2026-05-29", "stage": "second", "correction": "1"},
+  "payload": {
+    "series": [
+      {"series_id": "macro.gdp.real_qoq_saar_pct", "provider_series_code": "T10105-A191RL", "title": "Real GDP growth", "frequency": "quarterly", "unit": "percent", "value_representation": "rate", "scale": "1", "dimensions": {}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of", "first_release"]},
+      {"series_id": "macro.gdp.nominal_billions", "provider_series_code": "T10105-A191RC", "title": "Nominal GDP", "frequency": "quarterly", "unit": "billions_usd", "value_representation": "level", "scale": "1", "dimensions": {}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of", "first_release"]}
+    ],
+    "releases": [{"source_vintage_identity": "2026-05-29:second", "vintage_at": "2026-05-29", "vintage_precision": "date", "published_at": "2026-05-30", "published_precision": "date", "available_at": "2026-05-30", "available_precision": "date", "source_release_order": 2, "release_stage": "second", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [
+      {"series_id": "macro.gdp.real_qoq_saar_pct", "release_identity": "2026-05-29:second", "period_start": "2026-01-01", "period_end": "2026-03-31", "dimensions": {}, "value": "2.2", "missing_reason": null, "source_row": 1},
+      {"series_id": "macro.gdp.nominal_billions", "release_identity": "2026-05-29:second", "period_start": "2026-01-01", "period_end": "2026-03-31", "dimensions": {}, "value": "30250.0", "missing_reason": null, "source_row": 2}
+    ],
+    "gdp_vintages": [{"release_identity": "2026-05-29:second", "release_stage": "second", "source": "fixture_bea_archive"}]
+  }
+}

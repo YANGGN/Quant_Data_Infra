@@ -1,0 +1,253 @@
+{
+  "schema_version": "1.0.0",
+  "fixture_kind": "market_catalog_snapshot",
+  "instruments": [
+    {
+      "instrument_key": "fixture.market.instrument.acme",
+      "asset_type": "equity",
+      "canonical_symbol": "ACMX",
+      "display_name": "Synthetic Acme Holdings",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "ACME",
+          "valid_from": "2024-01-01",
+          "valid_through": "2026-06-30",
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        },
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "ACMX",
+          "valid_from": "2026-07-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.instrument.spy",
+      "asset_type": "etf",
+      "canonical_symbol": "SPY",
+      "display_name": "Synthetic SPY ETF",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "SPY",
+          "valid_from": "2026-07-16",
+          "valid_through": null,
+          "available_at": "2026-07-17",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.gspc",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_GSPC",
+      "display_name": "S&P 500",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^GSPC",
+          "valid_from": "2026-07-16",
+          "valid_through": null,
+          "available_at": "2026-07-17",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.n225",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_N225",
+      "display_name": "Nikkei 225",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^N225",
+          "valid_from": "1950-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.ixic",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_IXIC",
+      "display_name": "Nasdaq Composite",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^IXIC",
+          "valid_from": "1971-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.ftse",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_FTSE",
+      "display_name": "FTSE 100",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^FTSE",
+          "valid_from": "1984-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.dji",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_DJI",
+      "display_name": "Dow Jones Industrial Average",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^DJI",
+          "valid_from": "1896-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.stoxx50e",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_STOXX50E",
+      "display_name": "Euro Stoxx 50",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^STOXX50E",
+          "valid_from": "1998-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.hsi",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_HSI",
+      "display_name": "Hang Seng",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^HSI",
+          "valid_from": "1969-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.rut",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_RUT",
+      "display_name": "Russell 2000",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^RUT",
+          "valid_from": "1984-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    },
+    {
+      "instrument_key": "fixture.market.index.vix",
+      "asset_type": "index",
+      "canonical_symbol": "SYNTHETIC_VIX",
+      "display_name": "Cboe Volatility Index",
+      "active": true,
+      "identifiers": [
+        {
+          "provider": "fixture_fmp",
+          "provider_symbol": "^VIX",
+          "valid_from": "1993-01-01",
+          "valid_through": null,
+          "available_at": "2026-07-10",
+          "available_precision": "date"
+        }
+      ]
+    }
+  ],
+  "classifications": [
+    {
+      "instrument_key": "fixture.market.instrument.acme",
+      "classification_provider": "fixture_fmp",
+      "sector": "Technology",
+      "industry": "Software",
+      "effective_from": "2024-01-01",
+      "effective_through": "2026-06-30",
+      "available_at": "2026-07-10",
+      "available_precision": "date"
+    },
+    {
+      "instrument_key": "fixture.market.instrument.acme",
+      "classification_provider": "fixture_fmp",
+      "sector": "Financials",
+      "industry": "Capital Markets",
+      "effective_from": "2026-07-01",
+      "effective_through": null,
+      "available_at": "2026-07-12T09:00:00-04:00",
+      "available_precision": "datetime"
+    }
+  ],
+  "index_manifest": [
+    {"instrument_key": "fixture.market.index.gspc", "fmp_symbol": "^GSPC", "canonical_name": "S&P 500"},
+    {"instrument_key": "fixture.market.index.n225", "fmp_symbol": "^N225", "canonical_name": "Nikkei 225"},
+    {"instrument_key": "fixture.market.index.ixic", "fmp_symbol": "^IXIC", "canonical_name": "Nasdaq Composite"},
+    {"instrument_key": "fixture.market.index.ftse", "fmp_symbol": "^FTSE", "canonical_name": "FTSE 100"},
+    {"instrument_key": "fixture.market.index.dji", "fmp_symbol": "^DJI", "canonical_name": "Dow Jones Industrial Average"},
+    {"instrument_key": "fixture.market.index.stoxx50e", "fmp_symbol": "^STOXX50E", "canonical_name": "Euro Stoxx 50"},
+    {"instrument_key": "fixture.market.index.hsi", "fmp_symbol": "^HSI", "canonical_name": "Hang Seng"},
+    {"instrument_key": "fixture.market.index.rut", "fmp_symbol": "^RUT", "canonical_name": "Russell 2000"},
+    {"instrument_key": "fixture.market.index.vix", "fmp_symbol": "^VIX", "canonical_name": "Cboe Volatility Index"}
+  ],
+  "universe": {
+    "universe_key": "fixture.market.universe.liquid",
+    "display_name": "Synthetic liquid market universe",
+    "completeness": "complete",
+    "available_at": "2026-07-20",
+    "available_precision": "date",
+    "members": [
+      {
+        "instrument_key": "fixture.market.instrument.acme",
+        "effective_from": "2024-01-01",
+        "effective_through": null
+      },
+      {
+        "instrument_key": "fixture.market.instrument.spy",
+        "effective_from": "2024-01-01",
+        "effective_through": null
+      }
+    ]
+  }
+}

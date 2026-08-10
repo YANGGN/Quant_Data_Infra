@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "eia_retail",
+  "provider": "fixture_eia",
+  "captured_at": "2026-06-25T17:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"dataset": "electricity_retail", "period": "2026-05", "scope": "US", "complete": true, "tombstone_authoritative": true, "revision": "omission"},
+  "payload": {
+    "series": [{"series_id": "macro.eia.electricity.retail_sales", "provider_series_code": "ELEC.SALES.US", "title": "Electricity retail sales", "frequency": "monthly", "unit": "million_mwh", "value_representation": "level", "scale": "1", "dimensions": {"area": "US", "measure": "sales"}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "2026-06-25", "vintage_at": "2026-06-25", "vintage_precision": "date", "published_at": "2026-06-25", "published_precision": "date", "available_at": "2026-06-25", "available_precision": "date", "source_release_order": 2, "release_stage": "revision", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [],
+    "retail_snapshot": {"scope": "US:2026-05", "complete": true, "tombstone_authoritative": true, "pages": [{"page": 1, "row_count": 0}]}
+  }
+}

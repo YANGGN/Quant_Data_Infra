@@ -9,7 +9,7 @@ from ..registry import Registry
 from ..stores import StoreMap, StoreRole, read_connection
 
 
-_REGISTRY_VERSION: Final = "2.0.0"
+_COMPATIBLE_REGISTRY_VERSIONS: Final = frozenset({"2.0.0", "2.1.0"})
 _COMPANY_MIGRATION_IDS: Final = (
     "company:0001_foundation",
     "company:0002_control_plane",
@@ -44,8 +44,10 @@ _CONTRACT_VERSION: Final = "stage2"
 def _expected_ledger(registry: Registry) -> tuple[tuple[int, str, str, str], ...]:
     """Resolve the frozen company migration contract from the validated registry."""
 
-    if registry.registry_version != _REGISTRY_VERSION:
-        raise ValidationError("Company foundation status requires registry version 2.0.0")
+    if registry.registry_version not in _COMPATIBLE_REGISTRY_VERSIONS:
+        raise ValidationError(
+            "Company foundation status requires a compatible Stage 2 registry"
+        )
     declaration = registry.store(StoreRole.COMPANY.value)
     if (
         declaration.id != StoreRole.COMPANY.value

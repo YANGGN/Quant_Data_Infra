@@ -1,11 +1,12 @@
 # Migration Reconstruction Map
 
-Status: Stage 1 and Stage 2 implemented; all allocated resources fixture-validated
+Status: Stage 1 through bounded Stage 3 implemented; all 21 allocated resources fixture-validated
 Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
 
-Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md) and
-[Stage 2 acceptance evidence](STAGE2_EVIDENCE.md)
+Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md),
+[Stage 2 acceptance evidence](STAGE2_EVIDENCE.md), and
+[Stage 3 acceptance evidence](STAGE3_EVIDENCE.md)
 
 ## Purpose
 
@@ -51,6 +52,31 @@ recovered migration `0000`; it is never `recovered_exact`. The canonical
 registry and complete Stage 2 fixture gate promoted all four rows to
 `fixture_validated`.
 
+## Frozen Stage 3 allocation
+
+Stage 3 adds three market and eight macro forward-only resources. They restore
+only the bounded offline fixture contracts recorded in the Stage 3 evidence;
+they do not recover lost SQL bytes, checksums, indexes, or trigger parity.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 status | Reconstruction state |
+| --- | --- | ---: | --- | --- | --- |
+| `market:0004_instrument_catalog` | market | 4 | `quant_data/migrations/market/0004_instrument_catalog.sql` | `1650ae5fa2570cbf7b774063286e6b6307a27926c22ea539bf9264bd930a179a` | `fixture_validated` |
+| `market:0005_instrument_classifications` | market | 5 | `quant_data/migrations/market/0005_instrument_classifications.sql` | `78e60168af27f46644f4e6761547f50fa6d3a2b28de83f8b1be15996a96853f3` | `fixture_validated` |
+| `market:0006_controlled_universes` | market | 6 | `quant_data/migrations/market/0006_controlled_universes.sql` | `73ed3061ebc3b9441c4f43596f7b0d4ea361a9f440dc4994d5b29c5eb83ae189` | `fixture_validated` |
+| `macro:0004_stage3_core` | macro | 4 | `quant_data/migrations/macro/0004_stage3_core.sql` | `f9b25365a0f7358b6206c0d279da52983a95bb90cf674daaa6c88c2d207e3ca4` | `fixture_validated` |
+| `macro:0005_gdp_vintages` | macro | 5 | `quant_data/migrations/macro/0005_gdp_vintages.sql` | `f64e341853d79b91389eb6a249614cfb8f758efbeb1af9e9d89f9ed524c16627` | `fixture_validated` |
+| `macro:0006_treasury_yield_curves` | macro | 6 | `quant_data/migrations/macro/0006_treasury_yield_curves.sql` | `87b98c423042d6feb9e9833725a5d218e7a9c990aa9f7902f4ee1e9779472319` | `fixture_validated` |
+| `macro:0007_economic_calendar` | macro | 7 | `quant_data/migrations/macro/0007_economic_calendar.sql` | `a4d4e164da6aa6b142272e781ff4f20a13e702332819bf1c37df18dbf02fee49` | `fixture_validated` |
+| `macro:0008_soma_summary_only` | macro | 8 | `quant_data/migrations/macro/0008_soma_summary_only.sql` | `6bd3b5e34bb459748dc08e7a13efbeecc61f004f6eaddeef81360e9292bc2c91` | `fixture_validated` |
+| `macro:0009_eia_electricity_retail` | macro | 9 | `quant_data/migrations/macro/0009_eia_electricity_retail.sql` | `9cfb1f981eb96e387795f0410e4d0f952970d93be06b76f064d8efe5003d5b2b` | `fixture_validated` |
+| `macro:0010_eia_weekly_fundamentals` | macro | 10 | `quant_data/migrations/macro/0010_eia_weekly_fundamentals.sql` | `31ec86723d23cab200c0acfae2c16a698a81bd2a4795ab32984cbf59ac83d898` | `fixture_validated` |
+| `macro:0011_us_recession_periods` | macro | 11 | `quant_data/migrations/macro/0011_us_recession_periods.sql` | `f8551fbe57ce8973c13f8c13146e8ee96c50d3a2de451166e03a57dca114a322` | `fixture_validated` |
+
+The canonical registry and complete Stage 3 primary fixture gate promoted these
+eleven deliberate forward reconstructions to `fixture_validated`; independent
+verification subsequently passed. Neither status changes the fact that these
+resources are not `recovered_exact`.
+
 ## Legacy semantic cross-reference
 
 | New resource | Recovered evidence used | Deliberate stage boundary |
@@ -65,10 +91,21 @@ registry and complete Stage 2 fixture gate promoted all four rows to
 | `macro:0003_control_plane` | `0000` shared control-plane semantics | Shared artifact/snapshot/quality/run-audit control plane only; no Stage 3 macro restoration |
 | `company:0002_control_plane` | `0000` shared control-plane semantics | Empty company-domain foundation only |
 | `news:0002_control_plane` | `0000` shared control-plane semantics | Empty news-domain foundation only |
+| `market:0004_instrument_catalog` | `0001` instrument identity and `0002` dated provider identifiers | Fixture catalog evidence and dated identifier contract only; no recovered DDL parity |
+| `market:0005_instrument_classifications` | `0004` classifications | Append-only effective-dated classification fixture contract only |
+| `market:0006_controlled_universes` | `0001` and `0002` market identity context | Controlled complete-scope membership, tombstone, and restoration contract only |
+| `macro:0004_stage3_core` | `0006`, `0007`, and `0013` macro catalog, observation, and snapshot semantics | Generic fixture catalog/dimensions/current-observation lineage only |
+| `macro:0005_gdp_vintages` | `0003` and `0016` GDP/revision semantics | GDP vintage provenance fixture contract only |
+| `macro:0006_treasury_yield_curves` | `0005`, `0015`, and `0021` Treasury semantics | Current-state and correction fixture contract only |
+| `macro:0007_economic_calendar` | `0012` economic-calendar semantics | Calendar identity and correction fixture contract only |
+| `macro:0008_soma_summary_only` | `0008`, `0010`, and `0011` SOMA semantics | Aggregate-only evidence and summaries; explicitly no CUSIP-level holdings |
+| `macro:0009_eia_electricity_retail` | `0009`, `0017`, and `0023` EIA retail semantics | Evidence, scope, version, tombstone, restoration, and current-pointer fixture contract only |
+| `macro:0010_eia_weekly_fundamentals` | `0022` EIA weekly semantics | Content identity, versions, and snapshot-membership fixture contract only |
+| `macro:0011_us_recession_periods` | `0027` U.S. recession chronology | Completed-period chronology fixture contract only |
 
-All other recovered scopes from `0003` through `0031` remain unallocated after
-Stage 2. In particular, the exact market options ownership at `0029`/`0030` and
-the filing-issuer derived-view invariants at `0031` are preserved as later
+All other recovered scopes remain unallocated after bounded Stage 3. In
+particular, the exact market options ownership at `0029`/`0030` and the
+filing-issuer derived-view invariants at `0031` are preserved as later
 constraints, not folded into these resources.
 
 ## Activation checklist
@@ -76,15 +113,16 @@ constraints, not folded into these resources.
 1. Review final UTF-8/LF SQL bytes and compute lowercase SHA-256.
 2. Declare the same reviewed value in `config/system_registry.json`.
 3. Verify registry/resource/order integrity before opening a writer.
-4. Apply only to four explicit temporary paths during the Stage 1 and Stage 2
-   fixture gates.
+4. Apply only to four explicit temporary paths during the Stage 1, Stage 2, and
+   Stage 3 fixture gates.
 5. Run initialization, rerun, tamper, wrong-store, partial-failure, and
    source/backup/restored evidence tests.
 6. During a forward-preserving table rebuild, temporarily disable foreign-key
    enforcement only inside the atomic rebuild and require `foreign_key_check`
    before the migration ledger advances.
 7. Promote reconstruction state to `fixture_validated` only with the complete
-   applicable stage evidence. The ten currently allocated resources have passed
-   that gate; none can be relabeled `recovered_exact`.
+   applicable stage evidence. The 21 currently allocated resources have passed
+   their applicable primary fixture gates; none can be relabeled
+   `recovered_exact`.
 8. Keep later-stage allocations closed until their roadmap gate and explicit
    authorization are recorded.

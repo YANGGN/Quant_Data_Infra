@@ -1,0 +1,14 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "bls",
+  "provider": "fixture_bls",
+  "captured_at": "2026-06-12T10:05:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"series_ids": ["CPIAUCSL"], "start_year": "2026", "end_year": "2026"},
+  "payload": {
+    "response": {"status": "REQUEST_SUCCEEDED", "responseTime": "999", "message": ["fixture message"], "Results": {"series": [{"seriesID": "CPIAUCSL", "data": [{"period": "M05", "year": "2026", "value": "320.1"}]}]}},
+    "series": [{"series_id": "macro.bls.cpi", "provider_series_code": "CPIAUCSL", "title": "Consumer price index", "frequency": "monthly", "unit": "index", "value_representation": "level", "scale": "1", "dimensions": {}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "2026-06-12", "vintage_at": "2026-06-12", "vintage_precision": "date", "published_at": "2026-06-12", "published_precision": "date", "available_at": "2026-06-12", "available_precision": "date", "source_release_order": 1, "release_stage": "release", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.bls.cpi", "release_identity": "2026-06-12", "period_start": "2026-05-01", "period_end": "2026-05-31", "dimensions": {}, "value": "320.1", "missing_reason": null, "source_row": 1}]
+  }
+}

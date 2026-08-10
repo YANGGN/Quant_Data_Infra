@@ -55,7 +55,7 @@ class NewsFoundationStatusTests(unittest.TestCase):
         self.assertEqual(status, news_foundation_status(self.store_map, self.registry))
         after = mutation_fingerprint(self.store_map)
         self.assertEqual(before, after)
-        self.assertEqual(status["registry_version"], "2.0.0")
+        self.assertEqual(status["registry_version"], self.registry.registry_version)
         self.assertEqual(status["store_role"], "news")
         self.assertEqual(status["store_contract_version"], "stage2")
         self.assertEqual(

@@ -1,0 +1,15 @@
+{
+  "schema_version": "stage3_macro_fixture_v1",
+  "family": "chicagofed",
+  "provider": "fixture_chicago_fed",
+  "captured_at": "2026-07-17T12:00:00-04:00",
+  "capture_state": "complete",
+  "request_scope": {"series_id": "NFCI", "start": "2026-07-10", "end": "2026-07-17"},
+  "payload": {
+    "parsed_observations": [{"period": "2026-07-17", "value": "-0.10"}],
+    "artifact_scope": {"resource": "nfci.csv", "release": "weekly"},
+    "series": [{"series_id": "macro.chicagofed.nfci", "provider_series_code": "NFCI", "title": "National Financial Conditions Index", "frequency": "weekly", "unit": "index", "value_representation": "level", "scale": "1", "dimensions": {}, "availability_basis": "source_release", "supported_modes": ["latest", "as_of"]}],
+    "releases": [{"source_vintage_identity": "2026-07-17", "vintage_at": "2026-07-17", "vintage_precision": "date", "published_at": "2026-07-17", "published_precision": "date", "available_at": "2026-07-17", "available_precision": "date", "source_release_order": 1, "release_stage": "release", "is_first_release": false, "first_release_evidence": null}],
+    "observations": [{"series_id": "macro.chicagofed.nfci", "release_identity": "2026-07-17", "period_start": "2026-07-17", "period_end": "2026-07-17", "dimensions": {}, "value": "-0.10", "missing_reason": null, "source_row": 1}]
+  }
+}

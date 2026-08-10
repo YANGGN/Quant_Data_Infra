@@ -8,9 +8,10 @@ Infrastructure rebuild documents
 
 This directory converts the historical recovery specification in
 [plan.md](../../plan.md) into accepted implementation contracts. Stage 0 was
-accepted and the offline Stage 1 slice and Stage 2 four-store foundation were
-implemented on 2026-08-09. Later documented behavior is not considered
-implemented until its executable evidence passes.
+accepted and the offline Stage 1 slice, Stage 2 four-store foundation, and
+bounded Stage 3 market/macro fixture scope were implemented on 2026-08-09.
+Stage 3 also passed independent verification. Later documented behavior is not
+considered implemented until separately authorized executable evidence passes.
 
 Two user decisions narrow the work:
 
@@ -29,6 +30,7 @@ Two user decisions narrow the work:
 - [Migration reconstruction map](MIGRATION_RECONSTRUCTION.md)
 - [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md)
 - [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md)
+- [Stage 3 acceptance evidence](STAGE3_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -80,8 +82,10 @@ either history or semantics.
 
 The current planning package is `Accepted`. Stage 1 and the offline Stage 2
 foundation have recorded fixture-validated evidence, and Stage 2 has passed
-independent verification. Only the explicitly authorized roadmap stage may be
-implemented; Stage 3 remains gated and unauthorized.
+independent verification. The bounded offline Stage 3 scope has passed its
+primary fixture gate and independent SolUltra verification. Stage 4 remains
+closed pending separate explicit authorization. Only an explicitly authorized
+roadmap stage may be implemented.
 
 ## 5. Shared terminology
 

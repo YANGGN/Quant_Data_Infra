@@ -19,7 +19,10 @@
       "promotable": false,
       "expected_warnings": [],
       "request_scope": {
-        "symbols": ["SPY", "^GSPC"],
+        "symbols": [
+          "SPY",
+          "^GSPC"
+        ],
         "start_date": "2026-07-16",
         "end_date": "2026-07-17",
         "price_variant": "raw",
@@ -49,7 +52,9 @@
       "promotable": false,
       "expected_warnings": [],
       "request_scope": {
-        "symbols": ["SPY"],
+        "symbols": [
+          "SPY"
+        ],
         "start_date": "2026-07-17",
         "end_date": "2026-07-17",
         "price_variant": "raw",
@@ -115,6 +120,709 @@
         "normalization_version": "macro_rtdsm_v1",
         "expected_rows": 2,
         "expected_missing": 0
+      }
+    },
+    {
+      "id": "stage3.market.catalog_initial",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.catalog_import",
+      "evidence_dataset_id": "fixture.market.catalog_evidence",
+      "canonical_dataset_id": "fixture.market.controlled_universes",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/market/catalog_initial.json",
+      "sha256": "700f90d04fa51404032de8777625b4a54008f8a2f3b54fe45ef21d72823d4a20",
+      "expected_semantic_identity": "55d544ba731109b426af7962dea9832212b656b6fb8597de79a9898d3db17cf3",
+      "byte_count": 7898,
+      "captured_at": "2026-07-20T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "catalog_and_universe",
+        "provider": "fixture_fmp",
+        "universe_key": "fixture.market.universe.liquid",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "1.0.0",
+        "tombstone_authoritative": true
+      }
+    },
+    {
+      "id": "stage3.market.universe_partial_omission",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.catalog_import",
+      "evidence_dataset_id": "fixture.market.catalog_evidence",
+      "canonical_dataset_id": "fixture.market.controlled_universes",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/market/universe_partial_omission.json",
+      "sha256": "f0083d7a2ba872748339d86619b34058efb2ff077a7d133f7db8d41b9ffc1c28",
+      "expected_semantic_identity": "b631b8853789654c07968a9dde16b9be0f4f2524f607478f87b29dff8bdfb6e9",
+      "byte_count": 569,
+      "captured_at": "2026-07-21T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "universe_membership",
+        "provider": "fixture_fmp",
+        "universe_key": "fixture.market.universe.liquid",
+        "completeness": "partial"
+      },
+      "metadata": {
+        "normalization_version": "1.0.0",
+        "tombstone_authoritative": false
+      }
+    },
+    {
+      "id": "stage3.market.universe_complete_removal",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.catalog_import",
+      "evidence_dataset_id": "fixture.market.catalog_evidence",
+      "canonical_dataset_id": "fixture.market.controlled_universes",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/market/universe_complete_removal.json",
+      "sha256": "c9c9bfa93e06d7c94543b40ec24a1a12076c9f8f4b3901a6e0d7335a0cdd3f7e",
+      "expected_semantic_identity": "d3ef9f5fc916d14803315afb842edbcec5307878289e1193430a1b4eea127ae2",
+      "byte_count": 570,
+      "captured_at": "2026-07-22T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "universe_membership",
+        "provider": "fixture_fmp",
+        "universe_key": "fixture.market.universe.liquid",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "1.0.0",
+        "tombstone_authoritative": true
+      }
+    },
+    {
+      "id": "stage3.market.universe_complete_restoration",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.catalog_import",
+      "evidence_dataset_id": "fixture.market.catalog_evidence",
+      "canonical_dataset_id": "fixture.market.controlled_universes",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/market/universe_complete_restoration.json",
+      "sha256": "1e6b6bc477e612a2878cbfdf96ca322afdd29ccebb9d85a3718d1e05afb27f9b",
+      "expected_semantic_identity": "1ea568825138051c85e188add008e096e04dd23a38e19633b526b5c36561c18b",
+      "byte_count": 721,
+      "captured_at": "2026-07-23T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "universe_membership",
+        "provider": "fixture_fmp",
+        "universe_key": "fixture.market.universe.liquid",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "1.0.0",
+        "tombstone_authoritative": true
+      }
+    },
+    {
+      "id": "bea_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.bea_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bea",
+      "resource": "tests/fixtures/stage3/macro/bea_base.json",
+      "sha256": "897f8996aeb9139e4bbeccfc693ca20e513546d4cc0fd8754caa27874d32f10d",
+      "expected_semantic_identity": "7ef2be33d9ea3c6c56968a9e3f9a7900c692ee7b0651fe8a5ccfe18d8abcf151",
+      "byte_count": 1304,
+      "captured_at": "2026-06-30T13:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "table": "personal_income",
+        "line": "1"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "bea_utc_only",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.bea_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bea",
+      "resource": "tests/fixtures/stage3/macro/bea_utc_only.json",
+      "sha256": "9a5391db4be629670f8dbda5d4aa7663adcba1bcc840c53fc7ae63d7d6e50d17",
+      "expected_semantic_identity": "7ef2be33d9ea3c6c56968a9e3f9a7900c692ee7b0651fe8a5ccfe18d8abcf151",
+      "byte_count": 1304,
+      "captured_at": "2026-06-30T13:05:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "table": "personal_income",
+        "line": "1"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "bis_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.bis_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bis",
+      "resource": "tests/fixtures/stage3/macro/bis_base.json",
+      "sha256": "0014a59fa72c4d39e2f7fab272e66972b6de5326f07db3706e7be7486cbdc7e3",
+      "expected_semantic_identity": "117fce94d31ffd1e4c07ca13eadc438b724f2227707f0254863beef325b2c388",
+      "byte_count": 1190,
+      "captured_at": "2026-06-30T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "dataset": "credit_to_gdp",
+        "country": "US"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "bls_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.bls_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bls",
+      "resource": "tests/fixtures/stage3/macro/bls_base.json",
+      "sha256": "7bea625676391e779b485f11f5b52b4f110925dea4bceb403452679fc303ee58",
+      "expected_semantic_identity": "2514f58e1aae33e545e9bfad52ba0b96b34ec207e0bbcb4a69216416ee91e5f8",
+      "byte_count": 1383,
+      "captured_at": "2026-06-12T10:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "series_ids": [
+          "CPIAUCSL"
+        ],
+        "start_year": "2026",
+        "end_year": "2026"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "bls_response_time_only",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.bls_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bls",
+      "resource": "tests/fixtures/stage3/macro/bls_response_time_only.json",
+      "sha256": "43f7a0e82ea915fa3954151f902c8e5c550317784d11deb5069b2cf5d921a8e3",
+      "expected_semantic_identity": "2514f58e1aae33e545e9bfad52ba0b96b34ec207e0bbcb4a69216416ee91e5f8",
+      "byte_count": 1383,
+      "captured_at": "2026-06-12T10:05:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "series_ids": [
+          "CPIAUCSL"
+        ],
+        "start_year": "2026",
+        "end_year": "2026"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "chicagofed_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.chicago_fed_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_chicago_fed",
+      "resource": "tests/fixtures/stage3/macro/chicagofed_base.json",
+      "sha256": "b52168c9310d7666678ce3d78025a5e51204e4d10fe96416599a76fb8f90ad38",
+      "expected_semantic_identity": "a228e6cddb154a10c4d4224236454243945eb7c11dabfa900d31cb23d5e2e7b4",
+      "byte_count": 1343,
+      "captured_at": "2026-07-17T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "series_id": "NFCI",
+        "start": "2026-07-10",
+        "end": "2026-07-17"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "chicagofed_scope_change",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.chicago_fed_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.rtdsm_employ",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_chicago_fed",
+      "resource": "tests/fixtures/stage3/macro/chicagofed_scope_change.json",
+      "sha256": "beee9b976a9613bd19c26bc1f2cf6693a46a715a8c07b9be80ac0db13165af54",
+      "expected_semantic_identity": "c93ae3474e6c8d8c5417d8fe93930b6c878b6d25b184a0684ce24036c5d4b568",
+      "byte_count": 1373,
+      "captured_at": "2026-07-17T12:01:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "series_id": "NFCI",
+        "start": "2026-07-03",
+        "end": "2026-07-17"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "economic_calendar",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.calendar_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.economic_calendar",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/macro/economic_calendar.json",
+      "sha256": "639e1e37444a064aa76b11d6a73d5cb0578de4c9b5b58198da11e76111719679",
+      "expected_semantic_identity": "e1391e73122592940f9d43475afdb15c47318b08e3ccf9d28df0dd4fcd21af4a",
+      "byte_count": 1470,
+      "captured_at": "2026-06-12T09:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "country": "US",
+        "date": "2026-06-12"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "eia_retail_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.eia_retail_import",
+      "evidence_dataset_id": "fixture.macro.eia_retail_evidence",
+      "canonical_dataset_id": "fixture.macro.eia_retail",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_eia",
+      "resource": "tests/fixtures/stage3/macro/eia_retail_base.json",
+      "sha256": "9657797bcbe2680a71f0fa06406e24ee1514388f4558636772f7c764455b2b89",
+      "expected_semantic_identity": "3d4cf14b424bf219be7c9bd476d7f9547025db9adfbc78fc3b255c1af5640b46",
+      "byte_count": 1761,
+      "captured_at": "2026-06-20T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "dataset": "electricity_retail",
+        "period": "2026-05",
+        "scope": "US",
+        "complete": true,
+        "tombstone_authoritative": true
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "eia_retail_omission",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.eia_retail_import",
+      "evidence_dataset_id": "fixture.macro.eia_retail_evidence",
+      "canonical_dataset_id": "fixture.macro.eia_retail",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_eia",
+      "resource": "tests/fixtures/stage3/macro/eia_retail_omission.json",
+      "sha256": "4deead8f0ed75695d84b0e395a2bb11ec52d7484d41081ad29a6510423db7a23",
+      "expected_semantic_identity": "2660c101d198457a807be94082172796e09ce28acfbdc25fba74ac1dfaf59d05",
+      "byte_count": 1255,
+      "captured_at": "2026-06-25T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "dataset": "electricity_retail",
+        "period": "2026-05",
+        "scope": "US",
+        "complete": true,
+        "tombstone_authoritative": true,
+        "revision": "omission"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "eia_retail_partial",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.eia_retail_import",
+      "evidence_dataset_id": "fixture.macro.eia_retail_evidence",
+      "canonical_dataset_id": "fixture.macro.eia_retail",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_eia",
+      "resource": "tests/fixtures/stage3/macro/eia_retail_partial.json",
+      "sha256": "dcc152a169953dfda83b4f6c2a7e22947dfd1cc8247eb0b3300e050ef4acf0df",
+      "expected_semantic_identity": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_count": 526,
+      "captured_at": "2026-06-21T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [
+        "incomplete_capture_rejected"
+      ],
+      "request_scope": {
+        "dataset": "electricity_retail",
+        "period": "2026-05",
+        "scope": "US",
+        "complete": false,
+        "tombstone_authoritative": false
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "partial",
+        "expected_error": "incomplete_capture"
+      }
+    },
+    {
+      "id": "eia_retail_restore",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.eia_retail_import",
+      "evidence_dataset_id": "fixture.macro.eia_retail_evidence",
+      "canonical_dataset_id": "fixture.macro.eia_retail",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_eia",
+      "resource": "tests/fixtures/stage3/macro/eia_retail_restore.json",
+      "sha256": "78b3da85733295926ded520b3f7fb563b8345891f2db76845941b67f24b6ff9c",
+      "expected_semantic_identity": "f3b4467ec31bab10a236c16cf6395f4164320828f35b6708dbb87efd76815e60",
+      "byte_count": 1506,
+      "captured_at": "2026-07-01T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "dataset": "electricity_retail",
+        "period": "2026-05",
+        "scope": "US",
+        "complete": true,
+        "tombstone_authoritative": true,
+        "revision": "restore"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "eia_weekly_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.eia_weekly_import",
+      "evidence_dataset_id": "fixture.macro.eia_weekly_evidence",
+      "canonical_dataset_id": "fixture.macro.eia_weekly",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_eia",
+      "resource": "tests/fixtures/stage3/macro/eia_weekly_base.json",
+      "sha256": "803724cfbc73df5909d148612f6f2681ec0254fed1423c2a63f012156f63df18",
+      "expected_semantic_identity": "ad7180716ed27fa78bcd9d25a36dfcd0df0767be7e68076865684c2cddec89ea",
+      "byte_count": 1448,
+      "captured_at": "2026-07-17T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "dataset": "weekly_fundamentals",
+        "series_ids": [
+          "W.PET.STOCK"
+        ],
+        "period": "2026-07-10"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "eia_weekly_scope_change",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.eia_weekly_import",
+      "evidence_dataset_id": "fixture.macro.eia_weekly_evidence",
+      "canonical_dataset_id": "fixture.macro.eia_weekly",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_eia",
+      "resource": "tests/fixtures/stage3/macro/eia_weekly_scope_change.json",
+      "sha256": "305072429ec1498e9118f9012dff410e9d3c5988188de17ca54dd0761e97a345",
+      "expected_semantic_identity": "f40fe71d2316794dd65c91744f03a7f36af6f4ba8f7f942dcc5d22eb71efa204",
+      "byte_count": 1649,
+      "captured_at": "2026-07-17T17:05:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "dataset": "weekly_fundamentals",
+        "series_ids": [
+          "W.PET.STOCK",
+          "W.NG.STOCK"
+        ],
+        "period": "2026-07-10"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "gdp_advance",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.gdp_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.gdp_vintages",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bea",
+      "resource": "tests/fixtures/stage3/macro/gdp_advance.json",
+      "sha256": "a8c4b501897dc714f4f07997df8f16683268a1ace7fbef629f7e40be7e191ec2",
+      "expected_semantic_identity": "7afc3a92201b3d5d8792b39d07c4580dea9201d86e90521a21364b246a7a1648",
+      "byte_count": 1970,
+      "captured_at": "2026-04-30T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "archive": "national_accounts",
+        "release": "2026-04-30",
+        "stage": "advance"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "gdp_second",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.gdp_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.gdp_vintages",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bea",
+      "resource": "tests/fixtures/stage3/macro/gdp_second.json",
+      "sha256": "ad36714d4b72364e9df99f5f8748e657dc489e5e6da6bbca3a56cdd499fae7b0",
+      "expected_semantic_identity": "b5d2f839b7ccd8bf805590703ba46c43869cc5f77e8ccfbd8e44caaf07c592dc",
+      "byte_count": 1936,
+      "captured_at": "2026-05-29T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "archive": "national_accounts",
+        "release": "2026-05-29",
+        "stage": "second"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "gdp_second_correction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.gdp_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.gdp_vintages",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_bea",
+      "resource": "tests/fixtures/stage3/macro/gdp_second_correction.json",
+      "sha256": "7ddaa1f7a9ba8de7e7744b68be13b7fec4fbfc790b507dd231e0d4dacf6307c9",
+      "expected_semantic_identity": "9c194b3cf14229a68437a1e123003e1d9e2a700d28c0f0f0f7b7747c74c13f10",
+      "byte_count": 1955,
+      "captured_at": "2026-05-30T17:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "archive": "national_accounts",
+        "release": "2026-05-29",
+        "stage": "second",
+        "correction": "1"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "recession_periods",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.recession_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.recession_periods",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_nber",
+      "resource": "tests/fixtures/stage3/macro/recession_periods.json",
+      "sha256": "2a027284ac31ed4b207fe35a7483c2f5c51b65c1a8a2eafd6cee384263d4e82f",
+      "expected_semantic_identity": "4863854b9f76a7655120d55127fe5dc76d99759ef57c6d81f02df745ffd03a51",
+      "byte_count": 526,
+      "captured_at": "2026-07-01T12:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "chronology": "us",
+        "completed_periods_only": true
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "soma_summary",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.soma_import",
+      "evidence_dataset_id": "fixture.macro.soma_evidence",
+      "canonical_dataset_id": "fixture.macro.soma_summary",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_new_york_fed",
+      "resource": "tests/fixtures/stage3/macro/soma_summary.json",
+      "sha256": "d02ccde0173c609f7144836eab4622d0f60fee18a4027367be666866b7b84fe6",
+      "expected_semantic_identity": "21a68f6b961eb1f6ee961c4856e8c9472591ea1b5f188babfc5324622344223a",
+      "byte_count": 1585,
+      "captured_at": "2026-07-22T18:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "as_of_date": "2026-07-22",
+        "summary_only": true
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "treasury_base",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.treasury_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.treasury_yield_curves",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/macro/treasury_base.json",
+      "sha256": "c01fefd6f07b032d6b9c1c8a9dfbb3dde2bfe8091f7e09047869092de587cd3d",
+      "expected_semantic_identity": "08b8ad61caf4b16cb847230e66246eceac6ec046bafdb9533a6677cdf23fc032",
+      "byte_count": 2175,
+      "captured_at": "2026-07-18T18:00:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "curve_variant": "par_yield",
+        "curve_date": "2026-07-17",
+        "tenors": [
+          "2Y",
+          "10Y"
+        ]
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
+      }
+    },
+    {
+      "id": "treasury_correction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.macro.treasury_import",
+      "evidence_dataset_id": "fixture.macro.rtdsm_employ_evidence",
+      "canonical_dataset_id": "fixture.macro.treasury_yield_curves",
+      "identity_dataset_id": "fixture.macro.stage3_catalog",
+      "store": "macro",
+      "provider": "fixture_fmp",
+      "resource": "tests/fixtures/stage3/macro/treasury_correction.json",
+      "sha256": "5f0ebe228bc305180d4a3bddcf03d911da21fb2a79cbd2c0249d9f53552e3fe6",
+      "expected_semantic_identity": "3c766072b5fb18121ef38a528399da35349585eba198c66d8b8139ba78e8f5c4",
+      "byte_count": 2194,
+      "captured_at": "2026-07-20T09:15:00-04:00",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "curve_variant": "par_yield",
+        "curve_date": "2026-07-17",
+        "tenors": [
+          "2Y",
+          "10Y"
+        ],
+        "correction": "1"
+      },
+      "metadata": {
+        "normalization_version": "stage3_macro_v1",
+        "capture_state": "complete"
       }
     }
   ]

@@ -30,7 +30,7 @@ from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.macro import MacroFixtureImporter
 from quant_data.market import DailyPriceImporter
 from quant_data.migrations import initialize_all
-from quant_data.registry import load_registry
+from quant_data.registry import load_registry, stage2_registry_profile
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import (
     STORE_ROLES,
@@ -62,7 +62,9 @@ CONTROL_TABLES = (
 
 
 def _registry():
-    return load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+    return stage2_registry_profile(
+        load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+    )
 
 
 def _opposite_order_lock_worker(paths, roles, queue) -> None:
@@ -584,7 +586,9 @@ class Stage2ControlPlaneAndCompositionTests(unittest.TestCase):
         raw["datasets"][0]["identity"]["stable_fields"].append("provider")
         path = self.root / "mutated-registry.json"
         path.write_text(dumps_strict(raw), encoding="utf-8")
-        mutated = load_registry(path, project_root=PROJECT_ROOT, environment={})
+        mutated = stage2_registry_profile(
+            load_registry(path, project_root=PROJECT_ROOT, environment={})
+        )
         with self.assertRaises(MigrationError):
             initialize_all(self.store_map, mutated)
         self.assertEqual(before["sha256"], mutation_fingerprint(self.store_map)["sha256"])
