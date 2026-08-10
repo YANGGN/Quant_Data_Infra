@@ -6,7 +6,13 @@ from pathlib import Path
 
 from quant_data.errors import RegistryError
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage2_registry_profile
+from quant_data.registry import (
+    PUBLIC_TOOL_NAMES,
+    load_registry,
+    stage2_registry_profile,
+    stage3_registry_profile,
+    stage4_registry_profile,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -84,10 +90,20 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(registry.registry_version, "2.1.0")
-        self.assertEqual(len(registry.migrations), 21)
-        self.assertEqual(len(registry.datasets), 19)
-        self.assertEqual(len(registry.collectors), 14)
+        self.assertEqual(registry.registry_version, "2.2.0")
+        self.assertEqual(len(registry.migrations), 30)
+        self.assertEqual(len(registry.datasets), 33)
+        self.assertEqual(len(registry.collectors), 19)
+        stage4 = stage4_registry_profile(registry)
+        self.assertEqual(stage4.registry_version, "2.2.0")
+        self.assertEqual(len(stage4.migrations), 30)
+        self.assertEqual(len(stage4.datasets), 33)
+        self.assertEqual(len(stage4.collectors), 19)
+        stage3 = stage3_registry_profile(registry)
+        self.assertEqual(stage3.registry_version, "2.1.0")
+        self.assertEqual(len(stage3.migrations), 21)
+        self.assertEqual(len(stage3.datasets), 19)
+        self.assertEqual(len(stage3.collectors), 14)
         stage2 = stage2_registry_profile(registry)
         self.assertEqual(stage2.registry_version, "2.0.0")
         self.assertEqual(len(stage2.migrations), 10)

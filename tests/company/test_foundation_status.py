@@ -11,7 +11,7 @@ from quant_data.errors import StoreUnavailableError, ValidationError
 from quant_data.fingerprint import mutation_fingerprint
 from quant_data.json_codec import dumps_strict
 from quant_data.migrations import initialize_all
-from quant_data.registry import load_registry
+from quant_data.registry import load_registry, stage3_registry_profile
 from quant_data.stores import StoreMap
 
 
@@ -33,7 +33,13 @@ class CompanyFoundationStatusTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.store_map = temporary_store_map(self.root)
-        self.registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        self.registry = stage3_registry_profile(
+            load_registry(
+                REGISTRY_PATH,
+                project_root=PROJECT_ROOT,
+                environment={},
+            )
+        )
         initialize_all(self.store_map, self.registry)
 
     def tearDown(self) -> None:

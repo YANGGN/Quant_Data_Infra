@@ -30,6 +30,18 @@ _CONTROL_RELATIONS = (
 _EXCLUDED_COLUMNS = {"applied_at", "registered_at", "started_at", "completed_at"}
 
 
+def _fingerprint_value(value: Any) -> Any:
+    """Render SQLite BLOBs as bounded, deterministic strict-JSON values."""
+
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        payload = bytes(value)
+        return {
+            "sqlite_blob_byte_count": len(payload),
+            "sqlite_blob_sha256": hashlib.sha256(payload).hexdigest(),
+        }
+    return value
+
+
 def _table_rows(
     connection: sqlite3.Connection,
     relation: str,
@@ -47,7 +59,10 @@ def _table_rows(
         return {"columns": [], "rows": []}
     select = ", ".join(f'"{column}"' for column in columns)
     values = [
-        {column: row[column] for column in columns}
+        {
+            column: _fingerprint_value(row[column])
+            for column in columns
+        }
         for row in connection.execute(f'SELECT {select} FROM "{relation}"')
     ]
     values.sort(key=dumps_strict)

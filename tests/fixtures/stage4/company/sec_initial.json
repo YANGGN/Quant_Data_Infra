@@ -1,0 +1,161 @@
+{
+  "actions": [],
+  "captured_at": "2026-01-15T17:00:00Z",
+  "captured_precision": "datetime",
+  "earnings_events": [],
+  "expectations": [],
+  "facts": [
+    {
+      "accepted_at": "2026-01-10T16:04:12Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000001",
+      "concept": "Assets",
+      "dimensions": {},
+      "filed_at": "2026-01-10",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "issuer_key": "fixture.company.issuer.northstar",
+      "mapping_version": "sec-core-v2",
+      "period_end": "2025-12-31",
+      "period_kind": "instant",
+      "period_start": null,
+      "source_fact_key": "northstar-assets-2025-fy",
+      "taxonomy": "us-gaap",
+      "unit": "USD",
+      "value": "1250000000"
+    },
+    {
+      "accepted_at": "2026-01-10T16:04:12Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000001",
+      "concept": "EntityCommonStockSharesOutstanding",
+      "dimensions": {},
+      "filed_at": "2026-01-10",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "issuer_key": "fixture.company.issuer.northstar",
+      "mapping_version": "sec-core-v2",
+      "period_end": "2025-12-31",
+      "period_kind": "instant",
+      "period_start": null,
+      "source_fact_key": "northstar-shares-instant-2025-12-31",
+      "taxonomy": "dei",
+      "unit": "shares",
+      "value": "100000000"
+    },
+    {
+      "accepted_at": "2026-01-10T16:04:12Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000001",
+      "concept": "WeightedAverageNumberOfSharesOutstandingBasic",
+      "dimensions": {},
+      "filed_at": "2026-01-10",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "issuer_key": "fixture.company.issuer.northstar",
+      "mapping_version": "sec-core-v2",
+      "period_end": "2025-12-31",
+      "period_kind": "duration",
+      "period_start": "2025-01-01",
+      "source_fact_key": "northstar-shares-weighted-2025-fy",
+      "taxonomy": "us-gaap",
+      "unit": "shares",
+      "value": "98000000"
+    }
+  ],
+  "family": "sec",
+  "filings": [
+    {
+      "accepted_at": "2026-01-10T16:04:12Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000001",
+      "filing_date": "2026-01-10",
+      "first_observed_issuer_key": "fixture.company.issuer.northstar",
+      "form": "10-K",
+      "issuer_keys": [
+        "fixture.company.issuer.northstar"
+      ],
+      "primary_document": "northstar-20251231.htm",
+      "report_period": "2025-12-31",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1000001/000100000126000001/northstar-20251231.htm"
+    }
+  ],
+  "fixture_kind": "company_stage4_snapshot",
+  "guidance": [],
+  "issuers": [
+    {
+      "available_at": "2026-01-10T16:04:12Z",
+      "available_precision": "datetime",
+      "cik": "0001000001",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "entity_type": "operating_company",
+      "legal_name": "Northstar Systems Inc.",
+      "links": [
+        {
+          "available_at": "2026-01-10T16:04:12Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "ticker",
+          "provider": "sec",
+          "provider_identifier": "NST",
+          "valid_from": "2024-01-01",
+          "valid_through": "2026-03-02"
+        },
+        {
+          "available_at": "2026-01-10T16:04:12Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "security",
+          "provider": "synthetic-security-master",
+          "provider_identifier": "NSI-PRIMARY-001",
+          "valid_from": "2024-01-01",
+          "valid_through": null
+        },
+        {
+          "available_at": "2026-01-15T17:00:00Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "provider_symbol",
+          "provider": "fmp",
+          "provider_identifier": "NST",
+          "valid_from": "2024-01-01",
+          "valid_through": null
+        }
+      ],
+      "state": "active"
+    }
+  ],
+  "mappings": [
+    {
+      "concept": "Assets",
+      "mapping_version": "sec-core-v2",
+      "metric_code": "total_assets",
+      "metric_kind": "fundamental",
+      "metric_label": "Total assets",
+      "share_semantics": null,
+      "taxonomy": "us-gaap",
+      "unit": "USD"
+    },
+    {
+      "concept": "EntityCommonStockSharesOutstanding",
+      "mapping_version": "sec-core-v2",
+      "metric_code": "shares_outstanding",
+      "metric_kind": "share_count",
+      "metric_label": "Shares outstanding",
+      "share_semantics": "instant",
+      "taxonomy": "dei",
+      "unit": "shares"
+    },
+    {
+      "concept": "WeightedAverageNumberOfSharesOutstandingBasic",
+      "mapping_version": "sec-core-v2",
+      "metric_code": "weighted_average_shares_basic",
+      "metric_kind": "share_count",
+      "metric_label": "Weighted-average basic shares",
+      "share_semantics": "weighted_average",
+      "taxonomy": "us-gaap",
+      "unit": "shares"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

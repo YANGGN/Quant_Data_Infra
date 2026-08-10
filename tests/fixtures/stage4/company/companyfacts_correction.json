@@ -1,0 +1,72 @@
+{
+  "actions": [],
+  "captured_at": "2026-04-03T19:00:00Z",
+  "captured_precision": "datetime",
+  "earnings_events": [],
+  "expectations": [],
+  "facts": [
+    {
+      "accepted_at": "2026-04-03",
+      "accepted_precision": "date",
+      "accession_number": "0001000001-26-000021",
+      "concept": "Assets",
+      "dimensions": {},
+      "filed_at": "2026-04-03",
+      "fiscal_period": "FY",
+      "fiscal_year": 2025,
+      "issuer_key": "fixture.company.issuer.northstar",
+      "mapping_version": "sec-core-v3",
+      "period_end": "2025-12-31",
+      "period_kind": "instant",
+      "period_start": null,
+      "source_fact_key": "northstar-assets-2025-fy",
+      "taxonomy": "us-gaap",
+      "unit": "USD",
+      "value": "1251000000"
+    }
+  ],
+  "family": "sec",
+  "filings": [
+    {
+      "accepted_at": "2026-04-03",
+      "accepted_precision": "date",
+      "accession_number": "0001000001-26-000021",
+      "filing_date": "2026-04-03",
+      "first_observed_issuer_key": "fixture.company.issuer.northstar",
+      "form": "10-K/A",
+      "issuer_keys": [
+        "fixture.company.issuer.northstar"
+      ],
+      "primary_document": "northstar-20251231x10ka.htm",
+      "report_period": "2025-12-31",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1000001/000100000126000021/northstar-20251231x10ka.htm"
+    }
+  ],
+  "fixture_kind": "company_stage4_snapshot",
+  "guidance": [],
+  "issuers": [
+    {
+      "available_at": "2026-04-03",
+      "available_precision": "date",
+      "cik": "0001000001",
+      "entity_type": "operating_company",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "legal_name": "Northstar Systems Inc.",
+      "links": [],
+      "state": "active"
+    }
+  ],
+  "mappings": [
+    {
+      "concept": "Assets",
+      "mapping_version": "sec-core-v3",
+      "metric_code": "total_assets",
+      "metric_kind": "fundamental",
+      "metric_label": "Total assets",
+      "share_semantics": null,
+      "taxonomy": "us-gaap",
+      "unit": "USD"
+    }
+  ],
+  "schema_version": "1.0.0"
+}

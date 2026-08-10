@@ -1,0 +1,214 @@
+{
+  "capture": {
+    "underlying_key": "fixture.market.instrument.spy",
+    "requested_feed": "fixture_options",
+    "resolved_feed": "fixture_options",
+    "environment": "synthetic",
+    "requested_at": "2026-08-04T15:59:00Z",
+    "requested_precision": "datetime",
+    "completed_at": "2026-08-04T16:00:00Z",
+    "completed_precision": "datetime",
+    "available_at": "2026-08-04T16:00:00Z",
+    "available_precision": "datetime",
+    "completeness": "complete",
+    "deliverable_policy": "standard_only"
+  },
+  "contracts": [
+    {
+      "provider": "fixture_opra",
+      "provider_contract_id": "SPY260918C00660000",
+      "contract_symbol": "SPY260918C00660000",
+      "expiration_date": "2026-09-18",
+      "strike_price": "660",
+      "option_type": "call",
+      "deliverable_kind": "standard",
+      "contract_multiplier": 100,
+      "nonstandard_deliverable": null,
+      "contract_status": "active",
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic"
+    },
+    {
+      "provider": "fixture_opra",
+      "provider_contract_id": "SPY260918P00630000N",
+      "contract_symbol": "SPY260918P00630000N",
+      "expiration_date": "2026-09-18",
+      "strike_price": "630",
+      "option_type": "put",
+      "deliverable_kind": "nonstandard",
+      "contract_multiplier": 100,
+      "nonstandard_deliverable": {
+        "cash_in_lieu": "0.25",
+        "description": "synthetic adjustment"
+      },
+      "contract_status": "active",
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic"
+    }
+  ],
+  "surface": [
+    {
+      "provider_contract_id": "SPY260918C00660000",
+      "surface_state": "present",
+      "missing_reason": null,
+      "exclusion_reason": null,
+      "quote": {
+        "bid_price": "10.40",
+        "ask_price": "10.60",
+        "bid_size": 8,
+        "ask_size": 9,
+        "last_price": "10.55",
+        "last_size": 1,
+        "volume": 119,
+        "implied_volatility": "0.177",
+        "delta": "0.487",
+        "gamma": "0.010",
+        "theta": "-0.079",
+        "vega": "0.188",
+        "rho": "0.066",
+        "quote_at": "2026-08-04T16:00:00Z",
+        "quote_precision": "datetime",
+        "trade_at": null,
+        "trade_precision": null
+      },
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic",
+      "open_interest": {
+        "as_of_date": "2026-08-04",
+        "state": "present",
+        "value": 8200,
+        "missing_reason": null,
+        "available_at": "2026-08-04T16:00:00Z",
+        "available_precision": "datetime"
+      },
+      "close_price": {
+        "trade_date": "2026-08-04",
+        "state": "present",
+        "value": "10.55",
+        "missing_reason": null,
+        "available_at": "2026-08-04T16:00:00Z",
+        "available_precision": "datetime"
+      },
+      "bars": []
+    },
+    {
+      "provider_contract_id": "SPY260918P00630000N",
+      "surface_state": "excluded",
+      "missing_reason": null,
+      "exclusion_reason": "nonstandard_deliverable",
+      "quote": {
+        "bid_price": null,
+        "ask_price": null,
+        "bid_size": null,
+        "ask_size": null,
+        "last_price": null,
+        "last_size": null,
+        "volume": null,
+        "implied_volatility": null,
+        "delta": null,
+        "gamma": null,
+        "theta": null,
+        "vega": null,
+        "rho": null,
+        "quote_at": null,
+        "quote_precision": null,
+        "trade_at": null,
+        "trade_precision": null
+      },
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic",
+      "open_interest": {
+        "as_of_date": "2026-08-04",
+        "state": "missing",
+        "value": null,
+        "missing_reason": "nonstandard_deliverable",
+        "available_at": "2026-08-04T16:00:00Z",
+        "available_precision": "datetime"
+      },
+      "close_price": {
+        "trade_date": "2026-08-04",
+        "state": "missing",
+        "value": null,
+        "missing_reason": "nonstandard_deliverable",
+        "available_at": "2026-08-04T16:00:00Z",
+        "available_precision": "datetime"
+      },
+      "bars": []
+    }
+  ],
+  "inputs": {
+    "underlying": {
+      "state": "present",
+      "missing_reason": null,
+      "observed_at": "2026-08-04T16:00:00Z",
+      "observed_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic"
+    },
+    "underlying_quote": {
+      "state": "present",
+      "missing_reason": null,
+      "bid_price": "659.95",
+      "ask_price": "660.05",
+      "last_price": "660",
+      "trade_price": "660",
+      "quote_at": "2026-08-04T16:00:00Z",
+      "quote_precision": "datetime",
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic"
+    },
+    "rate_curve": {
+      "state": "present",
+      "missing_reason": null,
+      "curve_date": "2026-08-04",
+      "source_name": "fixture_treasury",
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic",
+      "points": [
+        {
+          "tenor_days": 45,
+          "state": "present",
+          "zero_rate": "0.042",
+          "missing_reason": null
+        }
+      ]
+    },
+    "dividend_set": {
+      "state": "present",
+      "missing_reason": null,
+      "source_name": "fixture_no_dividend",
+      "available_at": "2026-08-04T16:00:00Z",
+      "available_precision": "datetime",
+      "feed": "fixture_options",
+      "environment": "synthetic",
+      "cashflows": []
+    },
+    "expiry_inputs": [
+      {
+        "expiration_date": "2026-09-18",
+        "state": "present",
+        "missing_reason": null,
+        "spot_price": "660",
+        "risk_free_rate": "0.042",
+        "dividend_yield": "0",
+        "forward_price": "661.03",
+        "available_at": "2026-08-04T16:00:00Z",
+        "available_precision": "datetime",
+        "feed": "fixture_options",
+        "environment": "synthetic"
+      }
+    ]
+  }
+}

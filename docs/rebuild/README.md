@@ -10,14 +10,20 @@ This directory converts the historical recovery specification in
 [plan.md](../../plan.md) into accepted implementation contracts. Stage 0 was
 accepted and the offline Stage 1 slice, Stage 2 four-store foundation, and
 bounded Stage 3 market/macro fixture scope were implemented on 2026-08-09.
-Stage 3 also passed independent verification. Later documented behavior is not
-considered implemented until separately authorized executable evidence passes.
+Stage 3 also passed independent verification. The bounded Stage 4 company,
+news, and options primary fixture gate and independent SolUltra verification
+passed on 2026-08-10. Later documented behavior is not considered
+implemented until separately authorized executable evidence passes.
 
 Two user decisions narrow the work:
 
 - The lost Git history will not be searched for or reconstructed. A fresh
   baseline can be created when implementation begins.
 - A dedicated provider-rights governance subsystem is out of scope.
+
+Stages 4 through 6 are authorized only as sequential, offline synthetic-fixture
+work. Stage 4 is independently verified; Stage 5 is the next authorized
+executable stage and Stage 6 remains closed behind its gate.
 
 ## 2. Document map
 
@@ -31,6 +37,7 @@ Two user decisions narrow the work:
 - [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md)
 - [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md)
 - [Stage 3 acceptance evidence](STAGE3_EVIDENCE.md)
+- [Stage 4 acceptance evidence](STAGE4_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -84,9 +91,10 @@ either history or semantics.
 The current planning package is `Accepted`. Stage 1 and the offline Stage 2
 foundation have recorded fixture-validated evidence, and Stage 2 has passed
 independent verification. The bounded offline Stage 3 scope has passed its
-primary fixture gate and independent SolUltra verification. Stage 4 remains
-closed pending separate explicit authorization. Only an explicitly authorized
-roadmap stage may be implemented.
+primary fixture gate and independent SolUltra verification. The bounded Stage
+4 scope has passed its primary fixture gate and independent SolUltra
+verification. Stage 5 is the next authorized executable stage. Only a
+sequentially authorized roadmap stage may be implemented.
 
 ## 5. Shared terminology
 

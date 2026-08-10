@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Status and scope
 
-This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. Stage 4 remains unimplemented and requires separate explicit authorization. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
+This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. The bounded offline Stage 4 company, news, and options restoration is fixture-validated and independently verified. Stages 4 through 6 are authorized only sequentially with offline synthetic fixtures; Stage 5 is the next authorized executable stage and Stage 6 remains closed until the Stage 5 gate is complete. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
 
 The principal decisions are recorded in:
 
@@ -158,13 +158,15 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration; the current Stage 3
-revision is `2.1.0`, with 21 fixture-validated migrations, 19 datasets, and 14
-collectors. The historical Stage 2 projection remains revision `2.0.0` so that
-its fixed evidence can be rebuilt without rewriting history. The store-local
-dataset registry is runtime evidence. Neither replaces the other. Startup and
-health checks reconcile them and fail closed on missing ownership, an unexpected
-migration state, or a dataset mapped to the wrong physical store.
+The system registry is declarative source configuration; the current Stage 4
+revision is `2.2.0`, with 30 fixture-validated migrations, 33 datasets, 19
+collectors, exactly two validated public tools, 57 reserved compatibility
+names, and no jobs or exports. The historical Stage 2 projection remains
+revision `2.0.0` so that its fixed evidence can be rebuilt without rewriting
+history. The store-local dataset registry is runtime evidence. Neither replaces
+the other. Startup and health checks reconcile them and fail closed on missing
+ownership, an unexpected migration state, or a dataset mapped to the wrong
+physical store.
 
 The physical dataset-layer contract is exactly `evidence`, `canonical`, and
 `derived`. The Stage 2 forward-preserving table rebuild aligns the SQLite
@@ -176,10 +178,11 @@ triggers as an additional defense. A running run's identity is immutable, and
 a failed run ID is durable audit evidence that cannot be reused by a later
 failed or successful attempt.
 
-Applied migration SQL is immutable. A correction is a new migration. The 21
-currently allocated Stage 1 through Stage 3 resources are fixture-validated
+Applied migration SQL is immutable. A correction is a new migration. The 30
+currently allocated Stage 1 through Stage 4 resources are fixture-validated
 deliberate forward reconstructions, never claims of `recovered_exact` parity.
-Stage 3 adds three market and eight macro resources; its exact allocation and
+Stage 3 adds three market and eight macro resources; Stage 4 adds two market
+options, five company, and two news resources. Their exact allocations and
 reviewed hashes are in the [migration reconstruction map](docs/rebuild/MIGRATION_RECONSTRUCTION.md).
 The recovered semantic migration sequence runs through 0031, but byte-exact
 DDL, checksums, indexes, and triggers beyond the reviewed resources remain
@@ -197,6 +200,15 @@ EIA retail and weekly facts, and a completed U.S. recession chronology. It uses
 not provider access. The primary fixture gate and independent verification
 verify its point-in-time, semantic no-write, complete-scope
 tombstone/restoration, backup, restore, and read-only boundaries.
+
+The Stage 4 fixture scope adds CIK-based company identity and immutable SEC
+evidence, versioned company facts/actions/expectations, immutable versioned
+news with a derived search index, and synchronized option-surface inputs. Its
+17 reviewed synthetic fixtures are restricted to seven company, five options,
+and five news resources. The primary fixture gate and independent SolUltra
+verification passed with two clean roots. It adds no live
+provider, scheduler, export, promotion, dashboard, hosting, or public-tool
+capability.
 
 Run status distinguishes succeeded, partial, failed, and unchanged behavior. External scheduler receipts may record a poll that made no database writes; they must not manufacture an ingestion run merely to record an unchanged release.
 
@@ -303,12 +315,12 @@ The exporter must never recursively clean an empty, unresolved, broad, repositor
 
 ## Deployment modes
 
-The implemented boundary remains offline only. Stage 3 imports reviewed
-synthetic market and macro fixtures into explicit temporary roots; it does not
-fetch live providers or use a network, install or run scheduler jobs, create
-exports or Atlas snapshots, promote data, perform destructive storage
-operations, restore company/news/options domains, or add CUSIP-level SOMA
-storage or a source path.
+The implemented boundary remains offline only. Stage 4 rebuilds the reviewed
+Stage 1 through Stage 4 synthetic fixture scopes under explicit temporary
+roots; it does not fetch live providers or use a network, install or run
+scheduler jobs, create exports or Atlas snapshots, promote data, perform
+destructive storage operations, add a public tool or dashboard implementation,
+host a UI, or add CUSIP-level SOMA storage or a source path.
 
 ### Isolated development and test
 

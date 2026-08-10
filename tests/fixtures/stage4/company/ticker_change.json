@@ -1,0 +1,67 @@
+{
+  "actions": [],
+  "captured_at": "2026-03-03T14:00:00Z",
+  "captured_precision": "datetime",
+  "earnings_events": [],
+  "expectations": [],
+  "facts": [],
+  "family": "sec",
+  "filings": [],
+  "fixture_kind": "company_stage4_snapshot",
+  "guidance": [],
+  "issuers": [
+    {
+      "available_at": "2026-03-03",
+      "available_precision": "date",
+      "cik": "0001000001",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "entity_type": "operating_company",
+      "legal_name": "Northstar Systems Inc.",
+      "links": [
+        {
+          "available_at": "2026-03-03",
+          "available_precision": "date",
+          "confidence": "confirmed",
+          "link_kind": "ticker",
+          "provider": "sec",
+          "provider_identifier": "NST",
+          "valid_from": "2024-01-01",
+          "valid_through": "2026-03-02"
+        },
+        {
+          "available_at": "2026-03-03",
+          "available_precision": "date",
+          "confidence": "confirmed",
+          "link_kind": "ticker",
+          "provider": "sec",
+          "provider_identifier": "NSTR",
+          "valid_from": "2026-03-03",
+          "valid_through": null
+        },
+        {
+          "available_at": "2026-01-10T16:04:12Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "security",
+          "provider": "synthetic-security-master",
+          "provider_identifier": "NSI-PRIMARY-001",
+          "valid_from": "2024-01-01",
+          "valid_through": null
+        },
+        {
+          "available_at": "2026-03-03T14:00:00Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "provider_symbol",
+          "provider": "fmp",
+          "provider_identifier": "NSTR",
+          "valid_from": "2026-03-03",
+          "valid_through": null
+        }
+      ],
+      "state": "active"
+    }
+  ],
+  "mappings": [],
+  "schema_version": "1.0.0"
+}

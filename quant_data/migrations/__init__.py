@@ -27,6 +27,12 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 """
 
 
+_REVIEWED_FTS_MIGRATION = (
+    "news:0004_search_index",
+    "quant_data/migrations/news/0004_search_index.sql",
+)
+
+
 def _quote_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -120,12 +126,21 @@ def _migration_authorizer(
     second: str | None,
     database: str | None,
     trigger: str | None,
+    *,
+    allow_fts_data_version: bool = False,
 ) -> int:
     del database, trigger
+    if action == sqlite3.SQLITE_PRAGMA:
+        # FTS5 reads SQLite's data-version counter while constructing a
+        # virtual table. Permit that one read only for the exact reviewed
+        # search-index migration; assignments and every other PRAGMA remain
+        # denied.
+        if allow_fts_data_version and first == "data_version" and second is None:
+            return sqlite3.SQLITE_OK
+        return sqlite3.SQLITE_DENY
     forbidden_actions = {
         sqlite3.SQLITE_ATTACH,
         sqlite3.SQLITE_DETACH,
-        sqlite3.SQLITE_PRAGMA,
         sqlite3.SQLITE_TRANSACTION,
         sqlite3.SQLITE_SAVEPOINT,
     }
@@ -144,6 +159,33 @@ def _migration_authorizer(
     return sqlite3.SQLITE_OK
 
 
+def _reviewed_migration_authorizer(
+    declaration: MigrationDeclaration,
+):
+    allow_fts_data_version = (
+        declaration.id,
+        declaration.resource,
+    ) == _REVIEWED_FTS_MIGRATION
+
+    def authorize(
+        action: int,
+        first: str | None,
+        second: str | None,
+        database: str | None,
+        trigger: str | None,
+    ) -> int:
+        return _migration_authorizer(
+            action,
+            first,
+            second,
+            database,
+            trigger,
+            allow_fts_data_version=allow_fts_data_version,
+        )
+
+    return authorize
+
+
 def _apply_one(
     connection: sqlite3.Connection,
     declaration: MigrationDeclaration,
@@ -157,7 +199,7 @@ def _apply_one(
     connection.execute("PRAGMA foreign_keys=OFF")
     try:
         connection.execute("BEGIN IMMEDIATE")
-        connection.set_authorizer(_migration_authorizer)
+        connection.set_authorizer(_reviewed_migration_authorizer(declaration))
         for statement in _sql_statements(sql):
             connection.execute(statement)
         connection.set_authorizer(None)
@@ -336,19 +378,43 @@ def _register_datasets(
                     "Store-local dataset identity inventory does not match the registry"
                 )
             store = registry.store(role.value)
-            actual_relations = {
-                str(row["name"])
-                for row in connection.execute(
+            actual_relation_rows = tuple(
+                connection.execute(
                     """
-                    SELECT name FROM sqlite_master
+                    SELECT name, type, sql FROM sqlite_master
                     WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%'
                     """
                 )
+            )
+            declared_dataset_relations = {
+                relation
+                for declaration in declarations
+                for relation in declaration.relations
             }
+            virtual_relations = {
+                str(row["name"])
+                for row in actual_relation_rows
+                if str(row["name"]) in declared_dataset_relations
+                and row["sql"] is not None
+                and str(row["sql"]).lstrip().upper().startswith(
+                    "CREATE VIRTUAL TABLE"
+                )
+            }
+            actual_names = {str(row["name"]) for row in actual_relation_rows}
+            shadow_relations = {
+                f"{name}_{suffix}"
+                for name in virtual_relations
+                for suffix in ("data", "idx", "content", "docsize", "config")
+                if f"{name}_{suffix}" in actual_names
+            }
+            # Reviewed FTS5 shadow tables implement one registered virtual
+            # relation; they are not separately addressable dataset relations.
+            # No other physical relation is excluded from exact ownership.
+            actual_relations = actual_names - shadow_relations
             expected_relations = {
                 store.anchor_relation,
                 *store.control_tables,
-                *(relation for declaration in declarations for relation in declaration.relations),
+                *declared_dataset_relations,
             }
             if actual_relations != expected_relations:
                 raise MigrationError(

@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.0.0",
+  "approval_status": "fixture_validated",
+  "registry_revision": "2.2.0",
+  "evidence_sha256": "c5759ca09c3fccd8f5c79c51131c5456c0357b928993dd6182417dba919aa7e7",
+  "stage3_evidence_sha256": "94d3ffb95485ed3c2fea119ea56fdaa4db076f57eab08d204ea734ee893b3854",
+  "stage4_fixture_evidence_sha256": "f9e40538a4e2ea43533d65d5d5bebba3bc1046da78799ab2959c369ecfa1b587",
+  "golden_query_sha256": "4239480eb113eb6e3f69a8066914093fe5fe8f2d49432840a8df6211016f09ea",
+  "logical_manifest_sha256": "28a840c38ff02b700872abfdb3933782952047c3af11220581c2a419064ab382",
+  "migration_heads": {
+    "market": [
+      "market:0001_foundation",
+      "market:0002_vertical_slice",
+      "market:0003_control_plane",
+      "market:0004_instrument_catalog",
+      "market:0005_instrument_classifications",
+      "market:0006_controlled_universes",
+      "market:0007_options_core",
+      "market:0008_option_surface_inputs"
+    ],
+    "macro": [
+      "macro:0001_foundation",
+      "macro:0002_vertical_slice",
+      "macro:0003_control_plane",
+      "macro:0004_stage3_core",
+      "macro:0005_gdp_vintages",
+      "macro:0006_treasury_yield_curves",
+      "macro:0007_economic_calendar",
+      "macro:0008_soma_summary_only",
+      "macro:0009_eia_electricity_retail",
+      "macro:0010_eia_weekly_fundamentals",
+      "macro:0011_us_recession_periods"
+    ],
+    "company": [
+      "company:0001_foundation",
+      "company:0002_control_plane",
+      "company:0003_sec_core",
+      "company:0004_corporate_actions",
+      "company:0005_corporate_action_integrity",
+      "company:0006_earnings_expectations",
+      "company:0007_filing_issuer_view"
+    ],
+    "news": [
+      "news:0001_foundation",
+      "news:0002_control_plane",
+      "news:0003_immutable_items",
+      "news:0004_search_index"
+    ]
+  },
+  "dataset_counts": {
+    "fixture.market.option_capture_evidence": {
+      "option_surface_captures": 2,
+      "option_capture_underlyings": 2,
+      "option_capture_underlying_quotes": 2,
+      "option_capture_rate_curves": 2,
+      "option_capture_rate_curve_points": 2,
+      "option_capture_dividend_sets": 2,
+      "option_capture_dividend_cashflows": 0,
+      "option_capture_expiry_inputs": 2
+    },
+    "fixture.market.options": {
+      "option_contracts": 4,
+      "option_open_interest": 4,
+      "option_close_prices": 4,
+      "option_surface_snapshots": 4,
+      "option_bars": 1
+    },
+    "fixture.company.sec_evidence": {
+      "company_sec_artifacts": 6,
+      "company_sec_snapshots": 9,
+      "company_ticker_snapshot_membership": 6,
+      "company_sec_filing_snapshot_membership": 5,
+      "company_sec_fact_snapshot_membership": 6
+    },
+    "fixture.company.issuers": {
+      "company_issuers": 2,
+      "company_issuer_versions": 6,
+      "company_issuer_security_link_assertions": 6
+    },
+    "fixture.company.filings": {
+      "company_sec_filings": 4
+    },
+    "fixture.company.fundamentals": {
+      "company_sec_fact_versions": 6,
+      "company_metric_definitions": 3,
+      "company_metric_mappings": 4,
+      "company_fundamental_observation_versions": 6
+    },
+    "fixture.company.action_evidence": {
+      "company_action_source_artifacts": 1,
+      "company_action_snapshots": 1,
+      "company_action_snapshot_membership": 2
+    },
+    "fixture.company.corporate_actions": {
+      "company_corporate_action_versions": 2
+    },
+    "fixture.company.expectation_evidence": {
+      "company_earnings_source_artifacts": 2,
+      "company_earnings_source_snapshots": 6,
+      "company_consensus_snapshot_membership": 2,
+      "company_earnings_event_snapshot_membership": 3
+    },
+    "fixture.company.expectations": {
+      "company_expectation_metric_definitions": 1,
+      "company_consensus_observation_versions": 2,
+      "company_earnings_event_versions": 3,
+      "company_guidance_versions": 2
+    },
+    "fixture.company.filing_issuer_membership": {
+      "company_sec_filing_issuer_membership": 5
+    },
+    "fixture.news.evidence": {
+      "news_source_artifacts": 5,
+      "news_snapshots": 5,
+      "news_snapshot_artifacts": 5
+    },
+    "fixture.news.items": {
+      "news_items": 2,
+      "news_item_versions": 5,
+      "news_item_snapshot_membership": 5,
+      "news_item_symbols": 5,
+      "news_item_topics": 5,
+      "news_item_geographies": 5,
+      "news_item_coverage_lanes": 5
+    },
+    "fixture.news.search_index": {
+      "news_item_versions_fts": 3
+    }
+  }
+}

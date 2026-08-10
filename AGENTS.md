@@ -22,9 +22,12 @@ The rebuild documents and ADRs are Accepted as the current target contracts.
 The offline Stage 1 vertical slice and Stage 2 four-store foundation are
 implemented and fixture-validated; Stage 2 has also passed independent
 verification. The bounded offline Stage 3 market/macro scope is implemented
-and fixture-validated and has passed independent SolUltra verification. Stage
-4 and later stages still require explicit authorization and their own roadmap
-exit gates; do not treat the Stage 3 pass as permission to start them.
+and fixture-validated and has passed independent SolUltra verification. The
+bounded offline Stage 4 company, news, and options scope is fixture-validated
+and has passed independent SolUltra verification. Stages 4 through 6 are
+authorized only sequentially and only with offline synthetic fixtures. Stage 5
+is the next authorized executable stage after the separate Stage 4 commit;
+Stage 6 remains closed until Stage 5 verification and its separate commit.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit

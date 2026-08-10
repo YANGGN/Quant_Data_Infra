@@ -824,6 +824,510 @@
         "normalization_version": "stage3_macro_v1",
         "capture_state": "complete"
       }
+    },
+    {
+      "id": "actions_and_shares",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.actions_import",
+      "evidence_dataset_id": "fixture.company.action_evidence",
+      "canonical_dataset_id": "fixture.company.corporate_actions",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "fmp",
+      "resource": "tests/fixtures/stage4/company/actions_and_shares.json",
+      "sha256": "b9484382c05a1498ef2a900f7807fb3239d4b0a7dafef4292875f44aaf44ff11",
+      "expected_semantic_identity": "660ce9da4798a8843b1a294568e40706aff20548202fb86f93211343b0149844",
+      "byte_count": 3493,
+      "captured_at": "2026-05-04T20:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "company_actions",
+        "provider": "fmp",
+        "issuer_keys": [
+          "fixture.company.issuer.northstar"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "companyfacts_correction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.sec_import",
+      "evidence_dataset_id": "fixture.company.sec_evidence",
+      "canonical_dataset_id": "fixture.company.fundamentals",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "sec",
+      "resource": "tests/fixtures/stage4/company/companyfacts_correction.json",
+      "sha256": "84582425e317b67b98a183945cac826f3605d004a87f7291fb29954ece614fab",
+      "expected_semantic_identity": "97e2903e8fe29f7e697625efced960bd29b748d7717c31f6821e9af333e88ec4",
+      "byte_count": 2045,
+      "captured_at": "2026-04-03T19:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "sec_company",
+        "provider": "sec",
+        "ciks": [
+          "0001000001"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "expectations_guidance",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.expectations_import",
+      "evidence_dataset_id": "fixture.company.expectation_evidence",
+      "canonical_dataset_id": "fixture.company.expectations",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "fmp",
+      "resource": "tests/fixtures/stage4/company/expectations_guidance.json",
+      "sha256": "d6f6d90f1d70184c8e562af8d1c56db0c8bd5e1589d0f18ef06dc670dd3268ba",
+      "expected_semantic_identity": "ef9a624fe65011489ae7edf4e59d59dcc534bdd0b68cea575ee3a0ebe6442c13",
+      "byte_count": 2452,
+      "captured_at": "2026-07-06T20:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "company_earnings",
+        "provider": "fmp",
+        "issuer_keys": [
+          "fixture.company.issuer.northstar"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "expectations_guidance_correction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.expectations_import",
+      "evidence_dataset_id": "fixture.company.expectation_evidence",
+      "canonical_dataset_id": "fixture.company.expectations",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "fmp",
+      "resource": "tests/fixtures/stage4/company/expectations_guidance_correction.json",
+      "sha256": "dce656bfed9e92ca0eab07378ff80d9b0659e13b4e9e6f7976f782fdd9dc74c5",
+      "expected_semantic_identity": "9d267067173e211cc8eba3a8801f36bf077e944454c0cafaa74f5179b42b93f8",
+      "byte_count": 2092,
+      "captured_at": "2026-07-20T20:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "company_earnings",
+        "provider": "fmp",
+        "issuer_keys": [
+          "fixture.company.issuer.northstar"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "joint_filing",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.sec_import",
+      "evidence_dataset_id": "fixture.company.sec_evidence",
+      "canonical_dataset_id": "fixture.company.fundamentals",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "sec",
+      "resource": "tests/fixtures/stage4/company/joint_filing.json",
+      "sha256": "44ea3c5ee2a9a76fea18b4b8e9dd48045bd145a48318f7f637e8bd53a665f137",
+      "expected_semantic_identity": "186c52a837c99034d2b732042abf7872fa5f497959df54dde8dbea78bb151da9",
+      "byte_count": 2249,
+      "captured_at": "2026-03-17T18:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "sec_company",
+        "provider": "sec",
+        "ciks": [
+          "0001000001",
+          "0001000002"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "sec_initial",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.sec_import",
+      "evidence_dataset_id": "fixture.company.sec_evidence",
+      "canonical_dataset_id": "fixture.company.fundamentals",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "sec",
+      "resource": "tests/fixtures/stage4/company/sec_initial.json",
+      "sha256": "a659150e502e7d2257e650adafc0d927bbf80e0e717c7c6b26781b513369c76d",
+      "expected_semantic_identity": "18d929212b5846caa202a48ff0e2055732ca0c7a880472243210116bda0a8fa1",
+      "byte_count": 5096,
+      "captured_at": "2026-01-15T17:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "sec_company",
+        "provider": "sec",
+        "ciks": [
+          "0001000001"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "ticker_change",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.company.sec_import",
+      "evidence_dataset_id": "fixture.company.sec_evidence",
+      "canonical_dataset_id": "fixture.company.fundamentals",
+      "identity_dataset_id": "fixture.company.issuers",
+      "store": "company",
+      "provider": "sec",
+      "resource": "tests/fixtures/stage4/company/ticker_change.json",
+      "sha256": "722d2edfb2fc0c5ca86bd5cd1225d56bca2a85b57382b6135072ad7a03d50098",
+      "expected_semantic_identity": "e9c19574c24289070ded99b9d4154cddbbe6b48d65bd91c577a2f317863d1975",
+      "byte_count": 1957,
+      "captured_at": "2026-03-03T14:00:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "scope_kind": "sec_company",
+        "provider": "sec",
+        "ciks": [
+          "0001000001"
+        ],
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_company_v1"
+      }
+    },
+    {
+      "id": "news_initial",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.news.import",
+      "evidence_dataset_id": "fixture.news.evidence",
+      "canonical_dataset_id": "fixture.news.items",
+      "identity_dataset_id": null,
+      "store": "news",
+      "provider": "fixture_wire",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "channel": "markets",
+        "coverage": "US",
+        "feed": "daily"
+      },
+      "metadata": {
+        "normalization_version": "stage4_news_v1"
+      },
+      "resource": "tests/fixtures/stage4/news/news_initial.json",
+      "sha256": "3fe3f4b9ff0832e0e7aac11562ed088e5e1dd13c581ab40175a491a40e650b27",
+      "expected_semantic_identity": "e8cd80f1b31080da7043074a25aba372d579ddfd00df6a606910d06cc07f962e",
+      "byte_count": 1728,
+      "captured_at": "2026-06-01T16:00:00Z"
+    },
+    {
+      "id": "news_content_correction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.news.import",
+      "evidence_dataset_id": "fixture.news.evidence",
+      "canonical_dataset_id": "fixture.news.items",
+      "identity_dataset_id": null,
+      "store": "news",
+      "provider": "fixture_wire",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "channel": "markets",
+        "coverage": "US",
+        "feed": "daily"
+      },
+      "metadata": {
+        "normalization_version": "stage4_news_v1"
+      },
+      "resource": "tests/fixtures/stage4/news/news_content_correction.json",
+      "sha256": "71a3ec5afc9bee2aa0dae16281937319f2310edc8f558ffd31a966b81173600f",
+      "expected_semantic_identity": "d75157d7760394650a35d30f5269001eb757bc143b0f42055860e9d3fe412cb9",
+      "byte_count": 1727,
+      "captured_at": "2026-06-03T16:00:00Z"
+    },
+    {
+      "id": "news_later_capture",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.news.import",
+      "evidence_dataset_id": "fixture.news.evidence",
+      "canonical_dataset_id": "fixture.news.items",
+      "identity_dataset_id": null,
+      "store": "news",
+      "provider": "fixture_wire",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "channel": "markets",
+        "coverage": "US",
+        "feed": "daily"
+      },
+      "metadata": {
+        "normalization_version": "stage4_news_v1"
+      },
+      "resource": "tests/fixtures/stage4/news/news_later_capture.json",
+      "sha256": "915d6b72fee4200e82e02c7d2e5dee986ad81f97db0034bb3a0b29526ce94a15",
+      "expected_semantic_identity": "16ef20eee15bd1b27136ba227ced42d3b2cd64ba5ffd364c022105b8f42b45b6",
+      "byte_count": 1746,
+      "captured_at": "2026-06-10T16:00:00Z"
+    },
+    {
+      "id": "news_retraction",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.news.import",
+      "evidence_dataset_id": "fixture.news.evidence",
+      "canonical_dataset_id": "fixture.news.items",
+      "identity_dataset_id": null,
+      "store": "news",
+      "provider": "fixture_wire",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "channel": "markets",
+        "coverage": "US",
+        "feed": "daily"
+      },
+      "metadata": {
+        "normalization_version": "stage4_news_v1"
+      },
+      "resource": "tests/fixtures/stage4/news/news_retraction.json",
+      "sha256": "572038bef68085b16c02e702dcbfcde23e6311053ef091ee1bfcf7e317be149d",
+      "expected_semantic_identity": "d86b0527cbd7df0cff194d49e1c53107c001734aa19436cfd80699eea3fe0626",
+      "byte_count": 1575,
+      "captured_at": "2026-06-20T16:00:00Z"
+    },
+    {
+      "id": "news_missing_content",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.news.import",
+      "evidence_dataset_id": "fixture.news.evidence",
+      "canonical_dataset_id": "fixture.news.items",
+      "identity_dataset_id": null,
+      "store": "news",
+      "provider": "fixture_wire",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "channel": "markets",
+        "coverage": "US",
+        "feed": "daily"
+      },
+      "metadata": {
+        "normalization_version": "stage4_news_v1"
+      },
+      "resource": "tests/fixtures/stage4/news/news_missing_content.json",
+      "sha256": "0a0f9aa19dc9efca47b03a6bd8db6220087a334425b21bb44446c3fb30413afb",
+      "expected_semantic_identity": "34a7578e227dd3d63c22f85271dd4a9ac9e88f3dd8d5e8c97871ba0e0f3c4baf",
+      "byte_count": 1515,
+      "captured_at": "2026-06-21T16:00:00Z"
+    },
+    {
+      "id": "stage4.market.options.spy_complete",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.options_import",
+      "evidence_dataset_id": "fixture.market.option_capture_evidence",
+      "canonical_dataset_id": "fixture.market.options",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_options",
+      "resource": "tests/fixtures/stage4/options/spy_complete.json",
+      "sha256": "4013699672ad6a92f948f1db7bf1f1dc091d05a4d59234f3eb29a5182e44cedc",
+      "expected_semantic_identity": "0bbe538bff2f397bd90d8c3a64d7f26253effc2c2eb3f6ccb9070f3d4f343061",
+      "byte_count": 6737,
+      "captured_at": "2026-08-03T16:01:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "underlying_key": "fixture.market.instrument.spy",
+        "requested_feed": "fixture_options",
+        "resolved_feed": "fixture_options",
+        "environment": "synthetic",
+        "deliverable_policy": "standard_only",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_options_v1",
+        "expected_contracts": 2,
+        "expected_surface_rows": 2,
+        "expected_expiry_inputs": 1,
+        "expected_outcome": "succeeded",
+        "expected_error_rule": null
+      }
+    },
+    {
+      "id": "stage4.market.options.nonstandard_exclusion",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.options_import",
+      "evidence_dataset_id": "fixture.market.option_capture_evidence",
+      "canonical_dataset_id": "fixture.market.options",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_options",
+      "resource": "tests/fixtures/stage4/options/nonstandard_exclusion.json",
+      "sha256": "158e928b842d45467ded7eb92ad88a5279ca9cef9afd022b45aa53f4ba37b69c",
+      "expected_semantic_identity": "d8d1219bc45880a3df6e9c03856e5f1e2c0c0a9e25a5f1bc21fa2755dcd743f7",
+      "byte_count": 6329,
+      "captured_at": "2026-08-04T16:01:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "underlying_key": "fixture.market.instrument.spy",
+        "requested_feed": "fixture_options",
+        "resolved_feed": "fixture_options",
+        "environment": "synthetic",
+        "deliverable_policy": "standard_only",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_options_v1",
+        "expected_contracts": 2,
+        "expected_surface_rows": 2,
+        "expected_expiry_inputs": 1,
+        "expected_outcome": "succeeded",
+        "expected_error_rule": null
+      }
+    },
+    {
+      "id": "stage4.market.options.mixed_feed_environment",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.options_import",
+      "evidence_dataset_id": "fixture.market.option_capture_evidence",
+      "canonical_dataset_id": "fixture.market.options",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_options",
+      "resource": "tests/fixtures/stage4/options/mixed_feed_environment.json",
+      "sha256": "8534ae22a543f23683824c4528dd00b6855c530098b60ed68501e71b00aefd7a",
+      "expected_semantic_identity": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_count": 6744,
+      "captured_at": "2026-08-03T16:01:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "underlying_key": "fixture.market.instrument.spy",
+        "requested_feed": "fixture_options",
+        "resolved_feed": "fixture_options",
+        "environment": "synthetic",
+        "deliverable_policy": "standard_only",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_options_v1",
+        "expected_contracts": 2,
+        "expected_surface_rows": 2,
+        "expected_expiry_inputs": 1,
+        "expected_outcome": "rejected",
+        "expected_error_rule": "capture_cohort"
+      }
+    },
+    {
+      "id": "stage4.market.options.unknown_contract",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.options_import",
+      "evidence_dataset_id": "fixture.market.option_capture_evidence",
+      "canonical_dataset_id": "fixture.market.options",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_options",
+      "resource": "tests/fixtures/stage4/options/unknown_contract.json",
+      "sha256": "c490428e8dc5fd906791b1d6d0552e7437e50aef566b728327887966c2069220",
+      "expected_semantic_identity": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_count": 6739,
+      "captured_at": "2026-08-03T16:01:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "underlying_key": "fixture.market.instrument.spy",
+        "requested_feed": "fixture_options",
+        "resolved_feed": "fixture_options",
+        "environment": "synthetic",
+        "deliverable_policy": "standard_only",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_options_v1",
+        "expected_contracts": 2,
+        "expected_surface_rows": 2,
+        "expected_expiry_inputs": 1,
+        "expected_outcome": "rejected",
+        "expected_error_rule": "contract_reference"
+      }
+    },
+    {
+      "id": "stage4.market.options.incoherent_inputs",
+      "fixture_schema_version": "1.0.0",
+      "ingestion_family_id": "fixture.market.options_import",
+      "evidence_dataset_id": "fixture.market.option_capture_evidence",
+      "canonical_dataset_id": "fixture.market.options",
+      "identity_dataset_id": "fixture.market.instruments",
+      "store": "market",
+      "provider": "fixture_options",
+      "resource": "tests/fixtures/stage4/options/incoherent_inputs.json",
+      "sha256": "498ea00692423b60cd2c3b4b633d89eb6b9a614c23d8488b1e2ebeb545aa4659",
+      "expected_semantic_identity": "0000000000000000000000000000000000000000000000000000000000000000",
+      "byte_count": 6736,
+      "captured_at": "2026-08-03T16:01:00Z",
+      "test_fixture": true,
+      "promotable": false,
+      "expected_warnings": [],
+      "request_scope": {
+        "underlying_key": "fixture.market.instrument.spy",
+        "requested_feed": "fixture_options",
+        "resolved_feed": "fixture_options",
+        "environment": "synthetic",
+        "deliverable_policy": "standard_only",
+        "completeness": "complete"
+      },
+      "metadata": {
+        "normalization_version": "stage4_options_v1",
+        "expected_contracts": 2,
+        "expected_surface_rows": 2,
+        "expected_expiry_inputs": 1,
+        "expected_outcome": "rejected",
+        "expected_error_rule": "synchronization"
+      }
     }
   ]
 }

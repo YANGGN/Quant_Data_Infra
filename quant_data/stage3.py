@@ -33,7 +33,12 @@ from .market import (
 from .migrations import initialize_all
 from .news import news_foundation_status
 from .operations import all_store_health, backup_all, restore_all
-from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from .registry import (
+    CANONICAL_REGISTRY_PATH,
+    Registry,
+    load_registry,
+    stage3_registry_profile,
+)
 from .stage1 import explicit_store_map
 from .stage2 import run_clean_stage2_rebuild
 from .stores import StoreMap, StoreRole, read_connection, stable_id
@@ -387,10 +392,12 @@ def run_clean_stage3_rebuild(
         work_root=root / "stage2",
     )
     source_map = explicit_store_map(root / "stage2" / "source")
-    registry = load_registry(
-        project / CANONICAL_REGISTRY_PATH,
-        project_root=project,
-        environment={},
+    registry = stage3_registry_profile(
+        load_registry(
+            project / CANONICAL_REGISTRY_PATH,
+            project_root=project,
+            environment={},
+        )
     )
     if registry.registry_version != "2.1.0":
         raise ValidationError("Stage 3 requires the reviewed registry revision")

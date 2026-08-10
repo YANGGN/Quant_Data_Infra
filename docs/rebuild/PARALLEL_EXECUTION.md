@@ -14,8 +14,10 @@ policy in [AGENTS.md](../../AGENTS.md).
 Stage 0, the bounded offline Stage 1 slice, the offline Stage 2 four-store
 foundation, and the bounded Stage 3 market/macro fixture scope were authorized
 on 2026-08-09. Stage 2 is fixture-validated and independently verified. Stage
-3 is fixture-validated and independently verified. This plan does not itself
-authorize Stage 4 executable work.
+3 is fixture-validated and independently verified. Stages 4 through 6 are
+authorized only sequentially with offline synthetic fixtures. Stage 4 has
+passed its primary fixture gate and independent SolUltra verification. Stage 5
+is the next authorized executable stage.
 
 ## 2. Capacity and operating model
 
@@ -51,12 +53,13 @@ G2  Four-store foundation (fixture-validated; unified runtime mode retired)
  |-- in parallel: Macro restoration
  v
 G3  Stage-3 primary fixture gate and SolUltra verification passed
- |  Stage 4 requires separate explicit authorization
+ |  Stage 4 bounded offline synthetic-fixture scope authorized
  |-- in parallel: Company restoration
  |-- in parallel: News restoration
  |-- in parallel: Options restoration (options shares the market store)
  v
-G4  Stage-4 exit gate
+G4  Stage-4 primary fixture gate and SolUltra verification passed
+ |  Stage 5 is the next authorized executable stage
  |
 T0  Freeze typed tool core, schema generator, and compatibility decision
  |\
@@ -165,14 +168,21 @@ gate. That pass does not itself authorize Stage 4.
 
 ### Wave 4 — Company, news, and options restoration
 
-Status: **Closed pending explicit authorization.** The Stage-3 `G3` gate has
-passed, but executable Wave 4 work requires a separate user authorization.
-Company, news, and options are then three parallel domain lanes. Options is a
-market-store domain, so its migration window and physical writes must not
-overlap market migration work. The primary owns any multi-store context used by
-options and macro together.
+Status: **Implemented, fixture-validated, and independently verified.**
+Evidence is recorded in [Stage 4 acceptance evidence](STAGE4_EVIDENCE.md). The integrated bounded scope
+has nine forward migrations and 17 reviewed synthetic fixtures: seven company,
+five options, and five news. It remains offline-only and adds no public tools,
+jobs, exports, promotion, dashboard, hosting, or destructive operation.
+
+Company, news, and options are three domain lanes. Options is a market-store
+domain, so its migration window and physical writes must not overlap market
+migration work. The primary owns any multi-store context used by options and
+macro together. The SolUltra verifier independently inspected the integrated
+workspace and completed `G4`.
 
 ### Wave 5 — Tool platform
+
+Status: **Authorized as the next sequential offline stage.**
 
 The primary serially freezes `T0`: typed contracts, dispatcher, schema
 generation, resource bounds, strict serialization, and the accept-or-retire

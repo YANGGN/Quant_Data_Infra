@@ -1,0 +1,70 @@
+{
+  "actions": [],
+  "captured_at": "2026-07-20T20:00:00Z",
+  "captured_precision": "datetime",
+  "earnings_events": [
+    {
+      "available_at": "2026-07-20T20:00:00Z",
+      "available_precision": "datetime",
+      "event_date": "2026-07-30",
+      "event_key": "northstar-q2-2026-results",
+      "event_type": "results",
+      "fiscal_period_end": "2026-06-30",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "provider": "fmp",
+      "status": "scheduled"
+    }
+  ],
+  "expectations": [
+    {
+      "available_at": "2026-07-20T20:00:00Z",
+      "available_precision": "datetime",
+      "currency": "USD",
+      "event_date": "2026-07-30",
+      "event_key": "northstar-q2-2026-results",
+      "expectation_key": "northstar-q2-2026-revenue-consensus",
+      "fiscal_period_end": "2026-06-30",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "metric_code": "revenue",
+      "provider": "fmp",
+      "value": "348000000"
+    }
+  ],
+  "facts": [],
+  "family": "earnings",
+  "filings": [],
+  "fixture_kind": "company_stage4_snapshot",
+  "guidance": [
+    {
+      "accession_number": "0001000001-26-000030",
+      "available_at": "2026-07-20T20:00:00Z",
+      "available_precision": "datetime",
+      "currency": "USD",
+      "guidance_key": "northstar-fy2026-revenue-guidance",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "metric_code": "revenue",
+      "provider": "fmp",
+      "review_state": "reviewed",
+      "source_url": "https://example.invalid/fmp/guidance/nstr/fy2026-correction",
+      "target_period_end": "2026-12-31",
+      "value_high": "1510000000",
+      "value_low": "1460000000",
+      "value_point": null,
+      "value_shape": "range"
+    }
+  ],
+  "issuers": [
+    {
+      "available_at": "2026-07-20T20:00:00Z",
+      "available_precision": "datetime",
+      "cik": "0001000001",
+      "entity_type": "operating_company",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "legal_name": "Northstar Systems Inc.",
+      "links": [],
+      "state": "active"
+    }
+  ],
+  "mappings": [],
+  "schema_version": "1.0.0"
+}

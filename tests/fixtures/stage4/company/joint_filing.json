@@ -1,0 +1,73 @@
+{
+  "actions": [],
+  "captured_at": "2026-03-17T18:00:00Z",
+  "captured_precision": "datetime",
+  "earnings_events": [],
+  "expectations": [],
+  "facts": [],
+  "family": "sec",
+  "filings": [
+    {
+      "accepted_at": "2026-03-17T16:11:00Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000014",
+      "filing_date": "2026-03-17",
+      "first_observed_issuer_key": "fixture.company.issuer.northstar",
+      "form": "8-K",
+      "issuer_keys": [
+        "fixture.company.issuer.northstar",
+        "fixture.company.issuer.aurora"
+      ],
+      "primary_document": "joint-material-agreement.htm",
+      "report_period": "2026-03-15",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1000001/000100000126000014/joint-material-agreement.htm"
+    }
+  ],
+  "fixture_kind": "company_stage4_snapshot",
+  "guidance": [],
+  "issuers": [
+    {
+      "available_at": "2026-03-17T16:11:00Z",
+      "available_precision": "datetime",
+      "cik": "0001000001",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "entity_type": "operating_company",
+      "legal_name": "Northstar Systems Inc.",
+      "links": [],
+      "state": "active"
+    },
+    {
+      "available_at": "2026-03-17T16:11:00Z",
+      "available_precision": "datetime",
+      "cik": "0001000002",
+      "issuer_key": "fixture.company.issuer.aurora",
+      "entity_type": "operating_company",
+      "legal_name": "Aurora Components Inc.",
+      "links": [
+        {
+          "available_at": "2026-03-17T16:11:00Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "ticker",
+          "provider": "sec",
+          "provider_identifier": "AURC",
+          "valid_from": "2025-01-01",
+          "valid_through": null
+        },
+        {
+          "available_at": "2026-03-17T16:11:00Z",
+          "available_precision": "datetime",
+          "confidence": "confirmed",
+          "link_kind": "security",
+          "provider": "synthetic-security-master",
+          "provider_identifier": "AURC-PRIMARY-002",
+          "valid_from": "2025-01-01",
+          "valid_through": null
+        }
+      ],
+      "state": "active"
+    }
+  ],
+  "mappings": [],
+  "schema_version": "1.0.0"
+}

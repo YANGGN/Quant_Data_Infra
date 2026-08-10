@@ -3,7 +3,8 @@
 Status: Accepted
 Planning baseline: 2026-08-09
 Scope: accepted implementation sequencing; Stages 1 through 3 implemented on
-2026-08-09, with Stages 2 and 3 independently verified
+2026-08-09, with Stages 2 and 3 independently verified; Stage 4 primary
+fixture gate and independent verification passed on 2026-08-10
 
 ## 1. Purpose
 
@@ -26,8 +27,11 @@ The following decisions apply to every stage:
 - Stage 0 is complete. The offline Stage 1 vertical slice and Stage 2
   four-store foundation are fixture-validated implementations; Stage 2 has
   also passed independent verification. The bounded offline Stage 3 market and
-  macro scope is fixture-validated and independently verified. Stage 4 and
-  later stages remain closed until separately and explicitly authorized.
+  macro scope is fixture-validated and independently verified. Stages 4
+  through 6 are authorized only sequentially with offline synthetic fixtures.
+  Stage 4 has passed its primary fixture gate and independent SolUltra
+  verification. Stage 5 is the next authorized executable stage; Stage 6
+  remains closed until Stage 5 is independently verified and committed.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -51,7 +55,7 @@ The following decisions apply to every stage:
 | 1 | One complete vertical slice | No; fixtures only | End-to-end contracts work on temporary stores |
 | 2 | Four-store persistence foundation | No | Independently verified offline evidence |
 | 3 | Bounded market and macro restoration | No; reviewed fixtures only | Independently verified offline evidence; Stage 4 requires separate authorization |
-| 4 | Company, news, and options restoration | Controlled only after offline gates | Domain-specific immutable/versioned contracts pass |
+| 4 | Company, news, and options restoration | No; synthetic fixtures only | Independently verified offline evidence; Stage 5 is next |
 | 5 | Composable 57-tool platform | No live access except separately approved intraday tool | Schemas, routing, limits, and strict JSON pass |
 | 6 | Local portal and research surfaces | No mutation through UI | Read-only APIs and browser contracts pass |
 | 7 | Scheduling and operational readiness | Dry-run first | Locking, retries, receipts, backups, and failure handling pass |
@@ -240,8 +244,11 @@ does not itself authorize Stage 4.
 
 ## 8. Stage 4 — Restore company, news, and options
 
-Status: **Closed pending explicit authorization.** The Stage 3 `G3` gate has
-passed, but no executable Stage 4 work is authorized by that result alone.
+Status: **Implemented, fixture-validated, and independently verified.** The
+user authorized this bounded synthetic fixture scope after `G3`. Its
+deterministic receipts and verifier result are recorded in the
+[Stage 4 acceptance evidence](docs/rebuild/STAGE4_EVIDENCE.md). `G4` is
+complete and Stage 5 is the next authorized executable stage.
 
 ### Company
 
@@ -265,6 +272,18 @@ passed, but no executable Stage 4 work is authorized by that result alone.
 - Explicit missing contracts and a complete exclusion ledger.
 - Synchronized underlying, rate, dividend, and expiry inputs.
 
+### Fixture-validated scope
+
+- Registry revision `2.2.0` declares 30 fixture-validated migrations, 33
+  datasets, 19 collectors, the same two validated public tools, 57 reserved
+  names, and no jobs or exports.
+- Stage 4 adds nine deliberate forward migrations: two market options, five
+  company, and two news resources. Their frozen identities, paths, and hashes
+  are recorded in the [migration reconstruction map](docs/rebuild/MIGRATION_RECONSTRUCTION.md).
+- The primary gate imports exactly 17 reviewed synthetic fixtures: seven
+  company, five options, and five news. It passes 164 full-suite tests and 27
+  focused Stage 4 tests, with deterministic two-root strict-JSON evidence.
+
 ### Exit gate
 
 - Company ticker changes and joint filings preserve issuer/accession identity.
@@ -273,7 +292,12 @@ passed, but no executable Stage 4 work is authorized by that result alone.
   nonstandard deliverables silently.
 - All domain tests use temporary stores and redacted fixtures.
 
+The primary fixture gate and independent SolUltra verification completed
+these checks. `G4` is complete.
+
 ## 9. Stage 5 — Restore the composable tool platform
+
+Status: **Authorized as the next sequential offline stage; not yet implemented.**
 
 The contract is defined in
 [TOOL_PLATFORM_SPEC.md](docs/rebuild/TOOL_PLATFORM_SPEC.md).
@@ -297,6 +321,8 @@ The contract is defined in
   and warnings.
 
 ## 10. Stage 6 — Restore portal and research surfaces
+
+Status: **CLOSED behind Stage 5.**
 
 The shared visual and interaction language is defined in
 [UI_VISUAL_DIRECTION.md](docs/rebuild/UI_VISUAL_DIRECTION.md). Stage 6 owns the

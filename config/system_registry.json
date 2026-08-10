@@ -1,7 +1,7 @@
 {
   "schema_id": "quant_data.system_registry",
   "schema_version": "1.0.0",
-  "registry_version": "2.1.0",
+  "registry_version": "2.2.0",
   "status": "validated",
   "compatibility_target": {
     "api_version": "1.0",
@@ -95,7 +95,9 @@
         "market:0003_control_plane",
         "market:0004_instrument_catalog",
         "market:0005_instrument_classifications",
-        "market:0006_controlled_universes"
+        "market:0006_controlled_universes",
+        "market:0007_options_core",
+        "market:0008_option_surface_inputs"
       ],
       "write_coordination": {
         "scope": "physical_store",
@@ -180,7 +182,12 @@
       ],
       "migration_order": [
         "company:0001_foundation",
-        "company:0002_control_plane"
+        "company:0002_control_plane",
+        "company:0003_sec_core",
+        "company:0004_corporate_actions",
+        "company:0005_corporate_action_integrity",
+        "company:0006_earnings_expectations",
+        "company:0007_filing_issuer_view"
       ],
       "write_coordination": {
         "scope": "physical_store",
@@ -218,7 +225,9 @@
       ],
       "migration_order": [
         "news:0001_foundation",
-        "news:0002_control_plane"
+        "news:0002_control_plane",
+        "news:0003_immutable_items",
+        "news:0004_search_index"
       ],
       "write_coordination": {
         "scope": "physical_store",
@@ -316,6 +325,30 @@
         "market:0003_control_plane",
         "market:0004_instrument_catalog",
         "market:0005_instrument_classifications"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "market:0007_options_core",
+      "store": "market",
+      "ordinal": 7,
+      "resource": "quant_data/migrations/market/0007_options_core.sql",
+      "sha256": "2639bae26823eef9ad8fe2200039058763736fbd237051fd129ba3d6763d8844",
+      "semantic_scope": "Deliberate Stage 4 options-core reconstruction; cross-reference recovered semantic 0029.",
+      "dependencies": [
+        "market:0006_controlled_universes"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "market:0008_option_surface_inputs",
+      "store": "market",
+      "ordinal": 8,
+      "resource": "quant_data/migrations/market/0008_option_surface_inputs.sql",
+      "sha256": "035a2c6e6495e35c293faf9593456d45bdc1c6d820509adf0e4c6e6fd01f4db1",
+      "semantic_scope": "Deliberate Stage 4 synchronized option-input reconstruction; cross-reference recovered semantic 0030.",
+      "dependencies": [
+        "market:0007_options_core"
       ],
       "reconstruction_state": "fixture_validated"
     },
@@ -517,6 +550,66 @@
       "reconstruction_state": "fixture_validated"
     },
     {
+      "id": "company:0003_sec_core",
+      "store": "company",
+      "ordinal": 3,
+      "resource": "quant_data/migrations/company/0003_sec_core.sql",
+      "sha256": "b2ca550918c658ef8f432de6ff6a935e3b24a2cd0a3e6a4c5ff96958f49a688e",
+      "semantic_scope": "Deliberate Stage 4 SEC issuer, filing, fact, and fundamental reconstruction; cross-reference recovered semantic 0024.",
+      "dependencies": [
+        "company:0002_control_plane"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "company:0004_corporate_actions",
+      "store": "company",
+      "ordinal": 4,
+      "resource": "quant_data/migrations/company/0004_corporate_actions.sql",
+      "sha256": "9623793c09ebe9e802a40c7a55f75c4caa4707a44c30400a449b61c5a38838c0",
+      "semantic_scope": "Deliberate Stage 4 corporate-actions reconstruction; cross-reference recovered semantic 0025.",
+      "dependencies": [
+        "company:0003_sec_core"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "company:0005_corporate_action_integrity",
+      "store": "company",
+      "ordinal": 5,
+      "resource": "quant_data/migrations/company/0005_corporate_action_integrity.sql",
+      "sha256": "5b59d6257a7d459aa499b8ad6ab0e4a9489ae8df2d90dc18b2839c73e6bf77cd",
+      "semantic_scope": "Deliberate Stage 4 corporate-action integrity guards; cross-reference recovered semantic 0026.",
+      "dependencies": [
+        "company:0004_corporate_actions"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "company:0006_earnings_expectations",
+      "store": "company",
+      "ordinal": 6,
+      "resource": "quant_data/migrations/company/0006_earnings_expectations.sql",
+      "sha256": "6ac7c533a3d9bd6bfc3ef4a4ede89491c542ee331089d7c903835a840bb0962b",
+      "semantic_scope": "Deliberate Stage 4 earnings, consensus, event, and guidance reconstruction; cross-reference recovered semantic 0028.",
+      "dependencies": [
+        "company:0005_corporate_action_integrity"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "company:0007_filing_issuer_view",
+      "store": "company",
+      "ordinal": 7,
+      "resource": "quant_data/migrations/company/0007_filing_issuer_view.sql",
+      "sha256": "03fb82fa7a2d3e741dac32422899ad9b7635d667cdab1887857c35c0c52ebdd7",
+      "semantic_scope": "Deliberate Stage 4 derived filing-to-issuer view and integrity reconstruction; cross-reference recovered semantic 0031.",
+      "dependencies": [
+        "company:0006_earnings_expectations"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
       "id": "news:0001_foundation",
       "store": "news",
       "ordinal": 1,
@@ -535,6 +628,30 @@
       "semantic_scope": "New Stage 2 empty news-store artifact, snapshot, membership, and quality-result control plane; cross-reference recovered semantic 0000 only.",
       "dependencies": [
         "news:0001_foundation"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "news:0003_immutable_items",
+      "store": "news",
+      "ordinal": 3,
+      "resource": "quant_data/migrations/news/0003_immutable_items.sql",
+      "sha256": "0ab1f4b2b4dcc0350cc263285e6d2b45f482c985d8e8f8ea45dfa4bc72ffd81e",
+      "semantic_scope": "Deliberate Stage 4 immutable news evidence and item-version reconstruction from accepted news semantics.",
+      "dependencies": [
+        "news:0002_control_plane"
+      ],
+      "reconstruction_state": "fixture_validated"
+    },
+    {
+      "id": "news:0004_search_index",
+      "store": "news",
+      "ordinal": 4,
+      "resource": "quant_data/migrations/news/0004_search_index.sql",
+      "sha256": "fdc8e4b8ef838a3f61134e867c15391b8a7db31ebc492242b0a4d87218658402",
+      "semantic_scope": "Deliberate Stage 4 derived FTS5 search-index reconstruction; the index is not source truth.",
+      "dependencies": [
+        "news:0003_immutable_items"
       ],
       "reconstruction_state": "fixture_validated"
     }
@@ -2012,6 +2129,1141 @@
       "dashboard_ids": [],
       "export_ids": [],
       "active": true
+    },
+    {
+      "id": "fixture.market.option_capture_evidence",
+      "version": "1.0.0",
+      "store": "market",
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "name": "option_surface_captures",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_underlyings",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_underlying_quotes",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_rate_curves",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_rate_curve_points",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_dividend_sets",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_dividend_cashflows",
+            "kind": "table"
+          },
+          {
+            "name": "option_capture_expiry_inputs",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "semantic_identity",
+          "underlying_instrument_id",
+          "request_scope_json"
+        ],
+        "version_fields": [
+          "capture_id",
+          "artifact_id",
+          "source_snapshot_id"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "requested_at",
+          "completed_at"
+        ],
+        "observation_precision": "datetime",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason"
+      },
+      "revision_policy": "immutable_capture",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "units": "not_applicable",
+        "rules": [
+          "single_capture_cohort",
+          "feed_environment_match",
+          "synchronized_inputs",
+          "explicit_missing_inputs"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.market.options_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.market.options",
+      "version": "1.0.0",
+      "store": "market",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "option_contracts",
+            "kind": "table"
+          },
+          {
+            "name": "option_open_interest",
+            "kind": "table"
+          },
+          {
+            "name": "option_close_prices",
+            "kind": "table"
+          },
+          {
+            "name": "option_surface_snapshots",
+            "kind": "table"
+          },
+          {
+            "name": "option_bars",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "provider",
+          "provider_contract_id",
+          "underlying_instrument_id"
+        ],
+        "version_fields": [
+          "contract_id",
+          "surface_snapshot_id",
+          "bar_id"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "expiration_date",
+          "trade_date",
+          "as_of_date"
+        ],
+        "observation_precision": "mixed",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason"
+      },
+      "revision_policy": "append_version",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "units": "contract_field",
+        "rules": [
+          "standard_deliverable_policy",
+          "capture_scope_identity",
+          "missing_contract_rejection",
+          "ohlc_bounds"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.market.options_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.sec_evidence",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_sec_artifacts",
+            "kind": "table"
+          },
+          {
+            "name": "company_sec_snapshots",
+            "kind": "table"
+          },
+          {
+            "name": "company_ticker_snapshot_membership",
+            "kind": "table"
+          },
+          {
+            "name": "company_sec_filing_snapshot_membership",
+            "kind": "table"
+          },
+          {
+            "name": "company_sec_fact_snapshot_membership",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "source_name",
+          "content_sha256",
+          "semantic_identity"
+        ],
+        "version_fields": [
+          "artifact_id",
+          "snapshot_id"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "units": "not_applicable",
+        "rules": [
+          "content_identity",
+          "issuer_scope",
+          "snapshot_membership",
+          "joint_filing_membership"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.sec_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.issuers",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_issuers",
+            "kind": "table"
+          },
+          {
+            "name": "company_issuer_versions",
+            "kind": "table"
+          },
+          {
+            "name": "company_issuer_security_link_assertions",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "issuer_id",
+          "cik",
+          "provider",
+          "provider_symbol"
+        ],
+        "version_fields": [
+          "issuer_version_id",
+          "link_assertion_id",
+          "version_sequence"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "valid_from",
+          "valid_through"
+        ],
+        "observation_precision": "date",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_null"
+      },
+      "revision_policy": "append_version",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_null",
+        "units": "not_applicable",
+        "rules": [
+          "stable_cik_identity",
+          "effective_dated_symbol_links",
+          "ticker_reuse_guard"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.sec_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.filings",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_sec_filings",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "accession_number"
+        ],
+        "version_fields": []
+      },
+      "temporal": {
+        "observation_fields": [
+          "filing_date",
+          "report_period"
+        ],
+        "observation_precision": "date",
+        "availability_fields": [
+          "accepted_at",
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_null"
+      },
+      "revision_policy": "immutable_capture",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_null",
+        "units": "not_applicable",
+        "rules": [
+          "accession_identity",
+          "date_precision",
+          "source_url",
+          "first_observed_issuer"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.sec_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.fundamentals",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_sec_fact_versions",
+            "kind": "table"
+          },
+          {
+            "name": "company_metric_definitions",
+            "kind": "table"
+          },
+          {
+            "name": "company_metric_mappings",
+            "kind": "table"
+          },
+          {
+            "name": "company_fundamental_observation_versions",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "issuer_id",
+          "taxonomy",
+          "concept",
+          "unit",
+          "metric_id"
+        ],
+        "version_fields": [
+          "fact_version_id",
+          "fundamental_observation_version_id",
+          "version_sequence"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "period_start",
+          "period_end",
+          "instant"
+        ],
+        "observation_precision": "date",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of",
+          "first_release"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason"
+      },
+      "revision_policy": "append_version",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "units": "metric_contract",
+        "rules": [
+          "fact_correction_chain",
+          "metric_mapping_version",
+          "share_semantics",
+          "accession_lineage"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.sec_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.action_evidence",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_action_source_artifacts",
+            "kind": "table"
+          },
+          {
+            "name": "company_action_snapshots",
+            "kind": "table"
+          },
+          {
+            "name": "company_action_snapshot_membership",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "source_name",
+          "content_sha256",
+          "semantic_identity"
+        ],
+        "version_fields": [
+          "artifact_id",
+          "snapshot_id"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "units": "not_applicable",
+        "rules": [
+          "content_identity",
+          "issuer_scope",
+          "complete_scope_authority",
+          "snapshot_membership"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.actions_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.corporate_actions",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_corporate_action_versions",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "issuer_id",
+          "provider",
+          "provider_event_id"
+        ],
+        "version_fields": [
+          "action_version_id",
+          "version_sequence"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "ex_date",
+          "payment_date",
+          "effective_date"
+        ],
+        "observation_precision": "date",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason"
+      },
+      "revision_policy": "append_version",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "units": "action_contract",
+        "rules": [
+          "cash_dividend_shape",
+          "split_shape",
+          "correction_chain",
+          "instant_vs_weighted_shares"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.actions_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.expectation_evidence",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_earnings_source_artifacts",
+            "kind": "table"
+          },
+          {
+            "name": "company_earnings_source_snapshots",
+            "kind": "table"
+          },
+          {
+            "name": "company_consensus_snapshot_membership",
+            "kind": "table"
+          },
+          {
+            "name": "company_earnings_event_snapshot_membership",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "source_name",
+          "content_sha256",
+          "semantic_identity"
+        ],
+        "version_fields": [
+          "artifact_id",
+          "snapshot_id"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "units": "not_applicable",
+        "rules": [
+          "content_identity",
+          "issuer_scope",
+          "snapshot_membership",
+          "event_collision_guard"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.expectations_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.expectations",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_expectation_metric_definitions",
+            "kind": "table"
+          },
+          {
+            "name": "company_consensus_observation_versions",
+            "kind": "table"
+          },
+          {
+            "name": "company_earnings_event_versions",
+            "kind": "table"
+          },
+          {
+            "name": "company_guidance_versions",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "issuer_id",
+          "expectation_metric_id",
+          "target_period"
+        ],
+        "version_fields": [
+          "consensus_version_id",
+          "earnings_event_version_id",
+          "guidance_version_id",
+          "version_sequence"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "target_period",
+          "event_date"
+        ],
+        "observation_precision": "date",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason"
+      },
+      "revision_policy": "append_version",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "units": "metric_contract",
+        "rules": [
+          "consensus_correction_chain",
+          "event_identity",
+          "guidance_shape",
+          "guidance_source_url"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.expectations_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.company.filing_issuer_membership",
+      "version": "1.0.0",
+      "store": "company",
+      "layer": "derived",
+      "physical": {
+        "relations": [
+          {
+            "name": "company_sec_filing_issuer_membership",
+            "kind": "view"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "accession_number",
+          "issuer_id"
+        ],
+        "version_fields": []
+      },
+      "temporal": {
+        "observation_fields": [
+          "filing_date"
+        ],
+        "observation_precision": "date",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "not_applicable"
+      },
+      "revision_policy": "derived_rebuild",
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "units": "not_applicable",
+        "rules": [
+          "membership_from_immutable_submissions",
+          "joint_filing_distinctness",
+          "no_physical_join_table"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.company.sec_import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.news.evidence",
+      "version": "1.0.0",
+      "store": "news",
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "name": "news_source_artifacts",
+            "kind": "table"
+          },
+          {
+            "name": "news_snapshots",
+            "kind": "table"
+          },
+          {
+            "name": "news_snapshot_artifacts",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "source_name",
+          "content_sha256",
+          "request_scope_json"
+        ],
+        "version_fields": [
+          "artifact_id",
+          "snapshot_id",
+          "semantic_identity"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "freshness": {
+        "cadence": "event_driven",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "units": "not_applicable",
+        "rules": [
+          "content_identity",
+          "scope_identity",
+          "snapshot_artifact_membership",
+          "exact_replay_no_write"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.news.import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.news.items",
+      "version": "1.0.0",
+      "store": "news",
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "name": "news_items",
+            "kind": "table"
+          },
+          {
+            "name": "news_item_versions",
+            "kind": "table"
+          },
+          {
+            "name": "news_item_snapshot_membership",
+            "kind": "table"
+          },
+          {
+            "name": "news_item_symbols",
+            "kind": "table"
+          },
+          {
+            "name": "news_item_topics",
+            "kind": "table"
+          },
+          {
+            "name": "news_item_geographies",
+            "kind": "table"
+          },
+          {
+            "name": "news_item_coverage_lanes",
+            "kind": "table"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "source_name",
+          "source_item_id",
+          "item_id"
+        ],
+        "version_fields": [
+          "news_item_version_id",
+          "content_identity",
+          "version_sequence"
+        ]
+      },
+      "temporal": {
+        "observation_fields": [
+          "published_at"
+        ],
+        "observation_precision": "mixed",
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason"
+      },
+      "revision_policy": "append_version",
+      "freshness": {
+        "cadence": "event_driven",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "units": "not_applicable",
+        "rules": [
+          "content_correction_chain",
+          "retraction_state",
+          "label_lineage",
+          "local_capture_cutoff"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.news.import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
+    },
+    {
+      "id": "fixture.news.search_index",
+      "version": "1.0.0",
+      "store": "news",
+      "layer": "derived",
+      "physical": {
+        "relations": [
+          {
+            "name": "news_item_versions_fts",
+            "kind": "materialization"
+          }
+        ]
+      },
+      "identity": {
+        "stable_fields": [
+          "news_item_version_id"
+        ],
+        "version_fields": []
+      },
+      "temporal": {
+        "observation_fields": [
+          "published_at"
+        ],
+        "observation_precision": "mixed",
+        "availability_fields": [
+          "available_at"
+        ],
+        "availability_precision": "mixed",
+        "timezone_rule": "source_native_no_conversion",
+        "range_semantics": "inclusive",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ],
+        "history_basis": "local_capture",
+        "missingness": "not_applicable"
+      },
+      "revision_policy": "derived_rebuild",
+      "freshness": {
+        "cadence": "event_driven",
+        "expected_lag": "P0D",
+        "stale_after": "P30D",
+        "measured_from": "successful_capture",
+        "if_new": true,
+        "health_severity": "warning"
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "units": "not_applicable",
+        "rules": [
+          "derived_from_immutable_versions",
+          "bounded_query",
+          "not_source_truth"
+        ],
+        "required_warnings": []
+      },
+      "collector_ids": [
+        "fixture.news.import"
+      ],
+      "tool_ids": [],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "active": true
     }
   ],
   "collectors": [
@@ -2621,6 +3873,242 @@
       },
       "mutation_policy": {
         "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "workload_bounds": {
+        "max_requests": 1,
+        "max_rows": 10000,
+        "max_bytes": 8388608,
+        "max_seconds": 30
+      },
+      "retry_policy": {
+        "transient_classes": [],
+        "max_attempts": 1,
+        "backoff": "none",
+        "honor_retry_after": false
+      },
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      }
+    },
+    {
+      "id": "fixture.market.options_import",
+      "version": "1.0.0",
+      "handler": "market.stage4_options",
+      "network": false,
+      "input_datasets": [
+        "fixture.market.instruments"
+      ],
+      "output_datasets": [
+        "fixture.market.option_capture_evidence",
+        "fixture.market.options"
+      ],
+      "semantic_identity": {
+        "includes": [
+          "request_scope",
+          "resolved_feed",
+          "environment",
+          "contracts",
+          "surface",
+          "synchronized_inputs"
+        ],
+        "excludes": [
+          "captured_at",
+          "source_row_order"
+        ]
+      },
+      "mutation_policy": {
+        "mode": "append_capture_cohort",
+        "unchanged": "zero_persistent_writes"
+      },
+      "workload_bounds": {
+        "max_requests": 1,
+        "max_rows": 10000,
+        "max_bytes": 8388608,
+        "max_seconds": 30
+      },
+      "retry_policy": {
+        "transient_classes": [],
+        "max_attempts": 1,
+        "backoff": "none",
+        "honor_retry_after": false
+      },
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      }
+    },
+    {
+      "id": "fixture.company.sec_import",
+      "version": "1.0.0",
+      "handler": "company.stage4_fixture",
+      "network": false,
+      "input_datasets": [],
+      "output_datasets": [
+        "fixture.company.sec_evidence",
+        "fixture.company.issuers",
+        "fixture.company.filings",
+        "fixture.company.fundamentals",
+        "fixture.company.filing_issuer_membership"
+      ],
+      "semantic_identity": {
+        "includes": [
+          "request_scope",
+          "cik_scope",
+          "issuers",
+          "filings",
+          "facts",
+          "metric_mappings"
+        ],
+        "excludes": [
+          "captured_at",
+          "source_row_order"
+        ]
+      },
+      "mutation_policy": {
+        "mode": "append_sec_versions_and_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "workload_bounds": {
+        "max_requests": 1,
+        "max_rows": 10000,
+        "max_bytes": 8388608,
+        "max_seconds": 30
+      },
+      "retry_policy": {
+        "transient_classes": [],
+        "max_attempts": 1,
+        "backoff": "none",
+        "honor_retry_after": false
+      },
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      }
+    },
+    {
+      "id": "fixture.company.actions_import",
+      "version": "1.0.0",
+      "handler": "company.stage4_fixture",
+      "network": false,
+      "input_datasets": [
+        "fixture.company.issuers"
+      ],
+      "output_datasets": [
+        "fixture.company.action_evidence",
+        "fixture.company.corporate_actions"
+      ],
+      "semantic_identity": {
+        "includes": [
+          "request_scope",
+          "issuer_scope",
+          "actions"
+        ],
+        "excludes": [
+          "captured_at",
+          "source_row_order"
+        ]
+      },
+      "mutation_policy": {
+        "mode": "append_action_versions_and_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "workload_bounds": {
+        "max_requests": 1,
+        "max_rows": 10000,
+        "max_bytes": 8388608,
+        "max_seconds": 30
+      },
+      "retry_policy": {
+        "transient_classes": [],
+        "max_attempts": 1,
+        "backoff": "none",
+        "honor_retry_after": false
+      },
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      }
+    },
+    {
+      "id": "fixture.company.expectations_import",
+      "version": "1.0.0",
+      "handler": "company.stage4_fixture",
+      "network": false,
+      "input_datasets": [
+        "fixture.company.issuers",
+        "fixture.company.filings"
+      ],
+      "output_datasets": [
+        "fixture.company.expectation_evidence",
+        "fixture.company.expectations"
+      ],
+      "semantic_identity": {
+        "includes": [
+          "request_scope",
+          "issuer_scope",
+          "consensus",
+          "events",
+          "guidance"
+        ],
+        "excludes": [
+          "captured_at",
+          "source_row_order"
+        ]
+      },
+      "mutation_policy": {
+        "mode": "append_expectation_versions_and_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "workload_bounds": {
+        "max_requests": 1,
+        "max_rows": 10000,
+        "max_bytes": 8388608,
+        "max_seconds": 30
+      },
+      "retry_policy": {
+        "transient_classes": [],
+        "max_attempts": 1,
+        "backoff": "none",
+        "honor_retry_after": false
+      },
+      "configuration_env": [],
+      "physical_locks": "derived_from_output_store_paths",
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      }
+    },
+    {
+      "id": "fixture.news.import",
+      "version": "1.0.0",
+      "handler": "news.stage4_fixture",
+      "network": false,
+      "input_datasets": [],
+      "output_datasets": [
+        "fixture.news.evidence",
+        "fixture.news.items",
+        "fixture.news.search_index"
+      ],
+      "semantic_identity": {
+        "includes": [
+          "request_scope",
+          "source_name",
+          "items",
+          "content_versions",
+          "labels"
+        ],
+        "excludes": [
+          "captured_at",
+          "source_row_order"
+        ]
+      },
+      "mutation_policy": {
+        "mode": "append_item_versions_and_membership",
         "unchanged": "zero_persistent_writes"
       },
       "workload_bounds": {

@@ -119,9 +119,11 @@ links, excluded scope, and pre/post workspace stability. No project file was
 changed during verification.
 
 The limitation is deliberate: this result covers only the authorized
-synthetic, offline Stage 3 boundary. Live providers, schedulers, exports,
-promotion, and Stage 4 remain unverified and unauthorized. `G3` is complete;
-Stage 4 still requires separate explicit authorization.
+synthetic, offline Stage 3 boundary. At the time of this gate, live providers,
+schedulers, exports, promotion, and Stage 4 were unverified and unauthorized.
+The later bounded Stage 4 authorization and evidence are recorded separately in
+[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md); they do not alter this Stage
+3 result.
 
 ## Deliberate boundary
 

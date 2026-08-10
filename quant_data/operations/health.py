@@ -198,6 +198,20 @@ def _check_declared_relations(
     role: StoreRole,
 ) -> None:
     expected = _expected_relation_types(registry, role)
+    reviewed_schema = _reviewed_schema(registry, role)
+    virtual_relations = {
+        name
+        for (kind, name, _), sql in reviewed_schema.items()
+        if kind == "table"
+        and name in expected
+        and sql.lstrip().upper().startswith("CREATE VIRTUAL TABLE")
+    }
+    shadow_relations = {
+        f"{name}_{suffix}"
+        for name in virtual_relations
+        for suffix in ("data", "idx", "content", "docsize", "config")
+        if ("table", f"{name}_{suffix}", f"{name}_{suffix}") in reviewed_schema
+    }
     actual_rows = tuple(
         (str(row["name"]), str(row["type"]))
         for row in connection.execute(
@@ -209,11 +223,17 @@ def _check_declared_relations(
             """
         )
     )
-    actual = dict(actual_rows)
-    if len(actual) != len(actual_rows) or actual != expected:
+    # FTS5 shadow tables are exact reviewed implementation objects, not
+    # separately addressable dataset relations. Every other relation remains
+    # subject to the flat one-owner registry check.
+    visible_rows = tuple(
+        row for row in actual_rows if row[0] not in shadow_relations
+    )
+    actual = dict(visible_rows)
+    if len(actual) != len(visible_rows) or actual != expected:
         raise _health_failure()
 
-    if _schema_objects(connection) != _reviewed_schema(registry, role):
+    if _schema_objects(connection) != reviewed_schema:
         raise _health_failure()
 
 

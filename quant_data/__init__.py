@@ -1,8 +1,9 @@
 """Offline-first Quant Data Infrastructure rebuild.
 
-The accepted offline Stage 1 fixture slice, Stage 2 four-store foundation, and
-bounded Stage 3 market/macro fixture implementation are present. Importing this
-package performs no filesystem, database, network, or environment work.
+The accepted offline Stage 1 fixture slice, Stage 2 four-store foundation,
+bounded Stage 3 market/macro restoration, and bounded Stage 4
+company/news/options restoration are present. Importing this package performs
+no filesystem, database, network, or environment work.
 """
 
 from .contracts import ExecutionContext, Observation, TimeSeries
@@ -19,4 +20,4 @@ __all__ = [
     "ValidationError",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

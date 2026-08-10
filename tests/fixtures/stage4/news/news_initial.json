@@ -1,0 +1,63 @@
+{
+  "fixture_schema": "stage4_news_v1",
+  "source_name": "fixture_wire",
+  "captured_at": "2026-06-01T16:00:00Z",
+  "captured_precision": "datetime",
+  "request_scope": {
+    "channel": "markets",
+    "coverage": "US",
+    "feed": "daily"
+  },
+  "completeness": "complete",
+  "items": [
+    {
+      "source_item_id": "nw-100",
+      "source_kind": "article",
+      "published_at": "2026-06-01T08:00:00-04:00",
+      "published_precision": "datetime",
+      "content": {
+        "state": "present",
+        "headline": "Northstar launches synthetic analytics platform",
+        "body": "Northstar Systems announced a synthetic analytics platform for institutional research.",
+        "summary": "Northstar introduces a research platform.",
+        "source_url": "https://example.invalid/news/nw-100",
+        "missing_reason": null
+      },
+      "item_state": "active",
+      "retraction_reason": null,
+      "labels": {
+        "symbols": [
+          {
+            "state": "present",
+            "instrument_id": "instrument:fixture:northstar",
+            "provider": "fixture_market",
+            "provider_symbol": "NST",
+            "missing_reason": null
+          }
+        ],
+        "topics": [
+          {
+            "state": "present",
+            "topic": "technology",
+            "confidence": "0.91",
+            "missing_reason": null
+          }
+        ],
+        "geographies": [
+          {
+            "state": "present",
+            "geography_code": "US",
+            "missing_reason": null
+          }
+        ],
+        "coverage_lanes": [
+          {
+            "state": "present",
+            "coverage_lane": "company",
+            "missing_reason": null
+          }
+        ]
+      }
+    }
+  ]
+}

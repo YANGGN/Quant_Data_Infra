@@ -139,8 +139,14 @@ class StoreAndMigrationTests(unittest.TestCase):
             len(first_status["macro"]),
             len(self.registry.migrations_for("macro")),
         )
-        self.assertEqual(len(first_status["company"]), 2)
-        self.assertEqual(len(first_status["news"]), 2)
+        self.assertEqual(
+            len(first_status["company"]),
+            len(self.registry.migrations_for("company")),
+        )
+        self.assertEqual(
+            len(first_status["news"]),
+            len(self.registry.migrations_for("news")),
+        )
         self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_stage2_registry_rebuild_preserves_stage1_rows_and_foreign_keys(self) -> None:

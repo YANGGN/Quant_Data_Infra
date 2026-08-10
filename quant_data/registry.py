@@ -137,6 +137,107 @@ _STAGE2_COLLECTOR_IDS = frozenset(
 )
 
 
+_STAGE3_MIGRATION_IDS = frozenset(
+    {
+        *_STAGE2_MIGRATION_IDS,
+        "market:0004_instrument_catalog",
+        "market:0005_instrument_classifications",
+        "market:0006_controlled_universes",
+        "macro:0004_stage3_core",
+        "macro:0005_gdp_vintages",
+        "macro:0006_treasury_yield_curves",
+        "macro:0007_economic_calendar",
+        "macro:0008_soma_summary_only",
+        "macro:0009_eia_electricity_retail",
+        "macro:0010_eia_weekly_fundamentals",
+        "macro:0011_us_recession_periods",
+    }
+)
+_STAGE3_DATASET_IDS = frozenset(
+    {
+        *_STAGE2_DATASET_IDS,
+        "fixture.market.catalog_evidence",
+        "fixture.market.instrument_classifications",
+        "fixture.market.controlled_universes",
+        "fixture.macro.stage3_catalog",
+        "fixture.macro.gdp_vintages",
+        "fixture.macro.treasury_yield_curves",
+        "fixture.macro.economic_calendar",
+        "fixture.macro.soma_evidence",
+        "fixture.macro.soma_summary",
+        "fixture.macro.eia_retail_evidence",
+        "fixture.macro.eia_retail",
+        "fixture.macro.eia_weekly_evidence",
+        "fixture.macro.eia_weekly",
+        "fixture.macro.recession_periods",
+    }
+)
+_STAGE3_COLLECTOR_IDS = frozenset(
+    {
+        *_STAGE2_COLLECTOR_IDS,
+        "fixture.market.catalog_import",
+        "fixture.macro.gdp_import",
+        "fixture.macro.treasury_import",
+        "fixture.macro.calendar_import",
+        "fixture.macro.soma_import",
+        "fixture.macro.eia_retail_import",
+        "fixture.macro.eia_weekly_import",
+        "fixture.macro.recession_import",
+        "fixture.macro.bls_import",
+        "fixture.macro.bis_import",
+        "fixture.macro.chicago_fed_import",
+        "fixture.macro.bea_import",
+    }
+)
+
+
+_STAGE4_MIGRATION_IDS = frozenset(
+    {
+        *_STAGE3_MIGRATION_IDS,
+        "market:0007_options_core",
+        "market:0008_option_surface_inputs",
+        "company:0003_sec_core",
+        "company:0004_corporate_actions",
+        "company:0005_corporate_action_integrity",
+        "company:0006_earnings_expectations",
+        "company:0007_filing_issuer_view",
+        "news:0003_immutable_items",
+        "news:0004_search_index",
+    }
+)
+
+_STAGE4_DATASET_IDS = frozenset(
+    {
+        *_STAGE3_DATASET_IDS,
+        "fixture.market.option_capture_evidence",
+        "fixture.market.options",
+        "fixture.company.sec_evidence",
+        "fixture.company.issuers",
+        "fixture.company.filings",
+        "fixture.company.fundamentals",
+        "fixture.company.action_evidence",
+        "fixture.company.corporate_actions",
+        "fixture.company.expectation_evidence",
+        "fixture.company.expectations",
+        "fixture.company.filing_issuer_membership",
+        "fixture.news.evidence",
+        "fixture.news.items",
+        "fixture.news.search_index",
+    }
+)
+
+_STAGE4_COLLECTOR_IDS = frozenset(
+    {
+        *_STAGE3_COLLECTOR_IDS,
+        "fixture.market.options_import",
+        "fixture.company.sec_import",
+        "fixture.company.actions_import",
+        "fixture.company.expectations_import",
+        "fixture.news.import",
+    }
+)
+
+
 @dataclass(frozen=True, slots=True)
 class StoreDeclaration:
     id: str
@@ -1328,6 +1429,174 @@ def stage2_registry_profile(registry: Registry) -> Registry:
     return replace(
         registry,
         registry_version="2.0.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+    )
+
+
+def stage3_registry_profile(registry: Registry) -> Registry:
+    """Project an additive canonical registry back to the Stage 3 contract."""
+
+    migration_ids = {item.id for item in registry.migrations}
+    dataset_ids = {item.id for item in registry.datasets}
+    collector_ids = {str(item["id"]) for item in registry.collectors}
+    if (
+        not _STAGE3_MIGRATION_IDS.issubset(migration_ids)
+        or not _STAGE3_DATASET_IDS.issubset(dataset_ids)
+        or not _STAGE3_COLLECTOR_IDS.issubset(collector_ids)
+        or registry.registry_version.split(".", 1)[0] != "2"
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 3 profile")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id in _STAGE3_MIGRATION_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) in _STAGE3_COLLECTOR_IDS
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id in _STAGE3_COLLECTOR_IDS
+            ),
+        )
+        for item in registry.datasets
+        if item.id in _STAGE3_DATASET_IDS
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id in _STAGE3_MIGRATION_IDS
+            ),
+        )
+        for store in registry.stores
+    )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.1.0"
+    raw["migrations"] = [
+        item for item in raw["migrations"] if item["id"] in _STAGE3_MIGRATION_IDS
+    ]
+    raw["datasets"] = [
+        {
+            **item,
+            "collector_ids": [
+                collector_id
+                for collector_id in item["collector_ids"]
+                if collector_id in _STAGE3_COLLECTOR_IDS
+            ],
+        }
+        for item in raw["datasets"]
+        if item["id"] in _STAGE3_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] in _STAGE3_COLLECTOR_IDS
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id in _STAGE3_MIGRATION_IDS
+        ]
+
+    return replace(
+        registry,
+        registry_version="2.1.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+    )
+
+
+def stage4_registry_profile(registry: Registry) -> Registry:
+    """Project an additive canonical registry back to the Stage 4 contract."""
+
+    migration_ids = {item.id for item in registry.migrations}
+    dataset_ids = {item.id for item in registry.datasets}
+    collector_ids = {str(item["id"]) for item in registry.collectors}
+    if (
+        not _STAGE4_MIGRATION_IDS.issubset(migration_ids)
+        or not _STAGE4_DATASET_IDS.issubset(dataset_ids)
+        or not _STAGE4_COLLECTOR_IDS.issubset(collector_ids)
+        or registry.registry_version.split(".", 1)[0] != "2"
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 4 profile")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id in _STAGE4_MIGRATION_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) in _STAGE4_COLLECTOR_IDS
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id in _STAGE4_COLLECTOR_IDS
+            ),
+        )
+        for item in registry.datasets
+        if item.id in _STAGE4_DATASET_IDS
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id in _STAGE4_MIGRATION_IDS
+            ),
+        )
+        for store in registry.stores
+    )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.2.0"
+    raw["migrations"] = [
+        item for item in raw["migrations"] if item["id"] in _STAGE4_MIGRATION_IDS
+    ]
+    raw["datasets"] = [
+        {
+            **item,
+            "collector_ids": [
+                collector_id
+                for collector_id in item["collector_ids"]
+                if collector_id in _STAGE4_COLLECTOR_IDS
+            ],
+        }
+        for item in raw["datasets"]
+        if item["id"] in _STAGE4_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] in _STAGE4_COLLECTOR_IDS
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id in _STAGE4_MIGRATION_IDS
+        ]
+
+    return replace(
+        registry,
+        registry_version="2.2.0",
         stores=stores,
         migrations=migrations,
         datasets=datasets,

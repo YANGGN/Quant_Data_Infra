@@ -1,0 +1,63 @@
+{
+  "fixture_schema": "stage4_news_v1",
+  "source_name": "fixture_wire",
+  "captured_at": "2026-06-21T16:00:00Z",
+  "captured_precision": "datetime",
+  "request_scope": {
+    "channel": "markets",
+    "coverage": "US",
+    "feed": "daily"
+  },
+  "completeness": "complete",
+  "items": [
+    {
+      "source_item_id": "nw-200",
+      "source_kind": "alert",
+      "published_at": null,
+      "published_precision": "unknown",
+      "content": {
+        "state": "missing",
+        "headline": null,
+        "body": null,
+        "summary": null,
+        "source_url": null,
+        "missing_reason": "provider_metadata_only"
+      },
+      "item_state": "active",
+      "retraction_reason": null,
+      "labels": {
+        "symbols": [
+          {
+            "state": "missing",
+            "instrument_id": null,
+            "provider": null,
+            "provider_symbol": null,
+            "missing_reason": "not_classified"
+          }
+        ],
+        "topics": [
+          {
+            "state": "missing",
+            "topic": null,
+            "confidence": null,
+            "missing_reason": "not_classified"
+          }
+        ],
+        "geographies": [
+          {
+            "state": "missing",
+            "geography_code": null,
+            "missing_reason": "not_classified"
+          }
+        ],
+        "coverage_lanes": [
+          {
+            "state": "missing",
+            "coverage_lane": null,
+            "missing_reason": "not_classified"
+          }
+        ]
+      }
+    }
+  ]
+}

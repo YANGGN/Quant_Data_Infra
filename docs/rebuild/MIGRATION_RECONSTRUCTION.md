@@ -1,12 +1,13 @@
 # Migration Reconstruction Map
 
-Status: Stage 1 through bounded Stage 3 implemented; all 21 allocated resources fixture-validated
+Status: Stage 1 through bounded Stage 4 implemented, fixture-validated, and independently verified; 30 resources allocated; Stage 5 is next
 Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
 
 Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md),
 [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md), and
-[Stage 3 acceptance evidence](STAGE3_EVIDENCE.md)
+[Stage 3 acceptance evidence](STAGE3_EVIDENCE.md), and
+[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md)
 
 ## Purpose
 
@@ -77,6 +78,40 @@ eleven deliberate forward reconstructions to `fixture_validated`; independent
 verification subsequently passed. Neither status changes the fact that these
 resources are not `recovered_exact`.
 
+## Frozen Stage 4 allocation
+
+Stage 4 allocates two market option resources, five company resources including
+the filing-issuer view reconstruction, and two news resources. The recovered
+semantic sequence constrains their order, names, and scope. It does not recover
+their historical SQL bytes, checksums, indexes, or trigger text. The complete
+offline Stage 4 primary fixture gate and independent SolUltra verification
+passed and promoted every row to `fixture_validated`. Stage 5 is the next
+authorized executable stage.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 status | Reconstruction state |
+| --- | --- | ---: | --- | --- | --- |
+| `market:0007_options_core` | market | 7 | `quant_data/migrations/market/0007_options_core.sql` | `2639bae26823eef9ad8fe2200039058763736fbd237051fd129ba3d6763d8844` | `fixture_validated` |
+| `market:0008_option_surface_inputs` | market | 8 | `quant_data/migrations/market/0008_option_surface_inputs.sql` | `035a2c6e6495e35c293faf9593456d45bdc1c6d820509adf0e4c6e6fd01f4db1` | `fixture_validated` |
+| `company:0003_sec_core` | company | 3 | `quant_data/migrations/company/0003_sec_core.sql` | `b2ca550918c658ef8f432de6ff6a935e3b24a2cd0a3e6a4c5ff96958f49a688e` | `fixture_validated` |
+| `company:0004_corporate_actions` | company | 4 | `quant_data/migrations/company/0004_corporate_actions.sql` | `9623793c09ebe9e802a40c7a55f75c4caa4707a44c30400a449b61c5a38838c0` | `fixture_validated` |
+| `company:0005_corporate_action_integrity` | company | 5 | `quant_data/migrations/company/0005_corporate_action_integrity.sql` | `5b59d6257a7d459aa499b8ad6ab0e4a9489ae8df2d90dc18b2839c73e6bf77cd` | `fixture_validated` |
+| `company:0006_earnings_expectations` | company | 6 | `quant_data/migrations/company/0006_earnings_expectations.sql` | `6ac7c533a3d9bd6bfc3ef4a4ede89491c542ee331089d7c903835a840bb0962b` | `fixture_validated` |
+| `company:0007_filing_issuer_view` | company | 7 | `quant_data/migrations/company/0007_filing_issuer_view.sql` | `03fb82fa7a2d3e741dac32422899ad9b7635d667cdab1887857c35c0c52ebdd7` | `fixture_validated` |
+| `news:0003_immutable_items` | news | 3 | `quant_data/migrations/news/0003_immutable_items.sql` | `0ab1f4b2b4dcc0350cc263285e6d2b45f482c985d8e8f8ea45dfa4bc72ffd81e` | `fixture_validated` |
+| `news:0004_search_index` | news | 4 | `quant_data/migrations/news/0004_search_index.sql` | `fdc8e4b8ef838a3f61134e867c15391b8a7db31ebc492242b0a4d87218658402` | `fixture_validated` |
+
+The market rows map respectively to recovered migrations `0029` and `0030`.
+The company rows map to recovered migrations `0024`, `0025`, `0026`, `0028`,
+and `0031`; `company:0007_filing_issuer_view` intentionally creates the
+recovered derived view rather than a guessed join table. The news rows are
+deliberate Stage 4 reconstructions of the accepted immutable evidence,
+versioning, and derived-search contracts; no recovered migration number or SQL
+parity is claimed for them.
+
+The complete offline Stage 4 primary fixture gate records these nine rows as
+`fixture_validated`; independent SolUltra verification passed. Stage 5 is the
+next authorized executable stage.
+
 ## Legacy semantic cross-reference
 
 | New resource | Recovered evidence used | Deliberate stage boundary |
@@ -103,26 +138,26 @@ resources are not `recovered_exact`.
 | `macro:0010_eia_weekly_fundamentals` | `0022` EIA weekly semantics | Content identity, versions, and snapshot-membership fixture contract only |
 | `macro:0011_us_recession_periods` | `0027` U.S. recession chronology | Completed-period chronology fixture contract only |
 
-All other recovered scopes remain unallocated after bounded Stage 3. In
-particular, the exact market options ownership at `0029`/`0030` and the
-filing-issuer derived-view invariants at `0031` are preserved as later
-constraints, not folded into these resources.
+All other recovered scopes remain unallocated after bounded Stage 4. The exact
+market options ownership at `0029`/`0030` and the filing-issuer derived-view
+invariants at `0031` are represented by the frozen Stage 4 resources above,
+without asserting historical SQL parity.
 
 ## Activation checklist
 
 1. Review final UTF-8/LF SQL bytes and compute lowercase SHA-256.
 2. Declare the same reviewed value in `config/system_registry.json`.
 3. Verify registry/resource/order integrity before opening a writer.
-4. Apply only to four explicit temporary paths during the Stage 1, Stage 2, and
-   Stage 3 fixture gates.
+4. Apply only to four explicit temporary paths during the Stage 1, Stage 2,
+   Stage 3, and Stage 4 fixture gates.
 5. Run initialization, rerun, tamper, wrong-store, partial-failure, and
    source/backup/restored evidence tests.
 6. During a forward-preserving table rebuild, temporarily disable foreign-key
    enforcement only inside the atomic rebuild and require `foreign_key_check`
    before the migration ledger advances.
 7. Promote reconstruction state to `fixture_validated` only with the complete
-   applicable stage evidence. The 21 currently allocated resources have passed
+   applicable stage evidence. The 30 currently allocated resources have passed
    their applicable primary fixture gates; none can be relabeled
    `recovered_exact`.
-8. Keep later-stage allocations closed until their roadmap gate and explicit
-   authorization are recorded.
+8. Stage 4 independent verification completed `G4`; any future migration
+   allocation remains serialized under the next applicable roadmap gate.

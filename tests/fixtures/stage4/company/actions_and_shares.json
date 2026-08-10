@@ -1,0 +1,111 @@
+{
+  "actions": [
+    {
+      "action_key": "northstar-cash-dividend-2026-05-15",
+      "action_type": "cash_dividend",
+      "available_at": "2026-05-04T20:00:00Z",
+      "available_precision": "datetime",
+      "event_date": "2026-05-15",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "provider": "fmp",
+      "provider_symbol": "NSTR",
+      "source_url": "https://example.invalid/fmp/actions/nstr/2026-05-15",
+      "terms": {
+        "cash_amount": "0.25",
+        "currency": "USD"
+      }
+    },
+    {
+      "action_key": "northstar-split-2026-06-15",
+      "action_type": "split",
+      "available_at": "2026-05-04T20:00:00Z",
+      "available_precision": "datetime",
+      "event_date": "2026-06-15",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "provider": "fmp",
+      "provider_symbol": "NSTR",
+      "source_url": "https://example.invalid/fmp/actions/nstr/2026-06-15",
+      "terms": {
+        "denominator": "1",
+        "numerator": "2"
+      }
+    }
+  ],
+  "captured_at": "2026-05-04T20:00:00Z",
+  "captured_precision": "datetime",
+  "earnings_events": [],
+  "expectations": [],
+  "facts": [
+    {
+      "accepted_at": "2026-05-01T15:00:00Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000030",
+      "concept": "EntityCommonStockSharesOutstanding",
+      "dimensions": {},
+      "filed_at": "2026-05-01",
+      "fiscal_period": "Q1",
+      "fiscal_year": 2026,
+      "issuer_key": "fixture.company.issuer.northstar",
+      "mapping_version": "sec-core-v2",
+      "period_end": "2026-03-31",
+      "period_kind": "instant",
+      "period_start": null,
+      "source_fact_key": "northstar-shares-instant-2026-03-31",
+      "taxonomy": "dei",
+      "unit": "shares",
+      "value": "101000000"
+    },
+    {
+      "accepted_at": "2026-05-01T15:00:00Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000030",
+      "concept": "WeightedAverageNumberOfSharesOutstandingBasic",
+      "dimensions": {},
+      "filed_at": "2026-05-01",
+      "fiscal_period": "Q1",
+      "fiscal_year": 2026,
+      "issuer_key": "fixture.company.issuer.northstar",
+      "mapping_version": "sec-core-v2",
+      "period_end": "2026-03-31",
+      "period_kind": "duration",
+      "period_start": "2026-01-01",
+      "source_fact_key": "northstar-shares-weighted-2026-q1",
+      "taxonomy": "us-gaap",
+      "unit": "shares",
+      "value": "99500000"
+    }
+  ],
+  "family": "actions",
+  "filings": [
+    {
+      "accepted_at": "2026-05-01T15:00:00Z",
+      "accepted_precision": "datetime",
+      "accession_number": "0001000001-26-000030",
+      "filing_date": "2026-05-01",
+      "first_observed_issuer_key": "fixture.company.issuer.northstar",
+      "form": "10-Q",
+      "issuer_keys": [
+        "fixture.company.issuer.northstar"
+      ],
+      "primary_document": "northstar-20260331.htm",
+      "report_period": "2026-03-31",
+      "source_url": "https://www.sec.gov/Archives/edgar/data/1000001/000100000126000030/northstar-20260331.htm"
+    }
+  ],
+  "fixture_kind": "company_stage4_snapshot",
+  "guidance": [],
+  "issuers": [
+    {
+      "available_at": "2026-05-04T20:00:00Z",
+      "available_precision": "datetime",
+      "cik": "0001000001",
+      "entity_type": "operating_company",
+      "issuer_key": "fixture.company.issuer.northstar",
+      "legal_name": "Northstar Systems Inc.",
+      "links": [],
+      "state": "active"
+    }
+  ],
+  "mappings": [],
+  "schema_version": "1.0.0"
+}
