@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0.0",
+  "approval_status": "fixture_validated",
+  "registry_revision": "2.3.0",
+  "evidence_sha256": "c099d0690464a84035c9dd05944da6193a3b019f540f32b2acfe6bc5454f2d6a",
+  "stage4_evidence_sha256": "c5759ca09c3fccd8f5c79c51131c5456c0357b928993dd6182417dba919aa7e7",
+  "schema_catalog_sha256": "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87",
+  "manifest_sha256": "baf5c67f146372e93b4433cedd6f7e1723a378015606e9b5767ca89f60973008",
+  "tool_matrix_sha256": "352cb6ff91d509802fa6348a7ad47bca8b2c33334c9c6db6686e2d0ebfa449ce",
+  "tool_count": 57,
+  "outcome_counts": {
+    "capability_unavailable": 1,
+    "not_established": 48,
+    "ok": 6,
+    "succeeded": 2
+  },
+  "migration_heads": {
+    "market": [
+      "market:0001_foundation",
+      "market:0002_vertical_slice",
+      "market:0003_control_plane",
+      "market:0004_instrument_catalog",
+      "market:0005_instrument_classifications",
+      "market:0006_controlled_universes",
+      "market:0007_options_core",
+      "market:0008_option_surface_inputs"
+    ],
+    "macro": [
+      "macro:0001_foundation",
+      "macro:0002_vertical_slice",
+      "macro:0003_control_plane",
+      "macro:0004_stage3_core",
+      "macro:0005_gdp_vintages",
+      "macro:0006_treasury_yield_curves",
+      "macro:0007_economic_calendar",
+      "macro:0008_soma_summary_only",
+      "macro:0009_eia_electricity_retail",
+      "macro:0010_eia_weekly_fundamentals",
+      "macro:0011_us_recession_periods"
+    ],
+    "company": [
+      "company:0001_foundation",
+      "company:0002_control_plane",
+      "company:0003_sec_core",
+      "company:0004_corporate_actions",
+      "company:0005_corporate_action_integrity",
+      "company:0006_earnings_expectations",
+      "company:0007_filing_issuer_view"
+    ],
+    "news": [
+      "news:0001_foundation",
+      "news:0002_control_plane",
+      "news:0003_immutable_items",
+      "news:0004_search_index"
+    ]
+  }
+}

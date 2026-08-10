@@ -12,8 +12,10 @@ accepted and the offline Stage 1 slice, Stage 2 four-store foundation, and
 bounded Stage 3 market/macro fixture scope were implemented on 2026-08-09.
 Stage 3 also passed independent verification. The bounded Stage 4 company,
 news, and options primary fixture gate and independent SolUltra verification
-passed on 2026-08-10. Later documented behavior is not considered
-implemented until separately authorized executable evidence passes.
+passed on 2026-08-10. The bounded Stage 5 composable tool-platform primary
+fixture gate and independent SolUltra verification also passed on 2026-08-10.
+Later documented behavior is not considered implemented until separately
+authorized executable evidence passes.
 
 Two user decisions narrow the work:
 
@@ -22,8 +24,8 @@ Two user decisions narrow the work:
 - A dedicated provider-rights governance subsystem is out of scope.
 
 Stages 4 through 6 are authorized only as sequential, offline synthetic-fixture
-work. Stage 4 is independently verified; Stage 5 is the next authorized
-executable stage and Stage 6 remains closed behind its gate.
+work. Stages 4 and 5 are independently verified. Stage 6 is the next authorized
+executable stage after the separate verified Stage 5 commit.
 
 ## 2. Document map
 
@@ -38,6 +40,7 @@ executable stage and Stage 6 remains closed behind its gate.
 - [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md)
 - [Stage 3 acceptance evidence](STAGE3_EVIDENCE.md)
 - [Stage 4 acceptance evidence](STAGE4_EVIDENCE.md)
+- [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -93,8 +96,9 @@ foundation have recorded fixture-validated evidence, and Stage 2 has passed
 independent verification. The bounded offline Stage 3 scope has passed its
 primary fixture gate and independent SolUltra verification. The bounded Stage
 4 scope has passed its primary fixture gate and independent SolUltra
-verification. Stage 5 is the next authorized executable stage. Only a
-sequentially authorized roadmap stage may be implemented.
+verification. The bounded Stage 5 scope has passed its primary fixture gate
+and independent SolUltra verification. Only a sequentially authorized roadmap
+stage may be implemented; Stage 6 is next after the separate Stage 5 commit.
 
 ## 5. Shared terminology
 

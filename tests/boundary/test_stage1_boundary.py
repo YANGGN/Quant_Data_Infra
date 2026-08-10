@@ -22,7 +22,7 @@ from quant_data.fixtures import FixtureManifest
 from quant_data.json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
 from quant_data.macro import MacroFixtureImporter, MacroSeriesQuery, MacroSeriesRepository
 from quant_data.migrations import initialize_all
-from quant_data.registry import load_registry
+from quant_data.registry import load_registry, stage4_registry_profile
 from quant_data.stores import StoreMap
 
 
@@ -63,7 +63,9 @@ class Stage1BoundaryTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.store_map = temporary_store_map(self.root)
-        self.registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        self.registry = stage4_registry_profile(
+            load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        )
         initialize_all(self.store_map, self.registry)
         fixture_manifest = FixtureManifest.load(
             FIXTURE_MANIFEST_PATH, project_root=PROJECT_ROOT

@@ -14,6 +14,7 @@ from quant_data.json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
 from quant_data.registry import Registry
 from quant_data.stores import STORE_ROLES, StoreMap, read_connection
 from quant_data.temporal import DateOnlyPolicy, TemporalValue, parse_date
+from quant_data.tool_platform.context import CancellationToken
 
 from .dispatcher import ToolDispatcher, UnknownToolError
 
@@ -112,10 +113,20 @@ class Stage1Application:
     migrates, attaches, or writes a database.
     """
 
-    def __init__(self, store_map: StoreMap, registry: Registry) -> None:
+    def __init__(
+        self,
+        store_map: StoreMap,
+        registry: Registry,
+        *,
+        cancellation: CancellationToken | None = None,
+    ) -> None:
         self._store_map = store_map
         self._registry = registry
-        self._dispatcher = ToolDispatcher(store_map, registry)
+        self._dispatcher = ToolDispatcher(
+            store_map,
+            registry,
+            cancellation=cancellation,
+        )
 
     @property
     def dispatcher(self) -> ToolDispatcher:
@@ -162,12 +173,14 @@ class Stage1Application:
         except Exception:  # Do not surface implementation details at the public boundary.
             return self.error_response(InternalServerError("Internal server error"))
 
-    def error_response(self, error: QuantDataError) -> HttpResponse:
+    def error_response(
+        self, error: QuantDataError, *, receipt: Mapping[str, Any] | None = None
+    ) -> HttpResponse:
         payload = {
             "api_version": self.api_version,
             "execution": "read_only",
             "error": error.to_dict(),
-            "receipt": {"registry_revision": self._registry.revision},
+            "receipt": dict(receipt or {"registry_revision": self._registry.revision}),
         }
         return self._json_response(error.http_status, payload)
 
@@ -229,25 +242,68 @@ class Stage1Application:
                 "Tool envelope must be an object",
                 issues=(Issue("/", "type", "Expected an object"),),
             )
-        _require_exact_keys(envelope, {"api_version", "tool", "arguments"}, "/")
-        if envelope["api_version"] != self.api_version:
-            raise ValidationError(
-                "Unsupported API version",
-                issues=(Issue("/api_version", "const", "Use the advertised API version"),),
-            )
-        if not isinstance(envelope["tool"], str):
-            raise ValidationError(
-                "Tool name must be a string",
-                issues=(Issue("/tool", "type", "Expected a registered public tool name"),),
-            )
-        if not isinstance(envelope["arguments"], dict):
-            raise ValidationError(
-                "Tool arguments must be an object",
-                issues=(Issue("/arguments", "type", "Expected an object"),),
-            )
-        name = envelope["tool"]
-        result = self._dispatcher.call(name, envelope["arguments"])
-        receipt = self._dispatcher.receipt_for(name).to_primitive()
+        candidate_name = envelope.get("tool")
+        raw_arguments = envelope.get("arguments")
+        receipt_arguments = raw_arguments if isinstance(raw_arguments, Mapping) else {}
+        try:
+            _require_exact_keys(envelope, {"api_version", "tool", "arguments"}, "/")
+            if envelope["api_version"] != self.api_version:
+                raise ValidationError(
+                    "Unsupported API version",
+                    issues=(
+                        Issue(
+                            "/api_version",
+                            "const",
+                            "Use the advertised API version",
+                        ),
+                    ),
+                )
+            if not isinstance(candidate_name, str):
+                raise ValidationError(
+                    "Tool name must be a string",
+                    issues=(
+                        Issue(
+                            "/tool",
+                            "type",
+                            "Expected a registered public tool name",
+                        ),
+                    ),
+                )
+            if not isinstance(raw_arguments, dict):
+                raise ValidationError(
+                    "Tool arguments must be an object",
+                    issues=(Issue("/arguments", "type", "Expected an object"),),
+                )
+            name = candidate_name
+            result = self._dispatcher.call(name, raw_arguments)
+        except QuantDataError as exc:
+            if not isinstance(candidate_name, str):
+                raise
+            try:
+                receipt = self._dispatcher.receipt_for(
+                    candidate_name,
+                    receipt_arguments,
+                    error_code=exc.code,
+                ).to_primitive()
+            except QuantDataError:
+                receipt = {"registry_revision": self._registry.revision}
+            return self.error_response(exc, receipt=receipt)
+        except Exception:
+            if not isinstance(candidate_name, str):
+                raise
+            error = InternalServerError("Internal server error")
+            try:
+                receipt = self._dispatcher.receipt_for(
+                    candidate_name,
+                    receipt_arguments,
+                    error_code=error.code,
+                ).to_primitive()
+            except QuantDataError:
+                receipt = {"registry_revision": self._registry.revision}
+            return self.error_response(error, receipt=receipt)
+        receipt = self._dispatcher.receipt_for(
+            name, raw_arguments, result
+        ).to_primitive()
         return self._json_response(
             HTTPStatus.OK,
             {

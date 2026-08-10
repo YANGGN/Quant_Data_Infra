@@ -10,7 +10,7 @@ from pathlib import Path
 from quant_data.errors import MigrationError
 from quant_data.migrations import _LEDGER_DDL, _apply_one, _sql_statements, initialize_all, migrate_store
 from quant_data.operations.health import _reviewed_schema, inspect_all_stores
-from quant_data.registry import MigrationDeclaration, load_registry
+from quant_data.registry import MigrationDeclaration, load_registry, stage4_registry_profile
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import StoreRole, writer_connection
 
@@ -36,10 +36,12 @@ STAGE4_MIGRATION_IDS = frozenset(
 class Stage4MigrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.registry = load_registry(
-            REGISTRY_PATH,
-            project_root=PROJECT_ROOT,
-            environment={},
+        cls.registry = stage4_registry_profile(
+            load_registry(
+                REGISTRY_PATH,
+                project_root=PROJECT_ROOT,
+                environment={},
+            )
         )
         cls.declarations = {item.id: item for item in cls.registry.migrations}
         missing = STAGE4_MIGRATION_IDS - set(cls.declarations)

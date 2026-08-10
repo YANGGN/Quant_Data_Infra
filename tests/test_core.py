@@ -45,14 +45,26 @@ def temporary_store_map(root: Path) -> StoreMap:
     )
 
 
+def copy_registry_project_resources(project: Path) -> None:
+    shutil.copytree(PROJECT_ROOT / "config", project / "config")
+    shutil.copytree(
+        PROJECT_ROOT / "quant_data" / "migrations",
+        project / "quant_data" / "migrations",
+    )
+    shutil.copytree(
+        PROJECT_ROOT / "quant_data" / "generated",
+        project / "quant_data" / "generated",
+    )
+
+
 class RegistryAndFixtureTests(unittest.TestCase):
-    def test_registry_is_validated_two_tool_milestone_with_57_reserved_names(self) -> None:
+    def test_registry_is_validated_57_tool_stage5_with_legacy_milestone(self) -> None:
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
         self.assertEqual(registry.status, "validated")
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
-            ["macro.get_series", "timeseries.describe"],
+            list(PUBLIC_TOOL_NAMES),
         )
         self.assertEqual({store.id for store in registry.stores}, {"market", "macro", "company", "news"})
         self.assertEqual(
@@ -291,11 +303,7 @@ class StoreAndMigrationTests(unittest.TestCase):
     def test_resource_tamper_after_registry_load_advances_no_ledger(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:
             project = Path(project_directory)
-            shutil.copytree(PROJECT_ROOT / "config", project / "config")
-            shutil.copytree(
-                PROJECT_ROOT / "quant_data" / "migrations",
-                project / "quant_data" / "migrations",
-            )
+            copy_registry_project_resources(project)
             copied_registry = load_registry(
                 project / "config" / "system_registry.json",
                 project_root=project,
@@ -316,11 +324,7 @@ class StoreAndMigrationTests(unittest.TestCase):
     def test_applied_resource_tamper_after_registry_load_fails_current_store(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:
             project = Path(project_directory)
-            shutil.copytree(PROJECT_ROOT / "config", project / "config")
-            shutil.copytree(
-                PROJECT_ROOT / "quant_data" / "migrations",
-                project / "quant_data" / "migrations",
-            )
+            copy_registry_project_resources(project)
             copied_registry = load_registry(
                 project / "config" / "system_registry.json",
                 project_root=project,
@@ -348,11 +352,7 @@ class StoreAndMigrationTests(unittest.TestCase):
     def test_inline_transaction_control_cannot_escape_atomic_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:
             project = Path(project_directory)
-            shutil.copytree(PROJECT_ROOT / "config", project / "config")
-            shutil.copytree(
-                PROJECT_ROOT / "quant_data" / "migrations",
-                project / "quant_data" / "migrations",
-            )
+            copy_registry_project_resources(project)
             resource = project / "quant_data" / "migrations" / "market" / "0001_foundation.sql"
             resource_bytes = (
                 b"CREATE TABLE escaped_commit(value INTEGER); COMMIT; "
@@ -388,11 +388,7 @@ class StoreAndMigrationTests(unittest.TestCase):
     def test_migration_table_rebuild_mode_rejects_foreign_key_violations(self) -> None:
         with tempfile.TemporaryDirectory() as project_directory:
             project = Path(project_directory)
-            shutil.copytree(PROJECT_ROOT / "config", project / "config")
-            shutil.copytree(
-                PROJECT_ROOT / "quant_data" / "migrations",
-                project / "quant_data" / "migrations",
-            )
+            copy_registry_project_resources(project)
             resource = project / "quant_data" / "migrations" / "market" / "0001_foundation.sql"
             resource_bytes = b"""
 CREATE TABLE parent(id TEXT PRIMARY KEY) STRICT;

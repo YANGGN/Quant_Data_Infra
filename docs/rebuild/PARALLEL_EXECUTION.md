@@ -17,7 +17,8 @@ on 2026-08-09. Stage 2 is fixture-validated and independently verified. Stage
 3 is fixture-validated and independently verified. Stages 4 through 6 are
 authorized only sequentially with offline synthetic fixtures. Stage 4 has
 passed its primary fixture gate and independent SolUltra verification. Stage 5
-is the next authorized executable stage.
+has passed its primary offline fixture gate and independent SolUltra
+verification. Stage 6 is next after the separate Stage 5 commit.
 
 ## 2. Capacity and operating model
 
@@ -59,7 +60,7 @@ G3  Stage-3 primary fixture gate and SolUltra verification passed
  |-- in parallel: Options restoration (options shares the market store)
  v
 G4  Stage-4 primary fixture gate and SolUltra verification passed
- |  Stage 5 is the next authorized executable stage
+ |  Stage 5 primary fixture gate and independent verification passed
  |
 T0  Freeze typed tool core, schema generator, and compatibility decision
  |\
@@ -67,7 +68,7 @@ T0  Freeze typed tool core, schema generator, and compatibility decision
  | +-- Research/statistics tools -+--> G5 Tool-platform exit gate
  | +-- HTTP/contract parity -------+
  |
-G6  Portal and research surfaces
+G6  Portal and research surfaces (next after the separate Stage 5 commit)
  |
 G7  Manual-first scheduling and operational readiness
  |
@@ -182,7 +183,7 @@ workspace and completed `G4`.
 
 ### Wave 5 — Tool platform
 
-Status: **Authorized as the next sequential offline stage.**
+Status: **Implemented, fixture-validated, and independently verified.**
 
 The primary serially freezes `T0`: typed contracts, dispatcher, schema
 generation, resource bounds, strict serialization, and the accept-or-retire
@@ -191,6 +192,13 @@ decision for the 57 public names.
 After `T0`, adapter families can run concurrently by domain. Adapters may call
 shared primitives and registered gateways; they may not embed SQL, point-in-time
 selection, formulas, or hand-maintained alternate schemas.
+
+The integrated primary gate covers all 57 generated contracts, direct/HTTP
+parity, strict bounded receipts, typed composability, honest
+`not_established` results, and total store-mutation neutrality. Evidence is
+recorded in [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md). The independent
+verifier closed `G5`; Stage 6 is the next executable lane after Stage 5 is
+committed separately.
 
 ### Wave 6 — Portal and research surfaces
 

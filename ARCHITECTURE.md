@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Status and scope
 
-This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. The bounded offline Stage 4 company, news, and options restoration is fixture-validated and independently verified. Stages 4 through 6 are authorized only sequentially with offline synthetic fixtures; Stage 5 is the next authorized executable stage and Stage 6 remains closed until the Stage 5 gate is complete. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
+This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. The bounded offline Stage 4 company, news, and options restoration is fixture-validated and independently verified. The bounded offline Stage 5 composable tool platform is fixture-validated and independently verified. Stages 4 through 6 are authorized only sequentially with offline synthetic fixtures; Stage 6 is the next authorized executable stage after the verified Stage 5 snapshot is committed separately. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
 
 The principal decisions are recorded in:
 
@@ -158,15 +158,17 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration; the current Stage 4
-revision is `2.2.0`, with 30 fixture-validated migrations, 33 datasets, 19
-collectors, exactly two validated public tools, 57 reserved compatibility
-names, and no jobs or exports. The historical Stage 2 projection remains
-revision `2.0.0` so that its fixed evidence can be rebuilt without rewriting
-history. The store-local dataset registry is runtime evidence. Neither replaces
-the other. Startup and health checks reconcile them and fail closed on missing
-ownership, an unexpected migration state, or a dataset mapped to the wrong
-physical store.
+The system registry is declarative source configuration; the current Stage 5
+revision is `2.3.0` with schema version `1.1.0`, 30 fixture-validated
+migrations, 33 datasets, 19 collectors, all 57 reviewed public tool names,
+and no jobs or exports. The original two Stage 1 contracts remain an exact
+historical projection; the other 55 names are explicit forward
+reconstructions, and the live intraday capability remains disabled offline.
+Historical Stage 2 through Stage 4 projections remain fixed so their evidence
+can be rebuilt without rewriting history. The store-local dataset registry is
+runtime evidence. Neither replaces the other. Startup and health checks
+reconcile them and fail closed on missing ownership, an unexpected migration
+state, or a dataset mapped to the wrong physical store.
 
 The physical dataset-layer contract is exactly `evidence`, `canonical`, and
 `derived`. The Stage 2 forward-preserving table rebuild aligns the SQLite
@@ -209,6 +211,17 @@ and five news resources. The primary fixture gate and independent SolUltra
 verification passed with two clean roots. It adds no live
 provider, scheduler, export, promotion, dashboard, hosting, or public-tool
 capability.
+
+The Stage 5 fixture scope adds a generated, registry-derived contract catalog
+and closed routing for all 57 reviewed public tool names. Typed inputs are
+validated and bounded before decoding or expensive work; typed results retain
+lineage, point-in-time policy, warnings, exclusions, and deterministic
+receipts. Direct and loopback HTTP calls use the same dispatcher and remain
+read-only across all four stores. Operations whose historical semantics are
+not established by the reviewed synthetic fixtures return an explicit
+`not_established` result rather than invented behavior. Its primary fixture
+gate and independent SolUltra verification have passed. It adds no live
+provider, scheduler, export, promotion, dashboard, or hosting capability.
 
 Run status distinguishes succeeded, partial, failed, and unchanged behavior. External scheduler receipts may record a poll that made no database writes; they must not manufacture an ingestion run merely to record an unchanged release.
 
@@ -264,12 +277,14 @@ Domain validation includes OHLC consistency, nonnegative volume, duplicate natur
 
 Dashboard and tool connections use SQLite URI read-only mode, set PRAGMA query_only = ON, use bound parameters, and route through fixed queries or service functions. Caller input never selects SQL, a table outside an allowlist, or a database path.
 
-At the current Stage 3 boundary, the only validated public tool names are
-`macro.get_series` and `timeseries.describe`; all 57 compatibility names remain
-reserved, with no other validated public tool, job, or export. Read-only health
-reconciles every explicit store against the registry without initializing or
-mutating a store. It compares exact reviewed `sqlite_master` schema SQL, not
-relation and trigger names alone.
+At the current Stage 5 boundary, all 57 reviewed public tool names are
+fixture-validated through registry-derived typed schemas and closed read-only
+routes. The two Stage 1 names retain their recovered fixture-validated
+projections; the other 55 are explicit `forward_reconstructed_v1` contracts,
+and `macro.get_intraday_releases` remains capability-disabled offline. No jobs
+or exports are validated. Read-only health reconciles every explicit store
+against the registry without initializing or mutating a store. It compares
+exact reviewed `sqlite_master` schema SQL, not relation and trigger names alone.
 
 Tool contracts are versioned, deterministic, strict JSON:
 
@@ -315,12 +330,13 @@ The exporter must never recursively clean an empty, unresolved, broad, repositor
 
 ## Deployment modes
 
-The implemented boundary remains offline only. Stage 4 rebuilds the reviewed
+The implemented boundary remains offline only. Stage 5 rebuilds the reviewed
 Stage 1 through Stage 4 synthetic fixture scopes under explicit temporary
-roots; it does not fetch live providers or use a network, install or run
-scheduler jobs, create exports or Atlas snapshots, promote data, perform
-destructive storage operations, add a public tool or dashboard implementation,
-host a UI, or add CUSIP-level SOMA storage or a source path.
+roots and exercises the registered read-only tool platform; it does not fetch
+live providers or use a network, install or run scheduler jobs, create exports
+or Atlas snapshots, promote data, perform destructive storage operations, add
+a dashboard implementation, host a UI, or add CUSIP-level SOMA storage or a
+source path.
 
 ### Isolated development and test
 

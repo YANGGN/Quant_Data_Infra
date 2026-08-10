@@ -90,7 +90,7 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(registry.registry_version, "2.2.0")
+        self.assertEqual(registry.registry_version, "2.3.0")
         self.assertEqual(len(registry.migrations), 30)
         self.assertEqual(len(registry.datasets), 33)
         self.assertEqual(len(registry.collectors), 19)
@@ -114,7 +114,8 @@ class RegistryIdentifierTests(unittest.TestCase):
             PUBLIC_TOOL_NAMES,
         )
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual([tool["id"] for tool in registry.tools], ["macro.get_series", "timeseries.describe"])
+        self.assertEqual([tool["id"] for tool in registry.tools], list(PUBLIC_TOOL_NAMES))
+        self.assertEqual([tool["id"] for tool in stage4.tools], ["macro.get_series", "timeseries.describe"])
 
     def test_hostile_declaration_ids_fail_after_reciprocal_rewrites(self) -> None:
         cases = (

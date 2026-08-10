@@ -8,18 +8,45 @@ typed :class:`~quant_data.contracts.TimeSeries` in memory for description.
 from __future__ import annotations
 
 import copy
+import hashlib
 import re
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from threading import BoundedSemaphore, local
+from time import perf_counter_ns
 from typing import Any, Mapping
 
 from quant_data.contracts import Observation, TimeSeries
-from quant_data.errors import Issue, QuantDataError, ValidationError
+from quant_data.errors import (
+    ConcurrencyLimitError,
+    InternalOutputError,
+    Issue,
+    QuantDataError,
+    ResourceLimitError,
+    ValidationError,
+)
 from quant_data.json_codec import dumps_strict
-from quant_data.registry import Registry, STAGE1_TOOL_NAMES
+from quant_data.registry import PUBLIC_TOOL_NAMES, Registry, STAGE1_TOOL_NAMES
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
 from quant_data.temporal import DateOnlyPolicy, TemporalValue, parse_date
+from quant_data.tool_platform.arguments import (
+    parse_arguments,
+    preflight_dimensions,
+    public_arguments,
+)
+from quant_data.tool_platform.catalog import tool_profiles
+
+from quant_data.tool_platform.context import (
+    CapabilitySet,
+    CancellationToken,
+    Deadline,
+    ExecutionBudget,
+    HostClock,
+    ToolExecutionContext,
+)
+from quant_data.tool_platform.operations import invoke_operation
 
 
 _TIME_SERIES_CONTRACT = "quant_data.timeseries"
@@ -29,18 +56,15 @@ _DESCRIPTION_VERSION = "1.0.0"
 _HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
 
 
+_STAGE5_INPUT_KINDS = {
+    profile.name: profile.input_kind for profile in tool_profiles()
+}
+
 class UnknownToolError(QuantDataError):
     """A requested public name is not part of the frozen Stage 1 subset."""
 
     code = "unknown_tool"
     http_status = 404
-
-
-class InternalOutputError(QuantDataError):
-    """A trusted operation returned data outside its registered contract."""
-
-    code = "internal_output_validation"
-    http_status = 500
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,14 +75,19 @@ class ToolReceipt:
     tool_name: str
     tool_version: str
     execution: str = "read_only"
+    details: Mapping[str, Any] | None = None
 
-    def to_primitive(self) -> dict[str, str]:
-        return {
+    def to_primitive(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "execution": self.execution,
             "registry_revision": self.registry_revision,
             "tool_name": self.tool_name,
             "tool_version": self.tool_version,
         }
+        if self.details is not None:
+            result.update(copy.deepcopy(dict(self.details)))
+        return result
+
 
 
 class ToolDispatcher:
@@ -71,12 +100,29 @@ class ToolDispatcher:
     mapping is fully schema- and type-revalidated before it is accepted.
     """
 
-    def __init__(self, store_map: StoreMap, registry: Registry) -> None:
+    _max_concurrent_requests = 8
+    _execution_slots = BoundedSemaphore(_max_concurrent_requests)
+
+    def __init__(
+        self,
+        store_map: StoreMap,
+        registry: Registry,
+        *,
+        cancellation: CancellationToken | None = None,
+    ) -> None:
         self._store_map = store_map
         self._registry = registry
-        names = tuple(tool["id"] for tool in registry.tools)
-        if names != STAGE1_TOOL_NAMES:
-            raise ValidationError("Registry does not expose the Stage 1 tool subset")
+        self._cancellation = (
+            cancellation if cancellation is not None else CancellationToken()
+        )
+        self._receipt_state = local()
+        self._names = tuple(tool["id"] for tool in registry.tools)
+        if self._names not in (STAGE1_TOOL_NAMES, PUBLIC_TOOL_NAMES):
+            raise ValidationError("Registry does not expose a reviewed tool inventory")
+        self._registry_sha256 = hashlib.sha256(
+            registry.source_path.read_bytes()
+        ).hexdigest()
+
 
     @property
     def registry(self) -> Registry:
@@ -88,6 +134,17 @@ class ToolDispatcher:
         version = target.get("api_version") if isinstance(target, Mapping) else None
         return version if isinstance(version, str) and version else "1.0"
 
+    def _milestone(self) -> dict[str, str]:
+        if self._names == STAGE1_TOOL_NAMES:
+            return {
+                "id": "stage1",
+                "status": self._registry.raw["compatibility_target"][
+                    "stage1_milestone_status"
+                ],
+            }
+        return {"id": "stage5", "status": "fixture_validated"}
+
+
     def manifest(self) -> dict[str, Any]:
         """Return only public, registry-owned discovery fields.
 
@@ -98,28 +155,48 @@ class ToolDispatcher:
 
         public_tools: list[dict[str, Any]] = []
         for declaration in self._registry.tools:
-            public_tools.append(
-                {
-                    "name": declaration["id"],
-                    "version": declaration["version"],
-                    "read_only": True,
-                    "datasets": list(declaration["datasets"]),
-                    "input_schema": copy.deepcopy(declaration["input_schema"]),
-                    "output_schema": copy.deepcopy(declaration["output_schema"]),
-                    "examples": copy.deepcopy(declaration["examples"]),
-                    "workload_bounds": copy.deepcopy(declaration["workload_bounds"]),
-                    "availability_policy": copy.deepcopy(declaration["availability_policy"]),
-                }
-            )
+            public = {
+                "name": declaration["id"],
+                "version": declaration["version"],
+                "read_only": True,
+                "datasets": list(declaration["datasets"]),
+                "input_schema": copy.deepcopy(declaration["input_schema"]),
+                "output_schema": copy.deepcopy(declaration["output_schema"]),
+                "examples": copy.deepcopy(declaration["examples"]),
+                "workload_bounds": copy.deepcopy(declaration["workload_bounds"]),
+                "availability_policy": copy.deepcopy(declaration["availability_policy"]),
+            }
+            for field_name in (
+                "family",
+                "api_version",
+                "operation_version",
+                "lifecycle",
+                "compatibility",
+                "description",
+                "assumptions",
+                "operation_graph_id",
+                "stores",
+                "input_type",
+                "input_schema_id",
+                "output_type",
+                "output_schema_id",
+                "cost_model",
+                "timeout_class",
+                "live_capability",
+                "contracts",
+                "composable",
+                "observability",
+                "owner",
+                "review_requirements",
+            ):
+                if field_name in declaration:
+                    public[field_name] = copy.deepcopy(declaration[field_name])
+            public_tools.append(public)
+
         result = {
             "api_version": self.api_version,
             "execution": "read_only",
-            "milestone": {
-                "id": "stage1",
-                "status": self._registry.raw["compatibility_target"][
-                    "stage1_milestone_status"
-                ],
-            },
+            "milestone": self._milestone(),
             "registry_revision": self._registry.revision,
             "tools": public_tools,
         }
@@ -128,15 +205,203 @@ class ToolDispatcher:
         dumps_strict(result)
         return result
 
-    def receipt_for(self, name: str) -> ToolReceipt:
-        declaration = self._tool_declaration(name)
+    def receipt_for(
+        self,
+        name: str,
+        arguments: Mapping[str, Any] | None = None,
+        result: Mapping[str, Any] | None = None,
+        *,
+        error_code: str | None = None,
+    ) -> ToolReceipt:
+        try:
+            declaration = self._tool_declaration(name)
+        except UnknownToolError:
+            if (
+                self._names != PUBLIC_TOOL_NAMES
+                or error_code is None
+                or not isinstance(name, str)
+                or not name
+            ):
+                raise
+            declaration = None
+        timing = getattr(self._receipt_state, "timing", None)
+        if timing is not None:
+            del self._receipt_state.timing
+        if not isinstance(timing, Mapping):
+            timing = {
+                "started_at": "1970-01-01T00:00:00Z", "finished_at": "1970-01-01T00:00:00Z", "elapsed_seconds": Decimal("0")
+            }
+        details: dict[str, Any] | None = None
+        if self._names == PUBLIC_TOOL_NAMES:
+            raw_arguments = dict(arguments or {})
+            if error_code is None:
+                public_arguments = self._public_arguments(raw_arguments)
+                request_material = {
+                    "api_version": self.api_version,
+                    "tool": name,
+                    "arguments": public_arguments,
+                }
+            else:
+                series_value = raw_arguments.get("series")
+                public_arguments = {
+                    "limit": raw_arguments.get("limit")
+                    if isinstance(raw_arguments.get("limit"), int)
+                    and not isinstance(raw_arguments.get("limit"), bool)
+                    else None,
+                    "series_count": len(series_value)
+                    if isinstance(series_value, (list, tuple))
+                    else int(series_value is not None),
+                    "argument_names": sorted(
+                        name for name in raw_arguments if isinstance(name, str)
+                    )[:100],
+                }
+                request_material = {
+                    "api_version": self.api_version,
+                    "tool": name,
+                    "error_code": error_code,
+                    "shape": public_arguments,
+                }
+            if declaration is None:
+                details = {
+                    "request_id": hashlib.sha256(
+                        dumps_strict(request_material).encode("utf-8")
+                    ).hexdigest(),
+                    "api_version": self.api_version,
+                    "registry_schema_sha256": self._registry_sha256,
+                    "input_schema_id": None,
+                    "output_schema_id": None,
+                    "input_schema_sha256": None,
+                    "output_schema_sha256": None,
+                    "operation_graph_id": None,
+                    "operation_version": None,
+                    "started_at": timing["started_at"],
+                    "finished_at": timing["finished_at"],
+                    "elapsed_seconds": timing["elapsed_seconds"],
+                    "outcome": error_code,
+                    "logical_stores": [],
+                    "logical_store_aliases": [],
+                    "workload_dimensions": public_arguments,
+                    "applied_limits": {},
+                    "returned_shape": {
+                        "record_count": 0,
+                        "series_count": 0,
+                    },
+                    "truncation": None,
+                    "warning_codes": [],
+                    "error_codes": [error_code],
+                    "analysis_id": None,
+                    "lineage_count": 0,
+                }
+                return ToolReceipt(
+                    registry_revision=self._registry.revision,
+                    tool_name=name,
+                    tool_version="unknown",
+                    details=details,
+                )
+            public_result = dict(result or {})
+            warnings = public_result.get("warnings", [])
+            warning_codes = sorted(
+                {
+                    item.get("code")
+                    for item in warnings
+                    if isinstance(item, Mapping) and isinstance(item.get("code"), str)
+                }
+            )
+            records = public_result.get("records", [])
+            series = public_result.get("series", [])
+            research_contract = public_result.get("research_contract", {})
+            contract = (
+                research_contract.get("contract", {})
+                if isinstance(research_contract, Mapping)
+                else {}
+            )
+            analysis_id = (
+                contract.get("analysis_id")
+                if isinstance(contract, Mapping)
+                and isinstance(contract.get("analysis_id"), str)
+                else None
+            )
+            details = {
+                "request_id": hashlib.sha256(
+                    dumps_strict(request_material).encode("utf-8")
+                ).hexdigest(),
+                "api_version": self.api_version,
+                "registry_schema_sha256": self._registry_sha256,
+                "input_schema_id": declaration["input_schema_id"],
+                "output_schema_id": declaration["output_schema_id"],
+                "input_schema_sha256": hashlib.sha256(
+                    dumps_strict(declaration["input_schema"]).encode("utf-8")
+                ).hexdigest(),
+                "output_schema_sha256": hashlib.sha256(
+                    dumps_strict(declaration["output_schema"]).encode("utf-8")
+                ).hexdigest(),
+                "operation_graph_id": declaration["operation_graph_id"],
+                "operation_version": declaration["operation_version"],
+                "started_at": timing["started_at"],
+                "finished_at": timing["finished_at"],
+                "elapsed_seconds": timing["elapsed_seconds"],
+                "outcome": error_code or "succeeded",
+                "logical_stores": list(declaration["stores"]),
+                "logical_store_aliases": [
+                    f"{role}:host_selected" for role in declaration["stores"]
+                ],
+                "workload_dimensions": {
+                    "requested_limit": public_arguments.get("limit"),
+                    "series_count": public_arguments.get("series_count", len(public_arguments.get("series", [])) if isinstance(public_arguments.get("series"), list) else int("series" in public_arguments)),
+                },
+                "applied_limits": copy.deepcopy(declaration["workload_bounds"]),
+                "returned_shape": {
+                    "record_count": len(records) if isinstance(records, list) else 0,
+                    "series_count": len(series) if isinstance(series, list) else 0,
+                },
+                "truncation": copy.deepcopy(public_result.get("truncation")),
+                "warning_codes": warning_codes,
+                "error_codes": [error_code] if error_code is not None else [],
+                "analysis_id": analysis_id,
+                "lineage_count": len(public_result.get("lineage", []))
+                if isinstance(public_result.get("lineage"), list)
+                else 0,
+            }
         return ToolReceipt(
             registry_revision=self._registry.revision,
             tool_name=name,
             tool_version=str(declaration["version"]),
+            details=details,
         )
 
+
     def call(self, name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
+        """Execute within the process-wide bounded read-only request pool."""
+
+        started_ns = perf_counter_ns()
+        started_at = (
+            datetime.now(timezone.utc)
+            .isoformat(timespec="milliseconds")
+            .replace("+00:00", "Z")
+        )
+        acquired = self._execution_slots.acquire(blocking=False)
+        try:
+            if not acquired:
+                raise ConcurrencyLimitError(
+                    "The host read-only execution pool is at capacity"
+                )
+            return self._call_one(name, arguments)
+        finally:
+            if acquired:
+                self._execution_slots.release()
+            finished_ns = perf_counter_ns()
+            self._receipt_state.timing = {
+                "started_at": started_at,
+                "finished_at": (
+                    datetime.now(timezone.utc)
+                    .isoformat(timespec="milliseconds")
+                    .replace("+00:00", "Z")
+                ),
+                "elapsed_seconds": Decimal(finished_ns - started_ns)
+                / Decimal(1_000_000_000),
+            }
+
+    def _call_one(self, name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
         """Validate and execute exactly one registered read-only operation."""
 
         declaration = self._tool_declaration(name)
@@ -146,27 +411,60 @@ class ToolDispatcher:
                 issues=(Issue("/arguments", "type", "Expected an object"),),
             )
 
-        if name == "timeseries.describe" and isinstance(arguments.get("series"), TimeSeries):
+        if name == "timeseries.describe" and isinstance(
+            arguments.get("series"), TimeSeries
+        ):
             if set(arguments) != {"series"}:
                 raise ValidationError(
                     "Tool arguments contain an unknown field",
-                    issues=(Issue("/arguments", "additional_properties", "Only series is allowed"),),
+                    issues=(
+                        Issue(
+                            "/arguments",
+                            "additional_properties",
+                            "Only series is allowed",
+                        ),
+                    ),
                 )
             arguments["series"].validate_lineage()
             result = self._describe(arguments["series"])
+            self._validate_output(result, declaration)
+            return result
+
+
+        public_material = public_arguments(dict(arguments))
+        validate_schema(public_material, declaration["input_schema"])
+        if name in STAGE1_TOOL_NAMES:
+            typed_material = self._typed_arguments(dict(arguments))
         else:
-            material = dict(arguments)
-            validate_schema(material, declaration["input_schema"])
-            if name == "macro.get_series":
-                result = self._macro_get_series(material)
-            elif name == "timeseries.describe":
-                series = self._timeseries_from_public(material["series"])
-                result = self._describe(series)
-            else:  # Defensive: registry validation is expected to make this unreachable.
-                raise UnknownToolError("Unknown tool")
+            dimensions = preflight_dimensions(public_material)
+            bounds = declaration["workload_bounds"]
+            if (
+                dimensions["rows"] > bounds["max_rows"]
+                or dimensions["series"] > bounds["max_series"]
+                or dimensions["operations"] > bounds["max_operations"]
+            ):
+                raise ResourceLimitError(
+                    "Tool workload exceeds its registered preflight limits"
+                )
+            typed_material = parse_arguments(
+                _STAGE5_INPUT_KINDS[name], public_material, self._timeseries_from_public
+            )
+        if name == "macro.get_series":
+            result = self._macro_get_series(public_material)
+        elif name == "timeseries.describe":
+            result = self._describe(typed_material["series"])
+        else:
+            context = self._stage5_context(name, declaration)
+            result = invoke_operation(
+                name,
+                typed_material,
+                context,
+                self._registry,
+            ).to_primitive()
 
         self._validate_output(result, declaration)
         return result
+
 
     def describe(self, series: TimeSeries) -> dict[str, Any]:
         """Typed convenience entry point for direct in-process composition."""
@@ -177,9 +475,62 @@ class ToolDispatcher:
         return self.call("timeseries.describe", {"series": series})
 
     def _tool_declaration(self, name: str) -> Mapping[str, Any]:
-        if not isinstance(name, str) or name not in STAGE1_TOOL_NAMES:
+        if not isinstance(name, str) or name not in self._names:
             raise UnknownToolError("Unknown tool")
         return self._registry.tool(name)
+
+    def _stage5_context(
+        self,
+        name: str,
+        declaration: Mapping[str, Any],
+    ) -> ToolExecutionContext:
+        bounds = declaration["workload_bounds"]
+        clock = HostClock()
+        deadline = Deadline(clock.monotonic() + Decimal("5"))
+        return ToolExecutionContext(
+            store_map=self._store_map,
+            registry_revision=self._registry.revision,
+            registry_sha256=self._registry_sha256,
+            request_id="in_process",
+            api_version=self.api_version,
+            tool_name=name,
+            tool_version=str(declaration["version"]),
+            operation_graph_id=str(declaration["operation_graph_id"]),
+            operation_version=str(declaration["operation_version"]),
+            budget=ExecutionBudget(
+                max_rows=int(bounds["max_rows"]),
+                max_series=int(bounds["max_series"]),
+                max_operations=int(bounds["max_operations"]),
+                max_output_bytes=int(bounds["max_response_bytes"]),
+            ),
+            capabilities=CapabilitySet(),
+            deadline=deadline,
+            cancellation=self._cancellation,
+            clock=clock,
+        )
+
+    def _typed_arguments(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        if "series" not in arguments:
+            return arguments
+        value = arguments["series"]
+        if isinstance(value, (list, tuple)):
+            arguments["series"] = tuple(
+                item if isinstance(item, TimeSeries) else self._timeseries_from_public(item)
+                for item in value
+            )
+            for item in arguments["series"]:
+                item.validate_lineage()
+        else:
+            arguments["series"] = (
+                value if isinstance(value, TimeSeries) else self._timeseries_from_public(value)
+            )
+            arguments["series"].validate_lineage()
+        return arguments
+
+    @staticmethod
+    def _public_arguments(arguments: Mapping[str, Any]) -> dict[str, Any]:
+        return public_arguments(arguments)
+
 
     def _macro_get_series(self, arguments: Mapping[str, Any]) -> dict[str, Any]:
         self._validate_macro_arguments(arguments)

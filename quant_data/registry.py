@@ -13,6 +13,17 @@ from .errors import Issue, RegistryError, ValidationError
 from .json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
 from .schema import validate_schema
 from .stores import STORE_ROLES
+from .tool_platform.catalog import (
+    CATALOG_ID,
+    CATALOG_VERSION,
+    FAMILY_COUNTS,
+    LEGACY_TOOL_NAMES,
+    OPERATION_GRAPH_IDS,
+    PUBLIC_TOOL_NAMES,
+    SCHEMA_DIALECT,
+    legacy_tool_entry,
+    tool_profiles,
+)
 
 
 CANONICAL_REGISTRY_PATH = Path("config/system_registry.json")
@@ -43,67 +54,7 @@ _MUTABLE_IDENTITY_FIELDS = {
 }
 
 
-PUBLIC_TOOL_NAMES = (
-    "macro.search_series",
-    "macro.describe_series",
-    "macro.get_series",
-    "macro.get_intraday_releases",
-    "macro.release_surprises",
-    "macro.revision_analysis",
-    "macro.align_us_recessions",
-    "macro.standardize_surprises",
-    "macro.get_liquidity_snapshot",
-    "macro.get_liquidity_impulse",
-    "macro.get_credit_conditions",
-    "macro.regime_snapshot",
-    "timeseries.transform",
-    "timeseries.describe",
-    "timeseries.align",
-    "timeseries.correlation",
-    "econometrics.regression",
-    "econometrics.stationarity",
-    "econometrics.rolling_regression",
-    "econometrics.structural_breaks",
-    "econometrics.local_projection",
-    "company.search_issuers",
-    "company.search_filings",
-    "company.get_fundamentals",
-    "company.get_corporate_actions",
-    "company.get_share_count_history",
-    "company.get_earnings_calendar",
-    "company.get_consensus_history",
-    "company.get_guidance_history",
-    "company.get_estimate_revisions",
-    "company.get_earnings_setup",
-    "energy.get_electricity_retail_sales",
-    "energy.get_weekly_fundamentals",
-    "market.search_instruments",
-    "market.get_returns",
-    "market.get_forward_returns",
-    "market.technical_indicators",
-    "market.cross_sectional_performance",
-    "rates.get_funding_conditions",
-    "rates.get_repo_facility_usage",
-    "rates.curve_analytics",
-    "options.search_captures",
-    "options.search_contracts",
-    "options.get_surface_snapshot",
-    "options.surface_diagnostics",
-    "options.screen_contracts",
-    "options.strategy_scenario",
-    "research.point_in_time_panel",
-    "data.quality_audit",
-    "research.event_study",
-    "alpha.signal_diagnostics",
-    "research.walk_forward_backtest",
-    "research.robustness_suite",
-    "stats.multiple_testing",
-    "forecast.evaluate",
-    "news.search",
-    "research.liquidity_credit_state",
-)
-
-STAGE1_TOOL_NAMES = ("macro.get_series", "timeseries.describe")
+STAGE1_TOOL_NAMES = LEGACY_TOOL_NAMES
 _STAGE1_HANDLERS = {name: name for name in STAGE1_TOOL_NAMES}
 
 _STAGE2_MIGRATION_IDS = frozenset(
@@ -507,13 +458,14 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         "tools",
         "dashboard",
         "exports",
+        "tool_schema_catalog",
         "presentation_order",
     }
     _require_keys(raw, required, "/")
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.0.0"
+        or raw["schema_version"] != "1.1.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
         or raw["status"] != "validated"
@@ -523,6 +475,86 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         if not isinstance(raw[collection], list):
             raise _error(f"/{collection}", "type", "Expected an array")
     return raw
+
+
+
+def _load_tool_schema_catalog(
+    raw: Mapping[str, Any],
+    root: Path,
+) -> dict[str, Mapping[str, Any]]:
+    declaration = raw["tool_schema_catalog"]
+    pointer = "/tool_schema_catalog"
+    if not isinstance(declaration, dict):
+        raise _error(pointer, "type", "Tool schema catalog declaration must be an object")
+    _require_keys(
+        declaration,
+        {"schema_id", "schema_version", "resource", "sha256"},
+        pointer,
+    )
+    if (
+        declaration["schema_id"] != CATALOG_ID
+        or declaration["schema_version"] != CATALOG_VERSION
+        or not isinstance(declaration["sha256"], str)
+        or not _SHA256.fullmatch(declaration["sha256"])
+    ):
+        raise _error(pointer, "catalog", "Tool schema catalog metadata is invalid")
+    resource = _safe_relative_path(declaration["resource"], f"{pointer}/resource")
+    resource_path = (root / resource).resolve(strict=True)
+    try:
+        resource_path.relative_to(root)
+    except ValueError as exc:
+        raise _error(
+            f"{pointer}/resource",
+            "containment",
+            "Tool schema catalog must remain inside the project",
+        ) from exc
+    payload = resource_path.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != declaration["sha256"]:
+        raise _error(
+            f"{pointer}/sha256",
+            "checksum",
+            "Tool schema catalog checksum mismatch",
+        )
+    catalog = loads_strict(payload, max_bytes=4 * 1024 * 1024)
+    if not isinstance(catalog, dict):
+        raise _error(pointer, "catalog", "Tool schema catalog must be an object")
+    _require_keys(
+        catalog,
+        {"schema_id", "schema_version", "dialect", "contracts"},
+        pointer,
+    )
+    if (
+        catalog["schema_id"] != CATALOG_ID
+        or catalog["schema_version"] != CATALOG_VERSION
+        or catalog["dialect"] != SCHEMA_DIALECT
+        or not isinstance(catalog["contracts"], list)
+        or len(catalog["contracts"]) != 114
+    ):
+        raise _error(pointer, "catalog", "Tool schema catalog identity or size drifted")
+    contracts: dict[str, Mapping[str, Any]] = {}
+    for index, contract in enumerate(catalog["contracts"]):
+        contract_pointer = f"{pointer}/contracts/{index}"
+        if not isinstance(contract, dict):
+            raise _error(contract_pointer, "type", "Schema contract must be an object")
+        _require_keys(contract, {"id", "tool", "direction", "schema"}, contract_pointer)
+        if (
+            not isinstance(contract["id"], str)
+            or contract["id"] in contracts
+            or contract["tool"] not in PUBLIC_TOOL_NAMES
+            or contract["direction"] not in {"input", "output"}
+            or not isinstance(contract["schema"], dict)
+        ):
+            raise _error(contract_pointer, "catalog", "Schema contract metadata is invalid")
+        schema = copy.deepcopy(contract["schema"])
+        if (
+            schema.pop("$schema", None) != SCHEMA_DIALECT
+            or schema.pop("$id", None) != contract["id"]
+        ):
+            raise _error(contract_pointer, "catalog", "Generated schema identity drifted")
+        _validate_strict_schema(schema, f"{contract_pointer}/schema")
+        contracts[contract["id"]] = schema
+    return contracts
+
 
 
 def load_registry(
@@ -552,7 +584,8 @@ def load_registry(
         payload = source.read_bytes()
     except OSError as exc:
         raise RegistryError("Registry file is unavailable") from exc
-    raw = _validate_top_level(loads_strict(payload, max_bytes=2 * 1024 * 1024))
+    raw = _validate_top_level(loads_strict(payload, max_bytes=MAX_JSON_BYTES))
+    schema_contracts = _load_tool_schema_catalog(raw, root)
 
     stores: list[StoreDeclaration] = []
     expected_roles = {role.value for role in STORE_ROLES}
@@ -1026,35 +1059,131 @@ def load_registry(
     if stage1_tool_names != STAGE1_TOOL_NAMES:
         raise RegistryError("Stage 1 compatibility subset must contain exactly two tools")
 
+    profiles = {profile.name: profile for profile in tool_profiles()}
     tools: list[Mapping[str, Any]] = []
     tool_names: list[str] = []
+    family_counts = {family: 0 for family in FAMILY_COUNTS}
+    dataset_store_by_id = {item.id: item.store for item in datasets}
+    required_tool_keys = {
+        "id",
+        "family",
+        "api_version",
+        "version",
+        "operation_version",
+        "lifecycle",
+        "compatibility",
+        "description",
+        "assumptions",
+        "handler",
+        "operation_graph_id",
+        "read_only",
+        "stores",
+        "datasets",
+        "input_type",
+        "input_schema_id",
+        "input_schema",
+        "output_type",
+        "output_schema_id",
+        "output_schema",
+        "examples",
+        "workload_bounds",
+        "cost_model",
+        "timeout_class",
+        "availability_policy",
+        "live_capability",
+        "contracts",
+        "composable",
+        "observability",
+        "owner",
+        "review_requirements",
+    }
     for index, value in enumerate(raw["tools"]):
         pointer = f"/tools/{index}"
         if not isinstance(value, dict):
             raise _error(pointer, "type", "Tool declaration must be an object")
-        _require_keys(value, {"id", "version", "handler", "read_only", "datasets", "input_schema", "output_schema", "examples", "workload_bounds", "availability_policy"}, pointer)
+        _require_keys(value, required_tool_keys, pointer)
         tool_id = _stable_identifier(value["id"], f"{pointer}/id")
+        profile = profiles.get(tool_id)
+        if profile is None or tool_id in tool_names:
+            raise _error(f"{pointer}/id", "inventory", "Tool is not in the reviewed Stage 5 inventory")
         if (
-            tool_id not in STAGE1_TOOL_NAMES
-            or value["handler"] != _STAGE1_HANDLERS.get(tool_id)
+            value["handler"] != profile.operation_graph_id
+            or value["operation_graph_id"] != profile.operation_graph_id
+            or value["operation_graph_id"] not in OPERATION_GRAPH_IDS
+            or not isinstance(value["handler"], str)
+            or not _HANDLER.fullmatch(value["handler"])
         ):
-            raise _error(f"{pointer}/handler", "handler", "Tool handler is not the reviewed Stage 1 operation")
-        if not isinstance(value["handler"], str) or not _HANDLER.fullmatch(value["handler"]):
-            raise _error(f"{pointer}/handler", "format", "Tool handler has an unsafe identifier")
-        if not isinstance(value["version"], str) or not _SEMVER.fullmatch(value["version"]):
-            raise _error(f"{pointer}/version", "format", "Tool version must be semantic")
-        if value["read_only"] is not True:
-            raise _error(f"{pointer}/read_only", "const", "Public tools must be read-only")
-        tool_datasets = _stable_identifier_array(
-            value["datasets"], f"{pointer}/datasets"
+            raise _error(f"{pointer}/operation_graph_id", "handler", "Tool operation graph is not registered")
+        if (
+            value["family"] != profile.family
+            or value["api_version"] != "1.0"
+            or not isinstance(value["version"], str)
+            or not _SEMVER.fullmatch(value["version"])
+            or not isinstance(value["operation_version"], str)
+            or not _SEMVER.fullmatch(value["operation_version"])
+            or value["lifecycle"] not in {
+                "proposed",
+                "experimental",
+                "stable",
+                "deprecated",
+                "retired",
+            }
+            or value["read_only"] is not True
+        ):
+            raise _error(pointer, "metadata", "Tool version, family, lifecycle, or access drifted")
+        compatibility_value = value["compatibility"]
+        if not isinstance(compatibility_value, dict):
+            raise _error(f"{pointer}/compatibility", "type", "Compatibility must be an object")
+        _require_keys(
+            compatibility_value,
+            {"status", "predecessor"},
+            f"{pointer}/compatibility",
         )
-        if not set(tool_datasets).issubset(dataset_ids):
-            raise _error(f"{pointer}/datasets", "reference", "Tool references an unknown dataset")
+        expected_compatibility = (
+            "recovered_fixture_validated"
+            if tool_id in STAGE1_TOOL_NAMES
+            else "forward_reconstructed_v1"
+        )
+        if (
+            compatibility_value["status"] != expected_compatibility
+            or compatibility_value["predecessor"] is not None
+        ):
+            raise _error(f"{pointer}/compatibility", "compatibility", "Tool compatibility status drifted")
+        if not isinstance(value["description"], str) or not value["description"]:
+            raise _error(f"{pointer}/description", "type", "Tool description is required")
+        _string_array(value["assumptions"], f"{pointer}/assumptions", allow_empty=False)
+        _string_array(
+            value["review_requirements"],
+            f"{pointer}/review_requirements",
+            allow_empty=False,
+        )
+        tool_stores = _stable_identifier_array(value["stores"], f"{pointer}/stores")
+        tool_datasets = _stable_identifier_array(value["datasets"], f"{pointer}/datasets")
+        if (
+            tool_stores != profile.stores
+            or tool_datasets != profile.datasets
+            or not set(tool_stores).issubset(expected_roles)
+            or not set(tool_datasets).issubset(dataset_ids)
+            or any(dataset_store_by_id[item] not in tool_stores for item in tool_datasets)
+        ):
+            raise _error(f"{pointer}/datasets", "routing", "Tool store or dataset routing drifted")
+        for name in ("input_type", "output_type"):
+            if not isinstance(value[name], str) or not value[name]:
+                raise _error(f"{pointer}/{name}", "type", "Tool contract type is required")
+        expected_input_id = f"urn:quant-data:tool:{tool_id}:input:1.0.0"
+        expected_output_id = f"urn:quant-data:tool:{tool_id}:output:1.0.0"
+        if (
+            value["input_schema_id"] != expected_input_id
+            or value["output_schema_id"] != expected_output_id
+            or schema_contracts.get(expected_input_id) != value["input_schema"]
+            or schema_contracts.get(expected_output_id) != value["output_schema"]
+        ):
+            raise _error(f"{pointer}/input_schema_id", "schema_reference", "Tool schema reference or bytes drifted")
         _validate_strict_schema(value["input_schema"], f"{pointer}/input_schema")
         _validate_strict_schema(value["output_schema"], f"{pointer}/output_schema")
         examples = value["examples"]
         if not isinstance(examples, list) or not examples:
-            raise _error(f"{pointer}/examples", "examples", "Every Stage 1 tool needs an example")
+            raise _error(f"{pointer}/examples", "examples", "Every public tool needs an example")
         for example_index, example in enumerate(examples):
             try:
                 validate_schema(example, value["input_schema"])
@@ -1062,53 +1191,107 @@ def load_registry(
                 raise _error(
                     f"{pointer}/examples/{example_index}",
                     "example",
-                    "Tool example does not satisfy its input schema",
+                    "Tool example does not satisfy its generated input schema",
                 ) from exc
         bounds = value["workload_bounds"]
         if not isinstance(bounds, dict):
             raise _error(f"{pointer}/workload_bounds", "type", "Workload bounds must be an object")
         _require_keys(
             bounds,
-            {"max_rows", "max_request_bytes", "max_response_bytes"},
+            {
+                "max_rows",
+                "max_series",
+                "max_operations",
+                "max_request_bytes",
+                "max_response_bytes",
+            },
             f"{pointer}/workload_bounds",
         )
+        bound_caps = {
+            "max_rows": 10000,
+            "max_series": 20,
+            "max_operations": 5000000,
+            "max_request_bytes": MAX_JSON_BYTES,
+            "max_response_bytes": MAX_JSON_BYTES,
+        }
         if any(
-            not isinstance(bounds[name], int)
-            or isinstance(bounds[name], bool)
-            or bounds[name] < 1
-            or bounds[name] > MAX_JSON_BYTES
-            for name in bounds
-        ) or bounds["max_rows"] > 10_000:
+            isinstance(bounds[name], bool)
+            or not isinstance(bounds[name], int)
+            or not 1 <= bounds[name] <= bound_caps[name]
+            for name in bound_caps
+        ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Tool workload bounds are invalid")
+        cost = value["cost_model"]
+        if not isinstance(cost, dict):
+            raise _error(f"{pointer}/cost_model", "type", "Cost model must be an object")
+        _require_keys(cost, {"expression", "deterministic"}, f"{pointer}/cost_model")
+        if cost != {
+            "expression": "rows + series + operations",
+            "deterministic": True,
+        }:
+            raise _error(f"{pointer}/cost_model", "cost_model", "Tool cost model drifted")
+        if value["timeout_class"] != "interactive_5s":
+            raise _error(f"{pointer}/timeout_class", "timeout", "Tool timeout class drifted")
         availability = value["availability_policy"]
-        if not isinstance(availability, dict):
+        if not isinstance(availability, dict) or not availability:
             raise _error(f"{pointer}/availability_policy", "type", "Availability policy must be an object")
-        if value["id"] == "macro.get_series":
-            _require_keys(
-                availability,
-                {"modes", "default_date_only_policy", "period_range_rule"},
-                f"{pointer}/availability_policy",
-            )
-            if (
-                availability["modes"] != ["latest", "as_of", "first_release"]
-                or availability["default_date_only_policy"] != "completed_date"
-                or availability["period_range_rule"] != "period_start"
-            ):
-                raise _error(f"{pointer}/availability_policy", "const", "Macro availability policy drifted")
-        else:
-            _require_keys(availability, {"inherits_input"}, f"{pointer}/availability_policy")
-            if availability["inherits_input"] is not True:
-                raise _error(f"{pointer}/availability_policy", "const", "Describe must inherit input availability")
+        live = value["live_capability"]
+        if not isinstance(live, dict):
+            raise _error(f"{pointer}/live_capability", "type", "Live capability must be an object")
+        _require_keys(
+            live,
+            {"possible", "capability_id", "offline_status"},
+            f"{pointer}/live_capability",
+        )
+        expected_capability = profile.live_capability
+        if live != {
+            "possible": expected_capability is not None,
+            "capability_id": expected_capability,
+            "offline_status": "disabled" if expected_capability else "not_applicable",
+        }:
+            raise _error(f"{pointer}/live_capability", "capability", "Live capability drifted")
+        contracts = value["contracts"]
+        if not isinstance(contracts, dict):
+            raise _error(f"{pointer}/contracts", "type", "Semantic contracts must be an object")
+        _require_keys(
+            contracts,
+            {"availability", "point_in_time", "returns"},
+            f"{pointer}/contracts",
+        )
+        composable = value["composable"]
+        if not isinstance(composable, dict):
+            raise _error(f"{pointer}/composable", "type", "Composable metadata must be an object")
+        _require_keys(
+            composable,
+            {"input_types", "output_types"},
+            f"{pointer}/composable",
+        )
+        _string_array(composable["input_types"], f"{pointer}/composable/input_types")
+        _string_array(
+            composable["output_types"],
+            f"{pointer}/composable/output_types",
+            allow_empty=False,
+        )
+        if (
+            value["observability"] != "metadata_only"
+            or not isinstance(value["owner"], str)
+            or not value["owner"]
+        ):
+            raise _error(pointer, "ownership", "Tool observability or owner is invalid")
+        family_counts[profile.family] += 1
         tool_names.append(tool_id)
         tools.append(value)
-    if tuple(tool_names) != STAGE1_TOOL_NAMES or len(set(tool_names)) != 2:
-        raise RegistryError("Stage 1 registry must expose exactly the two milestone tools")
-    macro_output = tools[0]["output_schema"]
-    describe_series = tools[1]["input_schema"]["properties"]["series"]
+    if tuple(tool_names) != PUBLIC_TOOL_NAMES or len(set(tool_names)) != 57:
+        raise RegistryError("Canonical Stage 5 registry must expose exactly 57 ordered tools")
+    if family_counts != FAMILY_COUNTS:
+        raise RegistryError("Canonical Stage 5 tool family counts drifted")
+    macro_output = tools[PUBLIC_TOOL_NAMES.index("macro.get_series")]["output_schema"]
+    describe_series = tools[PUBLIC_TOOL_NAMES.index("timeseries.describe")]["input_schema"]["properties"]["series"]
     if describe_series != macro_output:
         raise RegistryError("Composable describe input must exactly match macro TimeSeries output")
 
     collectors = tuple(raw["collectors"])
+
     collector_ids: set[str] = set()
     for index, collector in enumerate(collectors):
         if not isinstance(collector, dict):
@@ -1322,8 +1505,8 @@ def load_registry(
     )
     if presentation["stores"] != [role.value for role in STORE_ROLES] or tuple(
         presentation_tools
-    ) != STAGE1_TOOL_NAMES:
-        raise RegistryError("Presentation order must match the reviewed Stage 1 inventory")
+    ) != PUBLIC_TOOL_NAMES:
+        raise RegistryError("Presentation order must match the reviewed Stage 5 inventory")
 
     return Registry(
         schema_id=raw["schema_id"],
@@ -1340,6 +1523,54 @@ def load_registry(
         dashboard=dashboard,
         raw=raw,
     )
+
+
+
+def _legacy_tool_projection(
+    registry: Registry,
+    datasets: tuple[DatasetDeclaration, ...],
+    raw: dict[str, Any],
+) -> tuple[
+    tuple[DatasetDeclaration, ...],
+    tuple[Mapping[str, Any], ...],
+    tuple[Mapping[str, Any], ...],
+    dict[str, Any],
+]:
+    """Restore the exact two-tool Stage 1 surface inside historical profiles."""
+
+    allowed = set(STAGE1_TOOL_NAMES)
+    projected_datasets = tuple(
+        replace(
+            item,
+            tool_ids=tuple(tool_id for tool_id in item.tool_ids if tool_id in allowed),
+        )
+        for item in datasets
+    )
+    tools = tuple(
+        legacy_tool_entry(registry.tool(name)) for name in STAGE1_TOOL_NAMES
+    )
+    raw["schema_version"] = "1.0.0"
+    raw.pop("tool_schema_catalog", None)
+    raw["tools"] = [copy.deepcopy(dict(item)) for item in tools]
+    raw["datasets"] = [
+        {
+            **item,
+            "tool_ids": [
+                tool_id for tool_id in item["tool_ids"] if tool_id in allowed
+            ],
+        }
+        for item in raw["datasets"]
+    ]
+    raw["dashboard"] = [
+        {
+            **item,
+            "tools": [tool_id for tool_id in item["tools"] if tool_id in allowed],
+        }
+        for item in raw["dashboard"]
+    ]
+    raw["presentation_order"]["tools"] = list(STAGE1_TOOL_NAMES)
+    return projected_datasets, tools, tuple(raw["dashboard"]), raw
+
 
 
 def stage2_registry_profile(registry: Registry) -> Registry:
@@ -1426,13 +1657,19 @@ def stage2_registry_profile(registry: Registry) -> Registry:
             if migration_id in _STAGE2_MIGRATION_IDS
         ]
 
+    datasets, tools, dashboard, raw = _legacy_tool_projection(
+        registry, datasets, raw
+    )
     return replace(
         registry,
+        schema_version="1.0.0",
         registry_version="2.0.0",
         stores=stores,
         migrations=migrations,
         datasets=datasets,
         collectors=collectors,
+        tools=tools,
+        dashboard=dashboard,
         raw=raw,
     )
 
@@ -1510,13 +1747,19 @@ def stage3_registry_profile(registry: Registry) -> Registry:
             if migration_id in _STAGE3_MIGRATION_IDS
         ]
 
+    datasets, tools, dashboard, raw = _legacy_tool_projection(
+        registry, datasets, raw
+    )
     return replace(
         registry,
+        schema_version="1.0.0",
         registry_version="2.1.0",
         stores=stores,
         migrations=migrations,
         datasets=datasets,
         collectors=collectors,
+        tools=tools,
+        dashboard=dashboard,
         raw=raw,
     )
 
@@ -1594,12 +1837,18 @@ def stage4_registry_profile(registry: Registry) -> Registry:
             if migration_id in _STAGE4_MIGRATION_IDS
         ]
 
+    datasets, tools, dashboard, raw = _legacy_tool_projection(
+        registry, datasets, raw
+    )
     return replace(
         registry,
+        schema_version="1.0.0",
         registry_version="2.2.0",
         stores=stores,
         migrations=migrations,
         datasets=datasets,
         collectors=collectors,
+        tools=tools,
+        dashboard=dashboard,
         raw=raw,
     )

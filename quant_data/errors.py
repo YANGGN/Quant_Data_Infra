@@ -78,3 +78,58 @@ class ConflictError(QuantDataError):
 class ResourceLimitError(QuantDataError):
     code = "resource_limit"
     http_status = 413
+
+
+class CapabilityUnavailableError(QuantDataError):
+    """A registered capability is intentionally disabled by the host."""
+
+    code = "capability_unavailable"
+    http_status = 503
+
+    def __init__(self, message: str, *, capability_id: str) -> None:
+        if not isinstance(capability_id, str) or not capability_id:
+            raise ValueError("capability_id must be a nonempty string")
+        super().__init__(message)
+        self.capability_id = capability_id[:200]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            **super().to_dict(),
+            "capability_id": self.capability_id,
+            "retryable": False,
+        }
+
+
+class UnsupportedMethodError(QuantDataError):
+    """The named tool exists but the requested method is not implemented."""
+
+    code = "unsupported_method"
+    http_status = 422
+
+
+class ConcurrencyLimitError(QuantDataError):
+    """The host has no bounded execution slot available for this request."""
+
+    code = "concurrency_limit"
+    http_status = 429
+
+
+class DeadlineExceededError(QuantDataError):
+    """The host-owned execution deadline elapsed."""
+
+    code = "deadline_exceeded"
+    http_status = 504
+
+
+class CancellationError(QuantDataError):
+    """The host cancelled an in-flight read-only operation."""
+
+    code = "cancelled"
+    http_status = 499
+
+
+class InternalOutputError(QuantDataError):
+    """A trusted operation violated its generated public output contract."""
+
+    code = "internal_output_validation"
+    http_status = 500

@@ -25,9 +25,10 @@ verification. The bounded offline Stage 3 market/macro scope is implemented
 and fixture-validated and has passed independent SolUltra verification. The
 bounded offline Stage 4 company, news, and options scope is fixture-validated
 and has passed independent SolUltra verification. Stages 4 through 6 are
-authorized only sequentially and only with offline synthetic fixtures. Stage 5
-is the next authorized executable stage after the separate Stage 4 commit;
-Stage 6 remains closed until Stage 5 verification and its separate commit.
+authorized only sequentially and only with offline synthetic fixtures. The
+bounded offline Stage 5 composable tool platform is fixture-validated and has
+passed independent SolUltra verification. Stage 6 is the next authorized
+executable stage after the verified Stage 5 snapshot is committed separately.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit

@@ -4,7 +4,8 @@ Status: Accepted
 Planning baseline: 2026-08-09
 Scope: accepted implementation sequencing; Stages 1 through 3 implemented on
 2026-08-09, with Stages 2 and 3 independently verified; Stage 4 primary
-fixture gate and independent verification passed on 2026-08-10
+fixture gate and independent verification passed on 2026-08-10; Stage 5
+primary fixture gate and independent verification passed on 2026-08-10
 
 ## 1. Purpose
 
@@ -30,8 +31,9 @@ The following decisions apply to every stage:
   macro scope is fixture-validated and independently verified. Stages 4
   through 6 are authorized only sequentially with offline synthetic fixtures.
   Stage 4 has passed its primary fixture gate and independent SolUltra
-  verification. Stage 5 is the next authorized executable stage; Stage 6
-  remains closed until Stage 5 is independently verified and committed.
+  verification. Stage 5 has passed its primary offline fixture gate and
+  independent SolUltra verification. Stage 6 is the next authorized executable
+  stage after the verified Stage 5 snapshot is committed separately.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -56,7 +58,7 @@ The following decisions apply to every stage:
 | 2 | Four-store persistence foundation | No | Independently verified offline evidence |
 | 3 | Bounded market and macro restoration | No; reviewed fixtures only | Independently verified offline evidence; Stage 4 requires separate authorization |
 | 4 | Company, news, and options restoration | No; synthetic fixtures only | Independently verified offline evidence; Stage 5 is next |
-| 5 | Composable 57-tool platform | No live access except separately approved intraday tool | Schemas, routing, limits, and strict JSON pass |
+| 5 | Composable 57-tool platform | No live access; intraday remains disabled | Independently verified offline evidence; Stage 6 is next |
 | 6 | Local portal and research surfaces | No mutation through UI | Read-only APIs and browser contracts pass |
 | 7 | Scheduling and operational readiness | Dry-run first | Locking, retries, receipts, backups, and failure handling pass |
 | 8 | Derived analytical exports and Atlas | Snapshot reads only | Atomic, reproducible publication passes |
@@ -248,7 +250,7 @@ Status: **Implemented, fixture-validated, and independently verified.** The
 user authorized this bounded synthetic fixture scope after `G3`. Its
 deterministic receipts and verifier result are recorded in the
 [Stage 4 acceptance evidence](docs/rebuild/STAGE4_EVIDENCE.md). `G4` is
-complete and Stage 5 is the next authorized executable stage.
+complete. Stage 5 subsequently passed its primary offline fixture gate.
 
 ### Company
 
@@ -297,10 +299,12 @@ these checks. `G4` is complete.
 
 ## 9. Stage 5 — Restore the composable tool platform
 
-Status: **Authorized as the next sequential offline stage; not yet implemented.**
+Status: **Implemented, fixture-validated, and independently verified.**
 
 The contract is defined in
-[TOOL_PLATFORM_SPEC.md](docs/rebuild/TOOL_PLATFORM_SPEC.md).
+[TOOL_PLATFORM_SPEC.md](docs/rebuild/TOOL_PLATFORM_SPEC.md). Deterministic
+receipts and the primary-gate result are recorded in the
+[Stage 5 acceptance evidence](docs/rebuild/STAGE5_EVIDENCE.md).
 
 ### Deliverables
 
@@ -311,6 +315,19 @@ The contract is defined in
 - Tool-version and data-lineage metadata in every research response.
 - Additive compatibility and explicit deprecation rules.
 
+### Fixture-validated scope
+
+- Registry revision `2.3.0` and schema version `1.1.0` expose all 57 reviewed
+  names through generated input and output schemas and closed routing.
+- The two Stage 1 contracts retain their historical projection; the other 55
+  are explicit forward reconstructions. Unsupported fixture semantics return
+  `not_established`, and the live intraday capability is disabled.
+- Direct and loopback HTTP calls share typed validation, strict JSON, bounded
+  concurrency/deadlines/cancellation, deterministic receipts, and read-only
+  four-store access.
+- The primary gate passed 207 tests and a deterministic two-clean-root rebuild
+  without adding migrations, jobs, exports, live providers, or UI code.
+
 ### Exit gate
 
 - Every public schema rejects unknown properties.
@@ -320,9 +337,13 @@ The contract is defined in
 - Results are deterministic, read-only, finite JSON with explicit exclusions
   and warnings.
 
+The primary fixture gate and independent SolUltra verification completed these
+checks. `G5` is complete. Stage 6 is the next authorized executable stage
+after the verified Stage 5 snapshot is committed separately.
+
 ## 10. Stage 6 — Restore portal and research surfaces
 
-Status: **CLOSED behind Stage 5.**
+Status: **Next authorized executable stage after the separate verified Stage 5 commit.**
 
 The shared visual and interaction language is defined in
 [UI_VISUAL_DIRECTION.md](docs/rebuild/UI_VISUAL_DIRECTION.md). Stage 6 owns the
