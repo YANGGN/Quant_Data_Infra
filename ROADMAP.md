@@ -5,7 +5,10 @@ Planning baseline: 2026-08-09
 Scope: accepted implementation sequencing; Stages 1 through 3 implemented on
 2026-08-09, with Stages 2 and 3 independently verified; Stage 4 primary
 fixture gate and independent verification passed on 2026-08-10; Stage 5
-primary fixture gate and independent verification passed on 2026-08-10
+primary fixture gate and independent verification passed on 2026-08-10; the
+bounded Stage 6 four-route local portal was accepted on 2026-08-10 after
+offline independent verification and an explicit user waiver for unavailable
+browser automation
 
 ## 1. Purpose
 
@@ -30,10 +33,11 @@ The following decisions apply to every stage:
   also passed independent verification. The bounded offline Stage 3 market and
   macro scope is fixture-validated and independently verified. Stages 4
   through 6 are authorized only sequentially with offline synthetic fixtures.
-  Stage 4 has passed its primary fixture gate and independent SolUltra
-  verification. Stage 5 has passed its primary offline fixture gate and
-  independent SolUltra verification. Stage 6 is the next authorized executable
-  stage after the verified Stage 5 snapshot is committed separately.
+  Stage 4 and Stage 5 have passed their primary fixture gates and independent
+  SolUltra verification. The bounded Stage 6 four-route local portal has
+  passed its offline executable checks and was explicitly accepted by the user
+  with browser automation waived. Bounded offline Stage 7 is authorized;
+  Stage 8 remains closed.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -58,8 +62,8 @@ The following decisions apply to every stage:
 | 2 | Four-store persistence foundation | No | Independently verified offline evidence |
 | 3 | Bounded market and macro restoration | No; reviewed fixtures only | Independently verified offline evidence; Stage 4 requires separate authorization |
 | 4 | Company, news, and options restoration | No; synthetic fixtures only | Independently verified offline evidence; Stage 5 is next |
-| 5 | Composable 57-tool platform | No live access; intraday remains disabled | Independently verified offline evidence; Stage 6 is next |
-| 6 | Local portal and research surfaces | No mutation through UI | Read-only APIs and browser contracts pass |
+| 5 | Composable 57-tool platform | No live access; intraday remains disabled | Independently verified offline evidence; bounded Stage 6 portal primary gate passed |
+| 6 | Bounded local portal (four fixed routes) | No mutation through UI | Primary fixture gate passed; independent verifier and browser QA pending |
 | 7 | Scheduling and operational readiness | Dry-run first | Locking, retries, receipts, backups, and failure handling pass |
 | 8 | Derived analytical exports and Atlas | Snapshot reads only | Atomic, reproducible publication passes |
 | 9 | Controlled repopulation and promotion | Yes, explicitly approved | New stores pass integrity and recovery drills |
@@ -338,29 +342,56 @@ receipts and the primary-gate result are recorded in the
   and warnings.
 
 The primary fixture gate and independent SolUltra verification completed these
-checks. `G5` is complete. Stage 6 is the next authorized executable stage
-after the verified Stage 5 snapshot is committed separately.
+checks. `G5` is complete. The bounded Stage 6 portal primary gate has since
+passed; its unavailable browser-automation check was explicitly waived by the
+user before the Stage 6 commit and Stage 7 authorization.
 
 ## 10. Stage 6 — Restore portal and research surfaces
 
-Status: **Next authorized executable stage after the separate verified Stage 5 commit.**
+Status: **Implemented and accepted: bounded offline four-route portal.** The
+offline executable verifier passed; on 2026-08-10 the user explicitly accepted
+the unavailable browser-automation check and authorized the Stage 6 commit.
 
 The shared visual and interaction language is defined in
-[UI_VISUAL_DIRECTION.md](docs/rebuild/UI_VISUAL_DIRECTION.md). Stage 6 owns the
-first implementation of these tokens and the common application shell.
+[UI_VISUAL_DIRECTION.md](docs/rebuild/UI_VISUAL_DIRECTION.md). The bounded
+implementation establishes the first local application shell and registry
+exposures. The broader chart/algorithm/backtest surface remains deferred.
 
-### Deliverables
+### Implemented bounded scope
 
-- ThesisTrade-inspired Inter typography, restrained institutional light
-  palette, shared design tokens, and one persistent application shell.
-- Overview, GDP Vintages, Tables, and Agent Tools first.
-- Charts and shared indicator research after tool contracts stabilize.
-- Algorithms and walk-forward reports after causal timing and cost contracts
-  stabilize.
-- Persistent navigation and recovered security headers.
-- Strict separation between operational inspection and derived research views.
+- One persistent local application shell using the accepted Inter-based,
+  restrained institutional light token set.
+- Four fixed local-private routes: Overview (`/`), GDP Vintages
+  (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
+  (`/agent-tools`).
+- Canonical registry revision `2.4.0` and schema `1.2.0` dashboard exposures
+  with fixed datasets, relations, filters, server-owned sort fields,
+  pagination, tool dependencies, and API routes.
+- Read-only, query-only services and loopback boundary checks, including
+  source/restored store mutation fingerprints and fixed security headers.
+- Locally bundled CSS, JavaScript, and pinned Inter 4.1 font/OFL license
+  assets; no reference-site, remote-font, analytics, or tracker asset.
+- No jobs, exports, live providers, runtime network work, scheduler
+  installation, promotion, hosting, Atlas, or destructive storage operation.
 
-### Exit gate
+### Formal analytical scope remains deferred
+
+Charts, shared indicator research, algorithms, and walk-forward/backtest
+reports are not implemented or claimed by this bounded portal. They require
+their own causal-timing, cost, canonical-backend, golden-vector, and
+acceptance evidence before any implementation decision. Atlas remains Stage 8
+work and cannot be opened by this portal's primary gate.
+
+### Accepted bounded exit
+
+The bounded four-route portal exit is accepted. Offline independent checks
+proved the read-only API, mutation neutrality, fixed registry contracts,
+strict JSON handling, local assets, contrast, and deterministic two-root
+evidence. The Codex browser controller could not attach even though the local
+portal was visibly running; on 2026-08-10 the user explicitly waived that
+automation check, authorized the Stage 6 commit, and opened bounded offline
+Stage 7 work. The following broader analytical requirements remain deferred
+and are not claimed by this Stage 6 commit:
 
 - The browser has no ingestion or raw-SQL capability.
 - All database connections are read-only and query-only.

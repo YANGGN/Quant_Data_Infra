@@ -23,12 +23,15 @@ The offline Stage 1 vertical slice and Stage 2 four-store foundation are
 implemented and fixture-validated; Stage 2 has also passed independent
 verification. The bounded offline Stage 3 market/macro scope is implemented
 and fixture-validated and has passed independent SolUltra verification. The
-bounded offline Stage 4 company, news, and options scope is fixture-validated
-and has passed independent SolUltra verification. Stages 4 through 6 are
-authorized only sequentially and only with offline synthetic fixtures. The
-bounded offline Stage 5 composable tool platform is fixture-validated and has
-passed independent SolUltra verification. Stage 6 is the next authorized
-executable stage after the verified Stage 5 snapshot is committed separately.
+bounded offline Stage 4 company, news, and options scope and the bounded
+offline Stage 5 composable tool platform are fixture-validated and have passed
+independent SolUltra verification. The bounded offline Stage 6 local portal is
+limited to four fixed routes and has passed its offline executable verification.
+On 2026-08-10 the user explicitly accepted the remaining browser-automation
+limitation, authorized the Stage 6 commit, and opened bounded offline Stage 7
+implementation. Stage 7 must remain manual-first and synthetic-fixture-only;
+do not install a scheduler or start live providers. Do not open Stage 8,
+exports, promotion, hosting, Atlas, or destructive operations.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit

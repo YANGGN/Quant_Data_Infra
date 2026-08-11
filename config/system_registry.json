@@ -935,9 +935,7 @@
     {
       "api_routes": [
         "/api/health",
-        "/api/price-series",
-        "/api/agent-tools",
-        "/api/agent-tools/call"
+        "/api/price-series"
       ],
       "datasets": [
         "fixture.market.daily_price_evidence",
@@ -946,15 +944,296 @@
         "fixture.macro.rtdsm_employ_evidence",
         "fixture.macro.rtdsm_employ"
       ],
+      "filters": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
       "id": "stage1.overview",
+      "pagination": {
+        "default_limit": 10,
+        "max_limit": 10
+      },
       "relations": [
         "prices_daily",
         "macro_observation_versions"
       ],
       "route": "/",
+      "sort_fields": [],
       "tools": [
         "macro.get_series",
         "timeseries.describe"
+      ],
+      "visibility": "local_private"
+    },
+    {
+      "api_routes": [
+        "/api/gdp-vintages"
+      ],
+      "datasets": [
+        "fixture.macro.gdp_vintages",
+        "fixture.macro.rtdsm_employ"
+      ],
+      "filters": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "date_only_policy": {
+            "enum": [
+              "completed_date",
+              "calendar_date_inclusive"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "latest",
+              "as_of",
+              "first_release"
+            ],
+            "type": "string"
+          },
+          "series": {
+            "enum": [
+              "real-growth",
+              "nominal-gdp"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "id": "stage6.gdp_vintages",
+      "pagination": {
+        "default_limit": 25,
+        "max_limit": 100
+      },
+      "relations": [
+        "gdp_vintages",
+        "macro_observation_versions"
+      ],
+      "route": "/gdp-vintages",
+      "sort_fields": [],
+      "tools": [
+        "macro.get_series",
+        "macro.revision_analysis"
+      ],
+      "visibility": "local_private"
+    },
+    {
+      "api_routes": [
+        "/api/table-inspector"
+      ],
+      "datasets": [
+        "fixture.market.daily_prices",
+        "fixture.macro.rtdsm_employ",
+        "fixture.company.filings",
+        "fixture.news.items"
+      ],
+      "filters": {
+        "additionalProperties": false,
+        "properties": {
+          "direction": {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string"
+          },
+          "limit": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "search": {
+            "maxLength": 128,
+            "type": "string"
+          },
+          "sort": {
+            "enum": [
+              "trade_date",
+              "instrument_id",
+              "provider",
+              "close",
+              "volume",
+              "available_at",
+              "period_start",
+              "series_id",
+              "captured_at",
+              "source_vintage_identity",
+              "filing_date",
+              "accepted_at",
+              "first_observed_issuer_id",
+              "form_type",
+              "source_name",
+              "source_item_id",
+              "published_at"
+            ],
+            "type": "string"
+          },
+          "view": {
+            "enum": [
+              "market-prices",
+              "macro-observations",
+              "company-filings",
+              "news-items"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [],
+        "type": "object"
+      },
+      "id": "stage6.table_inspector",
+      "pagination": {
+        "default_limit": 25,
+        "max_limit": 100
+      },
+      "relations": [
+        "prices_daily",
+        "macro_observation_versions",
+        "company_sec_filings",
+        "news_items"
+      ],
+      "route": "/table-inspector",
+      "sort_fields": [
+        "trade_date",
+        "instrument_id",
+        "provider",
+        "close",
+        "volume",
+        "available_at",
+        "period_start",
+        "series_id",
+        "captured_at",
+        "source_vintage_identity",
+        "filing_date",
+        "accepted_at",
+        "first_observed_issuer_id",
+        "form_type",
+        "source_name",
+        "source_item_id",
+        "published_at"
+      ],
+      "tools": [],
+      "visibility": "local_private"
+    },
+    {
+      "api_routes": [
+        "/api/agent-tools",
+        "/api/agent-tools/call"
+      ],
+      "datasets": [
+        "fixture.company.corporate_actions",
+        "fixture.company.expectations",
+        "fixture.company.filings",
+        "fixture.company.fundamentals",
+        "fixture.company.issuers",
+        "fixture.macro.economic_calendar",
+        "fixture.macro.eia_retail",
+        "fixture.macro.eia_weekly",
+        "fixture.macro.gdp_vintages",
+        "fixture.macro.recession_periods",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.soma_summary",
+        "fixture.macro.stage3_catalog",
+        "fixture.macro.treasury_yield_curves",
+        "fixture.market.controlled_universes",
+        "fixture.market.daily_prices",
+        "fixture.market.instrument_classifications",
+        "fixture.market.instruments",
+        "fixture.market.option_capture_evidence",
+        "fixture.market.options",
+        "fixture.news.items",
+        "fixture.news.search_index"
+      ],
+      "filters": {
+        "additionalProperties": false,
+        "properties": {},
+        "required": [],
+        "type": "object"
+      },
+      "id": "stage6.agent_tools",
+      "pagination": {
+        "default_limit": 25,
+        "max_limit": 100
+      },
+      "relations": [],
+      "route": "/agent-tools",
+      "sort_fields": [],
+      "tools": [
+        "macro.search_series",
+        "macro.describe_series",
+        "macro.get_series",
+        "macro.get_intraday_releases",
+        "macro.release_surprises",
+        "macro.revision_analysis",
+        "macro.align_us_recessions",
+        "macro.standardize_surprises",
+        "macro.get_liquidity_snapshot",
+        "macro.get_liquidity_impulse",
+        "macro.get_credit_conditions",
+        "macro.regime_snapshot",
+        "timeseries.transform",
+        "timeseries.describe",
+        "timeseries.align",
+        "timeseries.correlation",
+        "econometrics.regression",
+        "econometrics.stationarity",
+        "econometrics.rolling_regression",
+        "econometrics.structural_breaks",
+        "econometrics.local_projection",
+        "company.search_issuers",
+        "company.search_filings",
+        "company.get_fundamentals",
+        "company.get_corporate_actions",
+        "company.get_share_count_history",
+        "company.get_earnings_calendar",
+        "company.get_consensus_history",
+        "company.get_guidance_history",
+        "company.get_estimate_revisions",
+        "company.get_earnings_setup",
+        "energy.get_electricity_retail_sales",
+        "energy.get_weekly_fundamentals",
+        "market.search_instruments",
+        "market.get_returns",
+        "market.get_forward_returns",
+        "market.technical_indicators",
+        "market.cross_sectional_performance",
+        "rates.get_funding_conditions",
+        "rates.get_repo_facility_usage",
+        "rates.curve_analytics",
+        "options.search_captures",
+        "options.search_contracts",
+        "options.get_surface_snapshot",
+        "options.surface_diagnostics",
+        "options.screen_contracts",
+        "options.strategy_scenario",
+        "research.point_in_time_panel",
+        "data.quality_audit",
+        "research.event_study",
+        "alpha.signal_diagnostics",
+        "research.walk_forward_backtest",
+        "research.robustness_suite",
+        "stats.multiple_testing",
+        "forecast.evaluate",
+        "news.search",
+        "research.liquidity_credit_state"
       ],
       "visibility": "local_private"
     }
@@ -1035,7 +1314,8 @@
         "fixture.market.catalog_import"
       ],
       "dashboard_ids": [
-        "stage1.overview"
+        "stage1.overview",
+        "stage6.agent_tools"
       ],
       "export_ids": [],
       "freshness": {
@@ -1110,7 +1390,9 @@
         "fixture.market.daily_price_import"
       ],
       "dashboard_ids": [
-        "stage1.overview"
+        "stage1.overview",
+        "stage6.table_inspector",
+        "stage6.agent_tools"
       ],
       "export_ids": [],
       "freshness": {
@@ -1304,7 +1586,10 @@
         "fixture.macro.bea_import"
       ],
       "dashboard_ids": [
-        "stage1.overview"
+        "stage1.overview",
+        "stage6.gdp_vintages",
+        "stage6.table_inspector",
+        "stage6.agent_tools"
       ],
       "export_ids": [],
       "freshness": {
@@ -1457,7 +1742,9 @@
       "collector_ids": [
         "fixture.market.catalog_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -1530,7 +1817,9 @@
       "collector_ids": [
         "fixture.market.catalog_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -1622,7 +1911,9 @@
         "fixture.macro.chicago_fed_import",
         "fixture.macro.bea_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -1703,7 +1994,10 @@
       "collector_ids": [
         "fixture.macro.gdp_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.gdp_vintages",
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -1774,7 +2068,9 @@
       "collector_ids": [
         "fixture.macro.treasury_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -1855,7 +2151,9 @@
       "collector_ids": [
         "fixture.macro.calendar_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2009,7 +2307,9 @@
       "collector_ids": [
         "fixture.macro.soma_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2172,7 +2472,9 @@
       "collector_ids": [
         "fixture.macro.eia_retail_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2330,7 +2632,9 @@
       "collector_ids": [
         "fixture.macro.eia_weekly_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2407,7 +2711,9 @@
       "collector_ids": [
         "fixture.macro.recession_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2478,7 +2784,9 @@
       "collector_ids": [
         "fixture.market.options_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2580,7 +2888,9 @@
       "collector_ids": [
         "fixture.market.options_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2762,7 +3072,9 @@
       "collector_ids": [
         "fixture.company.sec_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2844,7 +3156,10 @@
       "collector_ids": [
         "fixture.company.sec_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.table_inspector",
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -2913,7 +3228,9 @@
       "collector_ids": [
         "fixture.company.sec_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -3084,7 +3401,9 @@
       "collector_ids": [
         "fixture.company.actions_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -3241,7 +3560,9 @@
       "collector_ids": [
         "fixture.company.expectations_import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "manual",
@@ -3477,7 +3798,10 @@
       "collector_ids": [
         "fixture.news.import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.table_inspector",
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "event_driven",
@@ -3575,7 +3899,9 @@
       "collector_ids": [
         "fixture.news.import"
       ],
-      "dashboard_ids": [],
+      "dashboard_ids": [
+        "stage6.agent_tools"
+      ],
       "export_ids": [],
       "freshness": {
         "cadence": "event_driven",
@@ -4115,9 +4441,9 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.3.0",
+  "registry_version": "2.4.0",
   "schema_id": "quant_data.system_registry",
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "status": "validated",
   "stores": [
     {

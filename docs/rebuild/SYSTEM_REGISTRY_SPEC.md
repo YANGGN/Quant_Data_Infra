@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted.** The canonical registry path is `config/system_registry.json` and the optional host override is `QUANT_SYSTEM_REGISTRY_PATH`. Stage 1 may implement the accepted subset; a listed consumer exists only when executable evidence passes.
+**Accepted.** The canonical registry path is `config/system_registry.json` and the optional host override is `QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision `2.4.0` with schema version `1.2.0`. Its four local-private dashboard exposures passed the bounded Stage 6 offline checks; the unavailable browser-automation check was explicitly waived by the user. The frozen Stage 5 compatibility projection remains revision `2.3.0`, schema `1.1.0` to preserve its historical evidence. A listed consumer exists only when executable evidence passes or an explicit user acceptance records a remaining external verification limitation.
 
 This specification elaborates [ADR 0002](../adr/0002-single-machine-readable-registry.md) and the [target architecture](../../ARCHITECTURE.md). Store and layer semantics are defined by [ADR 0001](../adr/0001-four-operational-sqlite-stores.md) and [ADR 0003](../adr/0003-three-layer-data-architecture.md). Recovery constraints come from the [rebuild plan](../../plan.md), with its Sections 18–20 taking precedence where earlier sections conflict.
 
@@ -233,6 +233,7 @@ The active parity target may claim 57 tools only after all 57 recovered names ha
 | --- | --- | --- | --- |
 | id | namespaced identifier | Yes | Stable page, panel, or inspector exposure |
 | route | local route | Yes | Fixed application route |
+| api_routes | array of local API routes | Yes | Fixed JSON endpoints owned by the exposure; methods remain enforced by the service boundary |
 | datasets | array of Dataset IDs | Yes | Direct data dependencies |
 | tools | array of Tool IDs | Yes | Guided tool forms available on the exposure |
 | relations | array of allowlisted relation IDs | Yes | No caller-created table name |
@@ -241,7 +242,16 @@ The active parity target may claim 57 tools only after all 57 recovered names ha
 | pagination | object | Yes | Default and hard maximum |
 | visibility | enum | Yes | local_private |
 
-Dashboard navigation and the table inspector are generated or validated from these exposures. Internal raw payload objects remain absent unless a reviewed exposure explicitly permits them.
+Schema `1.2.0` requires all ten DashboardExposure fields above: `id`, `route`,
+`api_routes`, `datasets`, `tools`, `relations`, `filters`, `sort_fields`,
+`pagination`, and `visibility`. The canonical `2.4.0` registry declares exactly
+four ordered local-private exposures: `stage1.overview`,
+`stage6.gdp_vintages`, `stage6.table_inspector`, and `stage6.agent_tools`.
+Their API routes are fixed registry declarations, not caller-supplied URLs.
+
+Dashboard navigation and the table inspector are generated or validated from
+these exposures. Internal raw payload objects remain absent unless a reviewed
+exposure explicitly permits them.
 
 ### Export
 
@@ -327,7 +337,7 @@ Errors include a stable code and a JSON-pointer-like location. Validation report
 | Job/scheduler tooling | Ordered steps, calendars, overlap and status policy | Validate or generate platform wrapper; preserve aggregate failure |
 | Health service | Store paths, datasets, freshness | Report not due, unchanged, delayed, partial, failed, and stale distinctly |
 | Tool registry/API | Tool schemas, handlers, datasets, bounds | Expose only validated read-only contracts |
-| Dashboard | Dashboard exposures, tools, relation allowlists | Generate or validate navigation/forms and bounded inspection |
+| Dashboard | Dashboard exposures, API routes, tools, relation allowlists | Generate or validate navigation/forms, bounded inspection, and fixed local routes |
 | Atlas exporter | Export profiles, dataset ownership, store paths | Read copies, stage exactly, validate cohort, atomically promote |
 | Documentation generator | Public metadata only | Produce deterministic reference pages without secrets or runtime claims |
 
@@ -339,7 +349,7 @@ Generated artifacts may include:
 - migration plans;
 - typed identifier constants;
 - tool discovery documents and guided forms;
-- dashboard navigation and inspector allowlists;
+- dashboard navigation, API-route, and inspector allowlists;
 - scheduler wrapper inputs;
 - health/freshness catalogs;
 - Atlas dataset and chunk manifests; and
@@ -449,6 +459,7 @@ tools:
 dashboard:
   - id: tables.market_prices
     route: /table-inspector
+    api_routes: [/api/table-inspector]
     datasets: [market.prices_daily]
     relations: [prices_daily]
     filters: <strict-bounded-schema>

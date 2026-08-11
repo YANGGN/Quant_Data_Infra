@@ -11,7 +11,12 @@ from .errors import CapabilityUnavailableError, ConflictError, ValidationError
 from .fingerprint import mutation_fingerprint
 from .json_codec import dumps_strict, loads_strict
 from .migrations import initialize_all
-from .registry import CANONICAL_REGISTRY_PATH, PUBLIC_TOOL_NAMES, load_registry
+from .registry import (
+    CANONICAL_REGISTRY_PATH,
+    PUBLIC_TOOL_NAMES,
+    load_registry,
+    stage5_registry_profile,
+)
 from .stage1 import explicit_store_map
 from .stage4 import run_clean_stage4_rebuild
 from .stores import StoreMap
@@ -126,10 +131,12 @@ def run_clean_stage5_rebuild(
         project_root=project,
         work_root=root / "stage4",
     )
-    registry = load_registry(
-        project / CANONICAL_REGISTRY_PATH,
-        project_root=project,
-        environment={},
+    registry = stage5_registry_profile(
+        load_registry(
+            project / CANONICAL_REGISTRY_PATH,
+            project_root=project,
+            environment={},
+        )
     )
     if registry.registry_version != "2.3.0" or len(registry.tools) != 57:
         raise ValidationError("Stage 5 requires the reviewed 2.3.0 registry")

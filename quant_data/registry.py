@@ -43,6 +43,16 @@ _PROHIBITED_TOOL_KEYS = {
     "filesystem_root",
     "connection_string",
 }
+_PROHIBITED_DASHBOARD_KEYS = {
+    "connection_string",
+    "database_path",
+    "db_path",
+    "filesystem_root",
+    "pragma",
+    "relation",
+    "sql",
+    "sqlite_uri",
+}
 _MUTABLE_IDENTITY_FIELDS = {
     "active",
     "completed_at",
@@ -188,6 +198,87 @@ _STAGE4_COLLECTOR_IDS = frozenset(
     }
 )
 
+_STAGE1_DASHBOARD_ID = "stage1.overview"
+_STAGE5_REGISTRY_SOURCE_SHA256 = (
+    "56c2e8c97623c23596c92b177ee5e0aa89ecf164c37094216142cc82fc78cd9a"
+)
+_STAGE6_DASHBOARD_ROUTES = {
+    _STAGE1_DASHBOARD_ID: "/",
+    "stage6.gdp_vintages": "/gdp-vintages",
+    "stage6.table_inspector": "/table-inspector",
+    "stage6.agent_tools": "/agent-tools",
+}
+_STAGE6_AGENT_DATASET_IDS = frozenset(
+    {
+        "fixture.company.corporate_actions",
+        "fixture.company.expectations",
+        "fixture.company.filings",
+        "fixture.company.fundamentals",
+        "fixture.company.issuers",
+        "fixture.macro.economic_calendar",
+        "fixture.macro.eia_retail",
+        "fixture.macro.eia_weekly",
+        "fixture.macro.gdp_vintages",
+        "fixture.macro.recession_periods",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.soma_summary",
+        "fixture.macro.stage3_catalog",
+        "fixture.macro.treasury_yield_curves",
+        "fixture.market.controlled_universes",
+        "fixture.market.daily_prices",
+        "fixture.market.instrument_classifications",
+        "fixture.market.instruments",
+        "fixture.market.option_capture_evidence",
+        "fixture.market.options",
+        "fixture.news.items",
+        "fixture.news.search_index",
+    }
+)
+_STAGE6_DASHBOARD_EXPECTATIONS = {
+    _STAGE1_DASHBOARD_ID: {
+        "datasets": frozenset(_STAGE2_DATASET_IDS),
+        "tools": STAGE1_TOOL_NAMES,
+        "relations": ("prices_daily", "macro_observation_versions"),
+        "api_routes": ("/api/health", "/api/price-series"),
+        "query_contract_sha256": "8f29f1468c36cf502c50a4ab2f328cfa88f303f229c23f048a0128b2a93a2f1c",
+    },
+    "stage6.gdp_vintages": {
+        "datasets": frozenset(
+            {"fixture.macro.gdp_vintages", "fixture.macro.rtdsm_employ"}
+        ),
+        "tools": ("macro.get_series", "macro.revision_analysis"),
+        "relations": ("gdp_vintages", "macro_observation_versions"),
+        "api_routes": ("/api/gdp-vintages",),
+        "query_contract_sha256": "6b6c3d7841abe94facf070a7a1a5682b7b6b1df4365acf56d80e692db6074b47",
+    },
+    "stage6.table_inspector": {
+        "datasets": frozenset(
+            {
+                "fixture.market.daily_prices",
+                "fixture.macro.rtdsm_employ",
+                "fixture.company.filings",
+                "fixture.news.items",
+            }
+        ),
+        "tools": (),
+        "relations": (
+            "prices_daily",
+            "macro_observation_versions",
+            "company_sec_filings",
+            "news_items",
+        ),
+        "api_routes": ("/api/table-inspector",),
+        "query_contract_sha256": "e4cf8b60b983d49ab3304a8536d970914eecf746351828391efe4e204fc4b538",
+    },
+    "stage6.agent_tools": {
+        "datasets": _STAGE6_AGENT_DATASET_IDS,
+        "tools": PUBLIC_TOOL_NAMES,
+        "relations": (),
+        "api_routes": ("/api/agent-tools", "/api/agent-tools/call"),
+        "query_contract_sha256": "a3e16295b235b35b6b456eecdaa5ce9856c50ec7c3538e7e9385e591641b8704",
+    },
+}
+
 
 @dataclass(frozen=True, slots=True)
 class StoreDeclaration:
@@ -265,6 +356,7 @@ class Registry:
     tools: tuple[Mapping[str, Any], ...]
     dashboard: tuple[Mapping[str, Any], ...]
     raw: Mapping[str, Any]
+    source_sha256: str | None = None
 
     @property
     def revision(self) -> str:
@@ -465,7 +557,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.1.0"
+        or raw["schema_version"] != "1.2.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
         or raw["status"] != "validated"
@@ -1416,13 +1508,26 @@ def load_registry(
 
     dashboard = tuple(raw["dashboard"])
     dashboard_ids: set[str] = set()
+    dashboard_routes: set[str] = set()
+    dashboard_api_routes: set[str] = set()
     for index, exposure in enumerate(dashboard):
         pointer = f"/dashboard/{index}"
         if not isinstance(exposure, dict):
             raise _error(pointer, "type", "Dashboard exposure must be an object")
         _require_keys(
             exposure,
-            {"id", "route", "visibility", "datasets", "tools", "relations", "api_routes"},
+            {
+                "id",
+                "route",
+                "visibility",
+                "datasets",
+                "tools",
+                "relations",
+                "filters",
+                "sort_fields",
+                "pagination",
+                "api_routes",
+            },
             pointer,
         )
         dashboard_id = _stable_identifier(exposure["id"], f"{pointer}/id")
@@ -1432,32 +1537,120 @@ def load_registry(
         dashboard_tools = _stable_identifier_array(
             exposure["tools"], f"{pointer}/tools"
         )
+        expected = _STAGE6_DASHBOARD_EXPECTATIONS.get(dashboard_id)
+        relations = exposure["relations"]
+        api_routes = exposure["api_routes"]
+        filters = exposure["filters"]
+        sort_fields = exposure["sort_fields"]
+        pagination = exposure["pagination"]
         if (
-            dashboard_id != "stage1.overview"
+            expected is None
             or dashboard_id in dashboard_ids
-            or exposure["route"] != "/"
+            or exposure["route"] != _STAGE6_DASHBOARD_ROUTES[dashboard_id]
+            or exposure["route"] in dashboard_routes
             or exposure["visibility"] != "local_private"
             or not set(dashboard_datasets).issubset(dataset_ids)
             or not set(dashboard_tools).issubset(tool_names)
-            or not isinstance(exposure["relations"], list)
-            or not all(isinstance(item, str) and _IDENTIFIER.fullmatch(item) for item in exposure["relations"])
-            or not isinstance(exposure["api_routes"], list)
-            or not all(isinstance(item, str) and item.startswith("/") for item in exposure["api_routes"])
+            or frozenset(dashboard_datasets) != expected["datasets"]
+            or tuple(dashboard_tools) != tuple(expected["tools"])
+            or not isinstance(relations, list)
+            or tuple(relations) != tuple(expected["relations"])
+            or not all(
+                isinstance(item, str) and _IDENTIFIER.fullmatch(item)
+                for item in relations
+            )
+            or not isinstance(api_routes, list)
+            or tuple(api_routes) != tuple(expected["api_routes"])
+            or not all(
+                isinstance(item, str) and item.startswith("/api/")
+                for item in api_routes
+            )
+            or any(item in dashboard_api_routes for item in api_routes)
         ):
-            raise _error(f"/dashboard/{index}", "reference", "Dashboard exposure reference is invalid")
+            raise _error(pointer, "reference", "Dashboard exposure reference is invalid")
+        if not isinstance(filters, dict):
+            raise _error(f"{pointer}/filters", "type", "Dashboard filters must be a schema")
+        _validate_strict_schema(filters, f"{pointer}/filters")
+        properties = filters.get("properties", {})
+        if (
+            filters.get("type") != "object"
+            or filters.get("additionalProperties") is not False
+            or not isinstance(properties, dict)
+            or set(properties).intersection(_PROHIBITED_DASHBOARD_KEYS)
+        ):
+            raise _error(
+                f"{pointer}/filters",
+                "schema",
+                "Dashboard filters must be closed and path-free",
+            )
+        if (
+            not isinstance(sort_fields, list)
+            or len(sort_fields) != len(set(sort_fields))
+            or not all(
+                isinstance(item, str) and _IDENTIFIER.fullmatch(item)
+                for item in sort_fields
+            )
+        ):
+            raise _error(
+                f"{pointer}/sort_fields",
+                "allowlist",
+                "Dashboard sort fields must be a finite identifier allowlist",
+            )
+        if not isinstance(pagination, dict):
+            raise _error(f"{pointer}/pagination", "type", "Pagination must be an object")
+        _require_keys(
+            pagination,
+            {"default_limit", "max_limit"},
+            f"{pointer}/pagination",
+        )
+        default_limit = pagination["default_limit"]
+        max_limit = pagination["max_limit"]
+        if (
+            isinstance(default_limit, bool)
+            or not isinstance(default_limit, int)
+            or isinstance(max_limit, bool)
+            or not isinstance(max_limit, int)
+            or not 1 <= default_limit <= max_limit <= 100
+        ):
+            raise _error(
+                f"{pointer}/pagination",
+                "bounds",
+                "Dashboard pagination bounds are invalid",
+            )
+        query_contract_sha256 = hashlib.sha256(
+            dumps_strict(
+                {
+                    "filters": filters,
+                    "sort_fields": sort_fields,
+                    "pagination": pagination,
+                }
+            ).encode("utf-8")
+        ).hexdigest()
+        if query_contract_sha256 != expected["query_contract_sha256"]:
+            raise _error(
+                pointer,
+                "query_contract",
+                "Dashboard filter, sort, or pagination contract changed",
+            )
         dashboard_ids.add(dashboard_id)
+        dashboard_routes.add(exposure["route"])
+        dashboard_api_routes.update(api_routes)
         allowed_relations = {
             relation
             for dataset in datasets
             if dataset.id in exposure["datasets"]
             for relation in dataset.relations
         }
-        if not set(exposure["relations"]).issubset(allowed_relations):
+        if not set(relations).issubset(allowed_relations):
             raise _error(
                 f"{pointer}/relations",
                 "ownership",
                 "Dashboard relation is not owned by a declared dataset",
             )
+    if tuple(exposure["id"] for exposure in dashboard) != tuple(
+        _STAGE6_DASHBOARD_ROUTES
+    ):
+        raise RegistryError("Dashboard presentation order does not match Stage 6")
 
     export_ids: set[str] = set()
     if raw["jobs"] or raw["exports"]:
@@ -1522,8 +1715,58 @@ def load_registry(
         tools=tuple(tools),
         dashboard=dashboard,
         raw=raw,
+        source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
     )
 
+
+
+def _stage1_dashboard_projection(
+    datasets: tuple[DatasetDeclaration, ...],
+    raw: dict[str, Any],
+) -> tuple[
+    tuple[DatasetDeclaration, ...],
+    tuple[Mapping[str, Any], ...],
+    dict[str, Any],
+]:
+    """Restore the exact historical Stage 1 dashboard declaration."""
+
+    projected_datasets = tuple(
+        replace(
+            item,
+            dashboard_ids=tuple(
+                dashboard_id
+                for dashboard_id in item.dashboard_ids
+                if dashboard_id == _STAGE1_DASHBOARD_ID
+            ),
+        )
+        for item in datasets
+    )
+    raw["datasets"] = [
+        {
+            **item,
+            "dashboard_ids": [
+                dashboard_id
+                for dashboard_id in item["dashboard_ids"]
+                if dashboard_id == _STAGE1_DASHBOARD_ID
+            ],
+        }
+        for item in raw["datasets"]
+    ]
+    source = next(
+        item for item in raw["dashboard"] if item["id"] == _STAGE1_DASHBOARD_ID
+    )
+    legacy = {
+        key: copy.deepcopy(source[key])
+        for key in ("id", "route", "visibility", "datasets", "tools", "relations")
+    }
+    legacy["api_routes"] = [
+        "/api/health",
+        "/api/price-series",
+        "/api/agent-tools",
+        "/api/agent-tools/call",
+    ]
+    raw["dashboard"] = [legacy]
+    return projected_datasets, (legacy,), raw
 
 
 def _legacy_tool_projection(
@@ -1561,15 +1804,11 @@ def _legacy_tool_projection(
         }
         for item in raw["datasets"]
     ]
-    raw["dashboard"] = [
-        {
-            **item,
-            "tools": [tool_id for tool_id in item["tools"] if tool_id in allowed],
-        }
-        for item in raw["dashboard"]
-    ]
+    projected_datasets, dashboard, raw = _stage1_dashboard_projection(
+        projected_datasets, raw
+    )
     raw["presentation_order"]["tools"] = list(STAGE1_TOOL_NAMES)
-    return projected_datasets, tools, tuple(raw["dashboard"]), raw
+    return projected_datasets, tools, dashboard, raw
 
 
 
@@ -1851,4 +2090,35 @@ def stage4_registry_profile(registry: Registry) -> Registry:
         tools=tools,
         dashboard=dashboard,
         raw=raw,
+    )
+
+
+def stage5_registry_profile(registry: Registry) -> Registry:
+    """Project the additive canonical registry back to Stage 5 exactly."""
+
+    if (
+        registry.registry_version.split(".", 1)[0] != "2"
+        or len(registry.migrations) != 30
+        or len(registry.datasets) != 33
+        or len(registry.collectors) != 19
+        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
+        or registry.raw["jobs"]
+        or registry.raw["exports"]
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 5 profile")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["schema_version"] = "1.1.0"
+    raw["registry_version"] = "2.3.0"
+    datasets, dashboard, raw = _stage1_dashboard_projection(
+        registry.datasets, raw
+    )
+    return replace(
+        registry,
+        schema_version="1.1.0",
+        registry_version="2.3.0",
+        datasets=datasets,
+        dashboard=dashboard,
+        raw=raw,
+        source_sha256=_STAGE5_REGISTRY_SOURCE_SHA256,
     )

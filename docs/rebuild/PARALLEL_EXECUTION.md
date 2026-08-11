@@ -15,10 +15,11 @@ Stage 0, the bounded offline Stage 1 slice, the offline Stage 2 four-store
 foundation, and the bounded Stage 3 market/macro fixture scope were authorized
 on 2026-08-09. Stage 2 is fixture-validated and independently verified. Stage
 3 is fixture-validated and independently verified. Stages 4 through 6 are
-authorized only sequentially with offline synthetic fixtures. Stage 4 has
-passed its primary fixture gate and independent SolUltra verification. Stage 5
-has passed its primary offline fixture gate and independent SolUltra
-verification. Stage 6 is next after the separate Stage 5 commit.
+implemented sequentially with offline synthetic fixtures. Stage 4 and
+Stage 5 have passed their primary fixture gates and independent SolUltra
+verification. The bounded Stage 6 four-route local portal passed its offline
+checks and was explicitly accepted with browser automation waived. Bounded
+offline Stage 7 is authorized; Stage 8 executable work remains closed.
 
 ## 2. Capacity and operating model
 
@@ -68,7 +69,7 @@ T0  Freeze typed tool core, schema generator, and compatibility decision
  | +-- Research/statistics tools -+--> G5 Tool-platform exit gate
  | +-- HTTP/contract parity -------+
  |
-G6  Portal and research surfaces (next after the separate Stage 5 commit)
+G6  Bounded four-route portal primary gate passed; independent verification/browser QA pending
  |
 G7  Manual-first scheduling and operational readiness
  |
@@ -197,20 +198,36 @@ The integrated primary gate covers all 57 generated contracts, direct/HTTP
 parity, strict bounded receipts, typed composability, honest
 `not_established` results, and total store-mutation neutrality. Evidence is
 recorded in [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md). The independent
-verifier closed `G5`; Stage 6 is the next executable lane after Stage 5 is
-committed separately.
+verifier closed `G5`. The bounded Stage 6 portal primary gate has since passed;
+its offline independent checks passed and the unavailable browser-automation
+check was explicitly waived by the user.
 
 ### Wave 6 — Portal and research surfaces
 
-After stable read contracts and shared navigation exist, parallel lanes can own:
+Status: **Bounded four-route local portal accepted; browser automation
+explicitly waived by the user.**
 
-- Overview, GDP Vintages, Tables, and Agent Tools;
-- charts and shared indicator presentation; and
-- algorithms and walk-forward reports, only after causal timing and cost
-  contracts pass their gate.
+The Stage 6 primary integration owner froze the canonical registry
+`2.4.0`/`1.2.0` dashboard exposures before writers worked. The completed
+bounded portal has four local-private routes: Overview (`/`), GDP Vintages
+(`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
+(`/agent-tools`). Its loopback services use the existing explicit, read-only
+four-store boundary; they do not create dashboard-specific data semantics.
 
-The portal cannot define new data semantics or open writable database
-connections.
+The primary gate covers the shared shell, local pinned assets, registry-derived
+navigation and allowlists, bounded GDP and table read services, the 57-tool
+Agent Tools surface, source/restored no-write fingerprints, deterministic
+two-root evidence, and zero runtime network assets. Independent verification
+re-derived and tested those claims. The browser-control runtime could not
+attach; the user explicitly accepted that external limitation.
+
+Charts and shared indicator presentation, algorithms, and walk-forward reports
+are not part of this bounded implementation. They remain closed until their
+causal timing, cost, canonical-backend, golden-vector, and formal acceptance
+requirements are explicitly authorized and met. This portal primary gate does
+not itself define scheduling semantics. The user separately authorized bounded
+offline Stage 7 implementation. Stage 8 exports/Atlas, hosting, promotion,
+live providers, and destructive operations remain closed.
 
 ### Wave 7 — Scheduling and operations
 

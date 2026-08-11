@@ -1,16 +1,23 @@
 # Quant Data Infrastructure
 
 This repository is a clean rebuild of a personal quant-data platform. The
-current executable scope includes the bounded offline Stage 5 composable tool
-platform. Its primary fixture gate and independent SolUltra verification have
-passed. It extends the independently verified Stage 4 company,
-news, and options restoration and the independently verified Stage 2 and Stage
-3 foundations of four explicitly routed SQLite stores, reviewed synthetic
+current executable scope includes the bounded offline Stage 6 local portal.
+Its offline executable verification passed, and the user explicitly accepted
+the unavailable browser-automation check before authorizing this Stage 6
+commit. It extends the independently verified Stage 5 composable tool
+platform, the independently verified Stage 4 company, news,
+and options restoration, and the independently verified Stage 2 and Stage 3
+four-store foundations of explicitly routed SQLite stores, reviewed synthetic
 fixtures, a shared artifact/snapshot/quality/run-audit control plane,
 point-in-time reads, read-only health, and WAL-safe online backup and restore.
-It has no live providers or network collection, scheduler jobs or installation,
-exports, Atlas, promotion, hosting, credentials, destructive storage
-operations, dashboard UI, default database fallback, or enabled live tools.
+
+The implemented portal is local-only and contains four fixed routes:
+Overview (`/`), GDP Vintages (`/gdp-vintages`), Tables
+(`/table-inspector`), and Agent Tools (`/agent-tools`). It has no live
+providers or network collection, scheduler jobs or installation, exports,
+Atlas, promotion, hosting, credentials, destructive storage operations,
+default database fallback, or enabled live tools. Charts, indicators,
+algorithms, walk-forward/backtest surfaces, and Atlas remain closed.
 
 The target design and sequencing are documented in [ARCHITECTURE.md](ARCHITECTURE.md),
 [ROADMAP.md](ROADMAP.md), and the [rebuild documentation index](docs/rebuild/README.md).
@@ -26,7 +33,9 @@ Stage 3 primary-gate receipts are recorded in the
 primary-gate receipts and independent-verifier result are recorded in the
 [Stage 4 acceptance evidence](docs/rebuild/STAGE4_EVIDENCE.md). The Stage 5
 typed-tool primary gate is recorded in the
-[Stage 5 acceptance evidence](docs/rebuild/STAGE5_EVIDENCE.md).
+[Stage 5 acceptance evidence](docs/rebuild/STAGE5_EVIDENCE.md). The bounded
+Stage 6 receipts and accepted verification state are recorded in
+the [Stage 6 acceptance evidence](docs/rebuild/STAGE6_EVIDENCE.md).
 
 ## Validate Stage 1
 
@@ -140,19 +149,50 @@ PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
 The gate rebuilds Stage 4, validates all 57 generated contracts, compares
 direct and HTTP calls over source and restored stores, and proves reads remain
 mutation-neutral. It refuses nonempty roots and emits one strict-JSON evidence
-line. The primary gate and independent SolUltra verification passed. Stage 6
-is the next authorized executable stage after this verified Stage 5 snapshot
-is committed separately.
+line. The primary gate and independent SolUltra verification passed. The
+bounded Stage 6 portal offline gate has since passed; the user explicitly
+accepted the unavailable automated browser check.
+
+## Validate Stage 6
+
+Run the deterministic Stage 6 gate with two explicit empty work roots:
+
+```bash
+cd /home/volatility/Python_Projects/Quant_Data_Infra
+PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
+  --stage stage6 \
+  --project-root /home/volatility/Python_Projects/Quant_Data_Infra \
+  --store-root <empty-work-root-1> \
+  --second-store-root <empty-work-root-2>
+```
+
+The gate rebuilds the frozen Stage 5 compatibility cohort under each root,
+projects the canonical Stage 6 registry, and exercises the four fixed pages,
+registered JSON APIs, and bundled local assets over both source and restored
+stores. It refuses nonempty roots, proves read-only store fingerprints, checks
+for zero runtime network assets, and emits deterministic strict-JSON evidence.
+The bounded offline gate passed. The user explicitly accepted the unavailable
+automated browser check and authorized bounded offline Stage 7 work. Stage 8
+remains closed.
 
 ## Current public boundary
 
-Registry revision `2.3.0` exposes all 57 reviewed public names through generated
+The canonical registry is revision `2.4.0`, schema `1.2.0`. It declares
+four local-private dashboard exposures: `stage1.overview`,
+`stage6.gdp_vintages`, `stage6.table_inspector`, and
+`stage6.agent_tools`. Their fixed routes, API routes, bounded filters,
+server-owned sort fields, pagination, relations, and tool dependencies are
+validated from the registry. The frozen Stage 5 rebuild uses its historical
+`2.3.0`/`1.1.0` registry projection so its approved deterministic evidence
+remains reproducible.
+
+The platform still exposes all 57 reviewed public tool names through generated
 schemas and closed read-only routing. The original `macro.get_series` and
 `timeseries.describe` contracts retain their Stage 1 projection; the other 55
 are explicit forward reconstructions. Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all
 four paths. Public callers cannot select a database path, submit SQL, or
-initialize a store. The registry still declares no jobs or exports. Stage 5 is
-independently verified; Stage 6 is the next authorized executable stage after
-the separate Stage 5 commit.
+initialize a store. The canonical registry declares no jobs or exports.
+Stage 6's offline executable checks passed; its unavailable automated browser
+check was explicitly accepted by the user.

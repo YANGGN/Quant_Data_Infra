@@ -2,8 +2,10 @@
 
 Status: Accepted
 
-Implementation status: Not implemented; this contract governs Stage 6 and
-Stage 8 UI work
+Implementation status: The bounded Stage 6 four-route local portal passed its
+offline executable checks on 2026-08-10. The user explicitly accepted the
+unavailable browser-automation check. Chart and algorithm/backtest work remains
+deferred, and Stage 8 Atlas work remains closed.
 
 Reference reviewed: 2026-08-09 - [ThesisTrade](https://www.thesistrade.ai/)
 
@@ -24,6 +26,27 @@ scripts from the reference site at runtime.
 The local dashboard introduces the shared tokens and application shell in
 Stage 6. Atlas consumes the same tokens and interaction vocabulary in Stage 8.
 Their data boundaries remain different even though they look like one product.
+
+### 1.1 Bounded Stage 6 implementation and asset provenance
+
+The implemented local portal has four fixed routes only: Overview (`/`), GDP
+Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
+(`/agent-tools`). It uses its own Quant Data Infrastructure wording, navigation,
+and information architecture. ThesisTrade is a visual direction reference only;
+nothing from its logo, text, screenshots, source, or runtime assets is copied.
+
+Inter is locally bundled from the
+[official Inter 4.1 release](https://github.com/rsms/inter/releases/tag/v4.1)
+under the SIL Open Font License 1.1. The production asset is
+[inter-variable.woff2](../../quant_data/dashboard/static/inter-variable.woff2)
+with SHA-256
+`693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3`.
+Its included license text is
+[INTER-OFL-1.1.txt](../../quant_data/dashboard/licenses/INTER-OFL-1.1.txt)
+with SHA-256
+`262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a`.
+The CSS and JavaScript are local assets too; the browser makes no reference-site
+or remote-font request at runtime.
 
 ## 2. Desired feel
 
@@ -77,6 +100,8 @@ theme to build one.
 - Primary family: `Inter` at weights 400, 500, 600, and 700.
 - Runtime delivery: self-hosted or bundled with the application; no Google
   Fonts or other external font request is allowed from the local UI or Atlas.
+  The bounded Stage 6 portal pins its local Inter 4.1 variable WOFF2 and OFL
+  license in Section 1.1.
 - Fallback stack: `-apple-system`, `BlinkMacSystemFont`, `Segoe UI`, and
   `sans-serif`.
 - Body text: 14-16 px with a comfortable 1.45-1.6 line height.
@@ -177,7 +202,7 @@ or boundary-specific destinations are omitted rather than shown as broken.
 
 | Concern | Stage 6 local dashboard | Stage 8 Quant Data Atlas |
 | --- | --- | --- |
-| Shared style | Establishes tokens, typography, navigation, panels, tables, charts, and state treatments | Reuses the same tokens and component language |
+| Shared style | Establishes tokens, typography, navigation, panels, tables, and state treatments; the bounded implementation does not yet implement charts | Reuses the same tokens and component language when Stage 8 is authorized |
 | Primary feel | Live private research and operational inspection workspace | Curated private analytical publication |
 | Data source | Fixed read services over query-only operational stores | Versioned static manifest and snapshot chunks only |
 | Freshness treatment | Prominent live-store health, availability cutoff, and per-query receipts | Prominent snapshot identity, generation time, freshness, and source revision |
@@ -232,6 +257,20 @@ Stage 6 UI work is not complete until:
 6. browser network tests prove that no remote font or reference-site asset is
    requested; and
 7. the existing strict read-only and all-store mutation-fingerprint gates pass.
+
+### 9.1 Current bounded Stage 6 evidence state
+
+The Stage 6 primary gate passed 227 dependency-free tests in 149.114 seconds
+and two clean-root integration checks. It proves four local pages, their fixed
+APIs and local assets, read-only source/restored store fingerprints, loopback
+security headers, zero jobs/exports, and zero runtime network assets. The
+evidence pin and exact asset/portal pins are recorded in
+[Stage 6 acceptance evidence](STAGE6_EVIDENCE.md).
+
+This is not a full UI acceptance claim: independent SolUltra verification and
+in-app browser QA are pending because the current browser-control runtime
+failed. Visual-regression, responsive, keyboard, reduced-motion, contrast,
+200% zoom, and all formal chart/algorithm/backtest evidence remain open.
 
 Stage 8 Atlas UI work additionally requires:
 

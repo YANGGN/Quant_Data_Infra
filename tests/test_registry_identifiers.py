@@ -12,6 +12,7 @@ from quant_data.registry import (
     stage2_registry_profile,
     stage3_registry_profile,
     stage4_registry_profile,
+    stage5_registry_profile,
 )
 
 
@@ -90,10 +91,41 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(registry.registry_version, "2.3.0")
+        self.assertEqual(registry.schema_version, "1.2.0")
+        self.assertEqual(registry.registry_version, "2.4.0")
+        self.assertEqual(
+            tuple(item["id"] for item in registry.dashboard),
+            ("stage1.overview", "stage6.gdp_vintages",
+             "stage6.table_inspector", "stage6.agent_tools"),
+        )
         self.assertEqual(len(registry.migrations), 30)
         self.assertEqual(len(registry.datasets), 33)
         self.assertEqual(len(registry.collectors), 19)
+        stage5 = stage5_registry_profile(registry)
+        self.assertEqual(stage5.schema_version, "1.1.0")
+        self.assertEqual(stage5.registry_version, "2.3.0")
+        self.assertEqual(
+            stage5.source_sha256,
+            "56c2e8c97623c23596c92b177ee5e0aa89ecf164c37094216142cc82fc78cd9a",
+        )
+        self.assertEqual(len(stage5.dashboard), 1)
+        self.assertEqual(stage5.dashboard[0]["id"], "stage1.overview")
+        self.assertEqual(
+            stage5.dashboard[0]["api_routes"],
+            [
+                "/api/health",
+                "/api/price-series",
+                "/api/agent-tools",
+                "/api/agent-tools/call",
+            ],
+        )
+        self.assertFalse(
+            any(
+                dashboard_id.startswith("stage6.")
+                for dataset in stage5.datasets
+                for dashboard_id in dataset.dashboard_ids
+            )
+        )
         stage4 = stage4_registry_profile(registry)
         self.assertEqual(stage4.registry_version, "2.2.0")
         self.assertEqual(len(stage4.migrations), 30)
@@ -116,6 +148,39 @@ class RegistryIdentifierTests(unittest.TestCase):
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
         self.assertEqual([tool["id"] for tool in registry.tools], list(PUBLIC_TOOL_NAMES))
         self.assertEqual([tool["id"] for tool in stage4.tools], ["macro.get_series", "timeseries.describe"])
+
+
+    def test_dashboard_contract_rejects_unsafe_or_inconsistent_declarations(self) -> None:
+        cases = (
+            lambda raw: raw["dashboard"][1].__setitem__("route", "/"),
+            lambda raw: raw["dashboard"][1].__setitem__(
+                "api_routes", ["/api/health"]
+            ),
+            lambda raw: raw["dashboard"][2]["relations"].__setitem__(
+                0, "sqlite_master"
+            ),
+            lambda raw: raw["dashboard"][1]["filters"].__setitem__(
+                "additionalProperties", True
+            ),
+            lambda raw: raw["dashboard"][1]["filters"]["properties"].__setitem__(
+                "sql", {"type": "string"}
+            ),
+            lambda raw: raw["dashboard"][2]["pagination"].__setitem__(
+                "max_limit", 101
+            ),
+            lambda raw: raw["dashboard"][2]["filters"]["properties"].pop(
+                "search"
+            ),
+            lambda raw: raw["dashboard"][2]["sort_fields"].clear(),
+            lambda raw: raw["dashboard"][1]["pagination"].__setitem__(
+                "default_limit", 24
+            ),
+            lambda raw: raw["datasets"][0]["dashboard_ids"].clear(),
+        )
+        for index, mutate in enumerate(cases):
+            with self.subTest(case=index):
+                with self.assertRaises(RegistryError):
+                    self._load_mutation(mutate)
 
     def test_hostile_declaration_ids_fail_after_reciprocal_rewrites(self) -> None:
         cases = (

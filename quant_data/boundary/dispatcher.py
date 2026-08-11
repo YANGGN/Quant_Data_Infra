@@ -119,7 +119,7 @@ class ToolDispatcher:
         self._names = tuple(tool["id"] for tool in registry.tools)
         if self._names not in (STAGE1_TOOL_NAMES, PUBLIC_TOOL_NAMES):
             raise ValidationError("Registry does not expose a reviewed tool inventory")
-        self._registry_sha256 = hashlib.sha256(
+        self._registry_sha256 = registry.source_sha256 or hashlib.sha256(
             registry.source_path.read_bytes()
         ).hexdigest()
 

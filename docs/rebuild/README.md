@@ -14,8 +14,10 @@ Stage 3 also passed independent verification. The bounded Stage 4 company,
 news, and options primary fixture gate and independent SolUltra verification
 passed on 2026-08-10. The bounded Stage 5 composable tool-platform primary
 fixture gate and independent SolUltra verification also passed on 2026-08-10.
-Later documented behavior is not considered implemented until separately
-authorized executable evidence passes.
+The bounded Stage 6 four-route local portal was accepted on 2026-08-10 after
+offline verification and an explicit user waiver for unavailable browser
+automation. Later documented behavior is not considered implemented until
+separately authorized executable evidence passes.
 
 Two user decisions narrow the work:
 
@@ -23,9 +25,11 @@ Two user decisions narrow the work:
   baseline can be created when implementation begins.
 - A dedicated provider-rights governance subsystem is out of scope.
 
-Stages 4 through 6 are authorized only as sequential, offline synthetic-fixture
-work. Stages 4 and 5 are independently verified. Stage 6 is the next authorized
-executable stage after the separate verified Stage 5 commit.
+Stages 4 through 6 were implemented as sequential, offline synthetic-fixture
+work. Stages 4 and 5 are independently verified. The bounded Stage 6 four-route
+portal passed its offline checks and was explicitly accepted with browser
+automation waived. Bounded offline Stage 7 is authorized; Stage 8 remains
+closed.
 
 ## 2. Document map
 
@@ -41,6 +45,7 @@ executable stage after the separate verified Stage 5 commit.
 - [Stage 3 acceptance evidence](STAGE3_EVIDENCE.md)
 - [Stage 4 acceptance evidence](STAGE4_EVIDENCE.md)
 - [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md)
+- [Stage 6 acceptance evidence](STAGE6_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -93,12 +98,12 @@ either history or semantics.
 
 The current planning package is `Accepted`. Stage 1 and the offline Stage 2
 foundation have recorded fixture-validated evidence, and Stage 2 has passed
-independent verification. The bounded offline Stage 3 scope has passed its
-primary fixture gate and independent SolUltra verification. The bounded Stage
-4 scope has passed its primary fixture gate and independent SolUltra
-verification. The bounded Stage 5 scope has passed its primary fixture gate
-and independent SolUltra verification. Only a sequentially authorized roadmap
-stage may be implemented; Stage 6 is next after the separate Stage 5 commit.
+independent verification. The bounded offline Stage 3, Stage 4, and Stage 5
+scopes have passed their primary fixture gates and independent SolUltra
+verification. The bounded Stage 6 four-route portal has passed its primary
+fixture gate and offline independent checks; its browser-automation limitation
+was explicitly accepted by the user. Only a sequentially authorized roadmap
+stage may be implemented. Bounded offline Stage 7 is authorized; Stage 8 is not.
 
 ## 5. Shared terminology
 

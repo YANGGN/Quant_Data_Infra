@@ -4,7 +4,7 @@ Status: Accepted
 
 ## Status and scope
 
-This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. The bounded offline Stage 4 company, news, and options restoration is fixture-validated and independently verified. The bounded offline Stage 5 composable tool platform is fixture-validated and independently verified. Stages 4 through 6 are authorized only sequentially with offline synthetic fixtures; Stage 6 is the next authorized executable stage after the verified Stage 5 snapshot is committed separately. A contract is implemented only after its executable acceptance evidence passes. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
+This document defines the accepted target architecture for the clean rebuild described in the [rebuild plan](plan.md). The offline Stage 1 vertical slice, Stage 2 four-store foundation, and bounded offline Stage 3 market and macro restoration are implemented and fixture-validated; Stages 2 and 3 have also passed independent verification. The bounded offline Stage 4 company, news, and options restoration and the bounded offline Stage 5 composable tool platform are fixture-validated and independently verified. The bounded offline Stage 6 four-route local portal passed its executable offline checks and was accepted on 2026-08-10 with an explicit user waiver for unavailable browser automation. Bounded offline Stage 7 is authorized; Stage 8 remains closed. A contract is implemented only after its executable acceptance evidence passes or an explicit user acceptance records a remaining external verification limitation. Later recovery evidence in Sections 18–20 of the plan takes precedence over earlier proposals.
 
 The principal decisions are recorded in:
 
@@ -158,17 +158,19 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration; the current Stage 5
-revision is `2.3.0` with schema version `1.1.0`, 30 fixture-validated
+The system registry is declarative source configuration. The canonical Stage 6
+revision is `2.4.0` with schema version `1.2.0`, 30 fixture-validated
 migrations, 33 datasets, 19 collectors, all 57 reviewed public tool names,
-and no jobs or exports. The original two Stage 1 contracts remain an exact
-historical projection; the other 55 names are explicit forward
-reconstructions, and the live intraday capability remains disabled offline.
-Historical Stage 2 through Stage 4 projections remain fixed so their evidence
-can be rebuilt without rewriting history. The store-local dataset registry is
-runtime evidence. Neither replaces the other. Startup and health checks
-reconcile them and fail closed on missing ownership, an unexpected migration
-state, or a dataset mapped to the wrong physical store.
+four local-private dashboard exposures, and no jobs or exports. The frozen
+Stage 5 compatibility projection remains `2.3.0`/`1.1.0` so its approved
+evidence can be rebuilt without rewriting history. The original two Stage 1
+tool contracts remain an exact historical projection; the other 55 names are
+explicit forward reconstructions, and the live intraday capability remains
+disabled offline. Historical Stage 2 through Stage 4 projections remain fixed.
+The store-local dataset registry is runtime evidence. Neither replaces the
+other. Startup and health checks reconcile them and fail closed on missing
+ownership, an unexpected migration state, or a dataset mapped to the wrong
+physical store.
 
 The physical dataset-layer contract is exactly `evidence`, `canonical`, and
 `derived`. The Stage 2 forward-preserving table rebuild aligns the SQLite
@@ -277,14 +279,19 @@ Domain validation includes OHLC consistency, nonnegative volume, duplicate natur
 
 Dashboard and tool connections use SQLite URI read-only mode, set PRAGMA query_only = ON, use bound parameters, and route through fixed queries or service functions. Caller input never selects SQL, a table outside an allowlist, or a database path.
 
-At the current Stage 5 boundary, all 57 reviewed public tool names are
-fixture-validated through registry-derived typed schemas and closed read-only
-routes. The two Stage 1 names retain their recovered fixture-validated
-projections; the other 55 are explicit `forward_reconstructed_v1` contracts,
-and `macro.get_intraday_releases` remains capability-disabled offline. No jobs
-or exports are validated. Read-only health reconciles every explicit store
-against the registry without initializing or mutating a store. It compares
-exact reviewed `sqlite_master` schema SQL, not relation and trigger names alone.
+At the current Stage 6 boundary, the four fixed local portal routes and their
+registered APIs use the same bounded, read-only services as the public tool
+platform. The canonical registry `2.4.0`/`1.2.0` governs their datasets,
+relations, filters, sort fields, pagination, and API routes; callers cannot
+supply a relation, SQL, path, or writable connection. All 57 reviewed public
+tool names remain fixture-validated through registry-derived typed schemas and
+closed read-only routes. The two Stage 1 names retain their recovered
+fixture-validated projections; the other 55 are explicit
+`forward_reconstructed_v1` contracts, and `macro.get_intraday_releases` remains
+capability-disabled offline. No jobs or exports are validated. Read-only health
+reconciles every explicit store against the registry without initializing or
+mutating a store. It compares exact reviewed `sqlite_master` schema SQL, not
+relation and trigger names alone.
 
 Tool contracts are versioned, deterministic, strict JSON:
 
@@ -306,9 +313,18 @@ and semantic financial color. Stage 6 establishes the token and component
 system; Stage 8 reuses it. Shared presentation never permits shared data access
 or weakens the read-only boundaries below.
 
+The bounded Stage 6 primary gate implements only the local Overview, GDP
+Vintages, Tables, and Agent Tools routes. It serves pinned local CSS,
+JavaScript, Inter font, and OFL license assets; it does not load ThesisTrade or
+other remote runtime assets. Every route uses explicit read-only four-store
+routing and fixed allowlists. Charts, indicator research, algorithms,
+walk-forward/backtest reports, Atlas, hosting, exports, and promotion are not
+implemented by this portal. Offline independent checks passed; the unavailable
+browser-automation check was explicitly accepted by the user.
+
 | Concern | Local dashboard | Quant Data Atlas |
 | --- | --- | --- |
-| Purpose | Inspect current operational stores, ingestion state, tools, charts, and research | Explore a curated analytical snapshot |
+| Purpose | Inspect current operational stores and tools; charts and research surfaces remain gated | Explore a curated analytical snapshot |
 | Data access | Fixed live read services over read-only SQLite connections | Static manifest and chunked export files |
 | Write access | None | None to operational stores |
 | Consistency | Per-query store receipts and explicit availability cutoff | Declared multi-store snapshot cohort; never a falsely unified database as-of |
@@ -330,13 +346,14 @@ The exporter must never recursively clean an empty, unresolved, broad, repositor
 
 ## Deployment modes
 
-The implemented boundary remains offline only. Stage 5 rebuilds the reviewed
-Stage 1 through Stage 4 synthetic fixture scopes under explicit temporary
-roots and exercises the registered read-only tool platform; it does not fetch
-live providers or use a network, install or run scheduler jobs, create exports
-or Atlas snapshots, promote data, perform destructive storage operations, add
-a dashboard implementation, host a UI, or add CUSIP-level SOMA storage or a
-source path.
+The implemented boundary remains offline only. Stage 6 rebuilds the reviewed
+Stage 1 through Stage 5 synthetic fixture scopes under explicit temporary
+roots, then exercises the four-route local portal through registered read-only
+services over source and restored stores. It does not fetch live providers or
+use a runtime network, install or run scheduler jobs, create exports or Atlas
+snapshots, promote data, perform destructive storage operations, host a UI, or
+add CUSIP-level SOMA storage or a source path. Charts, indicators, algorithms,
+walk-forward/backtest reports, and Atlas remain closed.
 
 ### Isolated development and test
 

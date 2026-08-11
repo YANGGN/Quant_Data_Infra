@@ -17,7 +17,12 @@ from quant_data.errors import (
     ValidationError,
 )
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage4_registry_profile
+from quant_data.registry import (
+    PUBLIC_TOOL_NAMES,
+    load_registry,
+    stage4_registry_profile,
+    stage5_registry_profile,
+)
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
 from quant_data.tool_platform.catalog import FAMILY_COUNTS
@@ -60,8 +65,12 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
-        self.assertEqual(self.registry.schema_version, "1.1.0")
-        self.assertEqual(self.registry.registry_version, "2.3.0")
+        self.assertEqual(self.registry.schema_version, "1.2.0")
+        self.assertEqual(self.registry.registry_version, "2.4.0")
+        stage5 = stage5_registry_profile(self.registry)
+        self.assertEqual(stage5.schema_version, "1.1.0")
+        self.assertEqual(stage5.registry_version, "2.3.0")
+        self.assertEqual([item["id"] for item in stage5.dashboard], ["stage1.overview"])
         self.assertEqual(tuple(item["id"] for item in self.registry.tools), PUBLIC_TOOL_NAMES)
         counts = {name: 0 for name in FAMILY_COUNTS}
         for declaration in self.registry.tools:
