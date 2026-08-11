@@ -1,11 +1,16 @@
 # Quant Data Infrastructure
 
 This repository is a clean rebuild of a personal quant-data platform. The
-current executable scope includes the bounded offline Stage 7 manual job
-rehearsal over the accepted Stage 6 local portal and the independently verified
-Stage 1 through Stage 5 foundations. Stage 7 uses only reviewed synthetic
-fixtures and explicit temporary roots. Its primary fixture gate and independent
-SolUltra verification passed on 2026-08-11.
+Stages 1 through 5 are independently verified; the bounded Stage 6 portal is
+accepted; and the bounded Stage 7 manual rehearsal is independently verified.
+Stage 7 uses only reviewed synthetic fixtures and explicit temporary roots. Its
+primary fixture gate and independent SolUltra verification passed on
+2026-08-11.
+
+The bounded offline Stage 8 implementation adds one fixture-only static JSON
+Atlas snapshot. It is a deliberate forward reconstruction, not a claim of
+recovered historical Atlas or 13-dataset parity. Its primary offline fixture
+gate and independent offline verification passed on 2026-08-11; browser verification remains pending.
 
 The portal remains local-only with four fixed routes: Overview (`/`), GDP
 Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
@@ -15,7 +20,16 @@ complete ordered physical-store lock sessions, bounded retries and active
 timeouts, private receipt-last evidence, and backup/restore rehearsal. It adds
 no live provider or runtime network access, scheduler installation/start,
 exports, Atlas, promotion, hosting, credentials, default database fallback, or
-destructive operations. Stage 8 remains closed.
+destructive operations.
+
+The authorized Stage 8 scope is one manual, fixture-only JSON Atlas snapshot
+built from explicit synthetic store roots and query-only SQLite online-backup
+copies. It validates a bounded cohort into an immutable derived revision with a
+private receipt and atomic `current` pointer, but it cannot promote operational
+stores. It neither adopts Parquet or DuckDB nor hosts/deploys Atlas; no live
+provider, scheduler, default-path, or destructive behavior is authorized. Its
+primary fixture gate and independent offline verification passed. Browser
+verification remains pending, so the formal Stage 8 exit gate is not closed.
 
 The target design and sequencing are documented in [ARCHITECTURE.md](ARCHITECTURE.md),
 [ROADMAP.md](ROADMAP.md), and the [rebuild documentation index](docs/rebuild/README.md).
@@ -36,6 +50,8 @@ Stage 6 receipts and accepted verification state are recorded in
 the [Stage 6 acceptance evidence](docs/rebuild/STAGE6_EVIDENCE.md). The bounded
 Stage 7 acceptance and independent-verification receipts are recorded in the
 [Stage 7 acceptance evidence](docs/rebuild/STAGE7_EVIDENCE.md).
+The Stage 8 offline evidence and pending browser status are tracked in the
+[Stage 8 evidence](docs/rebuild/STAGE8_EVIDENCE.md).
 
 ## Validate Stage 1
 
@@ -173,7 +189,8 @@ stores. It refuses nonempty roots, proves read-only store fingerprints, checks
 for zero runtime network assets, and emits deterministic strict-JSON evidence.
 The bounded offline gate passed. The user explicitly accepted the unavailable
 automated browser check and authorized bounded offline Stage 7 work. Stage 8
-remains closed.
+is implemented under its own bounded offline contract and its primary fixture
+gate and independent offline verification passed; browser verification remains pending.
 
 ## Validate Stage 7
 
@@ -198,13 +215,39 @@ stores; it is not a live-provider or scheduler command. The primary Stage 7
 gate passed 277 offline tests, and the independent verifier reran all 277 tests
 in 170.731 seconds with no findings.
 
+## Validate Stage 8
+
+Run the deterministic Stage 8 gate with two explicit empty work roots:
+
+```bash
+cd /home/volatility/Python_Projects/Quant_Data_Infra
+PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
+  --stage stage8 \
+  --project-root /home/volatility/Python_Projects/Quant_Data_Infra \
+  --store-root <empty-work-root-1> \
+  --second-store-root <empty-work-root-2>
+```
+
+The gate rebuilds the frozen Stage 7 cohort, captures four query-only SQLite
+copies, and publishes one immutable fixture-only JSON snapshot plus the
+dependency-free static Atlas. The primary gate passed 319 offline tests and
+the two-root CLI emitted evidence SHA
+`e1151f92176a6b5a9d57d18a215497baab7405187fa798537cd947be1dd80a3c`.
+Independent offline verification passed. The in-app browser client failed
+before launch, so browser observations and the formal Stage 8 exit gate remain
+pending; no alternate browser automation was substituted.
+
 ## Current public boundary
 
-The canonical registry is revision `2.5.0`, schema `1.3.0`. It preserves
-the four local-private Stage 6 dashboard exposures and declares eight ordered,
-disabled `manual_fixture_only` jobs with derived store sets and zero exports.
-The frozen Stage 6 rebuild uses its historical `2.4.0`/`1.2.0`, jobs-empty
-projection; the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
+The canonical registry is revision `2.6.0`, schema `1.4.0`. It preserves the
+four local-private Stage 6 dashboard exposures and eight ordered, disabled
+`manual_fixture_only` jobs. It declares exactly one fixture-only, manual JSON
+export, `atlas.fixture_snapshot`, with reciprocal declarations on
+`fixture.market.daily_prices`, `fixture.macro.gdp_vintages`,
+`fixture.company.issuers`, and `fixture.news.items`.
+The frozen Stage 7 rebuild keeps its historical `2.5.0`/`1.3.0`, zero-export
+projection; the frozen Stage 6 rebuild uses `2.4.0`/`1.2.0`, jobs-empty
+projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
 deterministic evidence remains reproducible.
 
 The platform still exposes all 57 reviewed public tool names through generated
@@ -214,7 +257,9 @@ are explicit forward reconstructions. Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all
 four paths. Public callers cannot select a database path, submit SQL, or
-initialize a store. Stage 7 jobs remain disabled and manual-fixture-only; the
-canonical registry declares zero exports. Stage 6's browser-automation
-limitation was explicitly accepted by the user. Stage 7 independent
-verification passed on 2026-08-11. Stage 8 remains closed.
+initialize a store. Stage 7 jobs remain disabled and manual-fixture-only in
+their historical projection. The Stage 8 export has no public path, SQL,
+relation, or connection argument and no live-store/UI connection. Stage 6's
+browser-automation limitation was explicitly accepted by the user; Stage 7
+independent verification passed on 2026-08-11. Stage 8's primary offline gate and
+independent verification passed on 2026-08-11; browser verification remains pending.

@@ -11,6 +11,7 @@ from quant_data.registry import (
     JobDeclaration,
     JobStepDeclaration,
     load_registry,
+    stage7_registry_profile,
 )
 
 
@@ -95,11 +96,12 @@ class Stage7RegistryTests(unittest.TestCase):
 
     def test_canonical_manual_fixture_catalog_is_exact(self) -> None:
         before = hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest()
-        registry = load_registry(
+        canonical = load_registry(
             REGISTRY_PATH,
             project_root=PROJECT_ROOT,
             environment={},
         )
+        registry = stage7_registry_profile(canonical)
         self.assertEqual(registry.schema_version, "1.3.0")
         self.assertEqual(registry.registry_version, "2.5.0")
         self.assertEqual(tuple(job.id for job in registry.jobs), JOB_IDS)

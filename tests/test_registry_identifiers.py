@@ -14,6 +14,7 @@ from quant_data.registry import (
     stage4_registry_profile,
     stage5_registry_profile,
     stage6_registry_profile,
+    stage7_registry_profile,
 )
 
 
@@ -92,8 +93,9 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(registry.schema_version, "1.3.0")
-        self.assertEqual(registry.registry_version, "2.5.0")
+        self.assertEqual(registry.schema_version, "1.4.0")
+        self.assertEqual(registry.registry_version, "2.6.0")
+        self.assertEqual(tuple(item.id for item in registry.exports), ("atlas.fixture_snapshot",))
         self.assertEqual(
             tuple(item["id"] for item in registry.dashboard),
             ("stage1.overview", "stage6.gdp_vintages",
@@ -134,7 +136,16 @@ class RegistryIdentifierTests(unittest.TestCase):
         self.assertEqual(stage6.schema_version, "1.2.0")
         self.assertEqual(stage6.registry_version, "2.4.0")
         self.assertEqual(stage6.jobs, ())
+        self.assertEqual(stage6.exports, ())
         self.assertEqual(stage6.raw["jobs"], [])
+        stage7 = stage7_registry_profile(registry)
+        self.assertEqual(stage7.schema_version, "1.3.0")
+        self.assertEqual(stage7.registry_version, "2.5.0")
+        self.assertEqual(stage7.exports, ())
+        self.assertEqual(
+            stage7.source_sha256,
+            "643f4fd9a21f2b8b2701b0a408cddb63ae198175bc2cd61ce1ed637a9419a52c",
+        )
         stage4 = stage4_registry_profile(registry)
         self.assertEqual(stage4.registry_version, "2.2.0")
         self.assertEqual(len(stage4.migrations), 30)

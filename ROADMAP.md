@@ -30,8 +30,9 @@ The following decisions apply to every stage:
   independently verified. The bounded offline Stage 6 four-route local portal
   passed its executable checks and was explicitly accepted with browser
   automation waived. The bounded offline Stage 7 manual fixture rehearsal has
-  passed its primary gate and independent SolUltra verification.
-  Stage 8 remains closed.
+  passed its primary gate and independent SolUltra verification. The bounded
+  Stage 8 JSON Atlas/export profile passed its primary offline fixture gate;
+  independent verification also passed; browser verification remains pending.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -58,8 +59,8 @@ The following decisions apply to every stage:
 | 4 | Company, news, and options restoration | No; synthetic fixtures only | Independently verified offline evidence; Stage 5 is next |
 | 5 | Composable 57-tool platform | No live access; intraday remains disabled | Independently verified offline evidence; bounded Stage 6 portal primary gate passed |
 | 6 | Bounded local portal (four fixed routes) | No mutation through UI | Accepted offline evidence with explicit browser-automation waiver |
-| 7 | Manual fixture job rehearsal and operational readiness | No live access; jobs disabled | Independently verified offline evidence; Stage 8 remains closed |
-| 8 | Derived analytical exports and Atlas | Snapshot reads only | Atomic, reproducible publication passes |
+| 7 | Manual fixture job rehearsal and operational readiness | No live access; jobs disabled | Independently verified offline evidence; bounded Stage 8 is separately authorized |
+| 8 | One fixture-only JSON snapshot and static Atlas | Explicit SQLite online-backup copies only | Independently verified offline; browser gate pending |
 | 9 | Controlled repopulation and promotion | Yes, explicitly approved | New stores pass integrity and recovery drills |
 
 Stages are ordered by dependency, not calendar duration. A later stage may be
@@ -437,38 +438,66 @@ evidence safety, two-root equality, and nonempty-root refusal.
 No live provider, runtime network, scheduler installation/start/update/removal,
 export, promotion, hosting, Atlas, default path, or destructive operation is
 authorized or implemented. Recovered external task definitions, calendars,
-identity, and timezone remain unresolved; the eight jobs stay disabled. Stage
-8 remains closed and requires separate authorization.
+identity, and timezone remain unresolved; the eight jobs stay disabled. The
+bounded Stage 8 profile is separately authorized, but it does not authorize
+live providers, scheduler installation, hosting, or operational promotion.
 
-## 12. Stage 8 — Add derived analytical exports and Atlas
+## 12. Stage 8 — Derived JSON snapshot and Atlas
 
-The contract is defined in
-[ANALYTICAL_EXPORTS.md](docs/rebuild/ANALYTICAL_EXPORTS.md).
+Status: **Implemented — primary offline fixture and independent SolUltra
+verification passed. Browser verification is pending.** The contract is defined in
+[ANALYTICAL_EXPORTS.md](docs/rebuild/ANALYTICAL_EXPORTS.md); its pending evidence
+record is [STAGE8_EVIDENCE.md](docs/rebuild/STAGE8_EVIDENCE.md).
 
-Atlas presentation also follows the shared [UI visual
-direction](docs/rebuild/UI_VISUAL_DIRECTION.md); it does not create a separate
-theme.
+This is a deliberate forward reconstruction, not a claim of recovered Atlas
+source/package parity or 13-dataset historical coverage. It does not adopt
+Parquet or DuckDB: their broader benchmark gate remains available for a future
+separately authorized profile.
 
-### Deliverables
+### Bounded profile
 
-- Benchmark evidence before introducing Parquet or DuckDB.
-- Immutable Parquet snapshots only as derived, reproducible products.
-- Optional DuckDB usage isolated from authoritative writes.
-- Exact snapshot identity, registry version, code version, source-store
-  receipts, and dataset ownership in every export.
-- New staging directory, complete validation, semantic-change detection, and
-  atomic promotion for Atlas.
-- Atlas reuses the Stage 6 visual tokens and component language while exposing
-  snapshot identity, freshness, provenance, and unavailable states explicitly.
+- Canonical registry `2.6.0` / schema `1.4.0` declares exactly one export:
+  `atlas.fixture_snapshot` / `atlas.fixture_snapshot.core_v1`, manual-only,
+  fixture-only, JSON, no network, no hosting.
+- The only reciprocal datasets are market daily prices, macro GDP vintages,
+  company issuers, and news items. Their four deterministic projections use
+  explicit registered fields, ordering, schema, public exclusions, and bounds.
+- The aware UTC export-start cutoff applies the shared availability-at-or-before
+  comparator. Date-only source values retain their `completed_date` precision;
+  future-ineligible evidence cannot alter an earlier revision.
+- The publication cap is 250 rows / 262144 bytes per chunk and 12000 rows,
+  8 MiB, and 30 seconds total. Non-finite values, ambiguous conversions, partial
+  scope, unsafe roots, wrong stores, duplicate physical identities, and missing
+  receipts fail closed.
+- The exporter receives explicit store and output roots only. It takes complete
+  deterministic physical locks, captures a SQLite online backup for each store,
+  releases locks, and reopens only the copies query-only. The cohort states
+  `cross_store_atomic: false` and exposes per-store receipts/coordination data.
+- It stages under an exact unique child, fully validates JSON chunks/manifests,
+  publishes an immutable revision, atomically replaces only the derived
+  `current` pointer, and writes a private receipt. Operational stores are never
+  promoted or mutated.
+- Atlas is a dependency-free static snapshot consumer using the local Stage 6
+  token system and Inter/OFL assets. It has no API or operational-store
+  connection; `.vite` is excluded from source; no package manager, hosting, or
+  deployment is part of this stage.
 
-### Exit gate
+### Completion gate — offline gates passed; browser pending
 
-- Deleting derived exports never loses authoritative data.
-- An export can be reproduced from declared source snapshots.
-- Atlas cannot connect to or mutate operational stores.
-- Partial multi-store exports cannot be promoted.
-- Atlas visual fixtures and accessibility checks pass without remote fonts or
-  reference-site assets.
+- The full dependency-free suite and deterministic two-root Stage 8 CLI run on
+  explicit empty temporary roots and preserve all Stage 1 through Stage 7
+  historical projections/evidence.
+- Source stores are fingerprinted before and after source copies, queries,
+  publication, retries, and failure injection to prove zero mutation.
+- Independent read-only queries prove row identity, deterministic ordering,
+  cutoff/PIT/date-only behavior, strict JSON, checksums, bounds, and range
+  invariance; public artifacts contain no private fields.
+- Pre-promotion and pointer/receipt failures preserve the last validated
+  `current` snapshot; no immutable revision is overwritten.
+- Atlas works from its static public tree with no remote asset, database/API,
+  provider, scheduler, or write path; browser QA must pass before the exit gate closes.
+- Independent SolUltra verification inspected the integrated worktree and recorded
+  exact evidence/results; browser QA is the remaining exit condition.
 
 ## 13. Stage 9 — Controlled repopulation and promotion
 

@@ -29,10 +29,21 @@ limited to four fixed routes and was accepted after its offline executable
 verification and the user's explicit browser-automation waiver. The bounded
 offline Stage 7 manual job rehearsal is implemented, and its primary fixture
 gate and independent SolUltra verification have passed. Stage 7
-remains manual-first, disabled, and synthetic-fixture-only. Do not install,
-start, update, or remove a scheduler; do not start live providers. Do not open
-Stage 8, exports, promotion, hosting, Atlas, default paths, destructive
-operations, or live diagnostics.
+remains manual-first, disabled, and synthetic-fixture-only. The user has also
+authorized the bounded offline Stage 8 implementation. Its one declared
+fixture-only manual JSON Atlas profile is a deliberate forward reconstruction,
+not a claim of recovered historical Atlas or 13-dataset parity. Stage 8 may use
+only explicit synthetic-store roots, complete physical locks, SQLite online
+backup copies reopened query-only, and an exact derived-output root. It may
+atomically promote a fully validated immutable derived revision and its
+`current` pointer inside that output root; it may not promote an operational
+store. The bounded Stage 8 implementation has passed its primary offline fixture gate.
+Independent SolUltra verification also passed; browser verification remains pending, so
+the formal Stage 8 exit gate is not closed.
+
+Do not install, start, update, or remove a scheduler; do not start live
+providers. Do not host or deploy Atlas, connect it to operational stores,
+select default paths, run live diagnostics, or perform destructive operations.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit

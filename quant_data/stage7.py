@@ -35,7 +35,12 @@ from .operations.job_runner import (
     StepPublication,
     build_dry_run_plan,
 )
-from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from .registry import (
+    CANONICAL_REGISTRY_PATH,
+    Registry,
+    load_registry,
+    stage7_registry_profile,
+)
 from .stage1 import explicit_store_map
 from .stage6 import run_clean_stage6_rebuild
 from .stores import StoreMap, StoreRole, StoreWriteLock
@@ -854,10 +859,12 @@ def run_clean_stage7_rebuild(
             project_root=project,
             work_root=root / "stage6",
         )
-        registry = load_registry(
-            project / CANONICAL_REGISTRY_PATH,
-            project_root=project,
-            environment={},
+        registry = stage7_registry_profile(
+            load_registry(
+                project / CANONICAL_REGISTRY_PATH,
+                project_root=project,
+                environment={},
+            )
         )
         if (
             registry.schema_version != "1.3.0"

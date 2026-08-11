@@ -11,9 +11,11 @@ This directory converts the historical recovery specification in
 through 5 are implemented and independently verified. The bounded Stage 6
 four-route local portal was accepted on 2026-08-10 with an explicit
 browser-automation waiver. The bounded offline Stage 7 manual fixture
-rehearsal is implemented and independently verified. Later documented
-behavior is not implemented
-until separately authorized executable evidence passes.
+rehearsal is implemented and independently verified. The user has authorized
+the bounded offline Stage 8 JSON Atlas/export implementation. Its primary
+fixture gate and independent verification passed; browser verification remains pending.
+Later documented behavior remains closed until separately authorized
+executable evidence passes.
 
 Two user decisions narrow the work:
 
@@ -24,7 +26,10 @@ Two user decisions narrow the work:
 Stages 4 through 7 were implemented sequentially with offline synthetic
 fixtures. Stages 4 and 5 are independently verified, Stage 6 is accepted with
 its explicit waiver, and Stage 7 is independently verified. All eight
-Stage 7 jobs remain disabled and manual-fixture-only. Stage 8 remains closed.
+Stage 7 jobs remain disabled and manual-fixture-only. Stage 8 is a deliberate
+forward reconstruction of one manual, fixture-only JSON snapshot; it is not a
+claim of recovered Atlas source/package parity or historical 13-dataset
+coverage.
 
 ## 2. Document map
 
@@ -42,6 +47,7 @@ Stage 7 jobs remain disabled and manual-fixture-only. Stage 8 remains closed.
 - [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md)
 - [Stage 6 acceptance evidence](STAGE6_EVIDENCE.md)
 - [Stage 7 acceptance evidence](STAGE7_EVIDENCE.md)
+- [Stage 8 evidence record](STAGE8_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -89,6 +95,8 @@ either history or semantics.
 - `Proposed`: drafted but not approved for implementation.
 - `Accepted`: approved as the current target contract.
 - `Superseded`: replaced by a linked decision or specification.
+- `Authorized`: explicit executable scope is allowed, but its exit evidence is
+  not yet complete.
 - `Implemented`: supported by executable evidence and acceptance results.
 - `Rejected`: considered and intentionally not adopted.
 
@@ -96,7 +104,9 @@ The current planning package is `Accepted`. Stages 1 through 5 are
 implemented and independently verified. The bounded Stage 6 portal is accepted
 with its browser-automation waiver. The bounded offline Stage 7 manual fixture
 rehearsal passed its primary gate and independent SolUltra verification. Stage
-8 is not authorized.
+8 is `Implemented` for its bounded offline JSON Atlas/export profile after its
+primary fixture gate and independent review passed. Browser verification remains
+pending, so its formal exit gate is not closed.
 
 ## 5. Shared terminology
 

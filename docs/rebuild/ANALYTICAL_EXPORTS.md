@@ -5,14 +5,19 @@ Status: Accepted
 ## Purpose
 
 This specification defines an optional derived analytical-export layer without
-changing the authority of the four operational SQLite stores. Parquet may be
-introduced only as immutable, reproducible output after a recorded benchmark
-shows value for named workloads. DuckDB may be used as an optional local
-development and analytical dependency over those exports; it is never an
-operational authority.
+changing the authority of the four operational SQLite stores. The bounded
+Stage 8 profile is exactly one synthetic-fixture, manual-only strict-JSON Atlas
+snapshot. It is a deliberate forward reconstruction, not recovered
+13-dataset Atlas parity. Parquet may be introduced only as immutable,
+reproducible output after a recorded benchmark shows value for named workloads.
+DuckDB may be used as an optional local development and analytical dependency
+over those exports; it is never an operational authority.
 
-This document does not claim that Parquet export, DuckDB integration, or Atlas
-publication has been implemented.
+The current profile does not adopt Parquet or DuckDB and does not authorize
+hosting, deployment, a public release, a live database read, a scheduler
+action, or operational promotion. Its primary offline evidence and independent
+SolUltra verification are recorded; browser verification remains pending; see
+[Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 Related documents:
 
@@ -34,6 +39,10 @@ Related documents:
 - A benchmark and semantic-equivalence gate precede adoption for each workload.
 - DuckDB is optional and non-authoritative. The core runtime and collectors MUST
   not require it.
+- The one current Atlas profile is `atlas.fixture_snapshot` version `1.0.0`:
+  standard-library strict JSON with the explicit decision
+  `not_required_json_atlas_snapshot`; Parquet and DuckDB are
+  `not_adopted`.
 - Atlas remains a separate read-only snapshot consumer and publication system.
   Producing an analytical export does not deploy or publish Atlas.
 
@@ -136,6 +145,41 @@ registry. It MUST contain:
 The public caller MUST NOT provide SQL, a database path, an output path, an
 arbitrary table, a partition expression, or a credential.
 
+### Bounded Stage 8 JSON Atlas profile — formal gate pending
+
+The only declared Stage 8 export is
+`atlas.fixture_snapshot`/`atlas.fixture_snapshot.core_v1`, owned by
+`quant_data.atlas`. It is manual-only, fixture-only, network-disabled, and
+hosting-disabled. Its only consumer is `quant_data_atlas` in
+`static_read_only` mode. Its four and only four reciprocal datasets are
+`fixture.market.daily_prices`, `fixture.macro.gdp_vintages`,
+`fixture.company.issuers`, and `fixture.news.items`.
+
+The profile produces four registered deterministic projections:
+`market-prices` (5,000 rows), `gdp-vintages` (1,000),
+`company-issuers` (1,000), and `news-items` (5,000). It is capped at
+12,000 rows, 8 MiB, and 30 seconds overall; each ordered JSON chunk is capped
+at 250 rows and 262144 bytes, with empty chunks omitted. A strict public
+schema permits only registered fields and rejects non-finite values. It excludes
+database and filesystem paths, credentials, SQL, raw artifacts, private
+receipts, bodies, summaries, source URLs, run IDs, artifact IDs, and snapshot
+IDs.
+
+The cutoff is the aware-UTC export-start instant. Availability is selected at
+or before it; vintage selection is `as_of`; date-only source values retain
+their original precision under the `completed_date` policy rather than being
+converted to invented timestamps. Earlier cutoff output must be range-invariant
+against later unavailable rows or versions.
+
+The source is a complete four-store physical-lock cohort. Each store is copied
+through SQLite online backup, then reopened only in read-only/query-only mode.
+The resulting manifest reports per-store receipts and its coordination window,
+never a false global timestamp: `cross_store_atomic: false` and partial scope
+is forbidden. Publication uses an exact host-selected staging root, an
+immutable revision, an atomically updated current pointer, and private attempt
+receipts. It is not a recovered historical site, a Parquet/DuckDB adoption, or
+a deployment action.
+
 ## Semantic and revision identities
 
 ### Semantic dataset ID
@@ -177,6 +221,10 @@ canonical manifest. Changed authority or meaning MUST yield a different ID.
 The exporter MUST receive host-selected paths. It MUST NOT discover a default
 or accept a caller path. Each source is opened with SQLite `mode=ro` and
 `PRAGMA query_only=ON`; export must never initialize or migrate a store.
+The Stage 8 profile uses `online_backup`, not a raw live-WAL copy or a live
+writable handle. Read-only/query-only is required both for every validated
+online copy and for any subsequent source query; the export operation never
+falls back to a default database path.
 
 The source fingerprint MUST include, at minimum:
 
@@ -214,9 +262,14 @@ store's own snapshot instant and the coordination window. It MUST state
 atomic mechanism. An export-time timestamp MUST not be mislabeled as one
 single-database `as_of` across the four stores.
 
-If a source receipt is failed, partial, missing where required, or newer than an
-unreconciled write, export MUST fail or declare a registry-approved partial
-scope. It MUST not guess completeness.
+The bounded profile declares
+`receipt_chain: complete_baseline_plus_validated_deltas`. A selected validated
+partial correction is eligible only when the audit proves a prior succeeded,
+validated, complete baseline and every selected delta through the checkpoint.
+A missing or invalid link, selected running work, or terminal failure at or
+after the selected complete chain makes the export fail closed. The public
+scope remains complete: `partial_scope: forbidden` means all four projections
+are required, and no partial correction receipt is complete by itself.
 
 ## Parquet representation contract
 
@@ -267,12 +320,13 @@ An immutable export revision SHOULD use this logical layout:
 <export-root>/
   staging/<unique-export-attempt>/
   revisions/<semantic-dataset-id>/<export-revision-id>/
-    manifest.json
-    export-receipt.json
-    schema.json
-    data/<registered partitions and parquet files>
-    checksums.sha256
+    public/
+      manifest.json
+      schema.json
+      data/<registered partitions and files>
+      checksums.sha256
   current/<semantic-dataset-id>  # atomic pointer/manifest, never authority
+  private-receipts/<attempt-or-revision>.json
 ```
 
 The concrete platform representation of `current` MAY be a small pointer file,
@@ -379,6 +433,10 @@ by this export operation.
 
 DuckDB MAY be introduced only as a pinned optional development/analytics
 dependency after the Parquet benchmark gate passes.
+It is not adopted by the bounded Stage 8 JSON snapshot: its registry declaration
+sets `duckdb: not_adopted` and `parquet: not_adopted`. No package,
+extension, benchmark harness, or DuckDB import is required for the Stage 8
+profile.
 
 - It MUST NOT be imported by collectors, migrations, the core SQLite gateway,
   scheduler startup, or the required local portal runtime.
@@ -412,8 +470,16 @@ not an operational database client and never writes back.
 - Missing, stale, partial, capped, and sampled datasets are labeled honestly.
 - Atlas pins exact analytical/source revisions and records its own source code
   revision.
-- Atlas deployment/private hosting is a separate explicit operation after
-  snapshot validation and atomic promotion.
+- Atlas deployment/private hosting remains a separate explicit operation after
+  snapshot validation and atomic promotion; it is not included in Stage 8.
+
+The bounded Atlas bundle is dependency-free static content. It reads a relative
+public manifest and checksum-verified public JSON chunks only; it has no API,
+operational-store connection, writable connection, provider, scheduler,
+credential, or arbitrary-SQL path. It reuses the Stage 6 visual tokens and
+local Inter 4.1/OFL assets. `sites/quant-data-atlas/.vite/` is optimizer-cache
+metadata, not source. No package manager, hosting configuration, deployment,
+or public release is created by this profile.
 
 An Atlas failure cannot invalidate or mutate an analytical revision or an
 operational SQLite store.
@@ -434,8 +500,13 @@ operational SQLite store.
 
 ## Acceptance evidence
 
-The export contract is Accepted, but the later-stage export layer remains
-unimplemented until the applicable evidence is recorded and authorized.
+The export contract is Accepted. The bounded Stage 8 profile has primary
+offline evidence and independent SolUltra verification. Its formal exit gate
+remains pending until browser accessibility/security verification is recorded.
+The status and exact evidence are maintained in
+[Stage 8 evidence](STAGE8_EVIDENCE.md); this specification distinguishes a
+registry `fixture_validated` declaration and a primary test pass from independent
+acceptance.
 
 ### Authority and source safety
 

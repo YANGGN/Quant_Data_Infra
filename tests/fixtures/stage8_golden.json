@@ -1,0 +1,103 @@
+{
+  "approval_status": "fixture_validated",
+  "asset_sha256": {
+    "assets/INTER-OFL-1.1.txt": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+    "assets/atlas.css": "65f70a5fcc6846a5c3ba5e9f9d1d2e6111c86a987552e6db4a08056180cf30cd",
+    "assets/atlas.js": "1d4f1499d117a1bb89f4d2dcc17a999fc37ae918e2225bd4d64ac35c30d0fd4e",
+    "assets/dashboard.css": "9e080e57be2dd129eb5caa349edc189c1d1875072d635749c20ed18849c373b5",
+    "assets/inter-variable.woff2": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+    "index.html": "db16b450a296df674817d58ac30b71741a294bdfe7827b33f3d1d00cda79307b"
+  },
+  "cross_store_atomic": false,
+  "dataset_chunks": {
+    "company-issuers": 1,
+    "gdp-vintages": 1,
+    "market-prices": 1,
+    "news-items": 1
+  },
+  "dataset_ids": [
+    "market-prices",
+    "gdp-vintages",
+    "company-issuers",
+    "news-items"
+  ],
+  "dataset_rows": {
+    "company-issuers": 2,
+    "gdp-vintages": 2,
+    "market-prices": 4,
+    "news-items": 2
+  },
+  "derived_rebuild_equal": true,
+  "duckdb_dependencies": 0,
+  "evidence_sha256": "e1151f92176a6b5a9d57d18a215497baab7405187fa798537cd947be1dd80a3c",
+  "export_contract_sha256": "f6b8375e02f17613de5790f898410f222fd56ff8c3c70f4d0176a41c0c8ed56c",
+  "export_ids": [
+    "atlas.fixture_snapshot"
+  ],
+  "exports": 1,
+  "failure_preserved_current": true,
+  "hosting_operations": 0,
+  "immutable_revision_reused": true,
+  "json_export_only": true,
+  "live_provider_calls": 0,
+  "migration_heads": {
+    "company": [
+      "company:0001_foundation",
+      "company:0002_control_plane",
+      "company:0003_sec_core",
+      "company:0004_corporate_actions",
+      "company:0005_corporate_action_integrity",
+      "company:0006_earnings_expectations",
+      "company:0007_filing_issuer_view"
+    ],
+    "macro": [
+      "macro:0001_foundation",
+      "macro:0002_vertical_slice",
+      "macro:0003_control_plane",
+      "macro:0004_stage3_core",
+      "macro:0005_gdp_vintages",
+      "macro:0006_treasury_yield_curves",
+      "macro:0007_economic_calendar",
+      "macro:0008_soma_summary_only",
+      "macro:0009_eia_electricity_retail",
+      "macro:0010_eia_weekly_fundamentals",
+      "macro:0011_us_recession_periods"
+    ],
+    "market": [
+      "market:0001_foundation",
+      "market:0002_vertical_slice",
+      "market:0003_control_plane",
+      "market:0004_instrument_catalog",
+      "market:0005_instrument_classifications",
+      "market:0006_controlled_universes",
+      "market:0007_options_core",
+      "market:0008_option_surface_inputs"
+    ],
+    "news": [
+      "news:0001_foundation",
+      "news:0002_control_plane",
+      "news:0003_immutable_items",
+      "news:0004_search_index"
+    ]
+  },
+  "parquet_decision": "not_required_json_atlas_snapshot",
+  "parquet_dependencies": 0,
+  "pointer_receipt_binding_verified": true,
+  "private_receipt_before_pointer": true,
+  "private_receipt_manifest_sha256": "b95844e8fd3b3429fc12f2fd9a39394a8bb709143ad56a673e50337223531cdf",
+  "public_manifest_sha256": "48a8b120f6e6adee6ea8cce5e03fec130bb139368b36923331b2c04f10310dba",
+  "public_snapshot_sha256": "6c1a563f764d1e1a3f6894b62b67bc90a649c5e5964dfbdeadc37478d05d0b35",
+  "publication_manifest_sha256": "bff205754a3d9d26ace3d3bcd56bd0150a161abfaae09c5cf779e0db9eb486a8",
+  "query_contract_sha256": "b01d516ffd2f5985ade14c431b10442bb4c05b41df108a920f4ae68e6436aa24",
+  "read_only_copies": true,
+  "registry_revision": "2.6.0",
+  "registry_schema_version": "1.4.0",
+  "revision_id": "b57c5202014bca64fafd39527b8d301a48aa3c928ba147527009874ecf4e0075",
+  "scheduler_installations": 0,
+  "scheduler_starts": 0,
+  "schema_contract_sha256": "195e56b85c441771798e9545f19ede91adde7c999791bb51948e2c7fe0ada23d",
+  "schema_version": "1.0.0",
+  "source_reads_unchanged": true,
+  "sqlite_authoritative": true,
+  "stage7_evidence_sha256": "63a0179e1149b73afaa50aff586160c667262dd834fd38f0f0d5043c926fd1f7"
+}

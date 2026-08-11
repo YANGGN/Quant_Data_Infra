@@ -3,9 +3,11 @@
 Status: Accepted
 
 Implementation status: The bounded Stage 6 four-route local portal passed its
-offline executable checks on 2026-08-10. The user explicitly accepted the
-unavailable browser-automation check. Chart and algorithm/backtest work remains
-deferred, and Stage 8 Atlas work remains closed.
+offline executable and independent verification on 2026-08-10. The user
+explicitly waived its unavailable browser-automation check. Chart and
+algorithm/backtest work remains deferred. The bounded fixture-only Stage 8 JSON
+snapshot and dependency-free static Atlas passed their primary offline fixture
+and independent gates; browser verification remains pending.
 
 Reference reviewed: 2026-08-09 - [ThesisTrade](https://www.thesistrade.ai/)
 
@@ -202,7 +204,7 @@ or boundary-specific destinations are omitted rather than shown as broken.
 
 | Concern | Stage 6 local dashboard | Stage 8 Quant Data Atlas |
 | --- | --- | --- |
-| Shared style | Establishes tokens, typography, navigation, panels, tables, and state treatments; the bounded implementation does not yet implement charts | Reuses the same tokens and component language when Stage 8 is authorized |
+| Shared style | Establishes tokens, typography, navigation, panels, tables, and state treatments; the bounded implementation does not yet implement charts | Reuses the Stage 6 token source, local Inter 4.1 font, and local OFL license; formal verification pending |
 | Primary feel | Live private research and operational inspection workspace | Curated private analytical publication |
 | Data source | Fixed read services over query-only operational stores | Versioned static manifest and snapshot chunks only |
 | Freshness treatment | Prominent live-store health, availability cutoff, and per-query receipts | Prominent snapshot identity, generation time, freshness, and source revision |
@@ -230,16 +232,21 @@ dashboard must never read an Atlas export as an undeclared canonical source.
 
 - Define the accepted tokens once as versioned CSS custom properties or an
   equivalent framework-independent token module.
-- Dashboard and Atlas consume that single source; neither keeps a divergent
-  copied palette.
+- Dashboard and the bounded static Atlas consume the Stage 6 token source;
+  neither keeps a divergent copied palette. Atlas also reuses the pinned local
+  Inter 4.1 WOFF2 and OFL license assets.
 - Icons use one restrained outline family, such as Lucide, with accessible
   labels where the icon is not decorative.
 - All production assets are local, pinned, and reproducible. The browser must
   not fetch reference-site assets, remote fonts, analytics, or trackers.
-- The `.vite` cache is not application source and must not be used as a basis
-  for recovering the previous UI.
+- The static Atlas reads only relative public manifest and JSON chunk assets.
+  It has no API, operational-store connection, credential, writable
+  connection, provider, scheduler, or arbitrary-SQL path.
+- The `sites/quant-data-atlas/.vite/` cache is not application source and
+  must not be used as a basis for recovering the previous UI.
 - This contract does not select a UI framework, package manager, hosting
-  provider, or Atlas deployment target.
+  provider, or Atlas deployment target. Stage 8 does not add a package,
+  hosting configuration, deployment, Parquet, or DuckDB.
 
 ## 9. Acceptance evidence
 
@@ -267,12 +274,21 @@ security headers, zero jobs/exports, and zero runtime network assets. The
 evidence pin and exact asset/portal pins are recorded in
 [Stage 6 acceptance evidence](STAGE6_EVIDENCE.md).
 
-This is not a full UI acceptance claim: independent SolUltra verification and
-in-app browser QA are pending because the current browser-control runtime
-failed. Visual-regression, responsive, keyboard, reduced-motion, contrast,
-200% zoom, and all formal chart/algorithm/backtest evidence remain open.
+Independent SolUltra verification passed for the bounded Stage 6 portal. The
+browser-control runtime could not attach, and the user explicitly waived that
+browser-automation limitation. Visual-regression, responsive, keyboard,
+reduced-motion, contrast, 200% zoom, and all formal
+chart/algorithm/backtest evidence outside the accepted bounded portal remain
+open.
 
-Stage 8 Atlas UI work additionally requires:
+### 9.2 Current bounded Stage 8 evidence state
+
+Stage 8's primary and independent offline gates passed with stable evidence
+pins. Browser accessibility/security verification remains pending; the exact
+executable evidence is recorded in
+[Stage 8 evidence](STAGE8_EVIDENCE.md).
+
+Stage 8 Atlas UI work requires:
 
 1. Atlas consumes the same versioned visual tokens as the dashboard;
 2. visual fixtures cover snapshot identity, staleness, provenance, truncated
@@ -280,6 +296,10 @@ Stage 8 Atlas UI work additionally requires:
 3. the static build works without an operational-store connection; and
 4. visual or component reuse introduces no network, write, or publication
    boundary bypass.
+
+The authorized UI is a dependency-free static consumer only. It does not
+authorize a live/store API, credential path, package installation, hosting,
+deployment, scheduler operation, default database path, or destructive action.
 
 The external reference is a point-in-time design cue. Changes to the reference
 site do not silently change this contract; altering these tokens or the desired

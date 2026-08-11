@@ -12,10 +12,12 @@ multiple agents to redefine shared semantics. It complements the project agent
 policy in [AGENTS.md](../../AGENTS.md).
 
 Stages 1 through 5 are implemented and independently verified. The bounded
-Stage 6 four-route local portal passed its offline checks and was accepted with
-browser automation waived. The bounded offline Stage 7 manual fixture rehearsal
-is implemented and independently verified. Stage 8 executable work remains
-closed.
+Stage 6 four-route local portal passed offline and independent verification;
+the user explicitly waived its unavailable browser-automation check. The
+bounded offline Stage 7 manual fixture rehearsal is implemented and
+independently verified. The bounded fixture-only Stage 8 JSON snapshot and
+static Atlas passed their primary and independent offline gates. Browser
+verification remains pending.
 
 ## 2. Capacity and operating model
 
@@ -65,11 +67,11 @@ T0  Freeze typed tool core, schema generator, and compatibility decision
  | +-- Research/statistics tools -+--> G5 Tool-platform exit gate
  | +-- HTTP/contract parity -------+
  |
-G6  Bounded four-route portal primary gate passed; independent verification/browser QA pending
+G6  Bounded four-route portal independently verified; browser automation waived
  |
 G7  Manual-first scheduling and operational readiness
  |
-G8  Benchmarked exports and atomic Atlas publication
+G8  Bounded fixture JSON snapshot and dependency-free static Atlas
  |
 G9  Explicitly approved controlled repopulation and promotion
 ```
@@ -222,8 +224,11 @@ are not part of this bounded implementation. They remain closed until their
 causal timing, cost, canonical-backend, golden-vector, and formal acceptance
 requirements are explicitly authorized and met. This portal primary gate does
 not itself define scheduling semantics. The user separately authorized bounded
-offline Stage 7 implementation. Stage 8 exports/Atlas, hosting, promotion,
-live providers, and destructive operations remain closed.
+offline Stage 7 implementation. The user later authorized the bounded
+fixture-only Stage 8 JSON snapshot and static Atlas. Its correction and formal
+verification remain separate from Stage 6; this adds no Parquet, DuckDB,
+package, hosting, deployment, live-provider, scheduler, default-path, or
+destructive scope.
 
 ### Wave 7 — Scheduling and operations
 
@@ -246,14 +251,31 @@ wrapper. Evidence is recorded in
 
 No live provider, runtime network, scheduler installation/start/update/removal,
 export, promotion, hosting, Atlas, default path, or destructive action is part
-of Wave 7. Stage 8 remains closed.
+of Wave 7. The separately authorized Stage 8 scope does not alter that
+historical Wave 7 boundary.
 
 ### Wave 8 — Analytical exports and Atlas
 
-Benchmark harnesses, analytical projections, Atlas projection/UI work, and
-failure-injection tests may be separate lanes after the export manifest and
-consistent-copy protocol freeze. Promotion remains one serialized operation:
-validated staging followed by atomic pointer or directory replacement.
+Status: **Bounded offline implementation complete and independently verified;
+browser verification pending.**
+
+Wave 8 is deliberately limited to one fixture-only, manual strict-JSON snapshot
+over the four registered market, macro, company, and news projections, plus a
+dependency-free static Atlas consumer. It is a forward reconstruction, not
+recovered historical Atlas or 13-dataset parity.
+
+The integration owner serializes registry/schema reconciliation, the complete
+physical-lock and SQLite online-backup copy protocol, the exact host-selected
+derived-output root, immutable revision publication, private receipt, and
+atomic `current` pointer. The static lane reads only relative public
+manifest/chunk assets; it has no API or operational-store connection.
+
+Parquet, DuckDB, package installation, hosting, deployment, live providers,
+scheduler operations, default paths, operational-store promotion, and
+destructive cleanup are outside Wave 8. All writers stop before independent
+verification. The completed primary correction/reseal and independent review do
+not substitute for browser verification. Current status belongs in
+[Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 ### Wave 9 — Controlled repopulation
 

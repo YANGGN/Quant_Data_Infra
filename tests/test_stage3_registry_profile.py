@@ -10,6 +10,7 @@ from quant_data.registry import (
     stage4_registry_profile,
     stage5_registry_profile,
     stage6_registry_profile,
+    stage7_registry_profile,
 )
 
 
@@ -106,5 +107,26 @@ class Stage3RegistryProfileTests(unittest.TestCase):
                 self.assertEqual(profile.schema_version, schema_version)
                 self.assertEqual(profile.registry_version, registry_version)
                 self.assertEqual(profile.jobs, ())
+                self.assertEqual(profile.exports, ())
                 self.assertEqual(profile.raw["jobs"], [])
                 self.assertEqual(profile.raw["exports"], [])
+                self.assertTrue(
+                    all(not dataset.export_ids for dataset in profile.datasets)
+                )
+                self.assertTrue(
+                    all(
+                        not dataset["export_ids"]
+                        for dataset in profile.raw["datasets"]
+                    )
+                )
+
+        stage7 = stage7_registry_profile(registry)
+        self.assertEqual(stage7.schema_version, "1.3.0")
+        self.assertEqual(stage7.registry_version, "2.5.0")
+        self.assertEqual(len(stage7.jobs), 8)
+        self.assertEqual(stage7.exports, ())
+        self.assertEqual(stage7.raw["exports"], [])
+        self.assertTrue(all(not dataset.export_ids for dataset in stage7.datasets))
+        self.assertTrue(
+            all(not dataset["export_ids"] for dataset in stage7.raw["datasets"])
+        )

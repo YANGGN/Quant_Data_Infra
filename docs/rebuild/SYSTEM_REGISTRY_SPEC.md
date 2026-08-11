@@ -5,13 +5,16 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision
-`2.5.0`, schema `1.3.0`, status `validated`. It declares 30 migrations,
+`2.6.0`, schema `1.4.0`, status `validated`. It declares 30 migrations,
 33 datasets, 19 collectors, 57 tools, four local-private dashboard exposures,
-eight disabled `manual_fixture_only` jobs, and zero exports. The frozen Stage
-6 projection remains `2.4.0`/`1.2.0` with zero jobs; the frozen Stage 5
-projection remains `2.3.0`/`1.1.0`. A listed consumer exists only when its
-executable evidence passes or an explicit acceptance records a remaining
-external limitation.
+eight disabled `manual_fixture_only` jobs, and one bounded
+`manual_only`/fixture-only JSON Atlas export. The frozen Stage 7 projection
+remains `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6 projection
+remains `2.4.0`/`1.2.0` with zero jobs; the frozen Stage 5 projection
+remains `2.3.0`/`1.1.0`. The Stage 8 declaration is a deliberate forward
+reconstruction, not recovered 13-dataset Atlas parity. Registry declaration
+and lifecycle metadata do not replace Stage 8 evidence: its primary fixture
+gate and independent verification passed, while browser verification remains pending.
 
 ## Purpose
 
@@ -264,7 +267,9 @@ frozen Stage 6 `2.4.0` projection declares exactly four ordered local-private
 exposures: `stage1.overview`, `stage6.gdp_vintages`,
 `stage6.table_inspector`, and `stage6.agent_tools`. Canonical Stage 7
 registry `2.5.0`/`1.3.0` preserves those declarations unchanged while
-adding only the disabled job catalog. API routes remain fixed registry
+adding only the disabled job catalog. Canonical Stage 8 registry
+`2.6.0`/`1.4.0` preserves both historical projections unchanged and adds
+only the one bounded export declaration below. API routes remain fixed registry
 declarations, not caller-supplied URLs.
 
 Dashboard navigation and the table inspector are generated or validated from
@@ -277,8 +282,11 @@ exposure explicitly permits them.
 | --- | --- | --- | --- |
 | id | namespaced identifier | Yes | Stable export profile |
 | version | semantic version | Yes | Output contract version |
+| owner / description | strings | Yes | Accountable owner and bounded human-readable scope |
+| semantic_dataset_id | namespaced identifier | Yes | Meaning identity, independent of one physical revision |
 | kind | enum | Yes | analytical_file or atlas_snapshot |
 | format | enum | Yes | json, jsonl, or optional parquet |
+| lifecycle | object | Yes | Fixture/manual/network/hosting restrictions and declared lifecycle state |
 | datasets | non-empty array of Dataset IDs | Yes | All exported datasets and their owners |
 | query_contract | object | Yes | Columns, ordering, filters, caps, and point-in-time policy |
 | schema_contract | object | Yes | Output schema version and null/number handling |
@@ -288,10 +296,56 @@ exposure explicitly permits them.
 | consistency | object | Yes | Cohort receipts and cross-store limitations |
 | staging | object | Yes | Exact parent, generated child, validation, and atomic promotion |
 | optional_dependency | string/null | Yes | Parquet adapter name when used; never silently required by the core |
+| benchmark | object | Yes | Explicit format/adoption decision; no inferred package requirement |
+| consumers | array | Yes | Fixed consumer IDs, modes, and hosting boundary |
+| provenance | object | Yes | Required registry/schema/code/source evidence in the public manifest |
 
 JSON and JSONL are supported by the standard-library core. Parquet is optional and must fail with a clear unavailable-capability error when its declared adapter is absent. Export format does not alter canonical storage.
 
 An Atlas export reads only registered exportable datasets from explicit read-only store copies. Its manifest records registry version, dataset contract versions, per-store backup or read-copy receipts, row/chunk counts, schemas, freshness, hashes, generation time, and source revision. The exporter never labels a multi-store cohort as one atomic database timestamp.
+
+#### Bounded Stage 8 declaration — independently verified offline; browser pending
+
+The current registry declares exactly one export:
+`atlas.fixture_snapshot` version `1.0.0`, semantic dataset
+`atlas.fixture_snapshot.core_v1`, owned by `quant_data.atlas`. It is an
+`atlas_snapshot` in strict JSON, manual-only, fixture-only, with network and
+hosting disabled. Its only consumer is `quant_data_atlas` in
+`static_read_only` mode; it has no optional dependency. The explicit
+benchmark decision is `not_required_json_atlas_snapshot`: Parquet and DuckDB
+are both `not_adopted`.
+
+Its exact reciprocal datasets are `fixture.market.daily_prices`,
+`fixture.macro.gdp_vintages`, `fixture.company.issuers`, and
+`fixture.news.items`. The four deterministic projections are
+`market-prices` (5,000 rows), `gdp-vintages` (1,000),
+`company-issuers` (1,000), and `news-items` (5,000), within a 12,000-row,
+8 MiB, 30-second whole-snapshot limit. Ordered chunks are limited to 250 rows
+and 262144 bytes; empty chunks are omitted.
+
+The cutoff is the aware-UTC export-start instant. Availability is selected at
+or before the cutoff, vintage mode is `as_of`, and source date-only precision
+uses `completed_date`, never an invented timestamp. A complete deterministic
+physical-lock cohort produces one SQLite online backup per store; the exporter
+then reopens copies only with SQLite query-only access.
+
+`receipt_chain: complete_baseline_plus_validated_deltas` permits a selected
+validated partial correction only over a proved succeeded, validated, complete
+baseline and a fully linked validated delta chain. Missing/invalid links,
+selected running work, or an unreconciled later failure reject the export.
+`partial_scope: forbidden` still requires all four registered projections; it
+does not make a partial correction receipt complete on its own.
+
+The export records per-store receipts and `cross_store_atomic: false`, stages
+in an exact host-selected root, publishes an immutable revision, updates only
+a `current` pointer atomically, and keeps receipts private. No public schema
+may expose a database/filesystem path, credential, SQL, raw artifact, private
+receipt, body, summary, source URL, run ID, artifact ID, or snapshot ID.
+
+This declaration is not a claim of historical recovered parity, a live export,
+or a hosting/deployment action. Its `fixture_validated` lifecycle declaration
+does not close the Stage 8 formal acceptance gate; see
+[Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 ## Global invariants
 
@@ -313,10 +367,12 @@ Validation fails closed unless all of the following hold:
 14. All date, timestamp, availability, vintage, missingness, unit, and transformation semantics are explicit.
 15. Cross-store consumers declare one availability cutoff and return contributing store receipts.
 16. Derived datasets and exports cannot be an undeclared source for canonical datasets.
-17. Atlas profiles export only declared datasets, stage inside an exact parent, validate the entire cohort, and promote atomically.
-18. Unsupported layers, formats, schema versions, status values, and optional capabilities are rejected rather than guessed.
-19. Secrets and secret values do not appear anywhere in the registry, examples, generated documentation, logs, or exported manifests.
-20. Registry iteration and generated output are deterministic across processes and platforms.
+17. Every current Atlas dataset declaration and the one registered export reference each other reciprocally; no fifth dataset or undeclared projection is exported.
+18. Atlas profiles use explicit read-only/query-only online backups, stage inside an exact host-selected parent, validate the entire cohort, publish immutable revisions, and update only a current pointer atomically.
+19. Public Atlas artifacts omit local paths, credentials, SQL, raw artifacts, private receipts, and other registered excluded fields; private attempt receipts never become a public artifact.
+20. Unsupported layers, formats, schema versions, status values, and optional capabilities are rejected rather than guessed.
+21. Secrets and secret values do not appear anywhere in the registry, examples, generated documentation, logs, or exported manifests.
+22. Registry iteration and generated output are deterministic across processes and platforms.
 
 ## Loading and validation
 

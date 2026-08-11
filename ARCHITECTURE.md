@@ -10,10 +10,12 @@ and independently verified. The bounded offline Stage 6 four-route local portal
 was accepted on 2026-08-10 with an explicit user waiver for unavailable browser
 automation. The bounded offline Stage 7 manual fixture rehearsal is implemented,
 and its primary gate and independent SolUltra verification passed on 2026-08-11.
-Stage 8 remains closed. A contract is implemented only after executable
-acceptance evidence passes or an explicit user acceptance records a remaining
-external verification limitation. Later recovery evidence in Sections 18-20 of
-the plan takes precedence over earlier proposals.
+The bounded offline Stage 8 JSON Atlas/export implementation passed its primary
+fixture gate and independent SolUltra verification on 2026-08-11. Browser
+verification remains pending. A contract is implemented only after executable acceptance
+evidence passes or an explicit user acceptance records a remaining external
+verification limitation. Later recovery evidence in Sections 18-20 of the plan
+takes precedence over earlier proposals.
 
 The principal decisions are recorded in:
 
@@ -167,19 +169,22 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration. The canonical Stage
-7 revision is `2.5.0` with schema version `1.3.0`, 30 fixture-validated
+The system registry is declarative source configuration. The canonical Stage 8
+revision is `2.6.0` with schema version `1.4.0`, 30 fixture-validated
 migrations, 33 datasets, 19 collectors, all 57 reviewed public tool names, four
 local-private dashboard exposures, eight disabled `manual_fixture_only` jobs,
-and zero exports. The frozen Stage 6 projection remains
-`2.4.0`/`1.2.0` with zero jobs; the frozen Stage 5 projection remains
-`2.3.0`/`1.1.0`. Historical Stage 1 through Stage 6 evidence is rebuilt
-through these immutable projections rather than rewritten. The two recovered
-Stage 1 tool contracts remain exact historical projections; the other 55 names
-are explicit forward reconstructions, and the live intraday capability remains
-disabled offline. The store-local dataset registry is runtime evidence. Neither
-registry replaces the other; startup and health checks fail closed on missing
-ownership, unexpected migration state, or wrong-store mappings.
+and one declared fixture-only manual JSON Atlas export. Its reciprocal datasets
+are market daily prices, macro GDP vintages, company issuers, and news items.
+This declaration is not itself Stage 8 acceptance evidence. The frozen Stage 7
+projection remains `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6
+projection remains `2.4.0`/`1.2.0` with zero jobs; and the frozen Stage 5
+projection remains `2.3.0`/`1.1.0`. Historical Stage 1 through Stage 7 evidence
+is rebuilt through immutable projections rather than rewritten. The two
+recovered Stage 1 tool contracts remain exact historical projections; the other
+55 names are explicit forward reconstructions, and the live intraday capability
+remains disabled offline. The store-local dataset registry is runtime evidence.
+Neither registry replaces the other; startup and health checks fail closed on
+missing ownership, unexpected migration state, or wrong-store mappings.
 
 The physical dataset-layer contract is exactly `evidence`, `canonical`, and
 `derived`. The Stage 2 forward-preserving table rebuild aligns the SQLite
@@ -332,7 +337,7 @@ browser-automation check was explicitly accepted by the user.
 | Data access | Fixed live read services over read-only SQLite connections | Static manifest and chunked export files |
 | Write access | None | None to operational stores |
 | Consistency | Per-query store receipts and explicit availability cutoff | Declared multi-store snapshot cohort; never a falsely unified database as-of |
-| Deployment | Local host, private to the workstation | Separate private static deployment |
+| Publication / hosting | Local host, private to the workstation | Static output only; hosting is a separate, unapproved operation |
 | Failure impact | A failed domain degrades only its routes and health | A failed export leaves the last validated snapshot in place |
 
 Atlas is a derived snapshot consumer, not the canonical portal and not a live SQLite client. Publication requires:
@@ -344,9 +349,40 @@ Atlas is a derived snapshot consumer, not the canonical portal and not a live SQ
 5. complete chunk, schema, count, freshness, and referential validation;
 6. semantic-change detection;
 7. atomic promotion only after the full cohort validates; and
-8. a deployment receipt tying the snapshot to one source revision and registry version.
+8. a private publication receipt tying the snapshot to one source revision and registry version.
 
 The exporter must never recursively clean an empty, unresolved, broad, repository-root, home, or volume path. Failure before promotion preserves the previous Atlas snapshot.
+
+### Implemented bounded Stage 8 profile — independently verified offline; browser pending
+
+The sole profile is `atlas.fixture_snapshot` version `1.0.0`, semantic dataset
+`atlas.fixture_snapshot.core_v1`: a manual, fixture-only, no-network JSON
+snapshot. Its four registered projections are market daily prices, macro GDP
+vintages, company issuers, and news items. The profile keeps `cross_store_atomic:
+false`, with per-store online-backup receipts and a coordination window rather
+than a falsely unified snapshot instant.
+
+The export-start aware UTC cutoff applies the shared availability-at-or-before
+rule. Date-only source values retain their precision through the registered
+`completed_date` policy; no timestamp is invented. Deterministic ordered chunks
+are limited to 250 rows and 262144 bytes, with 12000 rows, 8 MiB, and 30 seconds
+for the total publication. Future-ineligible evidence cannot change a prior
+cutoff revision.
+
+Only an explicit host-selected root may receive `.staging`, immutable
+`revisions`, an atomically replaced `current` pointer, and private receipts.
+All source copies are complete SQLite online backups taken under the resolved
+physical locks and reopened query-only. The public tree contains only approved
+manifest/schema/checksum/chunk data and the static Atlas bundle; paths, SQL,
+credentials, raw artifacts, private receipts, article bodies, summaries, and
+source URLs are excluded.
+
+The static Atlas is a dependency-free local bundle which reuses Stage 6 visual
+tokens and its locally pinned Inter/OFL assets. It has no store or API
+connection and no remote asset/runtime request. The surviving `.vite` directory
+is not source. No package manager, framework lock, hosting configuration,
+deployment, live provider, scheduler action, Parquet/DuckDB adoption, default
+path fallback, operational promotion, or destructive operation is authorized.
 
 ## Deployment modes
 
@@ -357,8 +393,10 @@ replay, ordered physical locking, retries, active timeouts, private receipt-last
 evidence, and SQLite backup/restore. It performs no live provider or runtime
 network call, scheduler installation/start/update/removal, export, Atlas
 publication, promotion, hosting, default-path access, or destructive operation.
-Charts, indicators, algorithms, walk-forward/backtest reports, Stage 8 exports,
-and Atlas remain closed.
+Charts, indicators, algorithms, and walk-forward/backtest reports remain closed.
+The bounded Stage 8 derived JSON export and static Atlas publication are
+implemented only under their explicit fixture-only contract. The primary
+offline gate and independent verification passed; browser verification remains pending.
 
 A non-dry manual wrapper may operate only on explicitly initialized synthetic
 fixture stores and an explicit private state root. It propagates the registered
@@ -378,7 +416,8 @@ The scheduler invokes named jobs rather than embedding collector logic. Per-job 
 
 ### Atlas snapshot publication
 
-Publication runs separately from collection. It uses explicit store paths, read-only copies, exact staging, validation, atomic promotion, and a private deployment target.
+Publication runs separately from collection. The bounded Stage 8 path uses
+explicit store paths, read-only copies, exact staging, validation, atomic promotion, and a private derived-output root; hosting is a separate operation.
 
 ### Legacy import or rollback
 
@@ -396,7 +435,7 @@ A legacy unified file is not a supported runtime layout and cannot be auto-disco
   a live database file, and verifies source, backup, and restored logical
   evidence without mutating the source or backup cohort.
 - Restore drills validate integrity, migration state, dataset ownership, and representative point-in-time queries on the restored copy.
-- Atlas staging or deployment failure cannot modify the last promoted snapshot.
+- Atlas staging or publication failure cannot modify the last promoted snapshot.
 
 ## Quality attributes
 

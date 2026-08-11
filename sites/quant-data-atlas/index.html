@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A read-only, static explorer for validated Quant Data Atlas snapshots.">
+    <title>Quant Data Atlas</title>
+    <link rel="preload" href="assets/inter-variable.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="assets/dashboard.css">
+    <link rel="stylesheet" href="assets/atlas.css">
+    <script src="assets/atlas.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <div class="app-shell atlas-shell">
+      <header class="site-header atlas-header">
+        <a class="brand" href="./" aria-label="Quant Data Atlas home">
+          <span class="brand-mark" aria-hidden="true">QD</span>
+          <span><strong>Quant Data</strong> Atlas</span>
+        </a>
+        <p class="shell-status" aria-live="polite">
+          <span aria-hidden="true">●</span>
+          <span id="atlas-shell-status">Static snapshot</span>
+        </p>
+      </header>
+
+      <nav class="primary-nav atlas-nav" aria-label="Atlas sections">
+        <a href="#overview" aria-current="page">Overview</a>
+        <a href="#datasets">Datasets</a>
+        <a href="#schema">Schema</a>
+        <a href="#provenance">Provenance</a>
+      </nav>
+
+      <main id="main-content" tabindex="-1">
+        <section class="page-intro" aria-labelledby="atlas-title">
+          <p class="eyebrow">Curated analytical snapshot</p>
+          <h1 id="atlas-title">Quant Data Atlas</h1>
+          <p class="atlas-lead">Explore a verified, static research snapshot. Atlas is a derived consumer: it has no connection to operational stores or live APIs.</p>
+        </section>
+
+        <section id="atlas-status" class="state-notice state-loading atlas-status" data-atlas-state="loading" aria-live="polite" aria-atomic="true" role="status">
+          <h2>Loading static snapshot</h2>
+          <p>Validating the published manifest before any dataset is shown.</p>
+        </section>
+
+        <section id="overview" class="atlas-section" aria-labelledby="overview-title">
+          <div class="atlas-section-heading">
+            <div>
+              <p class="panel-kicker">Snapshot identity</p>
+              <h2 id="overview-title">Verified publication cohort</h2>
+            </div>
+            <button id="atlas-reload" class="atlas-button atlas-button--secondary" type="button">Revalidate snapshot</button>
+          </div>
+
+          <div class="metric-grid atlas-metric-grid" aria-label="Snapshot summary">
+            <article class="metric">
+              <p>Export ID</p>
+              <strong id="atlas-export-id">—</strong>
+              <span id="atlas-revision-id">Revision pending</span>
+            </article>
+            <article class="metric">
+              <p>Generated</p>
+              <strong id="atlas-generated-at">—</strong>
+              <span id="atlas-cutoff">Cutoff pending</span>
+            </article>
+            <article class="metric">
+              <p>Public datasets</p>
+              <strong id="atlas-dataset-count">—</strong>
+              <span id="atlas-registry">Registry pending</span>
+            </article>
+            <article class="metric">
+              <p>Source cohort</p>
+              <strong id="atlas-source-count">—</strong>
+              <span id="atlas-cross-store">Atomicity pending</span>
+            </article>
+          </div>
+
+          <div class="atlas-overview-grid">
+            <article class="panel atlas-panel" aria-labelledby="cohort-title">
+              <div class="panel-header">
+                <p class="panel-kicker">Store cohort</p>
+                <h2 id="cohort-title">Snapshot coordination</h2>
+                <p id="atlas-cohort-summary">Store receipts will appear after manifest validation.</p>
+              </div>
+              <ul id="atlas-source-stores" class="atlas-source-list" aria-label="Contributing source stores"></ul>
+            </article>
+
+            <article class="panel atlas-panel" aria-labelledby="freshness-title">
+              <div class="panel-header">
+                <p class="panel-kicker">Freshness and scope</p>
+                <h2 id="freshness-title">Honest availability state</h2>
+                <p id="atlas-freshness-summary">No snapshot has been accepted yet.</p>
+              </div>
+              <ul id="atlas-dataset-states" class="atlas-state-list" aria-label="Dataset publication states"></ul>
+            </article>
+          </div>
+
+          <aside id="atlas-non-atomic-note" class="workspace-note atlas-non-atomic" aria-label="Cross-store consistency note">
+            <p><strong>Cross-store scope:</strong> this page will state whether the source cohort is atomic. Atlas never presents a multi-store snapshot as one database transaction without proof.</p>
+          </aside>
+        </section>
+
+        <section id="datasets" class="panel atlas-dataset-panel" aria-labelledby="datasets-title">
+          <div class="panel-header">
+            <p class="panel-kicker">Static exploration</p>
+            <h2 id="datasets-title">Dataset table</h2>
+            <p id="atlas-dataset-description">Choose a published dataset to load its verified, bounded chunks.</p>
+          </div>
+
+          <form id="atlas-controls" class="query-form atlas-controls" novalidate>
+            <fieldset>
+              <legend>Dataset controls</legend>
+              <div class="form-grid atlas-control-grid">
+                <label for="atlas-dataset-select">
+                  Dataset
+                  <select id="atlas-dataset-select" name="dataset" disabled aria-describedby="atlas-control-bound">
+                    <option value="">Manifest loading…</option>
+                  </select>
+                </label>
+                <label for="atlas-search">
+                  Search loaded rows
+                  <input id="atlas-search" name="search" type="search" maxlength="128" autocomplete="off" disabled aria-describedby="atlas-control-bound">
+                </label>
+                <label for="atlas-sort">
+                  Sort rows
+                  <select id="atlas-sort" name="sort" disabled aria-describedby="atlas-control-bound">
+                    <option value="">Snapshot order</option>
+                  </select>
+                </label>
+              </div>
+              <p id="atlas-control-bound" class="form-bound">Rows, chunks, bytes, schema fields, and search length are capped before rendering. No query can reach an operational data store.</p>
+            </fieldset>
+          </form>
+
+          <div id="atlas-table-notice" class="state-notice state-empty" data-atlas-state="empty" aria-live="polite">
+            <h2>Awaiting a verified dataset</h2>
+            <p>The table remains empty until the snapshot manifest and selected chunks pass validation.</p>
+          </div>
+
+          <div class="table-scroll atlas-table-scroll" tabindex="0" aria-label="Dataset rows; use horizontal scroll when needed">
+            <table id="atlas-table">
+              <caption id="atlas-table-caption">No verified dataset selected</caption>
+              <thead id="atlas-table-head"></thead>
+              <tbody id="atlas-table-body"></tbody>
+            </table>
+          </div>
+
+          <nav class="atlas-pagination" aria-label="Dataset table pages">
+            <p id="atlas-pagination-summary" aria-live="polite">No rows available.</p>
+            <div class="atlas-pagination-actions">
+              <button id="atlas-prev-page" class="atlas-button atlas-button--secondary" type="button" disabled>Previous</button>
+              <button id="atlas-next-page" class="atlas-button atlas-button--secondary" type="button" disabled>Next</button>
+            </div>
+          </nav>
+        </section>
+
+        <section id="schema" class="panel atlas-detail-panel" aria-labelledby="schema-title">
+          <div class="panel-header">
+            <p class="panel-kicker">Published schema</p>
+            <h2 id="schema-title">Fields and shape</h2>
+            <p>Schema metadata comes from the validated static manifest, not a live catalog query.</p>
+          </div>
+          <dl id="atlas-schema-details" class="provenance atlas-definition-list">
+            <dt>Status</dt>
+            <dd>Awaiting a verified dataset.</dd>
+          </dl>
+        </section>
+
+        <section id="provenance" class="panel atlas-detail-panel" aria-labelledby="provenance-title">
+          <div class="panel-header">
+            <p class="panel-kicker">Provenance</p>
+            <h2 id="provenance-title">Snapshot evidence boundary</h2>
+            <p>Atlas exposes the public snapshot identity and cohort declarations only.</p>
+          </div>
+          <dl id="atlas-provenance-details" class="provenance atlas-definition-list">
+            <dt>Status</dt>
+            <dd>Awaiting a verified manifest.</dd>
+          </dl>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p>Quant Data Atlas is a read-only static snapshot explorer. It does not run collectors, connect to operational SQLite stores, or call live APIs.</p>
+      </footer>
+    </div>
+  </body>
+</html>

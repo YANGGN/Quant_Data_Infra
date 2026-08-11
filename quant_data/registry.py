@@ -206,6 +206,9 @@ _STAGE5_REGISTRY_SOURCE_SHA256 = (
 _STAGE6_REGISTRY_SOURCE_SHA256 = (
     "def8c81264379493f9ce0ac2a864562a64106d3c3c42a640f9b05c882c2f3113"
 )
+_STAGE7_REGISTRY_SOURCE_SHA256 = (
+    "643f4fd9a21f2b8b2701b0a408cddb63ae198175bc2cd61ce1ed637a9419a52c"
+)
 _STAGE7_JOB_IDS = (
     "news-hourly",
     "sec-daily",
@@ -314,6 +317,292 @@ _STAGE7_DRY_RUN = {
     "state": "none",
     "store_aliases": "sanitized_aliases_only",
 }
+_STAGE8_EXPORT_ID = "atlas.fixture_snapshot"
+_STAGE8_EXPORT_DATASETS = (
+    "fixture.market.daily_prices",
+    "fixture.macro.gdp_vintages",
+    "fixture.company.issuers",
+    "fixture.news.items",
+)
+_STAGE8_EXPORT_PROJECTIONS: tuple[Mapping[str, Any], ...] = (
+    {
+        "id": "market-prices",
+        "operation_id": "market.daily_prices",
+        "store": "market",
+        "dataset": "fixture.market.daily_prices",
+        "relations": ("prices_daily", "prices_daily_versions"),
+        "schema_id": "atlas.fixture_snapshot.market_prices.v1",
+        "fields": (
+            ("instrument_id", "string", False),
+            ("trade_date", "date", False),
+            ("provider", "string", False),
+            ("price_variant", "string", False),
+            ("currency_segment", "string", False),
+            ("open", "decimal_string", False),
+            ("high", "decimal_string", False),
+            ("low", "decimal_string", False),
+            ("close", "decimal_string", False),
+            ("volume", "integer", False),
+            ("available_at", "temporal_string", False),
+            ("available_precision", "temporal_precision", False),
+            ("captured_at", "datetime", False),
+            ("captured_precision", "temporal_precision", False),
+            ("correction_sequence", "integer", False),
+        ),
+        "row_identity": (
+            "instrument_id",
+            "trade_date",
+            "provider",
+            "price_variant",
+            "currency_segment",
+        ),
+        "order_by": (
+            "instrument_id",
+            "trade_date",
+            "provider",
+            "price_variant",
+            "currency_segment",
+            "correction_sequence",
+        ),
+        "max_rows": 5000,
+    },
+    {
+        "id": "gdp-vintages",
+        "operation_id": "macro.gdp_vintages",
+        "store": "macro",
+        "dataset": "fixture.macro.gdp_vintages",
+        "relations": ("gdp_vintages",),
+        "schema_id": "atlas.fixture_snapshot.gdp_vintages.v1",
+        "fields": (
+            ("source", "string", False),
+            ("source_vintage_identity", "string", False),
+            ("release_stage", "string", True),
+            ("vintage_at", "temporal_string", False),
+            ("vintage_precision", "temporal_precision", False),
+            ("source_published_at", "temporal_string", True),
+            ("source_published_precision", "source_temporal_precision", False),
+            ("available_at", "temporal_string", False),
+            ("available_precision", "temporal_precision", False),
+        ),
+        "row_identity": ("source", "source_vintage_identity"),
+        "order_by": ("source", "vintage_at", "source_vintage_identity"),
+        "max_rows": 1000,
+    },
+    {
+        "id": "company-issuers",
+        "operation_id": "company.issuers",
+        "store": "company",
+        "dataset": "fixture.company.issuers",
+        "relations": ("company_issuers", "company_issuer_versions"),
+        "schema_id": "atlas.fixture_snapshot.company_issuers.v1",
+        "fields": (
+            ("issuer_id", "string", False),
+            ("cik", "string", False),
+            ("legal_name", "string", True),
+            ("entity_type", "string", True),
+            ("name_state", "string", False),
+            ("missing_reason", "string", True),
+            ("available_at", "temporal_string", False),
+            ("available_precision", "temporal_precision", False),
+            ("version_sequence", "integer", False),
+        ),
+        "row_identity": ("issuer_id",),
+        "order_by": ("cik", "issuer_id", "version_sequence"),
+        "max_rows": 1000,
+    },
+    {
+        "id": "news-items",
+        "operation_id": "news.items",
+        "store": "news",
+        "dataset": "fixture.news.items",
+        "relations": ("news_items", "news_item_versions"),
+        "schema_id": "atlas.fixture_snapshot.news_items.v1",
+        "fields": (
+            ("item_id", "string", False),
+            ("source_name", "string", False),
+            ("source_item_id", "string", False),
+            ("source_kind", "string", False),
+            ("headline", "string", True),
+            ("published_at", "temporal_string", True),
+            ("published_precision", "source_temporal_precision", False),
+            ("content_state", "string", False),
+            ("content_missing_reason", "string", True),
+            ("item_state", "string", False),
+            ("retraction_reason", "string", True),
+            ("available_at", "temporal_string", False),
+            ("available_precision", "temporal_precision", False),
+            ("captured_at", "datetime", False),
+            ("captured_precision", "temporal_precision", False),
+            ("version_sequence", "integer", False),
+        ),
+        "row_identity": ("item_id",),
+        "order_by": ("source_name", "source_item_id", "version_sequence"),
+        "max_rows": 5000,
+    },
+)
+_STAGE8_EXPORT_EXCLUDED_FIELDS = (
+    "database_path",
+    "filesystem_path",
+    "credential",
+    "sql",
+    "raw_artifact",
+    "private_receipt",
+    "body",
+    "summary",
+    "source_url",
+    "run_id",
+    "artifact_id",
+    "snapshot_id",
+)
+
+
+def _stage8_expected_export() -> dict[str, Any]:
+    """Return the one reviewed, fixture-only Atlas JSON export declaration."""
+
+    projections: list[dict[str, Any]] = []
+    schemas: list[dict[str, Any]] = []
+    for layout in _STAGE8_EXPORT_PROJECTIONS:
+        fields = [
+            {"name": name, "type": type_name, "nullable": nullable}
+            for name, type_name, nullable in layout["fields"]
+        ]
+        order_by = [
+            {"field": field, "direction": "asc"} for field in layout["order_by"]
+        ]
+        schema = {
+            "id": layout["schema_id"],
+            "fields": fields,
+            "row_identity": list(layout["row_identity"]),
+            "order_by": order_by,
+            "constraints": {
+                "additional_properties": False,
+                "finite_numbers": "reject",
+                "row_identity_unique": True,
+                "total_order": True,
+            },
+        }
+        schemas.append(schema)
+        projections.append(
+            {
+                "id": layout["id"],
+                "operation_id": layout["operation_id"],
+                "store": layout["store"],
+                "dataset": layout["dataset"],
+                "relations": list(layout["relations"]),
+                "schema_id": layout["schema_id"],
+                "fields": [field["name"] for field in fields],
+                "row_identity": list(layout["row_identity"]),
+                "order_by": order_by,
+                "bounds": {"max_rows": layout["max_rows"]},
+            }
+        )
+
+    schema_material = {
+        "id": "atlas.fixture_snapshot.schema",
+        "version": "1.0.0",
+        "serialization": {
+            "encoding": "utf-8",
+            "format": "strict_json",
+            "non_finite": "reject",
+        },
+        "schemas": schemas,
+    }
+    schema_contract = {
+        **schema_material,
+        "sha256": hashlib.sha256(
+            dumps_strict(schema_material).encode("utf-8")
+        ).hexdigest(),
+    }
+    return {
+        "id": _STAGE8_EXPORT_ID,
+        "version": "1.0.0",
+        "lifecycle": {
+            "mode": "manual_only",
+            "fixture_only": True,
+            "network": False,
+            "hosting": False,
+            "status": "fixture_validated",
+        },
+        "owner": "quant_data.atlas",
+        "description": "Bounded synthetic-fixture Atlas snapshot for static read-only review.",
+        "semantic_dataset_id": "atlas.fixture_snapshot.core_v1",
+        "kind": "atlas_snapshot",
+        "format": "json",
+        "datasets": list(_STAGE8_EXPORT_DATASETS),
+        "query_contract": {
+            "id": "atlas.fixture_snapshot.query",
+            "version": "1.0.0",
+            "cutoff": {
+                "source": "export_start",
+                "precision": "datetime",
+                "timezone": "aware_utc",
+                "availability": "at_or_before",
+                "date_only_policy": "completed_date",
+                "vintage_mode": "as_of",
+            },
+            "projections": projections,
+            "bounds": {
+                "max_total_rows": 12000,
+                "max_bytes": 8 * 1024 * 1024,
+                "max_runtime_seconds": 30,
+            },
+            "excluded_fields": list(_STAGE8_EXPORT_EXCLUDED_FIELDS),
+        },
+        "schema_contract": schema_contract,
+        "chunking": {
+            "version": "1.0.0",
+            "strategy": "ordered_rows",
+            "max_rows": 250,
+            "max_bytes": 262144,
+            "empty_policy": "omit",
+        },
+        "freshness": {
+            "mode": "derived_from_dataset_freshness",
+            "required_datasets": "all",
+            "unavailable_state": "explicit",
+        },
+        "source_mode": "online_backup",
+        "consistency": {
+            "complete_receipts": "required",
+            "receipt_chain": "complete_baseline_plus_validated_deltas",
+            "partial_scope": "forbidden",
+            "cross_store_atomic": False,
+            "source_copies": "online_backup_per_store",
+            "read_access": "query_only",
+        },
+        "staging": {
+            "root": "host_selected",
+            "child": "unique_generated",
+            "revision": "immutable",
+            "promotion": "atomic_pointer",
+            "cleanup": "exact_child_only",
+            "validation": "complete_before_promote",
+        },
+        "optional_dependency": None,
+        "benchmark": {
+            "decision": "not_required_json_atlas_snapshot",
+            "parquet": "not_adopted",
+            "duckdb": "not_adopted",
+        },
+        "consumers": [
+            {
+                "id": "quant_data_atlas",
+                "mode": "static_read_only",
+                "hosting": False,
+            }
+        ],
+        "provenance": {
+            "manifest": "required",
+            "registry_version": "required",
+            "dataset_contract_versions": "required",
+            "source_receipts": "required",
+            "source_fingerprints": "required",
+            "code_version": "required",
+            "generated_at": "required",
+        },
+    }
+
+
 _STAGE6_DASHBOARD_ROUTES = {
     _STAGE1_DASHBOARD_ID: "/",
     "stage6.gdp_vintages": "/gdp-vintages",
@@ -493,6 +782,33 @@ class JobDeclaration:
     escalation: str
 
 
+@dataclass(frozen=True, slots=True)
+class ExportDeclaration:
+    """Immutable reviewed Stage 8 Atlas snapshot contract."""
+
+    id: str
+    version: str
+    lifecycle: Mapping[str, Any]
+    owner: str
+    description: str
+    semantic_dataset_id: str
+    kind: str
+    format: str
+    datasets: tuple[str, ...]
+    source_stores: tuple[str, ...]
+    query_contract: Mapping[str, Any]
+    schema_contract: Mapping[str, Any]
+    chunking: Mapping[str, Any]
+    freshness: Mapping[str, Any]
+    source_mode: str
+    consistency: Mapping[str, Any]
+    staging: Mapping[str, Any]
+    optional_dependency: str | None
+    benchmark: Mapping[str, Any]
+    consumers: tuple[Mapping[str, Any], ...]
+    provenance: Mapping[str, Any]
+
+
 def _freeze_job_value(value: Any) -> Any:
     """Detach validated job policy material from mutable registry JSON."""
 
@@ -525,6 +841,7 @@ class Registry:
     datasets: tuple[DatasetDeclaration, ...]
     collectors: tuple[Mapping[str, Any], ...]
     jobs: tuple[JobDeclaration, ...]
+    exports: tuple[ExportDeclaration, ...]
     tools: tuple[Mapping[str, Any], ...]
     dashboard: tuple[Mapping[str, Any], ...]
     raw: Mapping[str, Any]
@@ -563,6 +880,12 @@ class Registry:
             if item.id == name:
                 return item
         raise RegistryError("Unknown job declaration")
+
+    def export(self, name: str) -> ExportDeclaration:
+        for item in self.exports:
+            if item.id == name:
+                return item
+        raise RegistryError("Unknown export declaration")
 
 
 def _error(pointer: str, rule: str, message: str) -> RegistryError:
@@ -735,10 +1058,10 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.3.0"
+        or raw["schema_version"] != "1.4.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.5.0"
+        or raw["registry_version"] != "2.6.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -1126,6 +1449,369 @@ def _validate_stage7_jobs(
     if tuple(job_ids) != _STAGE7_JOB_IDS:
         raise RegistryError("Canonical Stage 7 registry must expose eight ordered jobs")
     return tuple(jobs)
+
+
+def _validate_stage8_exports(
+    raw_exports: Any,
+    *,
+    datasets: tuple[DatasetDeclaration, ...],
+    owned_relations: Mapping[tuple[str, str], str],
+) -> tuple[ExportDeclaration, ...]:
+    """Validate the one closed, fixture-only Stage 8 Atlas export inventory."""
+
+    expected = _stage8_expected_export()
+    pointer = "/exports"
+    if not isinstance(raw_exports, list) or len(raw_exports) != 1:
+        raise _error(pointer, "exports", "Canonical Stage 8 registry requires one export")
+    value = raw_exports[0]
+    item_pointer = f"{pointer}/0"
+    if not isinstance(value, dict):
+        raise _error(item_pointer, "type", "Export declaration must be an object")
+    _require_keys(value, set(expected), item_pointer)
+
+    export_id = _stable_identifier(value["id"], f"{item_pointer}/id")
+    if (
+        export_id != _STAGE8_EXPORT_ID
+        or value["version"] != "1.0.0"
+        or not isinstance(value["version"], str)
+        or not _SEMVER.fullmatch(value["version"])
+        or not isinstance(value["owner"], str)
+        or not _HANDLER.fullmatch(value["owner"])
+        or not isinstance(value["description"], str)
+        or not value["description"]
+        or _stable_identifier(
+            value["semantic_dataset_id"], f"{item_pointer}/semantic_dataset_id"
+        )
+        != "atlas.fixture_snapshot.core_v1"
+        or value["kind"] != "atlas_snapshot"
+        or value["format"] != "json"
+        or value["source_mode"] != "online_backup"
+        or value["optional_dependency"] is not None
+    ):
+        raise _error(item_pointer, "export", "Stage 8 export metadata drifted")
+
+    lifecycle = _nonempty_mapping(value["lifecycle"], f"{item_pointer}/lifecycle")
+    _require_keys(lifecycle, set(expected["lifecycle"]), f"{item_pointer}/lifecycle")
+    if lifecycle != expected["lifecycle"]:
+        raise _error(
+            f"{item_pointer}/lifecycle",
+            "lifecycle",
+            "Stage 8 export must remain manual, fixture-only, offline, and unhosted",
+        )
+
+    dataset_ids = _stable_identifier_array(
+        value["datasets"], f"{item_pointer}/datasets", allow_empty=False
+    )
+    if dataset_ids != _STAGE8_EXPORT_DATASETS:
+        raise _error(
+            f"{item_pointer}/datasets",
+            "datasets",
+            "Stage 8 export datasets must retain the reviewed ownership order",
+        )
+    dataset_by_id = {item.id: item for item in datasets}
+    if not set(dataset_ids).issubset(dataset_by_id):
+        raise _error(
+            f"{item_pointer}/datasets",
+            "reference",
+            "Stage 8 export references an unknown dataset",
+        )
+    source_stores = tuple(
+        dict.fromkeys(dataset_by_id[dataset_id].store for dataset_id in dataset_ids)
+    )
+    if source_stores != ("market", "macro", "company", "news"):
+        raise _error(
+            f"{item_pointer}/datasets",
+            "stores",
+            "Stage 8 export must retain four ordered source stores",
+        )
+
+    query = _nonempty_mapping(value["query_contract"], f"{item_pointer}/query_contract")
+    expected_query = expected["query_contract"]
+    _require_keys(query, set(expected_query), f"{item_pointer}/query_contract")
+    if (
+        query["id"] != expected_query["id"]
+        or query["version"] != expected_query["version"]
+        or not isinstance(query["version"], str)
+        or not _SEMVER.fullmatch(query["version"])
+    ):
+        raise _error(
+            f"{item_pointer}/query_contract",
+            "query_contract",
+            "Stage 8 query contract identity drifted",
+        )
+    cutoff = _nonempty_mapping(
+        query["cutoff"], f"{item_pointer}/query_contract/cutoff"
+    )
+    _require_keys(
+        cutoff,
+        set(expected_query["cutoff"]),
+        f"{item_pointer}/query_contract/cutoff",
+    )
+    if cutoff != expected_query["cutoff"]:
+        raise _error(
+            f"{item_pointer}/query_contract/cutoff",
+            "cutoff",
+            "Stage 8 cutoff must be export-start, aware datetime, and completed-date",
+        )
+    bounds = _nonempty_mapping(
+        query["bounds"], f"{item_pointer}/query_contract/bounds"
+    )
+    _require_keys(
+        bounds,
+        set(expected_query["bounds"]),
+        f"{item_pointer}/query_contract/bounds",
+    )
+    if bounds != expected_query["bounds"]:
+        raise _error(
+            f"{item_pointer}/query_contract/bounds",
+            "bounds",
+            "Stage 8 export bounds drifted",
+        )
+    excluded_fields = _string_array(
+        query["excluded_fields"],
+        f"{item_pointer}/query_contract/excluded_fields",
+        allow_empty=False,
+        identifiers=True,
+    )
+    if excluded_fields != _STAGE8_EXPORT_EXCLUDED_FIELDS:
+        raise _error(
+            f"{item_pointer}/query_contract/excluded_fields",
+            "prohibited",
+            "Stage 8 export must explicitly exclude unsafe/private fields",
+        )
+
+    raw_projections = query["projections"]
+    if not isinstance(raw_projections, list) or len(raw_projections) != len(
+        _STAGE8_EXPORT_PROJECTIONS
+    ):
+        raise _error(
+            f"{item_pointer}/query_contract/projections",
+            "projections",
+            "Stage 8 export projection inventory is incomplete",
+        )
+    expected_schemas = {
+        str(item["id"]): item for item in expected["schema_contract"]["schemas"]
+    }
+    seen_projection_ids: set[str] = set()
+    for index, (projection, layout) in enumerate(
+        zip(raw_projections, _STAGE8_EXPORT_PROJECTIONS)
+    ):
+        projection_pointer = f"{item_pointer}/query_contract/projections/{index}"
+        if not isinstance(projection, dict):
+            raise _error(projection_pointer, "type", "Export projection must be an object")
+        expected_projection = expected_query["projections"][index]
+        _require_keys(projection, set(expected_projection), projection_pointer)
+        projection_id = _stable_identifier(projection["id"], f"{projection_pointer}/id")
+        operation_id = _stable_identifier(
+            projection["operation_id"], f"{projection_pointer}/operation_id"
+        )
+        if (
+            projection_id in seen_projection_ids
+            or projection_id != layout["id"]
+            or operation_id != layout["operation_id"]
+            or projection["store"] != layout["store"]
+            or projection["dataset"] != layout["dataset"]
+            or projection["dataset"] not in dataset_by_id
+            or projection["schema_id"] != layout["schema_id"]
+        ):
+            raise _error(
+                projection_pointer,
+                "projection",
+                "Stage 8 projection identity, owner, or schema drifted",
+            )
+        seen_projection_ids.add(projection_id)
+        relations = _string_array(
+            projection["relations"],
+            f"{projection_pointer}/relations",
+            allow_empty=False,
+            identifiers=True,
+        )
+        if relations != tuple(layout["relations"]):
+            raise _error(
+                f"{projection_pointer}/relations",
+                "relations",
+                "Stage 8 projection relations drifted",
+            )
+        if any(
+            owned_relations.get((projection["store"], relation))
+            != projection["dataset"]
+            for relation in relations
+        ):
+            raise _error(
+                f"{projection_pointer}/relations",
+                "ownership",
+                "Stage 8 projection relation is not owned by its declared dataset",
+            )
+        fields = _string_array(
+            projection["fields"],
+            f"{projection_pointer}/fields",
+            allow_empty=False,
+            identifiers=True,
+        )
+        expected_fields = tuple(name for name, _type, _nullable in layout["fields"])
+        if fields != expected_fields or set(fields).intersection(excluded_fields):
+            raise _error(
+                f"{projection_pointer}/fields",
+                "fields",
+                "Stage 8 projection fields must remain public and ordered",
+            )
+        row_identity = _string_array(
+            projection["row_identity"],
+            f"{projection_pointer}/row_identity",
+            allow_empty=False,
+            identifiers=True,
+        )
+        if (
+            row_identity != tuple(layout["row_identity"])
+            or not set(row_identity).issubset(fields)
+        ):
+            raise _error(
+                f"{projection_pointer}/row_identity",
+                "identity",
+                "Stage 8 projection row identity drifted",
+            )
+        order_by = projection["order_by"]
+        if (
+            not isinstance(order_by, list)
+            or order_by != expected_projection["order_by"]
+            or any(
+                not isinstance(item, dict)
+                or set(item) != {"field", "direction"}
+                or item["field"] not in fields
+                or item["direction"] != "asc"
+                for item in order_by
+            )
+        ):
+            raise _error(
+                f"{projection_pointer}/order_by",
+                "order",
+                "Stage 8 projection must retain a fixed ascending total order",
+            )
+        projection_bounds = _nonempty_mapping(
+            projection["bounds"], f"{projection_pointer}/bounds"
+        )
+        _require_keys(
+            projection_bounds,
+            {"max_rows"},
+            f"{projection_pointer}/bounds",
+        )
+        if (
+            projection_bounds != {"max_rows": layout["max_rows"]}
+            or isinstance(projection_bounds["max_rows"], bool)
+            or not isinstance(projection_bounds["max_rows"], int)
+        ):
+            raise _error(
+                f"{projection_pointer}/bounds",
+                "bounds",
+                "Stage 8 projection row bound drifted",
+            )
+        schema = expected_schemas.get(str(projection["schema_id"]))
+        if (
+            schema is None
+            or fields != tuple(item["name"] for item in schema["fields"])
+            or row_identity != tuple(schema["row_identity"])
+            or order_by != schema["order_by"]
+        ):
+            raise _error(
+                projection_pointer,
+                "schema_reference",
+                "Stage 8 projection does not reconcile to its typed schema",
+            )
+
+    schema_contract = _nonempty_mapping(
+        value["schema_contract"], f"{item_pointer}/schema_contract"
+    )
+    expected_schema_contract = expected["schema_contract"]
+    _require_keys(
+        schema_contract,
+        set(expected_schema_contract),
+        f"{item_pointer}/schema_contract",
+    )
+    schema_digest_material = {
+        "id": schema_contract["id"],
+        "version": schema_contract["version"],
+        "serialization": schema_contract["serialization"],
+        "schemas": schema_contract["schemas"],
+    }
+    schema_sha256 = hashlib.sha256(
+        dumps_strict(schema_digest_material).encode("utf-8")
+    ).hexdigest()
+    if (
+        schema_contract["sha256"] != schema_sha256
+        or schema_contract != expected_schema_contract
+    ):
+        raise _error(
+            f"{item_pointer}/schema_contract",
+            "schema_digest",
+            "Stage 8 typed schema contract or digest drifted",
+        )
+
+    for field_name in (
+        "chunking",
+        "freshness",
+        "consistency",
+        "staging",
+        "benchmark",
+        "provenance",
+    ):
+        declared = _nonempty_mapping(value[field_name], f"{item_pointer}/{field_name}")
+        expected_value = expected[field_name]
+        _require_keys(declared, set(expected_value), f"{item_pointer}/{field_name}")
+        if declared != expected_value:
+            raise _error(
+                f"{item_pointer}/{field_name}",
+                "export_contract",
+                "Stage 8 export lifecycle contract drifted",
+            )
+    consumers = value["consumers"]
+    if (
+        not isinstance(consumers, list)
+        or consumers != expected["consumers"]
+        or len(consumers) != 1
+        or not isinstance(consumers[0], dict)
+        or set(consumers[0]) != {"id", "mode", "hosting"}
+        or consumers[0]["id"] != "quant_data_atlas"
+        or consumers[0]["mode"] != "static_read_only"
+        or consumers[0]["hosting"] is not False
+    ):
+        raise _error(
+            f"{item_pointer}/consumers",
+            "consumer",
+            "Stage 8 export has an unsafe or unreviewed consumer",
+        )
+
+    if value != expected:
+        raise _error(
+            item_pointer,
+            "reviewed_inventory",
+            "Canonical Stage 8 export declaration drifted from the reviewed inventory",
+        )
+
+    return (
+        ExportDeclaration(
+            id=export_id,
+            version=value["version"],
+            lifecycle=_freeze_job_mapping(lifecycle),
+            owner=value["owner"],
+            description=value["description"],
+            semantic_dataset_id=value["semantic_dataset_id"],
+            kind=value["kind"],
+            format=value["format"],
+            datasets=dataset_ids,
+            source_stores=source_stores,
+            query_contract=_freeze_job_mapping(query),
+            schema_contract=_freeze_job_mapping(schema_contract),
+            chunking=_freeze_job_mapping(value["chunking"]),
+            freshness=_freeze_job_mapping(value["freshness"]),
+            source_mode=value["source_mode"],
+            consistency=_freeze_job_mapping(value["consistency"]),
+            staging=_freeze_job_mapping(value["staging"]),
+            optional_dependency=value["optional_dependency"],
+            benchmark=_freeze_job_mapping(value["benchmark"]),
+            consumers=tuple(_freeze_job_mapping(item) for item in consumers),
+            provenance=_freeze_job_mapping(value["provenance"]),
+        ),
+    )
 
 
 def load_registry(
@@ -2138,9 +2824,19 @@ def load_registry(
     ):
         raise RegistryError("Dashboard presentation order does not match Stage 6")
 
-    export_ids: set[str] = set()
-    if raw["exports"] != []:
-        raise _error("/exports", "exports", "Stage 7 must not activate exports")
+    exports = _validate_stage8_exports(
+        raw["exports"],
+        datasets=tuple(datasets),
+        owned_relations=owned_relations,
+    )
+    export_dataset_refs = {
+        dataset_id: {
+            declaration.id
+            for declaration in exports
+            if dataset_id in declaration.datasets
+        }
+        for dataset_id in dataset_ids
+    }
 
     tool_dataset_refs = {
         dataset_id: {tool["id"] for tool in tools if dataset_id in tool["datasets"]}
@@ -2167,7 +2863,7 @@ def load_registry(
             set(dataset.collector_ids) != collector_dataset_refs[dataset.id]
             or set(dataset.tool_ids) != tool_dataset_refs[dataset.id]
             or set(dataset.dashboard_ids) != dashboard_dataset_refs[dataset.id]
-            or set(dataset.export_ids) != export_ids
+            or set(dataset.export_ids) != export_dataset_refs[dataset.id]
         ):
             raise _error(
                 f"/datasets/{dataset.id}",
@@ -2199,6 +2895,7 @@ def load_registry(
         datasets=tuple(datasets),
         collectors=collectors,
         jobs=jobs,
+        exports=exports,
         tools=tuple(tools),
         dashboard=dashboard,
         raw=raw,
@@ -2299,6 +2996,20 @@ def _legacy_tool_projection(
 
 
 
+def _export_free_dataset_projection(
+    datasets: tuple[DatasetDeclaration, ...],
+    raw: dict[str, Any],
+) -> tuple[tuple[DatasetDeclaration, ...], dict[str, Any]]:
+    """Remove later Stage 8 consumers from immutable historical projections."""
+
+    projected = tuple(replace(item, export_ids=()) for item in datasets)
+    raw["exports"] = []
+    raw["datasets"] = [
+        {**item, "export_ids": []} for item in raw["datasets"]
+    ]
+    return projected, raw
+
+
 def stage2_registry_profile(registry: Registry) -> Registry:
     """Project the validated additive registry back to the Stage 2 contract.
 
@@ -2384,6 +3095,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
             if migration_id in _STAGE2_MIGRATION_IDS
         ]
 
+    datasets, raw = _export_free_dataset_projection(datasets, raw)
     datasets, tools, dashboard, raw = _legacy_tool_projection(
         registry, datasets, raw
     )
@@ -2396,6 +3108,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
         datasets=datasets,
         collectors=collectors,
         jobs=(),
+        exports=(),
         tools=tools,
         dashboard=dashboard,
         raw=raw,
@@ -2476,6 +3189,7 @@ def stage3_registry_profile(registry: Registry) -> Registry:
             if migration_id in _STAGE3_MIGRATION_IDS
         ]
 
+    datasets, raw = _export_free_dataset_projection(datasets, raw)
     datasets, tools, dashboard, raw = _legacy_tool_projection(
         registry, datasets, raw
     )
@@ -2488,6 +3202,7 @@ def stage3_registry_profile(registry: Registry) -> Registry:
         datasets=datasets,
         collectors=collectors,
         jobs=(),
+        exports=(),
         tools=tools,
         dashboard=dashboard,
         raw=raw,
@@ -2568,6 +3283,7 @@ def stage4_registry_profile(registry: Registry) -> Registry:
             if migration_id in _STAGE4_MIGRATION_IDS
         ]
 
+    datasets, raw = _export_free_dataset_projection(datasets, raw)
     datasets, tools, dashboard, raw = _legacy_tool_projection(
         registry, datasets, raw
     )
@@ -2580,6 +3296,7 @@ def stage4_registry_profile(registry: Registry) -> Registry:
         datasets=datasets,
         collectors=collectors,
         jobs=(),
+        exports=(),
         tools=tools,
         dashboard=dashboard,
         raw=raw,
@@ -2595,7 +3312,7 @@ def stage5_registry_profile(registry: Registry) -> Registry:
         or len(registry.datasets) != 33
         or len(registry.collectors) != 19
         or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
-        or registry.raw["exports"]
+        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
     ):
         raise RegistryError("Canonical registry cannot reproduce the Stage 5 profile")
 
@@ -2603,8 +3320,9 @@ def stage5_registry_profile(registry: Registry) -> Registry:
     raw["schema_version"] = "1.1.0"
     raw["registry_version"] = "2.3.0"
     raw["jobs"] = []
+    datasets, raw = _export_free_dataset_projection(registry.datasets, raw)
     datasets, dashboard, raw = _stage1_dashboard_projection(
-        registry.datasets, raw
+        datasets, raw
     )
     return replace(
         registry,
@@ -2612,6 +3330,7 @@ def stage5_registry_profile(registry: Registry) -> Registry:
         registry_version="2.3.0",
         datasets=datasets,
         jobs=(),
+        exports=(),
         dashboard=dashboard,
         raw=raw,
         source_sha256=_STAGE5_REGISTRY_SOURCE_SHA256,
@@ -2619,17 +3338,17 @@ def stage5_registry_profile(registry: Registry) -> Registry:
 
 
 def stage6_registry_profile(registry: Registry) -> Registry:
-    """Project the canonical Stage 7 registry back to Stage 6 exactly."""
+    """Project the canonical Stage 8 registry back to Stage 6 exactly."""
 
     if (
-        registry.schema_version != "1.3.0"
-        or registry.registry_version != "2.5.0"
+        registry.schema_version != "1.4.0"
+        or registry.registry_version != "2.6.0"
         or len(registry.migrations) != 30
         or len(registry.datasets) != 33
         or len(registry.collectors) != 19
         or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
         or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
-        or registry.raw["exports"] != []
+        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
     ):
         raise RegistryError("Canonical registry cannot reproduce the Stage 6 profile")
 
@@ -2637,11 +3356,44 @@ def stage6_registry_profile(registry: Registry) -> Registry:
     raw["schema_version"] = "1.2.0"
     raw["registry_version"] = "2.4.0"
     raw["jobs"] = []
+    datasets, raw = _export_free_dataset_projection(registry.datasets, raw)
     return replace(
         registry,
         schema_version="1.2.0",
         registry_version="2.4.0",
+        datasets=datasets,
         jobs=(),
+        exports=(),
         raw=raw,
         source_sha256=_STAGE6_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage7_registry_profile(registry: Registry) -> Registry:
+    """Project the Stage 8 registry back to the immutable Stage 7 contract."""
+
+    if (
+        registry.schema_version != "1.4.0"
+        or registry.registry_version != "2.6.0"
+        or len(registry.migrations) != 30
+        or len(registry.datasets) != 33
+        or len(registry.collectors) != 19
+        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
+        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
+        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 7 profile")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["schema_version"] = "1.3.0"
+    raw["registry_version"] = "2.5.0"
+    datasets, raw = _export_free_dataset_projection(registry.datasets, raw)
+    return replace(
+        registry,
+        schema_version="1.3.0",
+        registry_version="2.5.0",
+        datasets=datasets,
+        exports=(),
+        raw=raw,
+        source_sha256=_STAGE7_REGISTRY_SOURCE_SHA256,
     )
