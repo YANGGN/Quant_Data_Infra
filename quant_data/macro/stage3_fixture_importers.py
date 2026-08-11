@@ -10,6 +10,7 @@ from __future__ import annotations
 import calendar
 import hashlib
 import sqlite3
+import weakref
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping, Sequence
@@ -25,7 +26,7 @@ from ..ingestion import (
     WriteResult,
 )
 from ..json_codec import dumps_strict, loads_strict
-from ..stores import StoreMap, StoreRole, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, stable_id
 from ..temporal import TemporalPrecision, TemporalValue, parse_date
 from .stage3_normalizers import Stage3MacroFixtureCandidate, parse_stage3_macro_fixture
 
@@ -266,6 +267,51 @@ class _ParsedFixture:
     observations: tuple[_Observation, ...]
     projection: Mapping[str, Any]
     retail_authority: _RetailAuthority | None
+
+
+class _PreparedMacroFixture:
+    """Opaque macro candidate produced only by one importer instance."""
+
+    __slots__ = ("__weakref__",)
+
+    def __init__(self) -> None:
+        raise TypeError("Prepared macro fixtures are created by prepare_fixture")
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        del cls, kwargs
+        raise TypeError("Prepared macro fixtures cannot be subclassed")
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedMacroFixtureState:
+    owner_token: object
+    store_map: StoreMap
+    fixture_manifest: FixtureManifest
+    fixture_id: str
+    fixture_sha256: str
+    fixture_byte_count: int
+    collector_id: str
+    evidence_dataset_id: str
+    canonical_dataset_id: str
+    identity_dataset_id: str | None
+    store: str
+    fixture: Fixture
+    parsed: _ParsedFixture
+    semantic_identity: str
+    run_id: str
+
+
+_PREPARED_MACRO_STATES: weakref.WeakKeyDictionary[
+    _PreparedMacroFixture, _PreparedMacroFixtureState
+] = weakref.WeakKeyDictionary()
+
+
+def _new_prepared_macro_fixture(
+    state: _PreparedMacroFixtureState,
+) -> _PreparedMacroFixture:
+    prepared = object.__new__(_PreparedMacroFixture)
+    _PREPARED_MACRO_STATES[prepared] = state
+    return prepared
 
 
 def _parse_series(value: object, family: str) -> _Series:
@@ -865,13 +911,78 @@ class MacroStage3FixtureImporter:
         self._store_map = store_map
         self._fixture_manifest = fixture_manifest
         self._coordinator = IngestionCoordinator(store_map, code_version="stage3.0.0")
+        self._prepared_owner_token = object()
 
-    def import_fixture(self, fixture_id: str) -> IngestionReceipt:
+    def prepare_fixture(self, fixture_id: str) -> _PreparedMacroFixture:
+        """Validate and stage one reviewed macro fixture without opening a store."""
+
         fixture = self._fixture_manifest.get(fixture_id)
         parsed = _parse_fixture(fixture)
         run_id = stable_id(
             "stage3_macro_run", parsed.spec.canonical_dataset_id, parsed.candidate.semantic_identity
         )
+        return _new_prepared_macro_fixture(
+            _PreparedMacroFixtureState(
+                owner_token=self._prepared_owner_token,
+                store_map=self._store_map,
+                fixture_manifest=self._fixture_manifest,
+                fixture_id=fixture.id,
+                fixture_sha256=fixture.sha256,
+                fixture_byte_count=fixture.byte_count,
+                collector_id=fixture.ingestion_family_id,
+                evidence_dataset_id=fixture.evidence_dataset_id,
+                canonical_dataset_id=fixture.canonical_dataset_id,
+                identity_dataset_id=fixture.identity_dataset_id,
+                store=fixture.store,
+                fixture=fixture,
+                parsed=parsed,
+                semantic_identity=parsed.candidate.semantic_identity,
+                run_id=run_id,
+            )
+        )
+
+    def _prepared_state(
+        self,
+        prepared: _PreparedMacroFixture,
+    ) -> _PreparedMacroFixtureState:
+        if not isinstance(prepared, _PreparedMacroFixture):
+            raise ValidationError("Prepared macro fixture has an invalid type")
+        state = _PREPARED_MACRO_STATES.get(prepared)
+        if (
+            state is None
+            or state.owner_token is not self._prepared_owner_token
+            or state.store_map is not self._store_map
+            or state.fixture_manifest is not self._fixture_manifest
+            or state.fixture.id != state.fixture_id
+            or state.fixture.sha256 != state.fixture_sha256
+            or state.fixture.byte_count != state.fixture_byte_count
+            or state.fixture.ingestion_family_id != state.collector_id
+            or state.fixture.evidence_dataset_id != state.evidence_dataset_id
+            or state.fixture.canonical_dataset_id != state.canonical_dataset_id
+            or state.fixture.identity_dataset_id != state.identity_dataset_id
+            or state.fixture.store != state.store
+            or state.store != StoreRole.MACRO.value
+            or state.parsed.fixture is not state.fixture
+            or state.parsed.spec.collector_id != state.collector_id
+            or state.parsed.spec.evidence_dataset_id != state.evidence_dataset_id
+            or state.parsed.spec.canonical_dataset_id != state.canonical_dataset_id
+            or state.parsed.spec.identity_dataset_id != state.identity_dataset_id
+            or state.parsed.candidate.semantic_identity != state.semantic_identity
+            or state.semantic_identity != state.fixture.expected_semantic_identity
+        ):
+            raise ValidationError("Prepared macro fixture is not valid for this importer")
+        return state
+
+    def publish_prepared(
+        self,
+        prepared: _PreparedMacroFixture,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        """Publish a prior validated macro candidate without parsing or fetching."""
+
+        state = self._prepared_state(prepared)
+        parsed = state.parsed
         scope = {
             "fixture_id": parsed.fixture.id,
             "family": parsed.candidate.family,
@@ -888,13 +999,25 @@ class MacroStage3FixtureImporter:
             dataset_id=parsed.spec.canonical_dataset_id,
             output_dataset_ids=parsed.spec.output_dataset_ids,
             semantic_identity=parsed.candidate.semantic_identity,
-            run_id=run_id,
+            run_id=state.run_id,
             command=parsed.spec.collector_id,
             scope=scope,
             started_at=parsed.candidate.captured_at.raw,
             completed_at=parsed.candidate.captured_at.raw,
             fetched_count=len(parsed.observations),
             writer=writer,
+            held_locks=held_locks,
+        )
+
+    def import_fixture(
+        self,
+        fixture_id: str,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        return self.publish_prepared(
+            self.prepare_fixture(fixture_id),
+            held_locks=held_locks,
         )
 
     @staticmethod

@@ -1,0 +1,90 @@
+{
+  "approval_status": "fixture_validated",
+  "backup_manifest_sha256": "f8dd0b31af6e18a39cb66065effd3c3a8cf0059c1bda3fdc55a8114670d26670",
+  "backup_neutral": true,
+  "backup_read_only_equality": true,
+  "backup_restored_equal": true,
+  "backup_source_neutral": true,
+  "dry_run_catalog_sha256": "6ecbb10b7c83fcaf72ec3dbf31785d3583104ba775dc1f8fc08984cda99cae95",
+  "dry_run_plan_sha256": {
+    "company-weekly": "b44629d34909d15cb05f5213043188e2d77f0676ba5ea56e8ce721322a5fc09f",
+    "expectations": "f54ab61ccae1616cbd7079ee9707dfd82abc006f61f1ecc31fe2d0a2d95bab27",
+    "macro-daily": "7856368b34bfa1175e776860b49c262522d72ef6a9d8aca1ebc5d440dbfbddb4",
+    "macro-monthly": "5a3b102a066a06e561303a9f7ceb56c833444831b33a9df11b16de23d912faba",
+    "market-close": "5ffa526c25cfa909d9255c3b526a079c6a4f5fbb88c37fc312b2b252da44d720",
+    "news-hourly": "87dd4ae559ac259128853e104ddfb041becc58231a5066ff62113c439b310d05",
+    "options-close": "c436d1d861798154c0bca86653e54a98b93ece9a5cd4cdf1421ae88d09b56de6",
+    "sec-daily": "c529e994494a22c2e4949894eb44a5f35ed672ec5686a94c57c42bf859a22440"
+  },
+  "evidence_sha256": "63a0179e1149b73afaa50aff586160c667262dd834fd38f0f0d5043c926fd1f7",
+  "exports": 0,
+  "job_catalog_sha256": "40a8e1d7e0d3136e447d5d98a455ea00a11234a1267ae8113c8102890c162a55",
+  "job_ids": [
+    "news-hourly",
+    "sec-daily",
+    "options-close",
+    "macro-daily",
+    "market-close",
+    "expectations",
+    "company-weekly",
+    "macro-monthly"
+  ],
+  "jobs_scheduling_enabled": 0,
+  "live_provider_calls": 0,
+  "manual_fixture_only": true,
+  "migration_heads": {
+    "company": [
+      "company:0001_foundation",
+      "company:0002_control_plane",
+      "company:0003_sec_core",
+      "company:0004_corporate_actions",
+      "company:0005_corporate_action_integrity",
+      "company:0006_earnings_expectations",
+      "company:0007_filing_issuer_view"
+    ],
+    "macro": [
+      "macro:0001_foundation",
+      "macro:0002_vertical_slice",
+      "macro:0003_control_plane",
+      "macro:0004_stage3_core",
+      "macro:0005_gdp_vintages",
+      "macro:0006_treasury_yield_curves",
+      "macro:0007_economic_calendar",
+      "macro:0008_soma_summary_only",
+      "macro:0009_eia_electricity_retail",
+      "macro:0010_eia_weekly_fundamentals",
+      "macro:0011_us_recession_periods"
+    ],
+    "market": [
+      "market:0001_foundation",
+      "market:0002_vertical_slice",
+      "market:0003_control_plane",
+      "market:0004_instrument_catalog",
+      "market:0005_instrument_classifications",
+      "market:0006_controlled_universes",
+      "market:0007_options_core",
+      "market:0008_option_surface_inputs"
+    ],
+    "news": [
+      "news:0001_foundation",
+      "news:0002_control_plane",
+      "news:0003_immutable_items",
+      "news:0004_search_index"
+    ]
+  },
+  "mocked_provider_calls_only": true,
+  "real_fixture_replay_no_write": true,
+  "real_fixture_replay_unchanged": true,
+  "outcome_matrix_sha256": "3bbce1de4bd6ec4224abe5caedd796357f3c262bb11f8121c1e81bc886cc750f",
+  "real_fixture_replay_manifest_sha256": "fbb33b7ec6317a37b4804918d63a10eaa31e893b9a04400ca6945013038e3f7e",
+  "receipt_manifest_sha256": "f37ccf5335f263193252555b13e94c137cb14c97b85bfff69b5bda3f6acc5684",
+  "registry_revision": "2.5.0",
+  "registry_schema_version": "1.3.0",
+  "restored_reads_unchanged": true,
+  "scheduler_installations": 0,
+  "scheduler_starts": 0,
+  "schema_version": "1.0.0",
+  "source_reads_unchanged": true,
+  "source_restored_equal": true,
+  "stage6_evidence_sha256": "868b84691629de835c05219355e0741e3691cd6e34f502abe59e0790d2573794"
+}

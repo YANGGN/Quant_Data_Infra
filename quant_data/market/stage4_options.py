@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import math
 import sqlite3
+import weakref
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -28,7 +29,7 @@ from ..ingestion import (
 )
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, read_connection, stable_id
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -100,6 +101,51 @@ class ParsedOptionsFixture:
 
 def _error(pointer: str, rule: str, message: str) -> ValidationError:
     return ValidationError(message, issues=(Issue(pointer, rule, message),))
+
+
+class _PreparedOptionsFixture:
+    """Opaque option candidate produced only by one importer instance."""
+
+    __slots__ = ("__weakref__",)
+
+    def __init__(self) -> None:
+        raise TypeError("Prepared option fixtures are created by prepare_fixture")
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        del cls, kwargs
+        raise TypeError("Prepared option fixtures cannot be subclassed")
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedOptionsFixtureState:
+    owner_token: object
+    store_map: StoreMap
+    fixture_manifest: FixtureManifest
+    fixture_id: str
+    fixture_sha256: str
+    fixture_byte_count: int
+    collector_id: str
+    evidence_dataset_id: str
+    canonical_dataset_id: str
+    identity_dataset_id: str | None
+    store: str
+    fixture: Fixture
+    parsed: ParsedOptionsFixture
+    semantic_identity: str
+    run_id: str
+
+
+_PREPARED_OPTIONS_STATES: weakref.WeakKeyDictionary[
+    _PreparedOptionsFixture, _PreparedOptionsFixtureState
+] = weakref.WeakKeyDictionary()
+
+
+def _new_prepared_options_fixture(
+    state: _PreparedOptionsFixtureState,
+) -> _PreparedOptionsFixture:
+    prepared = object.__new__(_PreparedOptionsFixture)
+    _PREPARED_OPTIONS_STATES[prepared] = state
+    return prepared
 
 
 def _nonempty(value: object, *, pointer: str) -> str:
@@ -2097,20 +2143,87 @@ class Stage4OptionsFixtureImporter:
         self._store_map = store_map
         self._fixture_manifest = fixture_manifest
         self._coordinator = IngestionCoordinator(store_map, code_version="stage4.0.0")
+        self._prepared_owner_token = object()
 
-    def import_fixture(self, fixture_id: str) -> IngestionReceipt:
+    def prepare_fixture(self, fixture_id: str) -> _PreparedOptionsFixture:
+        """Validate and stage one reviewed option fixture without opening a store."""
+
         fixture = self._fixture_manifest.get(fixture_id)
         parsed = parse_stage4_options_fixture(fixture)
         if parsed.semantic_identity != fixture.expected_semantic_identity:
             raise ValidationError(
                 "Option fixture semantic identity does not match its reviewed manifest pin"
             )
-        underlying_instrument_id = _preflight_underlying(self._store_map, parsed)
         run_id = stable_id(
             "stage4_option_capture_run",
             fixture.canonical_dataset_id,
             parsed.semantic_identity,
         )
+        return _new_prepared_options_fixture(
+            _PreparedOptionsFixtureState(
+                owner_token=self._prepared_owner_token,
+                store_map=self._store_map,
+                fixture_manifest=self._fixture_manifest,
+                fixture_id=fixture.id,
+                fixture_sha256=fixture.sha256,
+                fixture_byte_count=fixture.byte_count,
+                collector_id=fixture.ingestion_family_id,
+                evidence_dataset_id=fixture.evidence_dataset_id,
+                canonical_dataset_id=fixture.canonical_dataset_id,
+                identity_dataset_id=fixture.identity_dataset_id,
+                store=fixture.store,
+                fixture=fixture,
+                parsed=parsed,
+                semantic_identity=parsed.semantic_identity,
+                run_id=run_id,
+            )
+        )
+
+    def _prepared_state(
+        self,
+        prepared: _PreparedOptionsFixture,
+    ) -> _PreparedOptionsFixtureState:
+        if not isinstance(prepared, _PreparedOptionsFixture):
+            raise ValidationError("Prepared option fixture has an invalid type")
+        state = _PREPARED_OPTIONS_STATES.get(prepared)
+        if (
+            state is None
+            or state.owner_token is not self._prepared_owner_token
+            or state.store_map is not self._store_map
+            or state.fixture_manifest is not self._fixture_manifest
+            or state.fixture.id != state.fixture_id
+            or state.fixture.sha256 != state.fixture_sha256
+            or state.fixture.byte_count != state.fixture_byte_count
+            or state.fixture.ingestion_family_id != state.collector_id
+            or state.fixture.evidence_dataset_id != state.evidence_dataset_id
+            or state.fixture.canonical_dataset_id != state.canonical_dataset_id
+            or state.fixture.identity_dataset_id != state.identity_dataset_id
+            or state.fixture.store != state.store
+            or state.store != StoreRole.MARKET.value
+            or state.parsed.fixture is not state.fixture
+            or state.parsed.semantic_identity != state.semantic_identity
+            or state.semantic_identity != state.fixture.expected_semantic_identity
+        ):
+            raise ValidationError("Prepared option fixture is not valid for this importer")
+        return state
+
+    def publish_prepared(
+        self,
+        prepared: _PreparedOptionsFixture,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        """Publish a prior validated option candidate without parsing or fetching."""
+
+        state = self._prepared_state(prepared)
+        fixture = state.fixture
+        parsed = state.parsed
+        run_id = state.run_id
+        if held_locks is not None:
+            if not isinstance(held_locks, HeldWriteLocks):
+                raise ValidationError("Held write-lock capability is invalid")
+            held_locks._require_target(self._store_map, StoreRole.MARKET)
+        underlying_instrument_id = _preflight_underlying(self._store_map, parsed)
 
         def writer(connection: sqlite3.Connection, active_run_id: str) -> WriteResult:
             if active_run_id != run_id:
@@ -2262,6 +2375,18 @@ class Stage4OptionsFixtureImporter:
             completed_at=parsed.captured_at.raw or fixture.captured_at,
             fetched_count=parsed.fetched_count,
             writer=writer,
+            held_locks=held_locks,
+        )
+
+    def import_fixture(
+        self,
+        fixture_id: str,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        return self.publish_prepared(
+            self.prepare_fixture(fixture_id),
+            held_locks=held_locks,
         )
 
 

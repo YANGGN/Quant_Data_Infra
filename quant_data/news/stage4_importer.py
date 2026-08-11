@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+import weakref
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping, Sequence
@@ -31,7 +32,7 @@ from ..ingestion import (
     WriteResult,
 )
 from ..json_codec import dumps_strict, loads_strict
-from ..stores import StoreMap, StoreRole, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, stable_id
 from ..temporal import TemporalPrecision, TemporalValue
 
 
@@ -300,6 +301,52 @@ class _ParsedFixture:
     completeness: str
     items: tuple[_NewsItem, ...]
     semantic_identity: str
+
+
+class _PreparedNewsFixture:
+    """Opaque news candidate produced only by one importer instance."""
+
+    __slots__ = ("__weakref__",)
+
+    def __init__(self) -> None:
+        raise TypeError("Prepared news fixtures are created by prepare_fixture")
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        del cls, kwargs
+        raise TypeError("Prepared news fixtures cannot be subclassed")
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedNewsFixtureState:
+    owner_token: object
+    store_map: StoreMap
+    fixture_manifest: FixtureManifest
+    fixture_id: str
+    fixture_sha256: str
+    fixture_byte_count: int
+    collector_id: str
+    evidence_dataset_id: str
+    canonical_dataset_id: str
+    identity_dataset_id: str | None
+    store: str
+    fixture: Fixture
+    parsed: _ParsedFixture
+    scope: Mapping[str, object]
+    semantic_identity: str
+    run_id: str
+
+
+_PREPARED_NEWS_STATES: weakref.WeakKeyDictionary[
+    _PreparedNewsFixture, _PreparedNewsFixtureState
+] = weakref.WeakKeyDictionary()
+
+
+def _new_prepared_news_fixture(
+    state: _PreparedNewsFixtureState,
+) -> _PreparedNewsFixture:
+    prepared = object.__new__(_PreparedNewsFixture)
+    _PREPARED_NEWS_STATES[prepared] = state
+    return prepared
 
 
 def _parse_content(value: object, *, pointer: str) -> _Content:
@@ -1031,15 +1078,13 @@ class NewsStage4FixtureImporter:
         self._store_map = store_map
         self._fixture_manifest = fixture_manifest
         self._coordinator = IngestionCoordinator(store_map, code_version="stage4.0.0")
+        self._prepared_owner_token = object()
 
-    def import_fixture(self, fixture_id: str) -> IngestionReceipt:
+    def prepare_fixture(self, fixture_id: str) -> _PreparedNewsFixture:
+        """Validate and stage one reviewed news fixture without opening a store."""
+
         fixture = self._fixture_manifest.get(fixture_id)
         parsed = _parse_fixture(fixture)
-        run_id = stable_id(
-            "stage4_news_run",
-            _CANONICAL_DATASET_ID,
-            parsed.semantic_identity,
-        )
         scope = {
             "fixture_id": parsed.fixture.id,
             "collector_id": _COLLECTOR_ID,
@@ -1047,22 +1092,102 @@ class NewsStage4FixtureImporter:
             "request_scope": dict(parsed.request_scope),
             "completeness": parsed.completeness,
         }
+        run_id = stable_id(
+            "stage4_news_run",
+            _CANONICAL_DATASET_ID,
+            parsed.semantic_identity,
+        )
+        return _new_prepared_news_fixture(
+            _PreparedNewsFixtureState(
+                owner_token=self._prepared_owner_token,
+                store_map=self._store_map,
+                fixture_manifest=self._fixture_manifest,
+                fixture_id=fixture.id,
+                fixture_sha256=fixture.sha256,
+                fixture_byte_count=fixture.byte_count,
+                collector_id=fixture.ingestion_family_id,
+                evidence_dataset_id=fixture.evidence_dataset_id,
+                canonical_dataset_id=fixture.canonical_dataset_id,
+                identity_dataset_id=fixture.identity_dataset_id,
+                store=fixture.store,
+                fixture=fixture,
+                parsed=parsed,
+                scope=scope,
+                semantic_identity=parsed.semantic_identity,
+                run_id=run_id,
+            )
+        )
+
+    def _prepared_state(
+        self,
+        prepared: _PreparedNewsFixture,
+    ) -> _PreparedNewsFixtureState:
+        if not isinstance(prepared, _PreparedNewsFixture):
+            raise ValidationError("Prepared news fixture has an invalid type")
+        state = _PREPARED_NEWS_STATES.get(prepared)
+        if (
+            state is None
+            or state.owner_token is not self._prepared_owner_token
+            or state.store_map is not self._store_map
+            or state.fixture_manifest is not self._fixture_manifest
+            or state.fixture.id != state.fixture_id
+            or state.fixture.sha256 != state.fixture_sha256
+            or state.fixture.byte_count != state.fixture_byte_count
+            or state.fixture.ingestion_family_id != state.collector_id
+            or state.fixture.evidence_dataset_id != state.evidence_dataset_id
+            or state.fixture.canonical_dataset_id != state.canonical_dataset_id
+            or state.fixture.identity_dataset_id != state.identity_dataset_id
+            or state.fixture.store != state.store
+            or state.store != StoreRole.NEWS.value
+            or state.collector_id != _COLLECTOR_ID
+            or state.evidence_dataset_id != _EVIDENCE_DATASET_ID
+            or state.canonical_dataset_id != _CANONICAL_DATASET_ID
+            or state.identity_dataset_id is not None
+            or state.parsed.fixture is not state.fixture
+            or state.parsed.semantic_identity != state.semantic_identity
+            or state.semantic_identity != state.fixture.expected_semantic_identity
+        ):
+            raise ValidationError("Prepared news fixture is not valid for this importer")
+        return state
+
+    def publish_prepared(
+        self,
+        prepared: _PreparedNewsFixture,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        """Publish a prior validated news candidate without parsing or fetching."""
+
+        state = self._prepared_state(prepared)
+        parsed = state.parsed
 
         def writer(connection: sqlite3.Connection, active_run_id: str) -> WriteResult:
             return self._write_candidate(connection, parsed, active_run_id)
 
         return self._coordinator.execute(
             role=StoreRole.NEWS,
-            dataset_id=_CANONICAL_DATASET_ID,
+            dataset_id=state.canonical_dataset_id,
             output_dataset_ids=_OUTPUT_DATASET_IDS,
-            semantic_identity=parsed.semantic_identity,
-            run_id=run_id,
-            command=_COLLECTOR_ID,
-            scope=scope,
+            semantic_identity=state.semantic_identity,
+            run_id=state.run_id,
+            command=state.collector_id,
+            scope=dict(state.scope),
             started_at=parsed.captured_at.raw,
             completed_at=parsed.captured_at.raw,
             fetched_count=len(parsed.items),
             writer=writer,
+            held_locks=held_locks,
+        )
+
+    def import_fixture(
+        self,
+        fixture_id: str,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        return self.publish_prepared(
+            self.prepare_fixture(fixture_id),
+            held_locks=held_locks,
         )
 
     @staticmethod

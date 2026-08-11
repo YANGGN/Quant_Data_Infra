@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import sqlite3
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import PurePosixPath
@@ -12,7 +13,14 @@ from typing import Callable, Iterable
 from .contracts import IngestionReceipt
 from .errors import ConflictError, ValidationError
 from .json_codec import dumps_strict
-from .stores import StoreMap, StoreRole, StoreWriteLock, read_connection, writer_connection
+from .stores import (
+    HeldWriteLocks,
+    StoreMap,
+    StoreRole,
+    StoreWriteLock,
+    read_connection,
+    writer_connection,
+)
 from .temporal import TemporalPrecision, TemporalValue
 
 
@@ -418,6 +426,7 @@ class IngestionCoordinator:
         completed_at: str,
         fetched_count: int,
         writer: WriteCallback,
+        held_locks: HeldWriteLocks | None = None,
     ) -> IngestionReceipt:
         normalized = StoreRole(role)
         if (
@@ -452,6 +461,10 @@ class IngestionCoordinator:
             or dataset_id not in outputs
         ):
             raise ValidationError("Canonical dataset must be one of the declared outputs")
+        if held_locks is not None:
+            if not isinstance(held_locks, HeldWriteLocks):
+                raise ValidationError("Held write-lock capability is invalid")
+            held_locks._require_target(self.store_map, normalized)
         existing = self._existing_run(normalized, dataset_id, semantic_identity)
         if existing is not None:
             return IngestionReceipt(
@@ -466,7 +479,10 @@ class IngestionCoordinator:
             )
 
         path = self.store_map.path(normalized)
-        with StoreWriteLock(path), writer_connection(
+        lock_context = (
+            StoreWriteLock(path) if held_locks is None else nullcontext()
+        )
+        with lock_context, writer_connection(
             self.store_map, normalized
         ) as connection:
             connection.execute("BEGIN IMMEDIATE")

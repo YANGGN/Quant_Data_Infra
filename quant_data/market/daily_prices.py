@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import sqlite3
+import weakref
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from io import StringIO
@@ -27,7 +28,7 @@ from ..ingestion import (
 )
 from ..json_codec import dumps_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, read_connection, stable_id
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -583,12 +584,16 @@ class DailyPriceImporter:
     def __init__(self, store_map: StoreMap, fixture_manifest: FixtureManifest) -> None:
         self.store_map = store_map
         self.fixture_manifest = fixture_manifest
-        self._coordinator = IngestionCoordinator(store_map)
+        self._prepared_owner_token = object()
 
-    def import_fixture(self, fixture_id: str) -> IngestionReceipt:
+    def prepare_fixture(self, fixture_id: str) -> PreparedDailyPriceFixture:
+        """Validate and normalize one reviewed fixture without touching a store."""
+
         fixture = self.fixture_manifest.get(fixture_id)
         rows, scope, captured, normalization_version = _parse_fixture_rows(fixture)
         semantic_identity = _semantic_identity(fixture, scope, normalization_version, rows)
+        if semantic_identity != fixture.expected_semantic_identity:
+            raise ValidationError("Market fixture semantic identity does not match its reviewed manifest pin")
         scope_digest = _scope_digest(scope)
         if not fixture.identity_dataset_id:
             raise ValidationError("Market fixture must declare an identity dataset")
@@ -603,6 +608,81 @@ class DailyPriceImporter:
             key = (row.provider, row.provider_symbol, row.asset_type)
             prior = valid_from_by_identifier.get(key)
             valid_from_by_identifier[key] = min(prior, row.trade_date) if prior else row.trade_date
+        return _new_prepared_daily_price_fixture(
+            _PreparedDailyPriceState(
+                owner_token=self._prepared_owner_token,
+                store_map=self.store_map,
+                fixture_manifest=self.fixture_manifest,
+                fixture_id=fixture.id,
+                fixture_sha256=fixture.sha256,
+                fixture_byte_count=fixture.byte_count,
+                collector_id=fixture.ingestion_family_id,
+                evidence_dataset_id=fixture.evidence_dataset_id,
+                canonical_dataset_id=fixture.canonical_dataset_id,
+                identity_dataset_id=fixture.identity_dataset_id,
+                store=fixture.store,
+                fixture=fixture,
+                rows=rows,
+                scope=dict(scope),
+                captured=captured,
+                normalization_version=normalization_version,
+                semantic_identity=semantic_identity,
+                scope_digest=scope_digest,
+                run_id=run_id,
+                request_id=request_id,
+                artifact_id=artifact_id,
+                snapshot_id=snapshot_id,
+                valid_from_by_identifier=tuple(sorted(valid_from_by_identifier.items())),
+            )
+        )
+
+    def _prepared_state(
+        self,
+        prepared: PreparedDailyPriceFixture,
+    ) -> _PreparedDailyPriceState:
+        if not isinstance(prepared, PreparedDailyPriceFixture):
+            raise ValidationError("Prepared daily-price fixture has an invalid type")
+        state = _PREPARED_DAILY_PRICE_STATES.get(prepared)
+        if (
+            state is None
+            or state.owner_token is not self._prepared_owner_token
+            or state.store_map is not self.store_map
+            or state.fixture_manifest is not self.fixture_manifest
+            or state.fixture.id != state.fixture_id
+            or state.fixture.sha256 != state.fixture_sha256
+            or state.fixture.byte_count != state.fixture_byte_count
+            or state.fixture.ingestion_family_id != state.collector_id
+            or state.fixture.evidence_dataset_id != state.evidence_dataset_id
+            or state.fixture.canonical_dataset_id != state.canonical_dataset_id
+            or state.fixture.identity_dataset_id != state.identity_dataset_id
+            or state.fixture.store != state.store
+            or state.store != StoreRole.MARKET.value
+            or state.semantic_identity != state.fixture.expected_semantic_identity
+        ):
+            raise ValidationError("Prepared daily-price fixture is not valid for this importer")
+        return state
+
+    def publish_prepared(
+        self,
+        prepared: PreparedDailyPriceFixture,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        """Publish a prior immutable preparation without parsing or fetching."""
+
+        state = self._prepared_state(prepared)
+        fixture = state.fixture
+        rows = state.rows
+        scope = state.scope
+        captured = state.captured
+        normalization_version = state.normalization_version
+        semantic_identity = state.semantic_identity
+        scope_digest = state.scope_digest
+        run_id = state.run_id
+        request_id = state.request_id
+        artifact_id = state.artifact_id
+        snapshot_id = state.snapshot_id
+        valid_from_by_identifier = dict(state.valid_from_by_identifier)
 
         def writer(connection: sqlite3.Connection, active_run_id: str) -> WriteResult:
             if active_run_id != run_id:
@@ -784,7 +864,7 @@ class DailyPriceImporter:
                 ),
             )
 
-        return self._coordinator.execute(
+        return IngestionCoordinator(self.store_map).execute(
             role=StoreRole.MARKET,
             dataset_id=fixture.canonical_dataset_id,
             output_dataset_ids=(
@@ -804,7 +884,16 @@ class DailyPriceImporter:
             completed_at=captured.raw or fixture.captured_at,
             fetched_count=len(rows),
             writer=writer,
+            held_locks=held_locks,
         )
+
+    def import_fixture(
+        self,
+        fixture_id: str,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        return self.publish_prepared(self.prepare_fixture(fixture_id), held_locks=held_locks)
 
 
 def _stored_temporal(row: sqlite3.Row, *, value_name: str, precision_name: str) -> TemporalValue:
@@ -1141,3 +1230,55 @@ class DailyPriceRepository:
         # handing the primitive result to the HTTP/dashboard adapter.
         dumps_strict(result)
         return result
+
+class PreparedDailyPriceFixture:
+    """Opaque immutable daily-price candidate prepared outside write locks."""
+
+    __slots__ = ("__weakref__",)
+
+    def __init__(self) -> None:
+        raise TypeError("PreparedDailyPriceFixture instances are created by prepare_fixture")
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        del cls, kwargs
+        raise TypeError("PreparedDailyPriceFixture cannot be subclassed")
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedDailyPriceState:
+    owner_token: object
+    store_map: StoreMap
+    fixture_manifest: FixtureManifest
+    fixture_id: str
+    fixture_sha256: str
+    fixture_byte_count: int
+    collector_id: str
+    evidence_dataset_id: str
+    canonical_dataset_id: str
+    identity_dataset_id: str | None
+    store: str
+    fixture: Fixture
+    rows: tuple[_DailyPriceRow, ...]
+    scope: Mapping[str, object]
+    captured: TemporalValue
+    normalization_version: str
+    semantic_identity: str
+    scope_digest: str
+    run_id: str
+    request_id: str
+    artifact_id: str
+    snapshot_id: str
+    valid_from_by_identifier: tuple[tuple[tuple[str, str, str], str], ...]
+
+
+_PREPARED_DAILY_PRICE_STATES: weakref.WeakKeyDictionary[
+    PreparedDailyPriceFixture, _PreparedDailyPriceState
+] = weakref.WeakKeyDictionary()
+
+
+def _new_prepared_daily_price_fixture(
+    state: _PreparedDailyPriceState,
+) -> PreparedDailyPriceFixture:
+    prepared = object.__new__(PreparedDailyPriceFixture)
+    _PREPARED_DAILY_PRICE_STATES[prepared] = state
+    return prepared

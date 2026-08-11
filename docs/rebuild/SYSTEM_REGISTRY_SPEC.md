@@ -2,9 +2,16 @@
 
 ## Status
 
-**Accepted.** The canonical registry path is `config/system_registry.json` and the optional host override is `QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision `2.4.0` with schema version `1.2.0`. Its four local-private dashboard exposures passed the bounded Stage 6 offline checks; the unavailable browser-automation check was explicitly waived by the user. The frozen Stage 5 compatibility projection remains revision `2.3.0`, schema `1.1.0` to preserve its historical evidence. A listed consumer exists only when executable evidence passes or an explicit user acceptance records a remaining external verification limitation.
-
-This specification elaborates [ADR 0002](../adr/0002-single-machine-readable-registry.md) and the [target architecture](../../ARCHITECTURE.md). Store and layer semantics are defined by [ADR 0001](../adr/0001-four-operational-sqlite-stores.md) and [ADR 0003](../adr/0003-three-layer-data-architecture.md). Recovery constraints come from the [rebuild plan](../../plan.md), with its Sections 18–20 taking precedence where earlier sections conflict.
+**Accepted.** The canonical registry path is
+`config/system_registry.json`; the optional host override remains
+`QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision
+`2.5.0`, schema `1.3.0`, status `validated`. It declares 30 migrations,
+33 datasets, 19 collectors, 57 tools, four local-private dashboard exposures,
+eight disabled `manual_fixture_only` jobs, and zero exports. The frozen Stage
+6 projection remains `2.4.0`/`1.2.0` with zero jobs; the frozen Stage 5
+projection remains `2.3.0`/`1.1.0`. A listed consumer exists only when its
+executable evidence passes or an explicit acceptance records a remaining
+external limitation.
 
 ## Purpose
 
@@ -208,6 +215,16 @@ Fetch happens before physical locks are acquired. The lock set is the set of can
 
 The registry describes jobs; a platform-specific scheduler definition is generated or validated against them. Scheduler XML or command lines are not embedded as authoritative business logic.
 
+Schema `1.3.0` freezes eight ordered Stage 7 job declarations:
+`news-hourly`, `sec-daily`, `options-close`, `macro-daily`,
+`market-close`, `expectations`, `company-weekly`, and `macro-monthly`.
+Every entry is `manual_fixture_only`, `scheduling_enabled: false`, uses
+fixture-only network mode, derives its complete write-store set from steps,
+declares bounded retry/timeout and dependency policy, publishes private
+versioned receipts, and uses the registered aggregate exit precedence. Exact
+external task definitions, timezone, identity, and calendar installation
+remain unresolved; no scheduler definition is generated or installed.
+
 ### ToolExposure
 
 | Field | Type | Required | Contract |
@@ -242,12 +259,13 @@ The active parity target may claim 57 tools only after all 57 recovered names ha
 | pagination | object | Yes | Default and hard maximum |
 | visibility | enum | Yes | local_private |
 
-Schema `1.2.0` requires all ten DashboardExposure fields above: `id`, `route`,
-`api_routes`, `datasets`, `tools`, `relations`, `filters`, `sort_fields`,
-`pagination`, and `visibility`. The canonical `2.4.0` registry declares exactly
-four ordered local-private exposures: `stage1.overview`,
-`stage6.gdp_vintages`, `stage6.table_inspector`, and `stage6.agent_tools`.
-Their API routes are fixed registry declarations, not caller-supplied URLs.
+Schema `1.2.0` introduced all ten DashboardExposure fields above. The
+frozen Stage 6 `2.4.0` projection declares exactly four ordered local-private
+exposures: `stage1.overview`, `stage6.gdp_vintages`,
+`stage6.table_inspector`, and `stage6.agent_tools`. Canonical Stage 7
+registry `2.5.0`/`1.3.0` preserves those declarations unchanged while
+adding only the disabled job catalog. API routes remain fixed registry
+declarations, not caller-supplied URLs.
 
 Dashboard navigation and the table inspector are generated or validated from
 these exposures. Internal raw payload objects remain absent unless a reviewed

@@ -7,17 +7,13 @@ Infrastructure rebuild documents
 ## 1. Scope
 
 This directory converts the historical recovery specification in
-[plan.md](../../plan.md) into accepted implementation contracts. Stage 0 was
-accepted and the offline Stage 1 slice, Stage 2 four-store foundation, and
-bounded Stage 3 market/macro fixture scope were implemented on 2026-08-09.
-Stage 3 also passed independent verification. The bounded Stage 4 company,
-news, and options primary fixture gate and independent SolUltra verification
-passed on 2026-08-10. The bounded Stage 5 composable tool-platform primary
-fixture gate and independent SolUltra verification also passed on 2026-08-10.
-The bounded Stage 6 four-route local portal was accepted on 2026-08-10 after
-offline verification and an explicit user waiver for unavailable browser
-automation. Later documented behavior is not considered implemented until
-separately authorized executable evidence passes.
+[plan.md](../../plan.md) into accepted implementation contracts. Stages 1
+through 5 are implemented and independently verified. The bounded Stage 6
+four-route local portal was accepted on 2026-08-10 with an explicit
+browser-automation waiver. The bounded offline Stage 7 manual fixture
+rehearsal is implemented and independently verified. Later documented
+behavior is not implemented
+until separately authorized executable evidence passes.
 
 Two user decisions narrow the work:
 
@@ -25,11 +21,10 @@ Two user decisions narrow the work:
   baseline can be created when implementation begins.
 - A dedicated provider-rights governance subsystem is out of scope.
 
-Stages 4 through 6 were implemented as sequential, offline synthetic-fixture
-work. Stages 4 and 5 are independently verified. The bounded Stage 6 four-route
-portal passed its offline checks and was explicitly accepted with browser
-automation waived. Bounded offline Stage 7 is authorized; Stage 8 remains
-closed.
+Stages 4 through 7 were implemented sequentially with offline synthetic
+fixtures. Stages 4 and 5 are independently verified, Stage 6 is accepted with
+its explicit waiver, and Stage 7 is independently verified. All eight
+Stage 7 jobs remain disabled and manual-fixture-only. Stage 8 remains closed.
 
 ## 2. Document map
 
@@ -46,6 +41,7 @@ closed.
 - [Stage 4 acceptance evidence](STAGE4_EVIDENCE.md)
 - [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md)
 - [Stage 6 acceptance evidence](STAGE6_EVIDENCE.md)
+- [Stage 7 acceptance evidence](STAGE7_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -96,14 +92,11 @@ either history or semantics.
 - `Implemented`: supported by executable evidence and acceptance results.
 - `Rejected`: considered and intentionally not adopted.
 
-The current planning package is `Accepted`. Stage 1 and the offline Stage 2
-foundation have recorded fixture-validated evidence, and Stage 2 has passed
-independent verification. The bounded offline Stage 3, Stage 4, and Stage 5
-scopes have passed their primary fixture gates and independent SolUltra
-verification. The bounded Stage 6 four-route portal has passed its primary
-fixture gate and offline independent checks; its browser-automation limitation
-was explicitly accepted by the user. Only a sequentially authorized roadmap
-stage may be implemented. Bounded offline Stage 7 is authorized; Stage 8 is not.
+The current planning package is `Accepted`. Stages 1 through 5 are
+implemented and independently verified. The bounded Stage 6 portal is accepted
+with its browser-automation waiver. The bounded offline Stage 7 manual fixture
+rehearsal passed its primary gate and independent SolUltra verification. Stage
+8 is not authorized.
 
 ## 5. Shared terminology
 

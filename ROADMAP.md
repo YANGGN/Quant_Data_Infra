@@ -2,13 +2,11 @@
 
 Status: Accepted
 Planning baseline: 2026-08-09
-Scope: accepted implementation sequencing; Stages 1 through 3 implemented on
-2026-08-09, with Stages 2 and 3 independently verified; Stage 4 primary
-fixture gate and independent verification passed on 2026-08-10; Stage 5
-primary fixture gate and independent verification passed on 2026-08-10; the
-bounded Stage 6 four-route local portal was accepted on 2026-08-10 after
-offline independent verification and an explicit user waiver for unavailable
-browser automation
+Scope: accepted implementation sequencing; Stages 1 through 5 are
+independently verified; the bounded Stage 6 four-route portal was accepted on
+2026-08-10 with an explicit browser-automation waiver; the bounded offline
+Stage 7 manual fixture rehearsal passed its primary gate and independent
+SolUltra verification on 2026-08-11
 
 ## 1. Purpose
 
@@ -28,15 +26,11 @@ The following decisions apply to every stage:
 - Do not search for or reconstruct the lost Git history. When implementation
   begins, create a fresh repository baseline from the accepted planning
   documents.
-- Stage 0 is complete. The offline Stage 1 vertical slice and Stage 2
-  four-store foundation are fixture-validated implementations; Stage 2 has
-  also passed independent verification. The bounded offline Stage 3 market and
-  macro scope is fixture-validated and independently verified. Stages 4
-  through 6 are authorized only sequentially with offline synthetic fixtures.
-  Stage 4 and Stage 5 have passed their primary fixture gates and independent
-  SolUltra verification. The bounded Stage 6 four-route local portal has
-  passed its offline executable checks and was explicitly accepted by the user
-  with browser automation waived. Bounded offline Stage 7 is authorized;
+- Stage 0 is complete. Stages 1 through 5 are fixture-validated and
+  independently verified. The bounded offline Stage 6 four-route local portal
+  passed its executable checks and was explicitly accepted with browser
+  automation waived. The bounded offline Stage 7 manual fixture rehearsal has
+  passed its primary gate and independent SolUltra verification.
   Stage 8 remains closed.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
@@ -63,8 +57,8 @@ The following decisions apply to every stage:
 | 3 | Bounded market and macro restoration | No; reviewed fixtures only | Independently verified offline evidence; Stage 4 requires separate authorization |
 | 4 | Company, news, and options restoration | No; synthetic fixtures only | Independently verified offline evidence; Stage 5 is next |
 | 5 | Composable 57-tool platform | No live access; intraday remains disabled | Independently verified offline evidence; bounded Stage 6 portal primary gate passed |
-| 6 | Bounded local portal (four fixed routes) | No mutation through UI | Primary fixture gate passed; independent verifier and browser QA pending |
-| 7 | Scheduling and operational readiness | Dry-run first | Locking, retries, receipts, backups, and failure handling pass |
+| 6 | Bounded local portal (four fixed routes) | No mutation through UI | Accepted offline evidence with explicit browser-automation waiver |
+| 7 | Manual fixture job rehearsal and operational readiness | No live access; jobs disabled | Independently verified offline evidence; Stage 8 remains closed |
 | 8 | Derived analytical exports and Atlas | Snapshot reads only | Atomic, reproducible publication passes |
 | 9 | Controlled repopulation and promotion | Yes, explicitly approved | New stores pass integrity and recovery drills |
 
@@ -364,7 +358,7 @@ exposures. The broader chart/algorithm/backtest surface remains deferred.
 - Four fixed local-private routes: Overview (`/`), GDP Vintages
   (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
   (`/agent-tools`).
-- Canonical registry revision `2.4.0` and schema `1.2.0` dashboard exposures
+- Frozen Stage 6 registry projection `2.4.0` and schema `1.2.0` dashboard exposures
   with fixed datasets, relations, filters, server-owned sort fields,
   pagination, tool dependencies, and API routes.
 - Read-only, query-only services and loopback boundary checks, including
@@ -404,31 +398,47 @@ and are not claimed by this Stage 6 commit:
 
 ## 11. Stage 7 — Restore scheduling and operations
 
+Status: **Implemented and independently verified for bounded offline manual
+fixture rehearsal.** The accepted
+evidence is recorded in
+[Stage 7 acceptance evidence](docs/rebuild/STAGE7_EVIDENCE.md).
+
 The contract is defined in
 [SCHEDULING_AND_LOCKING.md](docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
-Stage 2 provides only an offline, fixture-validated read-only health and
-WAL-safe backup/restore foundation. Manual operational rehearsals, job
-definitions, scheduler installation, and scheduler-owned receipts remain
-Stage 7 work.
+### Implemented bounded scope
 
-### Deliverables
+- Canonical registry `2.5.0` / schema `1.3.0` declares exactly eight
+  disabled `manual_fixture_only` jobs, derived write-store sets, bounded
+  step graphs, and zero exports.
+- Deterministic, path-free dry-run plans create no store, state, lock, provider,
+  or scheduler side effect.
+- All fixture candidates are parsed and sealed before acquisition of the
+  complete physical-store lock session; publication reuses that session and
+  does not nest locks.
+- Retry classes, active step timeouts, dependency policies, aggregate sysexit
+  precedence, and lock/I/O/configuration failures are bounded and receipt-safe.
+- Private logs, optional monthly markers, and receipts are immutable and
+  atomically published with the receipt last; a publication failure cannot
+  report success.
+- The restricted manual wrapper requires explicit initialized synthetic stores
+  and an explicit private state root. It preserves aggregate exit codes.
+- SQLite online backup/restore rehearsal proves integrity, foreign keys,
+  read-only equality, and source mutation neutrality.
 
-- Manual commands proven before job definitions are enabled.
-- Physical-path-derived locks with deterministic multi-lock acquisition.
-- Correct behavior for four distinct split stores; no unified runtime fallback.
-- Dry-run plans, bounded retries, `if-new` semantic gates, receipts, private
-  logs, and nonzero aggregate failure status.
-- Online SQLite backup and restore procedures tested against copies.
+### Primary exit evidence
 
-### Exit gate
+The primary gate passed 277 offline tests, including 43 operations tests and
+three deterministic Stage 7 integration checks. It proves changed then
+unchanged real fixture execution, exact replay no-write behavior, deterministic
+multi-lock ordering/release, timeout and lock-contention handling, private
+evidence safety, two-root equality, and nonempty-root refusal.
 
-- Concurrent-job tests prove that two logical domains targeting one physical
-  file cannot write concurrently.
-- Multi-store jobs acquire every required lock in deterministic order.
-- Network work occurs outside write transactions.
-- Unchanged releases create no run, artifact, snapshot, or membership writes.
-- Partial and failed work cannot advance successful checkpoints.
+No live provider, runtime network, scheduler installation/start/update/removal,
+export, promotion, hosting, Atlas, default path, or destructive operation is
+authorized or implemented. Recovered external task definitions, calendars,
+identity, and timezone remain unresolved; the eight jobs stay disabled. Stage
+8 remains closed and requires separate authorization.
 
 ## 12. Stage 8 — Add derived analytical exports and Atlas
 

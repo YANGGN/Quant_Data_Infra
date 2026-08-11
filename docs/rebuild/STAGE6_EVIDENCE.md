@@ -8,7 +8,7 @@ Scope: bounded offline four-route local portal only
 ## 1. Boundary
 
 Stage 6 establishes a local, read-only portal over the reviewed synthetic
-four-store cohort. The canonical registry is revision `2.4.0`, schema
+four-store cohort. Its frozen registry projection is revision `2.4.0`, schema
 `1.2.0`. It declares exactly four ordered local-private dashboard exposures:
 
 - `stage1.overview` at `/`;
@@ -26,14 +26,18 @@ indicator research, algorithms, walk-forward/backtest reports, exports, Atlas,
 hosting, promotion, live providers, scheduler installation, and destructive
 storage operations remain outside the implemented scope. The Stage 5 rebuild
 uses its historical `2.3.0`/`1.1.0` registry projection to preserve its
-approved evidence; the Stage 6 portal uses the canonical `2.4.0`/`1.2.0`
-registry.
+approved evidence; the Stage 6 portal uses its frozen `2.4.0`/`1.2.0`
+projection.
 
 ## 2. Frozen artifacts and pins
 
-- [Canonical registry](../../config/system_registry.json): revision `2.4.0`,
-  schema `1.2.0`, 30 migrations, 33 datasets, 19 collectors, 57 tools, four
-  dashboard exposures, zero jobs, and zero exports.
+- Frozen Stage 6 registry projection from
+  [the canonical registry loader](../../quant_data/registry.py): revision
+  `2.4.0`, schema `1.2.0`, 30 migrations, 33 datasets, 19 collectors,
+  57 tools, four dashboard exposures, zero jobs, and zero exports.
+- [Current canonical registry](../../config/system_registry.json): Stage 7
+  revision `2.5.0`, schema `1.3.0`; the Stage 6 projection preserves this
+  evidence without changing any Stage 6 pin.
 - [Stage 6 application](../../quant_data/dashboard/application.py) and
   [read services](../../quant_data/dashboard/read_services.py).
 - Local [CSS](../../quant_data/dashboard/static/dashboard.css),
@@ -90,7 +94,7 @@ PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
 ```
 
 It rebuilds the frozen Stage 5 cohort under each root, opens source and
-restored stores through the canonical Stage 6 registry, and requires
+restored stores through the frozen Stage 6 registry projection, and requires
 byte-identical path-free evidence.
 
 ## 4. Primary-gate checks
@@ -112,7 +116,7 @@ The primary gate proves that:
   writer-connection entry points;
 - source and restored portal snapshots match, the route set is fixed, and the
   result is loopback-only;
-- the registry declares zero jobs and zero exports; and
+- the frozen Stage 6 registry projection declares zero jobs and zero exports; and
 - the evidence records zero runtime network assets.
 
 These checks use only reviewed synthetic fixtures and explicit temporary roots.

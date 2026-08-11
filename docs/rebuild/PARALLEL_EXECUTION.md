@@ -11,15 +11,11 @@ without bypassing the exit gates in [ROADMAP.md](../../ROADMAP.md) or allowing
 multiple agents to redefine shared semantics. It complements the project agent
 policy in [AGENTS.md](../../AGENTS.md).
 
-Stage 0, the bounded offline Stage 1 slice, the offline Stage 2 four-store
-foundation, and the bounded Stage 3 market/macro fixture scope were authorized
-on 2026-08-09. Stage 2 is fixture-validated and independently verified. Stage
-3 is fixture-validated and independently verified. Stages 4 through 6 are
-implemented sequentially with offline synthetic fixtures. Stage 4 and
-Stage 5 have passed their primary fixture gates and independent SolUltra
-verification. The bounded Stage 6 four-route local portal passed its offline
-checks and was explicitly accepted with browser automation waived. Bounded
-offline Stage 7 is authorized; Stage 8 executable work remains closed.
+Stages 1 through 5 are implemented and independently verified. The bounded
+Stage 6 four-route local portal passed its offline checks and was accepted with
+browser automation waived. The bounded offline Stage 7 manual fixture rehearsal
+is implemented and independently verified. Stage 8 executable work remains
+closed.
 
 ## 2. Capacity and operating model
 
@@ -207,8 +203,8 @@ check was explicitly waived by the user.
 Status: **Bounded four-route local portal accepted; browser automation
 explicitly waived by the user.**
 
-The Stage 6 primary integration owner froze the canonical registry
-`2.4.0`/`1.2.0` dashboard exposures before writers worked. The completed
+The Stage 6 primary integration owner froze the historical registry
+`2.4.0`/`1.2.0` dashboard projection before writers worked. The completed
 bounded portal has four local-private routes: Overview (`/`), GDP Vintages
 (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
 (`/agent-tools`). Its loopback services use the existing explicit, read-only
@@ -231,15 +227,26 @@ live providers, and destructive operations remain closed.
 
 ### Wave 7 — Scheduling and operations
 
-The physical-path lock primitive is designed and tested earlier as shared
-infrastructure. Stage 2 also supplies offline read-only health and WAL-safe
-backup/restore evidence. Actual jobs remain manual-first and Stage 7.
+Status: **Bounded offline manual fixture rehearsal implemented and independently
+verified.**
 
-After the scheduler core freezes, domain job wrappers may run in parallel.
-Receipt schemas, lock identity, multi-lock ordering, retries, aggregate status,
-backup/restore, and scheduler installation remain integration-owned. The
-cross-store `options-close` job must acquire both macro and market locks before
-publication.
+The integration owner serialized canonical registry `2.5.0`/`1.3.0`,
+physical lock capabilities, receipt contracts, fixture bindings, golden
+evidence, and root CLI work. Disjoint lanes implemented importer
+prepare/publish seams, the fixture executor, runner/retry/receipt primitives,
+and focused failure tests.
+
+All eight jobs remain disabled `manual_fixture_only` declarations. Candidates
+are prepared before the complete ordered lock session; publication reuses that
+session. The gate covers changed and unchanged replay, lock contention and
+release, active timeout, dependency and exit-code precedence, immutable
+receipt-last evidence, backup/restore, and a restricted explicit-root manual
+wrapper. Evidence is recorded in
+[Stage 7 acceptance evidence](STAGE7_EVIDENCE.md).
+
+No live provider, runtime network, scheduler installation/start/update/removal,
+export, promotion, hosting, Atlas, default path, or destructive action is part
+of Wave 7. Stage 8 remains closed.
 
 ### Wave 8 — Analytical exports and Atlas
 

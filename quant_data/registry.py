@@ -7,6 +7,7 @@ import hashlib
 import re
 from dataclasses import dataclass, replace
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping
 
 from .errors import Issue, RegistryError, ValidationError
@@ -202,6 +203,117 @@ _STAGE1_DASHBOARD_ID = "stage1.overview"
 _STAGE5_REGISTRY_SOURCE_SHA256 = (
     "56c2e8c97623c23596c92b177ee5e0aa89ecf164c37094216142cc82fc78cd9a"
 )
+_STAGE6_REGISTRY_SOURCE_SHA256 = (
+    "def8c81264379493f9ce0ac2a864562a64106d3c3c42a640f9b05c882c2f3113"
+)
+_STAGE7_JOB_IDS = (
+    "news-hourly",
+    "sec-daily",
+    "options-close",
+    "macro-daily",
+    "market-close",
+    "expectations",
+    "company-weekly",
+    "macro-monthly",
+)
+_STAGE7_JOB_LAYOUTS: Mapping[str, Mapping[str, Any]] = {
+    "news-hourly": {
+        "recovered_cadence": "hourly_at_minute_10",
+        "collectors": ("fixture.news.import",),
+        "success_marker": "none",
+        "timeout_seconds": 60,
+    },
+    "sec-daily": {
+        "recovered_cadence": "daily_at_0715",
+        "collectors": ("fixture.company.sec_import",),
+        "success_marker": "none",
+        "timeout_seconds": 60,
+    },
+    "options-close": {
+        "recovered_cadence": "weekdays_at_1320_and_1620_calendar_gated",
+        "collectors": (
+            "fixture.macro.treasury_import",
+            "fixture.market.options_import",
+        ),
+        "success_marker": "none",
+        "timeout_seconds": 90,
+    },
+    "macro-daily": {
+        "recovered_cadence": "daily_at_1800",
+        "collectors": ("fixture.macro.calendar_import",),
+        "success_marker": "none",
+        "timeout_seconds": 60,
+    },
+    "market-close": {
+        "recovered_cadence": "daily_or_weekdays_at_1800",
+        "collectors": ("fixture.market.daily_price_import",),
+        "success_marker": "none",
+        "timeout_seconds": 60,
+    },
+    "expectations": {
+        "recovered_cadence": "weekdays_at_2000",
+        "collectors": ("fixture.company.expectations_import",),
+        "success_marker": "none",
+        "timeout_seconds": 60,
+    },
+    "company-weekly": {
+        "recovered_cadence": "saturday_at_0900",
+        "collectors": ("fixture.company.actions_import",),
+        "success_marker": "none",
+        "timeout_seconds": 60,
+    },
+    "macro-monthly": {
+        "recovered_cadence": "sunday_at_1100",
+        "collectors": (
+            "fixture.macro.gdp_import",
+            "fixture.macro.eia_retail_import",
+            "fixture.macro.recession_import",
+        ),
+        "success_marker": "monthly_full_success_only",
+        "timeout_seconds": 120,
+    },
+}
+_STAGE7_LIFECYCLE = {
+    "state": "fixture_validated",
+    "execution_mode": "manual_fixture_only",
+    "scheduling_enabled": False,
+}
+_STAGE7_RECEIPT = {
+    "schema_version": "1.0",
+    "visibility": "private",
+    "state_directory": "explicit",
+    "publication": "atomic",
+    "immutability": "immutable",
+    "directory_mode": "0700",
+    "file_mode": "0600",
+}
+_STAGE7_EXIT_CODE_POLICY = {
+    "id": "stage7_sysexits_v1",
+    "mapping": {
+        "success": 0,
+        "invalid_plan": 64,
+        "unavailable": 69,
+        "internal": 70,
+        "io": 74,
+        "temporary": 75,
+        "configuration": 78,
+        "timeout": 124,
+    },
+    "precedence": [74, 78, 64, 124, 70, 75, 69],
+}
+_STAGE7_AGGREGATE_STATUS = {
+    "attempted_failure": "nonzero",
+    "partial_commit": "partial",
+    "unchanged": "zero_persistent_writes",
+    "cross_store_atomicity": False,
+}
+_STAGE7_DRY_RUN = {
+    "provider": "none",
+    "database": "none",
+    "lock": "none",
+    "state": "none",
+    "store_aliases": "sanitized_aliases_only",
+}
 _STAGE6_DASHBOARD_ROUTES = {
     _STAGE1_DASHBOARD_ID: "/",
     "stage6.gdp_vintages": "/gdp-vintages",
@@ -342,6 +454,65 @@ class DatasetDeclaration:
 
 
 @dataclass(frozen=True, slots=True)
+class JobStepDeclaration:
+    """Validated manual-only collector step in the frozen Stage 7 catalog."""
+
+    id: str
+    version: str
+    collector_id: str
+    depends_on: tuple[str, ...]
+    dependency_policy: str
+    read_stores: tuple[str, ...]
+    write_stores: tuple[str, ...]
+    network_mode: str
+    configuration_env: tuple[str, ...]
+    timeout_seconds: int
+    retry_class: str
+    if_new: bool
+    identity_version: str
+
+
+@dataclass(frozen=True, slots=True)
+class JobDeclaration:
+    """Validated manual-fixture-only job plan; never a scheduler installation."""
+
+    id: str
+    version: str
+    lifecycle: Mapping[str, Any]
+    calendar: Mapping[str, Any]
+    steps: tuple[JobStepDeclaration, ...]
+    required_stores: tuple[str, ...]
+    overlap_policy: str
+    timeout_seconds: int
+    receipt: Mapping[str, Any]
+    exit_code_policy: Mapping[str, Any]
+    aggregate_status: Mapping[str, Any]
+    success_marker: str
+    dry_run: Mapping[str, Any]
+    owner: str
+    escalation: str
+
+
+def _freeze_job_value(value: Any) -> Any:
+    """Detach validated job policy material from mutable registry JSON."""
+
+    if isinstance(value, dict):
+        return MappingProxyType(
+            {key: _freeze_job_value(item) for key, item in value.items()}
+        )
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_job_value(item) for item in value)
+    return value
+
+
+def _freeze_job_mapping(value: Mapping[str, Any]) -> Mapping[str, Any]:
+    frozen = _freeze_job_value(dict(value))
+    if not isinstance(frozen, Mapping):
+        raise TypeError("Frozen job policy must remain a mapping")
+    return frozen
+
+
+@dataclass(frozen=True, slots=True)
 class Registry:
     schema_id: str
     schema_version: str
@@ -353,6 +524,7 @@ class Registry:
     migrations: tuple[MigrationDeclaration, ...]
     datasets: tuple[DatasetDeclaration, ...]
     collectors: tuple[Mapping[str, Any], ...]
+    jobs: tuple[JobDeclaration, ...]
     tools: tuple[Mapping[str, Any], ...]
     dashboard: tuple[Mapping[str, Any], ...]
     raw: Mapping[str, Any]
@@ -385,6 +557,12 @@ class Registry:
             if item["id"] == name:
                 return item
         raise RegistryError("Unknown tool declaration")
+
+    def job(self, name: str) -> JobDeclaration:
+        for item in self.jobs:
+            if item.id == name:
+                return item
+        raise RegistryError("Unknown job declaration")
 
 
 def _error(pointer: str, rule: str, message: str) -> RegistryError:
@@ -557,9 +735,10 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.2.0"
+        or raw["schema_version"] != "1.3.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
+        or raw["registry_version"] != "2.5.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -647,6 +826,306 @@ def _load_tool_schema_catalog(
         contracts[contract["id"]] = schema
     return contracts
 
+
+
+def _derived_collector_stores(
+    collector: Mapping[str, Any],
+    dataset_store_by_id: Mapping[str, str],
+    field: str,
+) -> tuple[str, ...]:
+    """Return stable first-seen store ownership for one collector field."""
+
+    return tuple(
+        dict.fromkeys(dataset_store_by_id[dataset_id] for dataset_id in collector[field])
+    )
+
+
+def _validate_stage7_jobs(
+    raw_jobs: Any,
+    *,
+    collectors: tuple[Mapping[str, Any], ...],
+    dataset_store_by_id: Mapping[str, str],
+    expected_roles: set[str],
+) -> tuple[JobDeclaration, ...]:
+    """Validate the frozen, manual-fixture-only Stage 7 orchestration catalog."""
+
+    if not isinstance(raw_jobs, list):
+        raise _error("/jobs", "type", "Stage 7 jobs must be an array")
+
+    collector_by_id = {str(item["id"]): item for item in collectors}
+    required_job_keys = {
+        "id",
+        "version",
+        "lifecycle",
+        "calendar",
+        "steps",
+        "required_stores",
+        "overlap_policy",
+        "timeout_seconds",
+        "receipt",
+        "exit_code_policy",
+        "aggregate_status",
+        "success_marker",
+        "dry_run",
+        "owner",
+        "escalation",
+    }
+    required_step_keys = {
+        "id",
+        "version",
+        "collector_id",
+        "depends_on",
+        "dependency_policy",
+        "read_stores",
+        "write_stores",
+        "network_mode",
+        "configuration_env",
+        "timeout_seconds",
+        "retry_class",
+        "if_new",
+        "identity_version",
+    }
+    jobs: list[JobDeclaration] = []
+    job_ids: list[str] = []
+
+    for index, value in enumerate(raw_jobs):
+        pointer = f"/jobs/{index}"
+        if not isinstance(value, dict):
+            raise _error(pointer, "type", "Job declaration must be an object")
+        _require_keys(value, required_job_keys, pointer)
+        job_id = _stable_identifier(value["id"], f"{pointer}/id")
+        layout = _STAGE7_JOB_LAYOUTS.get(job_id)
+        if layout is None or job_id in job_ids:
+            raise _error(f"{pointer}/id", "job", "Job is not in the frozen Stage 7 catalog")
+        if (
+            value["version"] != "1.0.0"
+            or not isinstance(value["version"], str)
+            or not _SEMVER.fullmatch(value["version"])
+            or value["overlap_policy"] != "ignore_new"
+            or value["owner"] != "quant_data.operations"
+            or value["escalation"] != "manual_review"
+            or value["required_stores"] != "derived_from_steps"
+        ):
+            raise _error(pointer, "job", "Stage 7 job metadata drifted")
+
+        lifecycle = _nonempty_mapping(value["lifecycle"], f"{pointer}/lifecycle")
+        _require_keys(lifecycle, set(_STAGE7_LIFECYCLE), f"{pointer}/lifecycle")
+        if lifecycle != _STAGE7_LIFECYCLE:
+            raise _error(f"{pointer}/lifecycle", "lifecycle", "Stage 7 lifecycle drifted")
+
+        calendar = _nonempty_mapping(value["calendar"], f"{pointer}/calendar")
+        expected_calendar = {
+            "mode": "manual_fixture_only",
+            "recovered_cadence": layout["recovered_cadence"],
+            "timezone_policy": "unreconciled",
+            "external_definition": "unresolved",
+        }
+        _require_keys(calendar, set(expected_calendar), f"{pointer}/calendar")
+        if calendar != expected_calendar:
+            raise _error(f"{pointer}/calendar", "calendar", "Stage 7 calendar drifted")
+
+        receipt = _nonempty_mapping(value["receipt"], f"{pointer}/receipt")
+        _require_keys(receipt, set(_STAGE7_RECEIPT), f"{pointer}/receipt")
+        if receipt != _STAGE7_RECEIPT:
+            raise _error(f"{pointer}/receipt", "receipt", "Stage 7 receipt contract drifted")
+
+        exit_code_policy = _nonempty_mapping(
+            value["exit_code_policy"], f"{pointer}/exit_code_policy"
+        )
+        _require_keys(
+            exit_code_policy,
+            set(_STAGE7_EXIT_CODE_POLICY),
+            f"{pointer}/exit_code_policy",
+        )
+        mapping = exit_code_policy["mapping"]
+        if not isinstance(mapping, dict):
+            raise _error(
+                f"{pointer}/exit_code_policy/mapping",
+                "type",
+                "Exit-code mapping must be an object",
+            )
+        _require_keys(
+            mapping,
+            set(_STAGE7_EXIT_CODE_POLICY["mapping"]),
+            f"{pointer}/exit_code_policy/mapping",
+        )
+        if exit_code_policy != _STAGE7_EXIT_CODE_POLICY:
+            raise _error(
+                f"{pointer}/exit_code_policy",
+                "exit_code_policy",
+                "Stage 7 exit-code policy drifted",
+            )
+
+        aggregate_status = _nonempty_mapping(
+            value["aggregate_status"], f"{pointer}/aggregate_status"
+        )
+        _require_keys(
+            aggregate_status,
+            set(_STAGE7_AGGREGATE_STATUS),
+            f"{pointer}/aggregate_status",
+        )
+        if aggregate_status != _STAGE7_AGGREGATE_STATUS:
+            raise _error(
+                f"{pointer}/aggregate_status",
+                "aggregate_status",
+                "Stage 7 aggregate status drifted",
+            )
+
+        dry_run = _nonempty_mapping(value["dry_run"], f"{pointer}/dry_run")
+        _require_keys(dry_run, set(_STAGE7_DRY_RUN), f"{pointer}/dry_run")
+        if dry_run != _STAGE7_DRY_RUN:
+            raise _error(f"{pointer}/dry_run", "dry_run", "Stage 7 dry-run contract drifted")
+
+        expected_collectors = tuple(layout["collectors"])
+        raw_steps = value["steps"]
+        if not isinstance(raw_steps, list) or len(raw_steps) != len(expected_collectors):
+            raise _error(f"{pointer}/steps", "steps", "Stage 7 step graph is incomplete")
+        steps: list[JobStepDeclaration] = []
+        prior_step_ids: set[str] = set()
+        for step_index, raw_step in enumerate(raw_steps):
+            step_pointer = f"{pointer}/steps/{step_index}"
+            if not isinstance(raw_step, dict):
+                raise _error(step_pointer, "type", "Job step must be an object")
+            _require_keys(raw_step, required_step_keys, step_pointer)
+            step_id = _stable_identifier(raw_step["id"], f"{step_pointer}/id")
+            collector_id = _stable_identifier(
+                raw_step["collector_id"], f"{step_pointer}/collector_id"
+            )
+            expected_collector_id = expected_collectors[step_index]
+            collector = collector_by_id.get(collector_id)
+            if (
+                collector is None
+                or step_id != expected_collector_id
+                or collector_id != expected_collector_id
+                or collector["network"] is not False
+            ):
+                raise _error(step_pointer, "collector", "Job step collector is invalid")
+            depends_on = _stable_identifier_array(
+                raw_step["depends_on"], f"{step_pointer}/depends_on"
+            )
+            expected_dependencies = (
+                (expected_collectors[0],)
+                if job_id == "options-close" and step_index == 1
+                else ()
+            )
+            if (
+                depends_on != expected_dependencies
+                or not set(depends_on).issubset(prior_step_ids)
+                or raw_step["dependency_policy"]
+                != ("required_predecessor" if depends_on else "independent")
+            ):
+                raise _error(
+                    f"{step_pointer}/depends_on",
+                    "dependency",
+                    "Stage 7 step dependencies are invalid or unordered",
+                )
+
+            read_stores = _stable_identifier_array(
+                raw_step["read_stores"], f"{step_pointer}/read_stores", allow_empty=False
+            )
+            write_stores = _stable_identifier_array(
+                raw_step["write_stores"], f"{step_pointer}/write_stores", allow_empty=False
+            )
+            expected_write_stores = _derived_collector_stores(
+                collector, dataset_store_by_id, "output_datasets"
+            )
+            expected_read_stores = tuple(
+                dict.fromkeys(
+                    (
+                        *_derived_collector_stores(
+                            collector, dataset_store_by_id, "input_datasets"
+                        ),
+                        *expected_write_stores,
+                    )
+                )
+            )
+            if (
+                not set(read_stores).issubset(expected_roles)
+                or not set(write_stores).issubset(expected_roles)
+                or not set(write_stores).issubset(read_stores)
+                or write_stores != expected_write_stores
+                or read_stores != expected_read_stores
+            ):
+                raise _error(
+                    step_pointer,
+                    "stores",
+                    "Job step stores must derive exactly from the collector",
+                )
+
+            configuration_env = _string_array(
+                raw_step["configuration_env"],
+                f"{step_pointer}/configuration_env",
+            )
+            timeout_seconds = raw_step["timeout_seconds"]
+            if (
+                raw_step["version"] != collector["version"]
+                or raw_step["network_mode"] != "fixture_only_no_network"
+                or configuration_env != tuple(collector["configuration_env"])
+                or isinstance(timeout_seconds, bool)
+                or not isinstance(timeout_seconds, int)
+                or not 1 <= timeout_seconds <= 300
+                or timeout_seconds != collector["workload_bounds"]["max_seconds"]
+                or raw_step["retry_class"] != "collector_declared"
+                or raw_step["if_new"] is not True
+                or raw_step["identity_version"] != "collector_semantic_identity_v1"
+            ):
+                raise _error(step_pointer, "step", "Stage 7 step policy drifted")
+            steps.append(
+                JobStepDeclaration(
+                    id=step_id,
+                    version=raw_step["version"],
+                    collector_id=collector_id,
+                    depends_on=depends_on,
+                    dependency_policy=raw_step["dependency_policy"],
+                    read_stores=read_stores,
+                    write_stores=write_stores,
+                    network_mode=raw_step["network_mode"],
+                    configuration_env=configuration_env,
+                    timeout_seconds=timeout_seconds,
+                    retry_class=raw_step["retry_class"],
+                    if_new=raw_step["if_new"],
+                    identity_version=raw_step["identity_version"],
+                )
+            )
+            prior_step_ids.add(step_id)
+
+        required_stores = tuple(
+            dict.fromkeys(store for step in steps for store in step.write_stores)
+        )
+        timeout_seconds = value["timeout_seconds"]
+        if (
+            isinstance(timeout_seconds, bool)
+            or not isinstance(timeout_seconds, int)
+            or timeout_seconds != layout["timeout_seconds"]
+            or timeout_seconds < sum(step.timeout_seconds for step in steps)
+            or timeout_seconds > 300
+            or value["success_marker"] != layout["success_marker"]
+        ):
+            raise _error(pointer, "timeout", "Stage 7 job timeout or marker drifted")
+        jobs.append(
+            JobDeclaration(
+                id=job_id,
+                version=value["version"],
+                lifecycle=_freeze_job_mapping(lifecycle),
+                calendar=_freeze_job_mapping(calendar),
+                steps=tuple(steps),
+                required_stores=required_stores,
+                overlap_policy=value["overlap_policy"],
+                timeout_seconds=timeout_seconds,
+                receipt=_freeze_job_mapping(receipt),
+                exit_code_policy=_freeze_job_mapping(exit_code_policy),
+                aggregate_status=_freeze_job_mapping(aggregate_status),
+                success_marker=value["success_marker"],
+                dry_run=_freeze_job_mapping(dry_run),
+                owner=value["owner"],
+                escalation=value["escalation"],
+            )
+        )
+        job_ids.append(job_id)
+
+    if tuple(job_ids) != _STAGE7_JOB_IDS:
+        raise RegistryError("Canonical Stage 7 registry must expose eight ordered jobs")
+    return tuple(jobs)
 
 
 def load_registry(
@@ -1506,6 +1985,13 @@ def load_registry(
         ):
             raise _error(pointer, "routing", "Collector routing must be registry-derived")
 
+    jobs = _validate_stage7_jobs(
+        raw["jobs"],
+        collectors=collectors,
+        dataset_store_by_id=dataset_store_by_id,
+        expected_roles=expected_roles,
+    )
+
     dashboard = tuple(raw["dashboard"])
     dashboard_ids: set[str] = set()
     dashboard_routes: set[str] = set()
@@ -1653,8 +2139,8 @@ def load_registry(
         raise RegistryError("Dashboard presentation order does not match Stage 6")
 
     export_ids: set[str] = set()
-    if raw["jobs"] or raw["exports"]:
-        raise RegistryError("Stage 2 foundation must not activate jobs or exports")
+    if raw["exports"] != []:
+        raise _error("/exports", "exports", "Stage 7 must not activate exports")
 
     tool_dataset_refs = {
         dataset_id: {tool["id"] for tool in tools if dataset_id in tool["datasets"]}
@@ -1712,6 +2198,7 @@ def load_registry(
         migrations=tuple(migrations),
         datasets=tuple(datasets),
         collectors=collectors,
+        jobs=jobs,
         tools=tuple(tools),
         dashboard=dashboard,
         raw=raw,
@@ -1867,6 +2354,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
 
     raw = copy.deepcopy(dict(registry.raw))
     raw["registry_version"] = "2.0.0"
+    raw["jobs"] = []
     raw["migrations"] = [
         item
         for item in raw["migrations"]
@@ -1907,6 +2395,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
         migrations=migrations,
         datasets=datasets,
         collectors=collectors,
+        jobs=(),
         tools=tools,
         dashboard=dashboard,
         raw=raw,
@@ -1961,6 +2450,7 @@ def stage3_registry_profile(registry: Registry) -> Registry:
 
     raw = copy.deepcopy(dict(registry.raw))
     raw["registry_version"] = "2.1.0"
+    raw["jobs"] = []
     raw["migrations"] = [
         item for item in raw["migrations"] if item["id"] in _STAGE3_MIGRATION_IDS
     ]
@@ -1997,6 +2487,7 @@ def stage3_registry_profile(registry: Registry) -> Registry:
         migrations=migrations,
         datasets=datasets,
         collectors=collectors,
+        jobs=(),
         tools=tools,
         dashboard=dashboard,
         raw=raw,
@@ -2051,6 +2542,7 @@ def stage4_registry_profile(registry: Registry) -> Registry:
 
     raw = copy.deepcopy(dict(registry.raw))
     raw["registry_version"] = "2.2.0"
+    raw["jobs"] = []
     raw["migrations"] = [
         item for item in raw["migrations"] if item["id"] in _STAGE4_MIGRATION_IDS
     ]
@@ -2087,6 +2579,7 @@ def stage4_registry_profile(registry: Registry) -> Registry:
         migrations=migrations,
         datasets=datasets,
         collectors=collectors,
+        jobs=(),
         tools=tools,
         dashboard=dashboard,
         raw=raw,
@@ -2102,7 +2595,6 @@ def stage5_registry_profile(registry: Registry) -> Registry:
         or len(registry.datasets) != 33
         or len(registry.collectors) != 19
         or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
-        or registry.raw["jobs"]
         or registry.raw["exports"]
     ):
         raise RegistryError("Canonical registry cannot reproduce the Stage 5 profile")
@@ -2110,6 +2602,7 @@ def stage5_registry_profile(registry: Registry) -> Registry:
     raw = copy.deepcopy(dict(registry.raw))
     raw["schema_version"] = "1.1.0"
     raw["registry_version"] = "2.3.0"
+    raw["jobs"] = []
     datasets, dashboard, raw = _stage1_dashboard_projection(
         registry.datasets, raw
     )
@@ -2118,7 +2611,37 @@ def stage5_registry_profile(registry: Registry) -> Registry:
         schema_version="1.1.0",
         registry_version="2.3.0",
         datasets=datasets,
+        jobs=(),
         dashboard=dashboard,
         raw=raw,
         source_sha256=_STAGE5_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage6_registry_profile(registry: Registry) -> Registry:
+    """Project the canonical Stage 7 registry back to Stage 6 exactly."""
+
+    if (
+        registry.schema_version != "1.3.0"
+        or registry.registry_version != "2.5.0"
+        or len(registry.migrations) != 30
+        or len(registry.datasets) != 33
+        or len(registry.collectors) != 19
+        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
+        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
+        or registry.raw["exports"] != []
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 6 profile")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["schema_version"] = "1.2.0"
+    raw["registry_version"] = "2.4.0"
+    raw["jobs"] = []
+    return replace(
+        registry,
+        schema_version="1.2.0",
+        registry_version="2.4.0",
+        jobs=(),
+        raw=raw,
+        source_sha256=_STAGE6_REGISTRY_SOURCE_SHA256,
     )

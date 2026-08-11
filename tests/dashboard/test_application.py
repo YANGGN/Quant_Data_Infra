@@ -14,7 +14,11 @@ from quant_data.dashboard import INTER_FONT_SHA256, Stage6Application
 from quant_data.fingerprint import mutation_fingerprint
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.migrations import initialize_all
-from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry
+from quant_data.registry import (
+    CANONICAL_REGISTRY_PATH,
+    load_registry,
+    stage6_registry_profile,
+)
 from quant_data.stage1 import explicit_store_map
 from quant_data.stage4 import run_clean_stage4_rebuild
 
@@ -44,10 +48,12 @@ class Stage6ApplicationTests(unittest.TestCase):
         cls.store_map = explicit_store_map(
             root / "stage4" / "stage3" / "stage2" / "source"
         )
-        cls.registry = load_registry(
-            PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
-            project_root=PROJECT_ROOT,
-            environment={},
+        cls.registry = stage6_registry_profile(
+            load_registry(
+                PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
+                project_root=PROJECT_ROOT,
+                environment={},
+            )
         )
         initialize_all(cls.store_map, cls.registry)
         cls.before = mutation_fingerprint(cls.store_map)

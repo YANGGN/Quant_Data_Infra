@@ -5,12 +5,10 @@ Status: Accepted
 ## Purpose
 
 This specification defines a manual-first path to safe scheduled collection.
-It covers job planning, physical-store ownership, lock identity, overlap and
-failure behavior, receipts, dry runs, retries, exit status, and private logs.
-It deliberately contains no task-installation or job-start commands.
-
-Recovered cadence information is evidence for parity, not evidence that the
-rebuilt scheduler is installed or authorized to touch an operational store.
+Its bounded Stage 7 fixture rehearsal is implemented, but it deliberately
+contains no task-installation or job-start commands. Recovered cadence
+information remains evidence for parity, not evidence that a scheduler is
+installed or authorized to contact a live provider or operational store.
 
 Related documents:
 
@@ -33,8 +31,10 @@ This document specifies:
 - run receipts, dry-run output, exit codes, and private logging; and
 - offline acceptance tests.
 
-It does not authorize network calls, collectors, database writes, scheduler
-installation, scheduler removal, job starts, deployment, or live diagnostics.
+It authorizes only the reviewed synthetic-fixture rehearsal against explicit
+temporary stores and private state roots. It does not authorize live/network
+collection, operational or default database paths, scheduler installation,
+update, removal or start, deployment, exports, promotion, or live diagnostics.
 
 ## Safety principles
 
@@ -58,10 +58,11 @@ installation, scheduler removal, job starts, deployment, or live diagnostics.
    fails, even if later independent work succeeds.
 11. Logs and receipts are private, bounded, and credential-free.
 
-## Proposed job catalog
+## Frozen disabled job catalog
 
-The recovered cadences below MUST remain disabled until the manual-first gates
-are complete. Store declarations describe potential writes for lock planning.
+Canonical registry `2.5.0` freezes the recovered names below as eight disabled
+`manual_fixture_only` jobs. Store declarations are derived from their steps
+for lock planning; they are not enabled schedules.
 
 | Internal job | Recovered cadence target | Logical stores that may be written | Notes |
 | --- | --- | --- | --- |
@@ -108,10 +109,12 @@ It MUST NOT include credentials or raw physical paths.
 
 ### Stage 2: offline execution rehearsal
 
-Run the orchestration against mocked providers, temporary state directories,
-and explicitly redirected temporary databases. Exercise unchanged, changed,
-partial, rate-limit, timeout, schema-error, and lock-contention paths. A test
-must fail rather than fall back to a default database.
+This bounded stage is implemented with injected outcomes, reviewed synthetic
+fixtures, temporary private state, and explicitly redirected temporary
+databases. It exercises unchanged, changed, partial, retry, timeout,
+configuration, receipt-I/O, and lock-contention paths and fails rather than
+falling back to a default database. This evidence does not authorize Stage 3
+live-provider work.
 
 ### Stage 3: explicitly authorized manual non-production run
 
@@ -478,6 +481,31 @@ Before an external schedule can be proposed:
 - backup and restore drills use only non-production copies; and
 - installation, update, removal, and immediate start remain separate explicit
   approvals.
+
+## Stage 7 implemented rehearsal evidence
+
+The primary Stage 7 gate is recorded in
+[Stage 7 acceptance evidence](STAGE7_EVIDENCE.md). It validates all eight
+path-free dry-run plans, all-candidate preparation before locks, complete
+ordered lock acquisition, reuse of a held lock capability by publication,
+bounded retry and active timeout behavior, dependency and aggregate exit-code
+semantics, immutable private logs/markers/receipts with the receipt published
+last, real changed then unchanged fixture execution, and WAL-safe
+backup/restore equality.
+
+The restricted wrapper at `quant_data.operations.manual_job` accepts only
+explicit project, store, and private-state roots plus a registered job ID. Its
+dry-run performs zero store, state, lock, provider, or scheduler activity; its
+non-dry path requires already initialized synthetic fixture stores and
+propagates the job receipt exit code unchanged. It is not a provider or
+scheduler interface.
+
+The primary gate passed 277 offline tests, including 43 operations tests and
+three deterministic Stage 7 integration checks. Independent SolUltra
+verification passed on 2026-08-11 with no findings after rerunning the full 277
+tests. Scheduler readiness, external task definitions, timezone/DST, user
+identity, installation, removal, and immediate start remain unresolved and
+unauthorized.
 
 ## Change control and escalation
 

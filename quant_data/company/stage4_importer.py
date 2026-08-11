@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import re
 import sqlite3
+import weakref
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping, Sequence
@@ -30,7 +31,7 @@ from ..ingestion import (
     WriteResult,
 )
 from ..json_codec import dumps_strict, loads_strict
-from ..stores import StoreMap, StoreRole, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, stable_id
 from ..temporal import TemporalPrecision, TemporalValue, parse_date
 
 
@@ -506,6 +507,54 @@ class ParsedCompanyFixture:
     captured_at: TemporalValue
     normalization_version: str
     semantic_identity: str
+
+
+class _PreparedCompanyFixture:
+    """Opaque company candidate produced only by one importer instance."""
+
+    __slots__ = ("__weakref__",)
+
+    def __init__(self) -> None:
+        raise TypeError("Prepared company fixtures are created by prepare_fixture")
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        del cls, kwargs
+        raise TypeError("Prepared company fixtures cannot be subclassed")
+
+
+@dataclass(frozen=True, slots=True)
+class _PreparedCompanyFixtureState:
+    owner_token: object
+    store_map: StoreMap
+    fixture_manifest: FixtureManifest
+    fixture_id: str
+    fixture_sha256: str
+    fixture_byte_count: int
+    collector_id: str
+    evidence_dataset_id: str
+    canonical_dataset_id: str
+    identity_dataset_id: str | None
+    store: str
+    fixture: Fixture
+    parsed: ParsedCompanyFixture
+    family: str
+    output_dataset_ids: tuple[str, ...]
+    scope: Mapping[str, object]
+    semantic_identity: str
+    run_id: str
+
+
+_PREPARED_COMPANY_STATES: weakref.WeakKeyDictionary[
+    _PreparedCompanyFixture, _PreparedCompanyFixtureState
+] = weakref.WeakKeyDictionary()
+
+
+def _new_prepared_company_fixture(
+    state: _PreparedCompanyFixtureState,
+) -> _PreparedCompanyFixture:
+    prepared = object.__new__(_PreparedCompanyFixture)
+    _PREPARED_COMPANY_STATES[prepared] = state
+    return prepared
 
 
 def _parse_link(raw: object, *, pointer: str) -> _IssuerLink:
@@ -3608,15 +3657,19 @@ class CompanyStage4FixtureImporter:
         self._store_map = store_map
         self._fixture_manifest = fixture_manifest
         self._coordinator = IngestionCoordinator(store_map, code_version="stage4.0.0")
+        self._prepared_owner_token = object()
 
-    def import_fixture(self, fixture_id: str) -> IngestionReceipt:
+    def prepare_fixture(self, fixture_id: str) -> _PreparedCompanyFixture:
+        """Validate and stage one reviewed company fixture without opening a store."""
+
         fixture = self._fixture_manifest.get(fixture_id)
         parsed = parse_stage4_company_fixture(fixture)
         _preflight_publication(parsed)
-        outputs = _OUTPUT_DATASET_IDS[parsed.payload.family]
+        family = parsed.payload.family
+        outputs = _OUTPUT_DATASET_IDS[family]
         scope = {
             "fixture_id": fixture.id,
-            "family": parsed.payload.family,
+            "family": family,
             "collector_id": fixture.ingestion_family_id,
             "request_scope": dict(parsed.scope),
             "completeness": "complete",
@@ -3626,22 +3679,98 @@ class CompanyStage4FixtureImporter:
             fixture.canonical_dataset_id,
             parsed.semantic_identity,
         )
+        return _new_prepared_company_fixture(
+            _PreparedCompanyFixtureState(
+                owner_token=self._prepared_owner_token,
+                store_map=self._store_map,
+                fixture_manifest=self._fixture_manifest,
+                fixture_id=fixture.id,
+                fixture_sha256=fixture.sha256,
+                fixture_byte_count=fixture.byte_count,
+                collector_id=fixture.ingestion_family_id,
+                evidence_dataset_id=fixture.evidence_dataset_id,
+                canonical_dataset_id=fixture.canonical_dataset_id,
+                identity_dataset_id=fixture.identity_dataset_id,
+                store=fixture.store,
+                fixture=fixture,
+                parsed=parsed,
+                family=family,
+                output_dataset_ids=outputs,
+                scope=scope,
+                semantic_identity=parsed.semantic_identity,
+                run_id=run_id,
+            )
+        )
+
+    def _prepared_state(
+        self,
+        prepared: _PreparedCompanyFixture,
+    ) -> _PreparedCompanyFixtureState:
+        if not isinstance(prepared, _PreparedCompanyFixture):
+            raise ValidationError("Prepared company fixture has an invalid type")
+        state = _PREPARED_COMPANY_STATES.get(prepared)
+        if (
+            state is None
+            or state.owner_token is not self._prepared_owner_token
+            or state.store_map is not self._store_map
+            or state.fixture_manifest is not self._fixture_manifest
+            or state.fixture.id != state.fixture_id
+            or state.fixture.sha256 != state.fixture_sha256
+            or state.fixture.byte_count != state.fixture_byte_count
+            or state.fixture.ingestion_family_id != state.collector_id
+            or state.fixture.evidence_dataset_id != state.evidence_dataset_id
+            or state.fixture.canonical_dataset_id != state.canonical_dataset_id
+            or state.fixture.identity_dataset_id != state.identity_dataset_id
+            or state.fixture.store != state.store
+            or state.store != StoreRole.COMPANY.value
+            or state.parsed.fixture is not state.fixture
+            or state.parsed.payload.family != state.family
+            or state.family not in _OUTPUT_DATASET_IDS
+            or state.output_dataset_ids != _OUTPUT_DATASET_IDS[state.family]
+            or state.parsed.semantic_identity != state.semantic_identity
+            or state.semantic_identity != state.fixture.expected_semantic_identity
+        ):
+            raise ValidationError("Prepared company fixture is not valid for this importer")
+        return state
+
+    def publish_prepared(
+        self,
+        prepared: _PreparedCompanyFixture,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        """Publish a prior validated company candidate without parsing or fetching."""
+
+        state = self._prepared_state(prepared)
+        parsed = state.parsed
 
         def writer(connection: sqlite3.Connection, active_run_id: str) -> WriteResult:
             return self._write_candidate(connection, parsed, active_run_id)
 
         return self._coordinator.execute(
             role=StoreRole.COMPANY,
-            dataset_id=fixture.canonical_dataset_id,
-            output_dataset_ids=outputs,
-            semantic_identity=parsed.semantic_identity,
-            run_id=run_id,
-            command=fixture.ingestion_family_id,
-            scope=scope,
+            dataset_id=state.canonical_dataset_id,
+            output_dataset_ids=state.output_dataset_ids,
+            semantic_identity=state.semantic_identity,
+            run_id=state.run_id,
+            command=state.collector_id,
+            scope=dict(state.scope),
             started_at=parsed.captured_at.raw,
             completed_at=parsed.captured_at.raw,
             fetched_count=_fetched_count(parsed.payload),
             writer=writer,
+            held_locks=held_locks,
+        )
+
+    def import_fixture(
+        self,
+        fixture_id: str,
+        *,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> IngestionReceipt:
+        return self.publish_prepared(
+            self.prepare_fixture(fixture_id),
+            held_locks=held_locks,
         )
 
     @staticmethod

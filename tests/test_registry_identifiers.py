@@ -13,6 +13,7 @@ from quant_data.registry import (
     stage3_registry_profile,
     stage4_registry_profile,
     stage5_registry_profile,
+    stage6_registry_profile,
 )
 
 
@@ -91,8 +92,8 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(registry.schema_version, "1.2.0")
-        self.assertEqual(registry.registry_version, "2.4.0")
+        self.assertEqual(registry.schema_version, "1.3.0")
+        self.assertEqual(registry.registry_version, "2.5.0")
         self.assertEqual(
             tuple(item["id"] for item in registry.dashboard),
             ("stage1.overview", "stage6.gdp_vintages",
@@ -101,6 +102,7 @@ class RegistryIdentifierTests(unittest.TestCase):
         self.assertEqual(len(registry.migrations), 30)
         self.assertEqual(len(registry.datasets), 33)
         self.assertEqual(len(registry.collectors), 19)
+        self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
         self.assertEqual(stage5.registry_version, "2.3.0")
@@ -126,6 +128,13 @@ class RegistryIdentifierTests(unittest.TestCase):
                 for dashboard_id in dataset.dashboard_ids
             )
         )
+        self.assertEqual(stage5.jobs, ())
+        self.assertEqual(stage5.raw["jobs"], [])
+        stage6 = stage6_registry_profile(registry)
+        self.assertEqual(stage6.schema_version, "1.2.0")
+        self.assertEqual(stage6.registry_version, "2.4.0")
+        self.assertEqual(stage6.jobs, ())
+        self.assertEqual(stage6.raw["jobs"], [])
         stage4 = stage4_registry_profile(registry)
         self.assertEqual(stage4.registry_version, "2.2.0")
         self.assertEqual(len(stage4.migrations), 30)

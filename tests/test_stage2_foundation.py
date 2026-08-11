@@ -8,6 +8,7 @@ import sqlite3
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from quant_data.composition import (
@@ -34,10 +35,12 @@ from quant_data.registry import load_registry, stage2_registry_profile
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import (
     STORE_ROLES,
+    HeldWriteLocks,
     StoreMap,
     StoreRole,
     StoreWriteLock,
     acquire_write_locks,
+    acquire_write_session,
     dataset_read_connection,
     physical_lock_key,
     resolve_store_map,
@@ -264,6 +267,118 @@ class Stage2RoutingAndLockTests(unittest.TestCase):
                     sorted(identity.canonical_uri for identity in identities),
                 )
 
+    def test_write_session_exposes_sanitized_active_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            stores = explicit_store_map(Path(directory))
+            requested = (StoreRole.NEWS, StoreRole.MARKET, StoreRole.MACRO)
+            expected = tuple(
+                identity
+                for identity in sorted(
+                    stores.identities(), key=lambda identity: identity.canonical_uri
+                )
+                if identity.role in requested
+            )
+            with acquire_write_session(stores, requested, timeout_seconds=0.05) as held:
+                self.assertIsInstance(held, HeldWriteLocks)
+                self.assertTrue(held.active)
+                self.assertEqual(held.roles, tuple(identity.role for identity in expected))
+                self.assertEqual(
+                    tuple(identity.role for identity in held.identities),
+                    tuple(identity.role for identity in expected),
+                )
+                self.assertEqual(
+                    tuple(identity.lock_key for identity in held.identities),
+                    tuple(identity.lock_key for identity in expected),
+                )
+                self.assertEqual(
+                    len(held.acquisition_wait_seconds), len(held.identities)
+                )
+                self.assertTrue(
+                    all(
+                        isinstance(wait_seconds, float)
+                        and math.isfinite(wait_seconds)
+                        and wait_seconds >= 0.0
+                        for wait_seconds in held.acquisition_wait_seconds
+                    )
+                )
+                self.assertTrue(held.holds(StoreRole.MARKET))
+                self.assertFalse(held.holds(StoreRole.COMPANY))
+                self.assertNotIn(str(stores.market), repr(held.identities))
+                with self.assertRaises(AttributeError):
+                    held.identities += ()
+                with self.assertRaises(AttributeError):
+                    held.acquisition_wait_seconds += ()
+            self.assertFalse(held.active)
+            self.assertFalse(held.holds(StoreRole.MARKET))
+            self.assertEqual(held.roles, tuple(identity.role for identity in expected))
+
+        with self.assertRaises(TypeError):
+            HeldWriteLocks()
+        forged = object.__new__(HeldWriteLocks)
+        self.assertFalse(forged.active)
+        self.assertEqual(forged.identities, ())
+
+    def test_write_session_uses_one_deadline_and_reverse_release(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            stores = explicit_store_map(Path(directory))
+            requested = (StoreRole.NEWS, StoreRole.MARKET, StoreRole.MACRO)
+            expected_paths = [
+                identity.path
+                for identity in sorted(
+                    (
+                        identity
+                        for identity in stores.identities()
+                        if identity.role in requested
+                    ),
+                    key=lambda identity: identity.canonical_uri,
+                )
+            ]
+            events: list[tuple[object, ...]] = []
+
+            class RecordingLock:
+                def __init__(self, path: Path, *, timeout_seconds: float) -> None:
+                    self.path = path
+                    events.append(("constructed", path, timeout_seconds))
+
+                def _acquire_until(self, deadline: float) -> "RecordingLock":
+                    events.append(("acquired", self.path, deadline))
+                    return self
+
+                def __exit__(self, exc_type, exc, traceback) -> None:
+                    events.append(("released", self.path))
+
+            with patch("quant_data.stores.StoreWriteLock", RecordingLock):
+                with acquire_write_session(
+                    stores, requested, timeout_seconds=0.25
+                ) as held:
+                    self.assertTrue(held.active)
+                    self.assertEqual(
+                        held.roles,
+                        tuple(
+                            identity.role
+                            for identity in sorted(
+                                (
+                                    identity
+                                    for identity in stores.identities()
+                                    if identity.role in requested
+                                ),
+                                key=lambda identity: identity.canonical_uri,
+                            )
+                        ),
+                    )
+                    self.assertTrue(
+                        all(wait_seconds >= 0.0 for wait_seconds in held.acquisition_wait_seconds)
+                    )
+
+            acquired = [event for event in events if event[0] == "acquired"]
+            released = [event for event in events if event[0] == "released"]
+            self.assertEqual([event[1] for event in acquired], expected_paths)
+            self.assertEqual(len({event[2] for event in acquired}), 1)
+            self.assertEqual(
+                [event[1] for event in released],
+                list(reversed(expected_paths)),
+            )
+
     def test_multi_lock_uses_one_deadline_and_releases_partial_acquisition(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             stores = explicit_store_map(Path(directory))
@@ -326,6 +441,16 @@ class Stage2RoutingAndLockTests(unittest.TestCase):
                 (values["entered"], values["exited"]) for values in intervals.values()
             )
             self.assertLessEqual(ordered[0][1], ordered[1][0])
+
+
+    def test_lock_open_failure_leaves_no_handle_to_release(self) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as directory:
+            lock = StoreWriteLock(Path(directory) / "market.sqlite")
+            with patch("builtins.open", side_effect=OSError("simulated open failure")):
+                with self.assertRaises(OSError):
+                    lock.__enter__()
+            self.assertIsNone(lock._handle)
+            lock.__exit__(None, None, None)
 
 
 class Stage2ControlPlaneAndCompositionTests(unittest.TestCase):

@@ -1,23 +1,21 @@
 # Quant Data Infrastructure
 
 This repository is a clean rebuild of a personal quant-data platform. The
-current executable scope includes the bounded offline Stage 6 local portal.
-Its offline executable verification passed, and the user explicitly accepted
-the unavailable browser-automation check before authorizing this Stage 6
-commit. It extends the independently verified Stage 5 composable tool
-platform, the independently verified Stage 4 company, news,
-and options restoration, and the independently verified Stage 2 and Stage 3
-four-store foundations of explicitly routed SQLite stores, reviewed synthetic
-fixtures, a shared artifact/snapshot/quality/run-audit control plane,
-point-in-time reads, read-only health, and WAL-safe online backup and restore.
+current executable scope includes the bounded offline Stage 7 manual job
+rehearsal over the accepted Stage 6 local portal and the independently verified
+Stage 1 through Stage 5 foundations. Stage 7 uses only reviewed synthetic
+fixtures and explicit temporary roots. Its primary fixture gate and independent
+SolUltra verification passed on 2026-08-11.
 
-The implemented portal is local-only and contains four fixed routes:
-Overview (`/`), GDP Vintages (`/gdp-vintages`), Tables
-(`/table-inspector`), and Agent Tools (`/agent-tools`). It has no live
-providers or network collection, scheduler jobs or installation, exports,
-Atlas, promotion, hosting, credentials, destructive storage operations,
-default database fallback, or enabled live tools. Charts, indicators,
-algorithms, walk-forward/backtest surfaces, and Atlas remain closed.
+The portal remains local-only with four fixed routes: Overview (`/`), GDP
+Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
+(`/agent-tools`). Stage 7 adds eight disabled `manual_fixture_only` job
+declarations, deterministic dry-run plans, fixture preparation before locks,
+complete ordered physical-store lock sessions, bounded retries and active
+timeouts, private receipt-last evidence, and backup/restore rehearsal. It adds
+no live provider or runtime network access, scheduler installation/start,
+exports, Atlas, promotion, hosting, credentials, default database fallback, or
+destructive operations. Stage 8 remains closed.
 
 The target design and sequencing are documented in [ARCHITECTURE.md](ARCHITECTURE.md),
 [ROADMAP.md](ROADMAP.md), and the [rebuild documentation index](docs/rebuild/README.md).
@@ -35,7 +33,9 @@ primary-gate receipts and independent-verifier result are recorded in the
 typed-tool primary gate is recorded in the
 [Stage 5 acceptance evidence](docs/rebuild/STAGE5_EVIDENCE.md). The bounded
 Stage 6 receipts and accepted verification state are recorded in
-the [Stage 6 acceptance evidence](docs/rebuild/STAGE6_EVIDENCE.md).
+the [Stage 6 acceptance evidence](docs/rebuild/STAGE6_EVIDENCE.md). The bounded
+Stage 7 acceptance and independent-verification receipts are recorded in the
+[Stage 7 acceptance evidence](docs/rebuild/STAGE7_EVIDENCE.md).
 
 ## Validate Stage 1
 
@@ -175,16 +175,37 @@ The bounded offline gate passed. The user explicitly accepted the unavailable
 automated browser check and authorized bounded offline Stage 7 work. Stage 8
 remains closed.
 
+## Validate Stage 7
+
+Run the deterministic Stage 7 gate with two explicit empty work roots:
+
+```bash
+cd /home/volatility/Python_Projects/Quant_Data_Infra
+PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data   --stage stage7   --project-root /home/volatility/Python_Projects/Quant_Data_Infra   --store-root <empty-work-root-1>   --second-store-root <empty-work-root-2>
+```
+
+The gate rebuilds Stage 6, validates all eight disabled fixture-only job plans,
+exercises mocked outcome, receipt, lock, timeout, backup/restore, and real
+unchanged-replay evidence, and emits one path-free strict-JSON line. A pure
+manual-wrapper plan can be inspected without opening stores or writing state:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m   quant_data.operations.manual_job   --project-root /home/volatility/Python_Projects/Quant_Data_Infra   --store-root <explicit-temporary-store-root>   --state-root <explicit-temporary-private-state-root>   --job market-close   --dry-run
+```
+
+The non-dry wrapper is restricted to explicitly initialized synthetic-fixture
+stores; it is not a live-provider or scheduler command. The primary Stage 7
+gate passed 277 offline tests, and the independent verifier reran all 277 tests
+in 170.731 seconds with no findings.
+
 ## Current public boundary
 
-The canonical registry is revision `2.4.0`, schema `1.2.0`. It declares
-four local-private dashboard exposures: `stage1.overview`,
-`stage6.gdp_vintages`, `stage6.table_inspector`, and
-`stage6.agent_tools`. Their fixed routes, API routes, bounded filters,
-server-owned sort fields, pagination, relations, and tool dependencies are
-validated from the registry. The frozen Stage 5 rebuild uses its historical
-`2.3.0`/`1.1.0` registry projection so its approved deterministic evidence
-remains reproducible.
+The canonical registry is revision `2.5.0`, schema `1.3.0`. It preserves
+the four local-private Stage 6 dashboard exposures and declares eight ordered,
+disabled `manual_fixture_only` jobs with derived store sets and zero exports.
+The frozen Stage 6 rebuild uses its historical `2.4.0`/`1.2.0`, jobs-empty
+projection; the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
+deterministic evidence remains reproducible.
 
 The platform still exposes all 57 reviewed public tool names through generated
 schemas and closed read-only routing. The original `macro.get_series` and
@@ -193,6 +214,7 @@ are explicit forward reconstructions. Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all
 four paths. Public callers cannot select a database path, submit SQL, or
-initialize a store. The canonical registry declares no jobs or exports.
-Stage 6's offline executable checks passed; its unavailable automated browser
-check was explicitly accepted by the user.
+initialize a store. Stage 7 jobs remain disabled and manual-fixture-only; the
+canonical registry declares zero exports. Stage 6's browser-automation
+limitation was explicitly accepted by the user. Stage 7 independent
+verification passed on 2026-08-11. Stage 8 remains closed.

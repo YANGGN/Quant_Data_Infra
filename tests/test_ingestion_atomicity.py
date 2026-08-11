@@ -6,6 +6,7 @@ import hashlib
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from quant_data.errors import ConflictError, ValidationError
@@ -22,7 +23,12 @@ from quant_data.market import DailyPriceImporter
 from quant_data.migrations import initialize_all
 from quant_data.registry import load_registry
 from quant_data.stage1 import explicit_store_map
-from quant_data.stores import StoreRole, read_connection
+from quant_data.stores import (
+    HeldWriteLocks,
+    StoreRole,
+    acquire_write_session,
+    read_connection,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -58,7 +64,14 @@ class IngestionAtomicityTests(unittest.TestCase):
     def _semantic_identity(label: str) -> str:
         return hashlib.sha256(label.encode("utf-8")).hexdigest()
 
-    def _execute(self, *, run_id: str, semantic_identity: str, writer) -> object:
+    def _execute(
+        self,
+        *,
+        run_id: str,
+        semantic_identity: str,
+        writer,
+        held_locks: HeldWriteLocks | None = None,
+    ) -> object:
         return self.coordinator.execute(
             role=StoreRole.MARKET,
             dataset_id=MARKET_DATASET,
@@ -71,6 +84,7 @@ class IngestionAtomicityTests(unittest.TestCase):
             completed_at=_COMPLETED_TIMESTAMP,
             fetched_count=1,
             writer=writer,
+            held_locks=held_locks,
         )
 
     @staticmethod
@@ -365,6 +379,117 @@ class IngestionAtomicityTests(unittest.TestCase):
         self.assertEqual(macro_replay.written_count, 0)
         self.assertEqual(before_macro_replay["sha256"], mutation_fingerprint(self.store_map)["sha256"])
 
+
+    def test_preacquired_session_skips_nested_lock_and_replays_atomically(self) -> None:
+        run_id = "preacquired-session-success"
+        semantic_identity = self._semantic_identity(run_id)
+        writer = lambda connection, active_run_id: self._control_result(semantic_identity)
+        with acquire_write_session(
+            self.store_map,
+            (StoreRole.MARKET,),
+            timeout_seconds=0.05,
+        ) as held_locks:
+            with patch(
+                "quant_data.ingestion.StoreWriteLock",
+                side_effect=AssertionError("coordinator attempted a nested lock"),
+            ) as nested_lock:
+                receipt = self._execute(
+                    run_id=run_id,
+                    semantic_identity=semantic_identity,
+                    writer=writer,
+                    held_locks=held_locks,
+                )
+                before_replay = mutation_fingerprint(self.store_map)
+                replay = self._execute(
+                    run_id="preacquired-session-replay",
+                    semantic_identity=semantic_identity,
+                    writer=writer,
+                    held_locks=held_locks,
+                )
+            nested_lock.assert_not_called()
+
+        self.assertEqual(receipt.outcome, "succeeded")
+        self.assertEqual(replay.outcome, "unchanged")
+        self.assertEqual(replay.written_count, 0)
+        self.assertEqual(
+            before_replay["sha256"],
+            mutation_fingerprint(self.store_map)["sha256"],
+        )
+
+    def test_preacquired_session_rejects_invalid_expired_and_foreign_capabilities(
+        self,
+    ) -> None:
+        before = mutation_fingerprint(self.store_map)
+        semantic_identity = self._semantic_identity("preacquired-capability-reject")
+        writer = lambda connection, active_run_id: self._control_result(semantic_identity)
+
+        forged = object.__new__(HeldWriteLocks)
+        with self.assertRaises(ConflictError):
+            self._execute(
+                run_id="forged-capability",
+                semantic_identity=semantic_identity,
+                writer=writer,
+                held_locks=forged,
+            )
+        with self.assertRaises(ValidationError):
+            self._execute(
+                run_id="boolean-capability",
+                semantic_identity=semantic_identity,
+                writer=writer,
+                held_locks=True,
+            )
+
+        with acquire_write_session(
+            self.store_map,
+            (StoreRole.MACRO,),
+            timeout_seconds=0.05,
+        ) as foreign_role_locks:
+            with self.assertRaises(ConflictError):
+                self._execute(
+                    run_id="foreign-role-capability",
+                    semantic_identity=semantic_identity,
+                    writer=writer,
+                    held_locks=foreign_role_locks,
+                )
+
+        with acquire_write_session(
+            self.store_map,
+            (StoreRole.MARKET,),
+            timeout_seconds=0.05,
+        ) as expired_locks:
+            pass
+        with self.assertRaises(ConflictError):
+            self._execute(
+                run_id="expired-capability",
+                semantic_identity=semantic_identity,
+                writer=writer,
+                held_locks=expired_locks,
+            )
+
+        foreign_map = explicit_store_map(self.root / "foreign-stores")
+        foreign_coordinator = IngestionCoordinator(foreign_map)
+        with acquire_write_session(
+            self.store_map,
+            (StoreRole.MARKET,),
+            timeout_seconds=0.05,
+        ) as foreign_map_locks:
+            with self.assertRaises(ConflictError):
+                foreign_coordinator.execute(
+                    role=StoreRole.MARKET,
+                    dataset_id=MARKET_DATASET,
+                    output_dataset_ids=MARKET_OUTPUTS,
+                    semantic_identity=semantic_identity,
+                    run_id="foreign-map-capability",
+                    command="tests.ingestion_atomicity",
+                    scope={},
+                    started_at=_TIMESTAMP,
+                    completed_at=_COMPLETED_TIMESTAMP,
+                    fetched_count=1,
+                    writer=writer,
+                    held_locks=foreign_map_locks,
+                )
+
+        self.assertEqual(before["sha256"], mutation_fingerprint(self.store_map)["sha256"])
 
 if __name__ == "__main__":
     unittest.main()

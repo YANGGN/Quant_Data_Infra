@@ -5,8 +5,11 @@ from pathlib import Path
 
 from quant_data.registry import (
     load_registry,
+    stage2_registry_profile,
     stage3_registry_profile,
     stage4_registry_profile,
+    stage5_registry_profile,
+    stage6_registry_profile,
 )
 
 
@@ -85,3 +88,23 @@ class Stage3RegistryProfileTests(unittest.TestCase):
             {item.id for item in stage4.datasets},
             {item["id"] for item in stage4.raw["datasets"]},
         )
+
+    def test_all_pre_stage7_profiles_keep_jobs_empty(self) -> None:
+        registry = load_registry(
+            PROJECT_ROOT / "config" / "system_registry.json",
+            project_root=PROJECT_ROOT,
+        )
+        profiles = (
+            (stage2_registry_profile(registry), "1.0.0", "2.0.0"),
+            (stage3_registry_profile(registry), "1.0.0", "2.1.0"),
+            (stage4_registry_profile(registry), "1.0.0", "2.2.0"),
+            (stage5_registry_profile(registry), "1.1.0", "2.3.0"),
+            (stage6_registry_profile(registry), "1.2.0", "2.4.0"),
+        )
+        for profile, schema_version, registry_version in profiles:
+            with self.subTest(registry_version=registry_version):
+                self.assertEqual(profile.schema_version, schema_version)
+                self.assertEqual(profile.registry_version, registry_version)
+                self.assertEqual(profile.jobs, ())
+                self.assertEqual(profile.raw["jobs"], [])
+                self.assertEqual(profile.raw["exports"], [])

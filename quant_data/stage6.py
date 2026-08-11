@@ -15,7 +15,7 @@ from .errors import ConflictError, ValidationError
 from .fingerprint import mutation_fingerprint
 from .json_codec import dumps_strict, loads_strict
 from .migrations import initialize_all
-from .registry import CANONICAL_REGISTRY_PATH, load_registry
+from .registry import CANONICAL_REGISTRY_PATH, load_registry, stage6_registry_profile
 from .stage1 import explicit_store_map
 from .stage5 import run_clean_stage5_rebuild
 from .stores import StoreMap
@@ -173,6 +173,7 @@ def run_clean_stage6_rebuild(
         project_root=project,
         environment={},
     )
+    registry = stage6_registry_profile(registry)
     if (
         registry.registry_version != "2.4.0"
         or registry.schema_version != "1.2.0"

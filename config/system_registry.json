@@ -3964,7 +3964,755 @@
     }
   ],
   "exports": [],
-  "jobs": [],
+  "jobs": [
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "hourly_at_minute_10",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "news-hourly",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.news.import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.news.import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "news"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "news"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 60,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "daily_at_0715",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "sec-daily",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.company.sec_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.company.sec_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "company"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "company"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 60,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "weekdays_at_1320_and_1620_calendar_gated",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "options-close",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.macro.treasury_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.macro.treasury_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "macro"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "macro"
+          ]
+        },
+        {
+          "collector_id": "fixture.market.options_import",
+          "configuration_env": [],
+          "dependency_policy": "required_predecessor",
+          "depends_on": [
+            "fixture.macro.treasury_import"
+          ],
+          "id": "fixture.market.options_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "market"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "market"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 90,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "daily_at_1800",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "macro-daily",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.macro.calendar_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.macro.calendar_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "macro"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "macro"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 60,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "daily_or_weekdays_at_1800",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "market-close",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.market.daily_price_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.market.daily_price_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "market"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "market"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 60,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "weekdays_at_2000",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "expectations",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.company.expectations_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.company.expectations_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "company"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "company"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 60,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "saturday_at_0900",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "company-weekly",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.company.actions_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.company.actions_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "company"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "company"
+          ]
+        }
+      ],
+      "success_marker": "none",
+      "timeout_seconds": 60,
+      "version": "1.0.0"
+    },
+    {
+      "aggregate_status": {
+        "attempted_failure": "nonzero",
+        "cross_store_atomicity": false,
+        "partial_commit": "partial",
+        "unchanged": "zero_persistent_writes"
+      },
+      "calendar": {
+        "external_definition": "unresolved",
+        "mode": "manual_fixture_only",
+        "recovered_cadence": "sunday_at_1100",
+        "timezone_policy": "unreconciled"
+      },
+      "dry_run": {
+        "database": "none",
+        "lock": "none",
+        "provider": "none",
+        "state": "none",
+        "store_aliases": "sanitized_aliases_only"
+      },
+      "escalation": "manual_review",
+      "exit_code_policy": {
+        "id": "stage7_sysexits_v1",
+        "mapping": {
+          "configuration": 78,
+          "internal": 70,
+          "invalid_plan": 64,
+          "io": 74,
+          "success": 0,
+          "temporary": 75,
+          "timeout": 124,
+          "unavailable": 69
+        },
+        "precedence": [
+          74,
+          78,
+          64,
+          124,
+          70,
+          75,
+          69
+        ]
+      },
+      "id": "macro-monthly",
+      "lifecycle": {
+        "execution_mode": "manual_fixture_only",
+        "scheduling_enabled": false,
+        "state": "fixture_validated"
+      },
+      "overlap_policy": "ignore_new",
+      "owner": "quant_data.operations",
+      "receipt": {
+        "directory_mode": "0700",
+        "file_mode": "0600",
+        "immutability": "immutable",
+        "publication": "atomic",
+        "schema_version": "1.0",
+        "state_directory": "explicit",
+        "visibility": "private"
+      },
+      "required_stores": "derived_from_steps",
+      "steps": [
+        {
+          "collector_id": "fixture.macro.gdp_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.macro.gdp_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "macro"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "macro"
+          ]
+        },
+        {
+          "collector_id": "fixture.macro.eia_retail_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.macro.eia_retail_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "macro"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "macro"
+          ]
+        },
+        {
+          "collector_id": "fixture.macro.recession_import",
+          "configuration_env": [],
+          "dependency_policy": "independent",
+          "depends_on": [],
+          "id": "fixture.macro.recession_import",
+          "identity_version": "collector_semantic_identity_v1",
+          "if_new": true,
+          "network_mode": "fixture_only_no_network",
+          "read_stores": [
+            "macro"
+          ],
+          "retry_class": "collector_declared",
+          "timeout_seconds": 30,
+          "version": "1.0.0",
+          "write_stores": [
+            "macro"
+          ]
+        }
+      ],
+      "success_marker": "monthly_full_success_only",
+      "timeout_seconds": 120,
+      "version": "1.0.0"
+    }
+  ],
   "migrations": [
     {
       "dependencies": [],
@@ -4441,9 +5189,9 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.4.0",
+  "registry_version": "2.5.0",
   "schema_id": "quant_data.system_registry",
-  "schema_version": "1.2.0",
+  "schema_version": "1.3.0",
   "status": "validated",
   "stores": [
     {
