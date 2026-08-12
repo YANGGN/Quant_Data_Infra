@@ -1,13 +1,14 @@
 # Migration Reconstruction Map
 
-Status: Stage 1 through bounded Stage 4 implemented, fixture-validated, and independently verified; 30 resources allocated; Stage 5 is next
+Status: Stage 1 through bounded Stage 4 resources are fixture-validated and independently verified; the one explicitly authorized Stage 9 resource is `fixture_validated` after primary and independent offline gates; 31 resources allocated
 Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
 
 Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md),
-[Stage 2 acceptance evidence](STAGE2_EVIDENCE.md), and
-[Stage 3 acceptance evidence](STAGE3_EVIDENCE.md), and
-[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md)
+[Stage 2 acceptance evidence](STAGE2_EVIDENCE.md),
+[Stage 3 acceptance evidence](STAGE3_EVIDENCE.md),
+[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md), and
+[Stage 9 primary evidence](STAGE9_EVIDENCE.md)
 
 ## Purpose
 
@@ -85,8 +86,8 @@ the filing-issuer view reconstruction, and two news resources. The recovered
 semantic sequence constrains their order, names, and scope. It does not recover
 their historical SQL bytes, checksums, indexes, or trigger text. The complete
 offline Stage 4 primary fixture gate and independent SolUltra verification
-passed and promoted every row to `fixture_validated`. Stage 5 is the next
-authorized executable stage.
+passed and promoted every row to `fixture_validated`. No later migration was
+allocated at that time.
 
 | ID | Store | Local ordinal | Immutable resource | SHA-256 status | Reconstruction state |
 | --- | --- | ---: | --- | --- | --- |
@@ -109,8 +110,26 @@ versioning, and derived-search contracts; no recovered migration number or SQL
 parity is claimed for them.
 
 The complete offline Stage 4 primary fixture gate records these nine rows as
-`fixture_validated`; independent SolUltra verification passed. Stage 5 is the
-next authorized executable stage.
+`fixture_validated`; independent SolUltra verification passed. The bounded
+Stage 9 exception below is the only later migration allocation.
+
+## Bounded Stage 9 allocation
+
+Under ADR 0008, Stage 9 allocates exactly one additional market-local forward
+reconstruction. It is deliberately limited to the exact candidate-only FMP
+`SPY` slice, not recovered historical SQL, checksum, or ordinal parity. No
+other future migration is allocated by this exception.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `market:0009_fmp_daily_price_backfill` | market | 9 | `quant_data/migrations/market/0009_fmp_daily_price_backfill.sql` | `f2e664888449cb3d1885f1199d1a22996709cb87f4f3ac005bd8f91c0cc62ba0` | `fixture_validated` | Primary and independent offline gates passed after correction |
+
+The canonical registry declares this same market store, ordinal, resource, and
+digest immediately after `market:0008_option_surface_inputs`. Its primary
+offline evidence is recorded in [Stage 9 primary evidence](STAGE9_EVIDENCE.md).
+Independent re-verification passed after this allocation correction.
+This row does not claim a live FMP response/data population, operational
+promotion, or old-store retirement.
 
 ## Legacy semantic cross-reference
 
@@ -137,27 +156,35 @@ next authorized executable stage.
 | `macro:0009_eia_electricity_retail` | `0009`, `0017`, and `0023` EIA retail semantics | Evidence, scope, version, tombstone, restoration, and current-pointer fixture contract only |
 | `macro:0010_eia_weekly_fundamentals` | `0022` EIA weekly semantics | Content identity, versions, and snapshot-membership fixture contract only |
 | `macro:0011_us_recession_periods` | `0027` U.S. recession chronology | Completed-period chronology fixture contract only |
+| `market:0009_fmp_daily_price_backfill` | [plan.md](../../plan.md) 7.1 FMP daily OHLCV provider evidence; no recovered migration SQL, checksum, or ordinal | Exact Stage 9 `SPY` 2026-07-01 through 2026-07-31 candidate-only non-production slice only; no general FMP backfill |
 
-All other recovered scopes remain unallocated after bounded Stage 4. The exact
-market options ownership at `0029`/`0030` and the filing-issuer derived-view
-invariants at `0031` are represented by the frozen Stage 4 resources above,
-without asserting historical SQL parity.
+Except for the explicitly authorized Stage 9 row above, all other recovered
+and future migration scopes remain unallocated. The exact market options
+ownership at `0029`/`0030` and the filing-issuer derived-view invariants at
+`0031` are represented by the frozen Stage 4 resources above, without
+asserting historical SQL parity.
 
 ## Activation checklist
 
 1. Review final UTF-8/LF SQL bytes and compute lowercase SHA-256.
 2. Declare the same reviewed value in `config/system_registry.json`.
 3. Verify registry/resource/order integrity before opening a writer.
-4. Apply only to four explicit temporary paths during the Stage 1, Stage 2,
-   Stage 3, and Stage 4 fixture gates.
+4. Apply Stage 1 through Stage 4 resources only to four explicit temporary
+   paths during their fixture gates. `market:0009_fmp_daily_price_backfill` is
+   the sole later allocation and is only eligible under the exact Stage 9
+   manual candidate-only path after its remaining gates; it is not a general
+   live-provider or migration authorization.
 5. Run initialization, rerun, tamper, wrong-store, partial-failure, and
    source/backup/restored evidence tests.
 6. During a forward-preserving table rebuild, temporarily disable foreign-key
    enforcement only inside the atomic rebuild and require `foreign_key_check`
    before the migration ledger advances.
 7. Promote reconstruction state to `fixture_validated` only with the complete
-   applicable stage evidence. The 30 currently allocated resources have passed
-   their applicable primary fixture gates; none can be relabeled
-   `recovered_exact`.
-8. Stage 4 independent verification completed `G4`; any future migration
-   allocation remains serialized under the next applicable roadmap gate.
+   applicable stage evidence. The 30 Stage 1 through Stage 4 resources have
+   passed their applicable primary fixture gates; `market:0009_fmp_daily_price_backfill`
+   is `fixture_validated` in the canonical registry after the primary Stage 9
+   offline gate. None can be relabeled `recovered_exact`.
+8. Stage 4 independent verification completed `G4`. Independent Stage 9
+   re-verification passed after this correction; every other future
+   migration allocation remains serialized under the next applicable roadmap
+   gate.

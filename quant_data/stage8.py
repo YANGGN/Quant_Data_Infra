@@ -19,7 +19,12 @@ from .errors import ConflictError, ValidationError
 from .fingerprint import mutation_fingerprint
 from .json_codec import dumps_strict, loads_strict
 from .migrations import initialize_all
-from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from .registry import (
+    CANONICAL_REGISTRY_PATH,
+    Registry,
+    load_registry,
+    stage8_registry_profile,
+)
 from .stage1 import explicit_store_map
 from .stage7 import run_clean_stage7_rebuild
 from .stores import StoreMap
@@ -474,10 +479,12 @@ def run_clean_stage8_rebuild(
         stage7 = run_clean_stage7_rebuild(project_root=project, work_root=root / "stage7")
         if stage7.get("sha256") != _STAGE7_EVIDENCE_SHA256:
             raise ValidationError("Stage 8 did not preserve the approved Stage 7 evidence")
-        registry = load_registry(
-            project / CANONICAL_REGISTRY_PATH,
-            project_root=project,
-            environment={},
+        registry = stage8_registry_profile(
+            load_registry(
+                project / CANONICAL_REGISTRY_PATH,
+                project_root=project,
+                environment={},
+            )
         )
         if (
             registry.schema_version != "1.4.0"

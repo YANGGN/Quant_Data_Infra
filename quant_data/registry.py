@@ -209,6 +209,18 @@ _STAGE6_REGISTRY_SOURCE_SHA256 = (
 _STAGE7_REGISTRY_SOURCE_SHA256 = (
     "643f4fd9a21f2b8b2701b0a408cddb63ae198175bc2cd61ce1ed637a9419a52c"
 )
+_STAGE8_REGISTRY_SOURCE_SHA256 = (
+    "f4f565db7638ef026859af3f3b68b967ca54a80d1e09027d3afd1260cf53c10b"
+)
+_STAGE9_COLLECTOR_ID = "fmp.market.daily_price_backfill"
+_STAGE9_DATASET_IDS = frozenset(
+    {
+        "market.fmp.daily_price_evidence",
+        "market.fmp.instruments",
+        "market.fmp.daily_prices",
+    }
+)
+_STAGE9_MIGRATION_ID = "market:0009_fmp_daily_price_backfill"
 _STAGE7_JOB_IDS = (
     "news-hourly",
     "sec-daily",
@@ -1058,10 +1070,10 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.4.0"
+        or raw["schema_version"] != "1.5.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.6.0"
+        or raw["registry_version"] != "2.7.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2580,7 +2592,7 @@ def load_registry(
             or not _SEMVER.fullmatch(collector["version"])
             or not isinstance(collector["handler"], str)
             or not _HANDLER.fullmatch(collector["handler"])
-            or collector["network"] is not False
+            or not isinstance(collector["network"], bool)
         ):
             raise _error(pointer, "collector", "Collector metadata is invalid")
         collector_ids.add(collector_id)
@@ -2661,7 +2673,45 @@ def load_registry(
         configuration_env = _string_array(
             collector["configuration_env"], f"{pointer}/configuration_env"
         )
-        if any(not name.startswith("QUANT_") for name in configuration_env):
+        if collector_id == _STAGE9_COLLECTOR_ID:
+            if (
+                collector["handler"] != "market.fmp_daily_price"
+                or collector["network"] is not True
+                or inputs
+                or outputs
+                != (
+                    "market.fmp.daily_price_evidence",
+                    "market.fmp.instruments",
+                    "market.fmp.daily_prices",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 22,
+                    "max_bytes": 262_144,
+                    "max_seconds": 30,
+                }
+                or retry
+                != {
+                    "transient_classes": ["http_429", "http_500", "transport"],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(pointer, "stage9_fmp", "Stage 9 FMP collector drifted")
+        elif collector["network"] is not False or any(
+            not name.startswith("QUANT_") for name in configuration_env
+        ):
             raise _error(
                 f"{pointer}/configuration_env", "environment", "Unsafe configuration name"
             )
@@ -3010,6 +3060,87 @@ def _export_free_dataset_projection(
     return projected, raw
 
 
+def stage8_registry_profile(registry: Registry) -> Registry:
+    """Project the canonical Stage 9 registry back to Stage 8 exactly."""
+
+    if (
+        registry.schema_version != "1.5.0"
+        or registry.registry_version != "2.7.0"
+        or len(registry.migrations) != 31
+        or len(registry.datasets) != 36
+        or len(registry.collectors) != 20
+        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
+        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
+        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
+        or _STAGE9_MIGRATION_ID not in {item.id for item in registry.migrations}
+        or not _STAGE9_DATASET_IDS.issubset(
+            {item.id for item in registry.datasets}
+        )
+        or _STAGE9_COLLECTOR_ID
+        not in {str(item["id"]) for item in registry.collectors}
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 8 profile")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id != _STAGE9_MIGRATION_ID
+    )
+    datasets = tuple(
+        item for item in registry.datasets if item.id not in _STAGE9_DATASET_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _STAGE9_COLLECTOR_ID
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id != _STAGE9_MIGRATION_ID
+            ),
+        )
+        for store in registry.stores
+    )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["schema_version"] = "1.4.0"
+    raw["registry_version"] = "2.6.0"
+    raw["migrations"] = [
+        item for item in raw["migrations"] if item["id"] != _STAGE9_MIGRATION_ID
+    ]
+    raw["datasets"] = [
+        item for item in raw["datasets"] if item["id"] not in _STAGE9_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] != _STAGE9_COLLECTOR_ID
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id != _STAGE9_MIGRATION_ID
+        ]
+    return replace(
+        registry,
+        schema_version="1.4.0",
+        registry_version="2.6.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_STAGE8_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def _stage8_input(registry: Registry) -> Registry:
+    if registry.schema_version == "1.5.0" and registry.registry_version == "2.7.0":
+        return stage8_registry_profile(registry)
+    return registry
+
+
 def stage2_registry_profile(registry: Registry) -> Registry:
     """Project the validated additive registry back to the Stage 2 contract.
 
@@ -3020,6 +3151,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
     validated canonical registry and retains the original resource bytes.
     """
 
+    registry = _stage8_input(registry)
     migration_ids = {item.id for item in registry.migrations}
     dataset_ids = {item.id for item in registry.datasets}
     collector_ids = {str(item["id"]) for item in registry.collectors}
@@ -3118,6 +3250,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
 def stage3_registry_profile(registry: Registry) -> Registry:
     """Project an additive canonical registry back to the Stage 3 contract."""
 
+    registry = _stage8_input(registry)
     migration_ids = {item.id for item in registry.migrations}
     dataset_ids = {item.id for item in registry.datasets}
     collector_ids = {str(item["id"]) for item in registry.collectors}
@@ -3212,6 +3345,7 @@ def stage3_registry_profile(registry: Registry) -> Registry:
 def stage4_registry_profile(registry: Registry) -> Registry:
     """Project an additive canonical registry back to the Stage 4 contract."""
 
+    registry = _stage8_input(registry)
     migration_ids = {item.id for item in registry.migrations}
     dataset_ids = {item.id for item in registry.datasets}
     collector_ids = {str(item["id"]) for item in registry.collectors}
@@ -3306,6 +3440,7 @@ def stage4_registry_profile(registry: Registry) -> Registry:
 def stage5_registry_profile(registry: Registry) -> Registry:
     """Project the additive canonical registry back to Stage 5 exactly."""
 
+    registry = _stage8_input(registry)
     if (
         registry.registry_version.split(".", 1)[0] != "2"
         or len(registry.migrations) != 30
@@ -3340,6 +3475,7 @@ def stage5_registry_profile(registry: Registry) -> Registry:
 def stage6_registry_profile(registry: Registry) -> Registry:
     """Project the canonical Stage 8 registry back to Stage 6 exactly."""
 
+    registry = _stage8_input(registry)
     if (
         registry.schema_version != "1.4.0"
         or registry.registry_version != "2.6.0"
@@ -3372,6 +3508,7 @@ def stage6_registry_profile(registry: Registry) -> Registry:
 def stage7_registry_profile(registry: Registry) -> Registry:
     """Project the Stage 8 registry back to the immutable Stage 7 contract."""
 
+    registry = _stage8_input(registry)
     if (
         registry.schema_version != "1.4.0"
         or registry.registry_version != "2.6.0"

@@ -41,9 +41,22 @@ store. The bounded Stage 8 implementation has passed its primary offline fixture
 Independent SolUltra verification also passed; browser verification remains pending, so
 the formal Stage 8 exit gate is not closed.
 
-Do not install, start, update, or remove a scheduler; do not start live
-providers. Do not host or deploy Atlas, connect it to operational stores,
-select default paths, run live diagnostics, or perform destructive operations.
+The user has authorized one bounded Stage 9 preparation: a manual FMP daily
+OHLCV backfill for `SPY`, inclusive `2026-07-01` through `2026-07-31`, into
+`/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. It is an additive,
+market-only non-production slice with one request, no retry, and
+`FMP_API_KEY` supplied only through the process environment. Its primary and
+independent offline gates and bounded live population receipt have passed.
+Promotion, old-store retirement, scheduling, Atlas/tool/
+dashboard exposure, and every other live provider remain closed.
+
+Do not install, start, update, or remove a scheduler. Do not start a live
+provider except the exact manual Stage 9 FMP slice after its offline checks,
+credential preflight, and exact-target checks pass. That exception permits
+neither retry nor any other symbol, date range, target, provider, promotion,
+or store retirement. Do not host or deploy Atlas, connect it to operational
+stores, select default paths, run live diagnostics, or perform destructive
+operations.
 
 Do not search for lost Git history. The user authorized a fresh repository
 baseline; it must not imply recovered history. Do not edit
@@ -217,7 +230,9 @@ All implementation agents must preserve these invariants:
 - SQLite is authoritative and analytical exports are reproducible derivatives;
   and
 - live providers, scheduler installation, promotion, and destructive storage
-  operations require the applicable roadmap gate and explicit authorization.
+  operations require the applicable roadmap gate and explicit authorization;
+  the sole current live-provider exception is the bounded manual Stage 9 FMP
+  slice above, which remains non-production and candidate-only.
 
 ## Stop and escalate
 

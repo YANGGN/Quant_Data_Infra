@@ -17,6 +17,13 @@ evidence passes or an explicit user acceptance records a remaining external
 verification limitation. Later recovery evidence in Sections 18-20 of the plan
 takes precedence over earlier proposals.
 
+The user has authorized a deliberately narrow Stage 9 preparation, not a
+general live-data opening: one manual FMP daily OHLCV backfill for `SPY`,
+inclusive `2026-07-01` through `2026-07-31`, into an exact non-production
+root. Its primary and independent offline gates and bounded live population
+receipt passed; provider-use rights remain an external operator responsibility.
+
+
 The principal decisions are recorded in:
 
 - [ADR 0001: Four operational SQLite stores](docs/adr/0001-four-operational-sqlite-stores.md)
@@ -169,14 +176,14 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration. The canonical Stage 8
-revision is `2.6.0` with schema version `1.4.0`, 30 fixture-validated
-migrations, 33 datasets, 19 collectors, all 57 reviewed public tool names, four
-local-private dashboard exposures, eight disabled `manual_fixture_only` jobs,
-and one declared fixture-only manual JSON Atlas export. Its reciprocal datasets
-are market daily prices, macro GDP vintages, company issuers, and news items.
-This declaration is not itself Stage 8 acceptance evidence. The frozen Stage 7
-projection remains `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6
+The system registry is declarative source configuration. The current revision
+is `2.7.0` with schema version `1.5.0`. It preserves the bounded Stage 8
+declaration: 57 reviewed public tool names, four local-private dashboard
+exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
+manual JSON Atlas export. It adds only an isolated market FMP daily-price
+collector, datasets, and migration for the exact Stage 9 slice. The FMP
+declaration is not public-tool, dashboard, or Atlas exposure, and it is not
+Stage 9 acceptance evidence. The frozen Stage 7 projection remains `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6
 projection remains `2.4.0`/`1.2.0` with zero jobs; and the frozen Stage 5
 projection remains `2.3.0`/`1.1.0`. Historical Stage 1 through Stage 7 evidence
 is rebuilt through immutable projections rather than rewritten. The two
@@ -384,9 +391,36 @@ is not source. No package manager, framework lock, hosting configuration,
 deployment, live provider, scheduler action, Parquet/DuckDB adoption, default
 path fallback, operational promotion, or destructive operation is authorized.
 
+### Authorized bounded Stage 9 FMP non-production backfill - live population independently verified
+
+Stage 9 opens exactly one provider-specific manual operation, not a generic
+collection runtime. The FMP adapter may request daily OHLCV for `SPY` over the
+inclusive calendar-date range `2026-07-01` through `2026-07-31`, once, with no
+retry. It uses `FMP_API_KEY` from the invoking process environment only; the
+credential is neither persisted nor included in semantic identities, receipts,
+logs, command lines, or documentation.
+
+The operation writes only the additive market migration
+`market:0009_fmp_daily_price_backfill` and its isolated FMP evidence,
+instrument-identity, version, and current-projection relations. It targets only
+`/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`, reconciles exact
+coverage and provenance, proves unchanged replay has zero writes, takes and
+tests SQLite online backups/restores, and applies a correction only to a
+scratch restoration. Its final durable output is a private candidate-only
+receipt; it cannot promote an operational store or retire an earlier store.
+
+FMP documentation and commercial/data-use terms are provider-controlled
+operational prerequisites. The operator must confirm the account's current
+endpoint entitlement, request/data limits, retention, display, and
+redistribution permissions before a live request. This repository does not
+copy provider terms or claim that data was fetched merely because the adapter
+is registered.
+
 ## Deployment modes
 
-The implemented boundary remains offline only. Stage 7 rebuilds the accepted
+The implemented Stage 1 through Stage 8 boundary remains offline. Stage 9 is
+an authorized, tightly isolated exception whose primary and independent
+offline gates and bounded live receipt passed. Stage 7 rebuilds the accepted
 Stage 6 synthetic fixture cohort under explicit temporary roots, then validates
 eight disabled manual fixture plans, injected outcome cases, real fixture
 replay, ordered physical locking, retries, active timeouts, private receipt-last
@@ -409,6 +443,10 @@ All four paths are explicitly redirected to temporary locations. Tests must neve
 ### Local operational
 
 Four split files use their default paths or explicit environment overrides. Manual, idempotent jobs are restored before scheduled automation. The local dashboard and tool server bind to a local interface and open stores read-only.
+The bounded Stage 9 command does not use this operational layout: it has one
+exact non-production root, no default-path fallback, no scheduler, and no
+promotion action. A failed or incomplete FMP attempt leaves the candidate
+receipt/promotion boundary closed.
 
 ### Scheduled local collection
 
@@ -436,6 +474,9 @@ A legacy unified file is not a supported runtime layout and cannot be auto-disco
   evidence without mutating the source or backup cohort.
 - Restore drills validate integrity, migration state, dataset ownership, and representative point-in-time queries on the restored copy.
 - Atlas staging or publication failure cannot modify the last promoted snapshot.
+- A Stage 9 failure cannot alter an operational store: its source, backup,
+  restored, rehearsal, and candidate receipt artifacts remain beneath the exact
+  non-production target, and no old store is retired.
 
 ## Quality attributes
 

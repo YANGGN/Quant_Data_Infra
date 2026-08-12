@@ -6,7 +6,9 @@ Scope: accepted implementation sequencing; Stages 1 through 5 are
 independently verified; the bounded Stage 6 four-route portal was accepted on
 2026-08-10 with an explicit browser-automation waiver; the bounded offline
 Stage 7 manual fixture rehearsal passed its primary gate and independent
-SolUltra verification on 2026-08-11
+SolUltra verification on 2026-08-11; Stage 8 independent offline verification
+passed with browser verification pending; the bounded Stage 9 FMP slice passed
+primary and independent offline verification and live-receipt verification
 
 ## 1. Purpose
 
@@ -33,6 +35,12 @@ The following decisions apply to every stage:
   passed its primary gate and independent SolUltra verification. The bounded
   Stage 8 JSON Atlas/export profile passed its primary offline fixture gate;
   independent verification also passed; browser verification remains pending.
+- The user has authorized only one Stage 9 live-provider preparation:
+  FMP daily OHLCV for `SPY`, inclusive `2026-07-01` through `2026-07-31`,
+  under `/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. It is
+  manual-only, one request, no retry, and candidate-only. The Stage 9 primary
+  and independent offline gates and bounded live receipt passed. No operational
+  promotion or old-store retirement is authorized.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -61,7 +69,7 @@ The following decisions apply to every stage:
 | 6 | Bounded local portal (four fixed routes) | No mutation through UI | Accepted offline evidence with explicit browser-automation waiver |
 | 7 | Manual fixture job rehearsal and operational readiness | No live access; jobs disabled | Independently verified offline evidence; bounded Stage 8 is separately authorized |
 | 8 | One fixture-only JSON snapshot and static Atlas | Explicit SQLite online-backup copies only | Independently verified offline; browser gate pending |
-| 9 | Controlled repopulation and promotion | Yes, explicitly approved | New stores pass integrity and recovery drills |
+| 9 | One manual FMP SPY non-production backfill and candidate receipt | Only the exact approved request after preflight | Bounded live population independently verified; no promotion |
 
 Stages are ordered by dependency, not calendar duration. A later stage may be
 designed in parallel, but implementation does not cross an unmet exit gate.
@@ -499,25 +507,55 @@ separately authorized profile.
 - Independent SolUltra verification inspected the integrated worktree and recorded
   exact evidence/results; browser QA is the remaining exit condition.
 
-## 13. Stage 9 — Controlled repopulation and promotion
+## 13. Stage 9 — Bounded FMP non-production backfill (candidate-only)
 
-### Deliverables
+Status: **Bounded live population and candidate receipt independently
+verified.** The exact scope and evidence are recorded in
+[Stage 9 evidence](docs/rebuild/STAGE9_EVIDENCE.md). This authorization is
+intentionally narrower than the original general repopulation/promotion
+placeholder.
 
-- Provider-specific bounded backfills into new, explicitly named non-production
-  stores.
-- Coverage, row-count, sample-value, gap, and provenance reconciliation.
-- Integrity checks against read-only backup copies.
-- Promotion receipts tying code, registry, migrations, store snapshots, and
-  configuration together.
+### Authorized scope
 
-### Exit gate
+- One provider-specific manual FMP daily OHLCV request for `SPY`, inclusive
+  `2026-07-01` through `2026-07-31`.
+- One collector, `fmp.market.daily_price_backfill`, using the environment name
+  `FMP_API_KEY` only, one request, and no retry.
+- One exact non-production root:
+  `/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`.
+- One additive market-only migration,
+  `market:0009_fmp_daily_price_backfill`, and isolated FMP evidence,
+  instrument, version, and current-price relations.
+- Coverage, row-count, sample-value, gap, response/provenance, integrity,
+  migration, and dataset-quality reconciliation.
+- Unchanged replay proof, SQLite online backup/clean restore proof, and a
+  scratch-restoration-only correction rehearsal.
+- A private candidate-only receipt tying the request scope, code/registry,
+  migration, store snapshots, reconciliation, and configuration-name metadata
+  together without a credential value.
 
-- Every store passes integrity, foreign-key, migration, and dataset-quality
-  checks.
-- Idempotent replay and correction tests pass against production-shaped copies.
-- Point-in-time and capture-boundary audits pass.
-- Backup and clean restoration are demonstrated before any old store is
-  retired.
+### Explicitly excluded
+
+- Any other symbol, range, endpoint, provider, request retry, scheduler, or
+  background operation.
+- Tool, dashboard, Atlas, host, deployment, export, or public data exposure.
+- Operational-store promotion, use of a default store path, old-store
+  retirement, or destructive cleanup.
+- A claim that an FMP response was fetched before a successful live receipt is
+  recorded.
+
+### Gate disposition
+
+- The deterministic two-root harness, full suite, wrapper failure checks, and
+  registry/generated-artifact checks passed against the integrated worktree.
+- Independent SolUltra re-verification passed the bounded Stage 9 checks,
+  including secret/non-network safety in offline modes and target containment.
+- The bounded live request succeeded and its exact 22-date coverage,
+  backup/restore, scratch correction, and candidate receipt were independently
+  verified without repeating the provider request.
+- Provider licensing, retention, display, and redistribution rights remain the
+  operator's account-specific responsibility and were not independently
+  assessed. Operational promotion and old-store retirement remain closed.
 
 ## 14. Cross-stage quality gates
 

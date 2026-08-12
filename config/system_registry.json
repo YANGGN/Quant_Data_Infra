@@ -44,6 +44,58 @@
       }
     },
     {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "market.fmp_daily_price",
+      "id": "fmp.market.daily_price_backfill",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "market.fmp.daily_price_evidence",
+        "market.fmp.instruments",
+        "market.fmp.daily_prices"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": [
+          "http_429",
+          "http_500",
+          "transport"
+        ]
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 262144,
+        "max_requests": 1,
+        "max_rows": 22,
+        "max_seconds": 30
+      }
+    },
+    {
       "configuration_env": [],
       "handler": "macro.rtdsm_fixture",
       "id": "fixture.macro.rtdsm_employ_import",
@@ -1469,6 +1521,219 @@
         "market.technical_indicators",
         "market.cross_sectional_performance"
       ],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.daily_price_backfill"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.fmp.daily_price_evidence",
+      "identity": {
+        "stable_fields": [
+          "capture_id"
+        ],
+        "version_fields": [
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "fmp_daily_price_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "response_digest",
+          "scope_complete",
+          "ohlc_consistent",
+          "expected_trading_dates",
+          "raw_evidence_retained_private"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.daily_price_backfill"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.fmp.instruments",
+      "identity": {
+        "stable_fields": [
+          "instrument_id"
+        ],
+        "version_fields": [
+          "provider_symbol",
+          "effective_from"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "fmp_instrument_identities"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "reviewed_stable_identity",
+          "provider_symbol_exact",
+          "currency_binding_exact"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "effective_from"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.daily_price_backfill"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.fmp.daily_prices",
+      "identity": {
+        "stable_fields": [
+          "instrument_id",
+          "trade_date",
+          "provider",
+          "price_variant",
+          "currency_segment"
+        ],
+        "version_fields": [
+          "version_id",
+          "correction_sequence"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "fmp_daily_prices"
+          },
+          {
+            "kind": "table",
+            "name": "fmp_daily_price_versions"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "ohlc_consistent",
+          "volume_nonnegative",
+          "expected_trading_dates",
+          "database_matches_captured_response",
+          "correction_chain"
+        ],
+        "units": "currency_and_volume"
+      },
+      "revision_policy": "append_version",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "trade_date"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
       "version": "1.0.0"
     },
     {
@@ -5517,6 +5782,18 @@
       "store": "market"
     },
     {
+      "dependencies": [
+        "market:0008_option_surface_inputs"
+      ],
+      "id": "market:0009_fmp_daily_price_backfill",
+      "ordinal": 9,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/market/0009_fmp_daily_price_backfill.sql",
+      "semantic_scope": "Deliberate Stage 9 forward reconstruction for one bounded live FMP SPY daily-price backfill into isolated non-production relations.",
+      "sha256": "f2e664888449cb3d1885f1199d1a22996709cb87f4f3ac005bd8f91c0cc62ba0",
+      "store": "market"
+    },
+    {
       "dependencies": [],
       "id": "macro:0001_foundation",
       "ordinal": 1,
@@ -5887,9 +6164,9 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.6.0",
+  "registry_version": "2.7.0",
   "schema_id": "quant_data.system_registry",
-  "schema_version": "1.4.0",
+  "schema_version": "1.5.0",
   "status": "validated",
   "stores": [
     {
@@ -5926,7 +6203,8 @@
         "market:0005_instrument_classifications",
         "market:0006_controlled_universes",
         "market:0007_options_core",
-        "market:0008_option_surface_inputs"
+        "market:0008_option_surface_inputs",
+        "market:0009_fmp_daily_price_backfill"
       ],
       "path_env": "QUANT_MARKET_DB_PATH",
       "write_coordination": {

@@ -17,6 +17,13 @@ fixture gate and independent verification passed; browser verification remains p
 Later documented behavior remains closed until separately authorized
 executable evidence passes.
 
+The user has separately authorized one bounded Stage 9 preparation: a manual
+FMP daily OHLCV slice for `SPY`, inclusive `2026-07-01` through `2026-07-31`,
+in `/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. Its
+primary and independent offline gates and bounded live receipt passed. It is
+candidate-only and does not authorize a
+scheduler, public exposure, Atlas inclusion, promotion, or store retirement.
+
 Two user decisions narrow the work:
 
 - The lost Git history will not be searched for or reconstructed. A fresh
@@ -48,6 +55,7 @@ coverage.
 - [Stage 6 acceptance evidence](STAGE6_EVIDENCE.md)
 - [Stage 7 acceptance evidence](STAGE7_EVIDENCE.md)
 - [Stage 8 evidence record](STAGE8_EVIDENCE.md)
+- [Stage 9 evidence record](STAGE9_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -107,6 +115,10 @@ rehearsal passed its primary gate and independent SolUltra verification. Stage
 8 is `Implemented` for its bounded offline JSON Atlas/export profile after its
 primary fixture gate and independent review passed. Browser verification remains
 pending, so its formal exit gate is not closed.
+
+Stage 9 is `Bounded live population independently verified` for its exact FMP
+non-production slice only. Promotion and retirement remain excluded; Stage 8
+browser verification also remains pending.
 
 ## 5. Shared terminology
 

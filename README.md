@@ -12,6 +12,17 @@ Atlas snapshot. It is a deliberate forward reconstruction, not a claim of
 recovered historical Atlas or 13-dataset parity. Its primary offline fixture
 gate and independent offline verification passed on 2026-08-11; browser verification remains pending.
 
+The user has authorized a narrow Stage 9 preparation for one manual FMP
+end-of-day OHLCV slice: `SPY`, inclusive `2026-07-01` through `2026-07-31`,
+in the exact non-production root
+`/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. It has one
+live-enabled, manual-only collector, one request and no retry, and uses the
+name `FMP_API_KEY` only as a process-environment variable. Its primary and
+independent offline gates and bounded live population receipt passed. Provider
+licensing remains the operator's account-specific responsibility.
+It does not authorize a scheduler, public exposure, Atlas inclusion,
+operational promotion, or old-store retirement.
+
 The portal remains local-only with four fixed routes: Overview (`/`), GDP
 Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
 (`/agent-tools`). Stage 7 adds eight disabled `manual_fixture_only` job
@@ -52,6 +63,8 @@ Stage 7 acceptance and independent-verification receipts are recorded in the
 [Stage 7 acceptance evidence](docs/rebuild/STAGE7_EVIDENCE.md).
 The Stage 8 offline evidence and pending browser status are tracked in the
 [Stage 8 evidence](docs/rebuild/STAGE8_EVIDENCE.md).
+The bounded Stage 9 population and independently verified receipt are in
+[Stage 9 evidence](docs/rebuild/STAGE9_EVIDENCE.md).
 
 ## Validate Stage 1
 
@@ -237,14 +250,44 @@ Independent offline verification passed. The in-app browser client failed
 before launch, so browser observations and the formal Stage 8 exit gate remain
 pending; no alternate browser automation was substituted.
 
+## Stage 9 status -- bounded live population independently verified
+
+The Stage 9 harness is deliberately network-blocked. It exercises the exact
+FMP-shaped `SPY` July-2026 request scope against isolated temporary roots,
+then checks replay, reconciliation, online backup/restore, a scratch-only
+correction, and a candidate-only receipt:
+
+```bash
+cd /home/volatility/Python_Projects/Quant_Data_Infra
+first_root="$(mktemp -d /tmp/quant-data-stage9-first.XXXXXX)"
+second_root="$(mktemp -d /tmp/quant-data-stage9-second.XXXXXX)"
+PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
+  --stage stage9 \
+  --project-root /home/volatility/Python_Projects/Quant_Data_Infra \
+  --store-root "$first_root" \
+  --second-store-root "$second_root"
+```
+
+This is not a live-provider command. The primary gate records offline evidence
+SHA `1851168a239c2b3e344db77d20439a1e1a8264d0eae65c950e33f4dd06c583c4`.
+A live request remains conditional on independent review, a securely
+configured `FMP_API_KEY`,
+and the exact non-production target being empty and approved. Never paste a
+key into chat, a command line, a file, or the registry.
+
 ## Current public boundary
 
-The canonical registry is revision `2.6.0`, schema `1.4.0`. It preserves the
-four local-private Stage 6 dashboard exposures and eight ordered, disabled
-`manual_fixture_only` jobs. It declares exactly one fixture-only, manual JSON
-export, `atlas.fixture_snapshot`, with reciprocal declarations on
+The canonical registry is revision `2.7.0`, schema `1.5.0`. It preserves the
+four local-private Stage 6 dashboard exposures, eight ordered disabled
+`manual_fixture_only` jobs, and the one fixture-only manual JSON export,
+`atlas.fixture_snapshot`, with reciprocal declarations on
 `fixture.market.daily_prices`, `fixture.macro.gdp_vintages`,
-`fixture.company.issuers`, and `fixture.news.items`.
+`fixture.company.issuers`, and `fixture.news.items`. It adds only the isolated
+market migration `market:0009_fmp_daily_price_backfill`, three FMP daily-price
+datasets, and the manual-only `fmp.market.daily_price_backfill` collector.
+Those FMP relations are deliberately absent from public tools, dashboard
+exposures, and Atlas exports.
+
 The frozen Stage 7 rebuild keeps its historical `2.5.0`/`1.3.0`, zero-export
 projection; the frozen Stage 6 rebuild uses `2.4.0`/`1.2.0`, jobs-empty
 projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
@@ -263,3 +306,5 @@ relation, or connection argument and no live-store/UI connection. Stage 6's
 browser-automation limitation was explicitly accepted by the user; Stage 7
 independent verification passed on 2026-08-11. Stage 8's primary offline gate and
 independent verification passed on 2026-08-11; browser verification remains pending.
+Stage 9 is not a public boundary: its populated exact FMP slice remains
+non-production, manual-only, candidate-only, and independently verified.

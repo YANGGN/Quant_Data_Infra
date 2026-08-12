@@ -7,7 +7,7 @@ from pathlib import Path
 
 from quant_data.errors import RegistryError
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import ExportDeclaration, load_registry
+from quant_data.registry import ExportDeclaration, load_registry, stage8_registry_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -99,10 +99,12 @@ class Stage8RegistryTests(unittest.TestCase):
 
     def test_canonical_atlas_export_is_exact_bounded_and_immutable(self) -> None:
         source_before = hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest()
-        registry = load_registry(
-            REGISTRY_PATH,
-            project_root=PROJECT_ROOT,
-            environment={},
+        registry = stage8_registry_profile(
+            load_registry(
+                REGISTRY_PATH,
+                project_root=PROJECT_ROOT,
+                environment={},
+            )
         )
         self.assertEqual(registry.schema_version, "1.4.0")
         self.assertEqual(registry.registry_version, "2.6.0")

@@ -5,16 +5,21 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision
-`2.6.0`, schema `1.4.0`, status `validated`. It declares 30 migrations,
-33 datasets, 19 collectors, 57 tools, four local-private dashboard exposures,
-eight disabled `manual_fixture_only` jobs, and one bounded
-`manual_only`/fixture-only JSON Atlas export. The frozen Stage 7 projection
-remains `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6 projection
-remains `2.4.0`/`1.2.0` with zero jobs; the frozen Stage 5 projection
-remains `2.3.0`/`1.1.0`. The Stage 8 declaration is a deliberate forward
-reconstruction, not recovered 13-dataset Atlas parity. Registry declaration
-and lifecycle metadata do not replace Stage 8 evidence: its primary fixture
-gate and independent verification passed, while browser verification remains pending.
+`2.7.0`, schema `1.5.0`, status `validated`. It preserves the Stage 8 set of
+57 tools, four local-private dashboard exposures, eight disabled
+`manual_fixture_only` jobs, and one bounded `manual_only`/fixture-only JSON
+Atlas export. It adds only `market:0009_fmp_daily_price_backfill`, three
+isolated market FMP daily-price datasets, and the manual-only
+`fmp.market.daily_price_backfill` collector.
+
+The frozen Stage 7 projection remains `2.5.0`/`1.3.0` with zero exports; the
+frozen Stage 6 projection remains `2.4.0`/`1.2.0` with zero jobs; and the
+frozen Stage 5 projection remains `2.3.0`/`1.1.0`. The Stage 8 declaration is
+a deliberate forward reconstruction, not recovered 13-dataset Atlas parity.
+Registry declaration and lifecycle metadata do not replace Stage 8 evidence:
+its primary fixture gate and independent verification passed, while browser
+verification remains pending. The Stage 9 primary and independent offline
+gates and bounded live receipt passed; registry declaration alone is not evidence.
 
 ## Purpose
 
@@ -228,6 +233,17 @@ versioned receipts, and uses the registered aggregate exit precedence. Exact
 external task definitions, timezone, identity, and calendar installation
 remain unresolved; no scheduler definition is generated or installed.
 
+Schema `1.5.0` adds exactly one live-enabled but manual-only collector:
+`fmp.market.daily_price_backfill`. Its registered output datasets are
+`market.fmp.daily_price_evidence`, `market.fmp.instruments`, and
+`market.fmp.daily_prices`; they are isolated under
+`market:0009_fmp_daily_price_backfill`. It has one request, 22-row,
+262144-byte, and 30-second bounds, a no-retry policy, and a semantic
+identity that excludes the credential and headers. `FMP_API_KEY` is an
+environment-variable name only. There is no job, tool, dashboard, or Atlas
+exposure for this collector or its datasets, and its declaration is not
+evidence that a provider response was fetched.
+
 ### ToolExposure
 
 | Field | Type | Required | Contract |
@@ -269,8 +285,10 @@ exposures: `stage1.overview`, `stage6.gdp_vintages`,
 registry `2.5.0`/`1.3.0` preserves those declarations unchanged while
 adding only the disabled job catalog. Canonical Stage 8 registry
 `2.6.0`/`1.4.0` preserves both historical projections unchanged and adds
-only the one bounded export declaration below. API routes remain fixed registry
-declarations, not caller-supplied URLs.
+only the one bounded export declaration below. Canonical Stage 9 registry
+`2.7.0`/`1.5.0` preserves all dashboard declarations unchanged; no FMP
+daily-price dataset, relation, or collector appears in a dashboard exposure.
+API routes remain fixed registry declarations, not caller-supplied URLs.
 
 Dashboard navigation and the table inspector are generated or validated from
 these exposures. Internal raw payload objects remain absent unless a reviewed
@@ -373,6 +391,9 @@ Validation fails closed unless all of the following hold:
 20. Unsupported layers, formats, schema versions, status values, and optional capabilities are rejected rather than guessed.
 21. Secrets and secret values do not appear anywhere in the registry, examples, generated documentation, logs, or exported manifests.
 22. Registry iteration and generated output are deterministic across processes and platforms.
+23. The sole live-enabled collector is manual-only and confined to the reviewed
+    Stage 9 request scope; it cannot obtain a scheduler, public exposure,
+    operational-promotion, or retirement capability through the registry.
 
 ## Loading and validation
 
@@ -583,6 +604,9 @@ exports:
 - Fetches and retries occur outside write transactions.
 - Each if-new semantic identity has changed, unchanged, scope-changed, partial, error, timeout, and rate-limit fixtures.
 - Unchanged produces zero ingestion-run, artifact, snapshot, membership, and canonical writes.
+- The Stage 9 FMP collector is fixture-tested only for `SPY`, inclusive
+  `2026-07-01` through `2026-07-31`; wrong scope, malformed response, missing
+  credential, retry, or public-exposure attempts fail closed without a live write.
 - Independent job-step failures remain visible and required failures produce an incomplete/nonzero aggregate result.
 
 ### Time and data quality

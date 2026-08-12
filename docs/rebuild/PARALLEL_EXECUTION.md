@@ -19,6 +19,12 @@ independently verified. The bounded fixture-only Stage 8 JSON snapshot and
 static Atlas passed their primary and independent offline gates. Browser
 verification remains pending.
 
+The user has separately authorized one tightly bounded Stage 9 preparation:
+a manual FMP daily OHLCV backfill for `SPY`, inclusive `2026-07-01` through
+`2026-07-31`, in an exact non-production root. Its primary and independent
+offline gates and bounded live receipt passed; there is no authorization for
+promotion or old-store retirement.
+
 ## 2. Capacity and operating model
 
 The project configuration assumes one SolUltra primary plus at most three
@@ -73,7 +79,7 @@ G7  Manual-first scheduling and operational readiness
  |
 G8  Bounded fixture JSON snapshot and dependency-free static Atlas
  |
-G9  Explicitly approved controlled repopulation and promotion
+G9  One manual FMP SPY non-production backfill; candidate-only acceptance pending
 ```
 
 `G0` through `G9` are integration gates, not agent tasks. A later stage may
@@ -277,12 +283,23 @@ verification. The completed primary correction/reseal and independent review do
 not substitute for browser verification. Current status belongs in
 [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
-### Wave 9 — Controlled repopulation
+### Wave 9 — Bounded FMP non-production backfill
 
-After explicit approval, bounded backfills may run concurrently only when they
-target distinct physical stores and independent provider limits. At most one
-writer operates on a physical SQLite file. Reconciliation, backup, integrity,
-point-in-time audit, and promotion remain serialized gates.
+Status: **Bounded live population independently verified.** The only live
+lane is `fmp.market.daily_price_backfill` for `SPY`, inclusive `2026-07-01`
+through `2026-07-31`, under the exact non-production root
+`/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. It is one request,
+no retry, manual-only, and candidate-only; it is not a general parallel
+provider program.
+
+The primary serializes the registry/migration boundary, exact target preflight,
+single FMP request, reconciliation, replay, backup/restore, scratch-only
+correction, and candidate receipt. No worker adds a scheduler, public
+tool/dashboard/Atlas exposure, promotion, default path, or retirement action.
+
+The independent verifier passed the Stage 9 offline checks after corrections
+and separately verified the bounded live receipt. Provider-use rights remain
+the operator's account-specific responsibility.
 
 ## 6. Four-thread cadence
 
