@@ -16,14 +16,21 @@ Stage 6 four-route local portal passed offline and independent verification;
 the user explicitly waived its unavailable browser-automation check. The
 bounded offline Stage 7 manual fixture rehearsal is implemented and
 independently verified. The bounded fixture-only Stage 8 JSON snapshot and
-static Atlas passed their primary and independent offline gates. Browser
-verification remains pending.
+static Atlas passed their primary and independent offline gates. On 2026-08-14
+the user explicitly waived unavailable in-app browser automation and accepted
+the bounded Stage 8 gate.
 
 The user has separately authorized one tightly bounded Stage 9 preparation:
 a manual FMP daily OHLCV backfill for `SPY`, inclusive `2026-07-01` through
 `2026-07-31`, in an exact non-production root. Its primary and independent
 offline gates and bounded live receipt passed; there is no authorization for
 promotion or old-store retirement.
+
+The retained Stage 10 base and historical-extension candidates are complete
+and independently re-inspected; no provider request may be repeated. Stage 11
+is complete as a private candidate in the same isolated cohort: BEA, EIA
+retail, and EIA weekly are published, targeted checks passed, and the private
+receipt is retained. No Stage 11 request may be repeated.
 
 ## 2. Capacity and operating model
 
@@ -77,12 +84,16 @@ G6  Bounded four-route portal independently verified; browser automation waived
  |
 G7  Manual-first scheduling and operational readiness
  |
-G8  Bounded fixture JSON snapshot and dependency-free static Atlas
+G8  Bounded fixture JSON snapshot and static Atlas; accepted with browser waiver
  |
-G9  One manual FMP SPY non-production backfill; candidate-only acceptance pending
+G9  One manual FMP SPY non-production backfill; candidate receipt verified
+ |
+G10 Frozen 629-symbol market-history base and extension; receipts retained
+ |
+G11 Bounded BEA/EIA macro candidate; weekly/receipt gate remains open
 ```
 
-`G0` through `G9` are integration gates, not agent tasks. A later stage may
+`G0` through `G11` are integration gates, not agent tasks. A later stage may
 have read-only design, test planning, or fixture preparation in progress, but
 its executable implementation cannot land before the preceding gate passes.
 
@@ -263,7 +274,7 @@ historical Wave 7 boundary.
 ### Wave 8 — Analytical exports and Atlas
 
 Status: **Bounded offline implementation complete and independently verified;
-browser verification pending.**
+accepted with an explicit browser-automation waiver on 2026-08-14.**
 
 Wave 8 is deliberately limited to one fixture-only, manual strict-JSON snapshot
 over the four registered market, macro, company, and news projections, plus a
@@ -279,9 +290,10 @@ manifest/chunk assets; it has no API or operational-store connection.
 Parquet, DuckDB, package installation, hosting, deployment, live providers,
 scheduler operations, default paths, operational-store promotion, and
 destructive cleanup are outside Wave 8. All writers stop before independent
-verification. The completed primary correction/reseal and independent review do
-not substitute for browser verification. Current status belongs in
-[Stage 8 evidence](STAGE8_EVIDENCE.md).
+verification. The completed primary correction/reseal and independent review
+remain the executable evidence; the explicit user waiver closes the bounded
+gate without claiming unavailable browser checks passed. Current status belongs
+in [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 ### Wave 9 — Bounded FMP non-production backfill
 
@@ -300,6 +312,29 @@ tool/dashboard/Atlas exposure, promotion, default path, or retirement action.
 The independent verifier passed the Stage 9 offline checks after corrections
 and separately verified the bounded live receipt. Provider-use rights remain
 the operator's account-specific responsibility.
+
+### Wave 10 — Bounded FMP market history
+
+Status: **Retained base and eight-window extension candidates complete and
+independently re-inspected.**
+
+The lane is frozen to 629 symbols in the exact isolated Stage 10 target. The
+base and all 5,032 extension windows have immutable receipts. No writer may
+repeat a provider request. Promotion, retirement, scheduling, public exposure,
+tools, dashboards, Atlas, exports, and destructive operations remain outside
+the wave. Evidence is recorded in
+[Stage 10 evidence](STAGE10_EVIDENCE.md).
+
+### Wave 11 — Bounded BEA/EIA macro history
+
+Status: **Private, non-production candidate complete.**
+
+The final serialized resume skipped completed BEA and retail work and completed
+one weekly `PET.WCESTUS1.W` request. Targeted integrity, duplicate, and
+current-pointer checks passed and the private candidate receipt is retained.
+The wave authorizes no additional request, promotion, scheduling, or public
+exposure. Evidence is recorded in
+[Stage 11 evidence](STAGE11_EVIDENCE.md).
 
 ## 6. Four-thread cadence
 

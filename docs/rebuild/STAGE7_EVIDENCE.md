@@ -159,8 +159,9 @@ and approved pins, exact manual-wrapper process exit codes 64, 74, 75, 78, and
 124, changed-then-unchanged replay, complete-set locking and release behavior,
 receipt permissions and publication ordering, and WAL-safe backup/restore
 equality. Its final workspace seal was identical to its initial seal. The
-bounded Stage 7 exit gate is closed; Stage 8 remains closed pending separate
-authorization.
+bounded Stage 7 exit gate is closed. At this Stage 7 decision, Stage 8 remained
+closed pending separate authorization; its later disposition is recorded in
+[Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 External task definitions, exact recovered calendars, timezone/DST behavior,
 operating identity, scheduler installation/update/removal/start, live

@@ -11,17 +11,26 @@ was accepted on 2026-08-10 with an explicit user waiver for unavailable browser
 automation. The bounded offline Stage 7 manual fixture rehearsal is implemented,
 and its primary gate and independent SolUltra verification passed on 2026-08-11.
 The bounded offline Stage 8 JSON Atlas/export implementation passed its primary
-fixture gate and independent SolUltra verification on 2026-08-11. Browser
-verification remains pending. A contract is implemented only after executable acceptance
-evidence passes or an explicit user acceptance records a remaining external
-verification limitation. Later recovery evidence in Sections 18-20 of the plan
-takes precedence over earlier proposals.
+fixture gate and independent SolUltra verification on 2026-08-11. On
+2026-08-14 the user explicitly waived the unavailable in-app
+browser-automation check and accepted its bounded exit gate as complete. The
+waiver is not browser-pass evidence. A contract is implemented only after
+executable acceptance evidence passes or an explicit user acceptance records a
+remaining external verification limitation. Later recovery evidence in
+Sections 18-20 of the plan takes precedence over earlier proposals.
 
 The user has authorized a deliberately narrow Stage 9 preparation, not a
 general live-data opening: one manual FMP daily OHLCV backfill for `SPY`,
 inclusive `2026-07-01` through `2026-07-31`, into an exact non-production
 root. Its primary and independent offline gates and bounded live population
 receipt passed; provider-use rights remain an external operator responsibility.
+
+The retained Stage 10 base and eight-window market-history extension are
+complete private candidates in a separate exact non-production root. Stage 11
+adds only the reviewed BEA/EIA macro relations inside that same cohort. Its BEA,
+EIA retail, and EIA weekly phases are published, targeted checks passed, and
+its private completion receipt is retained. No provider request may be
+repeated.
 
 
 The principal decisions are recorded in:
@@ -177,13 +186,19 @@ Every Stage 2 store carries the same ten control-plane relations:
   published work.
 
 The system registry is declarative source configuration. The current revision
-is `2.7.0` with schema version `1.5.0`. It preserves the bounded Stage 8
+is `2.10.0` with schema version `1.7.0`. It preserves the bounded Stage 8
 declaration: 57 reviewed public tool names, four local-private dashboard
 exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
-manual JSON Atlas export. It adds only an isolated market FMP daily-price
-collector, datasets, and migration for the exact Stage 9 slice. The FMP
-declaration is not public-tool, dashboard, or Atlas exposure, and it is not
-Stage 9 acceptance evidence. The frozen Stage 7 projection remains `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6
+manual JSON Atlas export. It adds isolated private declarations for the Stage 9
+slice, Stage 10 market history, and Stage 11 BEA/EIA history. Those declarations
+are not public-tool, dashboard, or Atlas exposure, and registry declaration is
+not live acceptance evidence. The completed Stage 11 receipt remains bound to
+the frozen `2.9.0`/`1.7.0` projection; revision `2.10.0` canonically
+records its reviewed retry policy without authorizing a new run. The frozen
+Stage 10 projection remains
+`2.8.0`/`1.6.0`; the frozen Stage 9 projection remains
+`2.7.0`/`1.5.0`; the frozen Stage 7 projection remains
+`2.5.0`/`1.3.0` with zero exports; the frozen Stage 6
 projection remains `2.4.0`/`1.2.0` with zero jobs; and the frozen Stage 5
 projection remains `2.3.0`/`1.1.0`. Historical Stage 1 through Stage 7 evidence
 is rebuilt through immutable projections rather than rewritten. The two
@@ -360,7 +375,7 @@ Atlas is a derived snapshot consumer, not the canonical portal and not a live SQ
 
 The exporter must never recursively clean an empty, unresolved, broad, repository-root, home, or volume path. Failure before promotion preserves the previous Atlas snapshot.
 
-### Implemented bounded Stage 8 profile — independently verified offline; browser pending
+### Accepted bounded Stage 8 profile — independently verified offline with browser-automation waiver
 
 The sole profile is `atlas.fixture_snapshot` version `1.0.0`, semantic dataset
 `atlas.fixture_snapshot.core_v1`: a manual, fixture-only, no-network JSON
@@ -416,11 +431,34 @@ redistribution permissions before a live request. This repository does not
 copy provider terms or claim that data was fetched merely because the adapter
 is registered.
 
+### Bounded Stage 10 FMP market-history candidates — retained populations complete
+
+Stage 10 uses a frozen 629-symbol roster and dedicated
+`market:0010_stage10_market_history` relations. The base candidate records 621
+completed symbols and eight retained failures. Its successor closes all 5,032
+dated windows as 3,970 complete, 1,004 successful empty responses, and 58
+authorized terminal outcomes across nine tickers. Both receipts remain private,
+non-production, and candidate-only. Their provider requests must not be
+repeated; see [Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md).
+
+### Bounded Stage 11 BEA/EIA macro candidate — retained population complete
+
+Stage 11 adds dedicated `macro:0012_stage11_bea_eia_live_history` evidence,
+version, and current relations without reinterpreting Stage 3 fixtures. The
+retained state records BEA, EIA retail, and weekly `PET.WCESTUS1.W` as
+published. Its targeted integrity, duplicate, and current-pointer checks passed
+and its private candidate receipt is retained. No request may be repeated, and
+no broader macro discovery, promotion, or public consumer is part of this
+architecture; see
+[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
+
 ## Deployment modes
 
-The implemented Stage 1 through Stage 8 boundary remains offline. Stage 9 is
-an authorized, tightly isolated exception whose primary and independent
-offline gates and bounded live receipt passed. Stage 7 rebuilds the accepted
+The implemented Stage 1 through Stage 8 boundary remains offline. Stages 9
+through 11 are separately authorized, tightly isolated non-production
+exceptions. Stage 9 passed its bounded receipt gate; Stage 10 retained
+candidate populations are complete; Stage 11 is complete only as a retained
+private candidate. Stage 7 rebuilds the accepted
 Stage 6 synthetic fixture cohort under explicit temporary roots, then validates
 eight disabled manual fixture plans, injected outcome cases, real fixture
 replay, ordered physical locking, retries, active timeouts, private receipt-last
@@ -430,7 +468,9 @@ publication, promotion, hosting, default-path access, or destructive operation.
 Charts, indicators, algorithms, and walk-forward/backtest reports remain closed.
 The bounded Stage 8 derived JSON export and static Atlas publication are
 implemented only under their explicit fixture-only contract. The primary
-offline gate and independent verification passed; browser verification remains pending.
+offline gate and independent verification passed, and the bounded gate was
+accepted on 2026-08-14 with an explicit waiver for unavailable in-app browser
+automation. The waiver does not claim that unrecorded browser checks passed.
 
 A non-dry manual wrapper may operate only on explicitly initialized synthetic
 fixture stores and an explicit private state root. It propagates the registered

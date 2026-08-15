@@ -5,21 +5,28 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision
-`2.7.0`, schema `1.5.0`, status `validated`. It preserves the Stage 8 set of
-57 tools, four local-private dashboard exposures, eight disabled
+`2.10.0`, schema `1.7.0`, status `validated`. It preserves the Stage 8 set
+of 57 tools, four local-private dashboard exposures, eight disabled
 `manual_fixture_only` jobs, and one bounded `manual_only`/fixture-only JSON
-Atlas export. It adds only `market:0009_fmp_daily_price_backfill`, three
-isolated market FMP daily-price datasets, and the manual-only
-`fmp.market.daily_price_backfill` collector.
+Atlas export. It also declares the isolated Stage 9, private Stage 10
+market-history, and private Stage 11 BEA/EIA candidate resources. None of those
+live-candidate datasets has a tool, dashboard, or Atlas exposure.
 
-The frozen Stage 7 projection remains `2.5.0`/`1.3.0` with zero exports; the
-frozen Stage 6 projection remains `2.4.0`/`1.2.0` with zero jobs; and the
-frozen Stage 5 projection remains `2.3.0`/`1.1.0`. The Stage 8 declaration is
-a deliberate forward reconstruction, not recovered 13-dataset Atlas parity.
+The frozen Stage 10 projection remains `2.8.0`/`1.6.0`; the frozen Stage 9
+projection remains `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains
+`2.5.0`/`1.3.0` with zero exports; the frozen Stage 6 projection remains
+`2.4.0`/`1.2.0` with zero jobs; and the frozen Stage 5 projection remains
+`2.3.0`/`1.1.0`. The Stage 8 declaration is a deliberate forward
+reconstruction, not recovered 13-dataset Atlas parity.
 Registry declaration and lifecycle metadata do not replace Stage 8 evidence:
-its primary fixture gate and independent verification passed, while browser
-verification remains pending. The Stage 9 primary and independent offline
-gates and bounded live receipt passed; registry declaration alone is not evidence.
+its primary fixture gate and independent verification passed, and its bounded
+exit gate was accepted on 2026-08-14 with an explicit waiver for unavailable
+in-app browser automation. The waiver is not browser-pass evidence. The Stage
+9 primary and independent offline gates and bounded live receipt passed. The
+retained Stage 10 base and extension receipts are complete and independently
+re-inspected. The bounded Stage 11 population and its private completion
+receipt are complete. Registry declaration alone is not evidence of any live
+result; the retained point-in-time receipts remain authoritative.
 
 ## Purpose
 
@@ -244,6 +251,58 @@ environment-variable name only. There is no job, tool, dashboard, or Atlas
 exposure for this collector or its datasets, and its declaration is not
 evidence that a provider response was fetched.
 
+Schema `1.6.0`, registry `2.8.0`, adds the bounded Stage 10 market-history
+profile: `market:0010_stage10_market_history`, four private datasets, and the
+`fmp.market.stage10_universe_capture` and
+`fmp.market.stage10_daily_history` manual-only collectors. They use
+`FMP_API_KEY` only as a configuration environment-variable name, use no
+automatic retry, and have no public consumer. The retained base and extension
+population results are recorded in [Stage 10 evidence](STAGE10_EVIDENCE.md).
+
+Schema `1.7.0`, registry `2.9.0`, adds
+`macro:0012_stage11_bea_eia_live_history`, six private evidence/canonical
+datasets, and three manual-only collectors:
+`bea.macro.stage11_nipa_history`,
+`eia.macro.stage11_electricity_retail_history`, and
+`eia.macro.stage11_petroleum_weekly_stock_history`. `BEA_API_KEY` and
+`EIA_API_KEY` are environment-variable names only. The registry declaration
+does not imply completion; the completed private candidate state is recorded in
+[Stage 11 evidence](STAGE11_EVIDENCE.md).
+
+Registry `2.10.0` keeps schema `1.7.0` and changes no migration, dataset,
+collector identity, or public exposure. It canonically records the reviewed
+Stage 11 transient retry policy: at most three physical attempts for
+connection/timeouts, HTTP 429, or HTTP 500-599, with deterministic one-second
+then two-second backoff and no jitter. Historical Stage 11 execution projects
+back to the exact `2.9.0` declaration and source digest bound into the
+completed receipt. This successor revision neither rewrites that receipt nor
+authorizes a new live cohort.
+
+#### 2026-08-13 Stage 11 runtime compatibility clarification
+
+This explicit runtime override applied only to finish the then-started,
+isolated non-production Stage 11 candidate. That candidate and the completed
+Stage 10 cohort are pinned to canonical registry source SHA
+`7e8ec6fc38d5a24962460d9c78a4df7754d3b29ad4b74c0c5e8ae807cd59ed56`.
+Accordingly, neither the clarification nor registry `2.10.0` repins the
+completed receipt, earlier BEA evidence, or earlier retail evidence, and
+neither changes the Stage 9 or Stage 10 no-retry statements. The candidate is
+complete and none of its provider requests may be repeated.
+
+For that completed candidate only, each exact logical BEA request, EIA retail page, and
+EIA weekly request is serialized. It may make one initial physical attempt
+plus at most two automatic retries. Retrying is permitted only for
+connection/timeouts, HTTP 429, and HTTP 500-599. Backoff is deterministic and
+has no jitter: one second before the first retry and two seconds before the
+second; every physical attempt observes at least one second of pacing. There
+is no retry for authentication/authorization, non-429 4xx (including 408),
+redirects, wrong MIME, `200` provider-error envelopes, byte/resource bounds,
+or parser/schema/configuration/publication/database/integrity errors. No
+database write lock or transaction may be held during calls or sleeps, and a
+failed physical attempt creates neither evidence nor phase advancement. On
+success, existing `*_request_count` fields count physical attempts, while
+scope `max_requests` remains a count of logical units.
+
 ### ToolExposure
 
 | Field | Type | Required | Contract |
@@ -322,7 +381,7 @@ JSON and JSONL are supported by the standard-library core. Parquet is optional a
 
 An Atlas export reads only registered exportable datasets from explicit read-only store copies. Its manifest records registry version, dataset contract versions, per-store backup or read-copy receipts, row/chunk counts, schemas, freshness, hashes, generation time, and source revision. The exporter never labels a multi-store cohort as one atomic database timestamp.
 
-#### Bounded Stage 8 declaration — independently verified offline; browser pending
+#### Bounded Stage 8 declaration — accepted with browser-automation waiver
 
 The current registry declares exactly one export:
 `atlas.fixture_snapshot` version `1.0.0`, semantic dataset
@@ -362,8 +421,9 @@ receipt, body, summary, source URL, run ID, artifact ID, or snapshot ID.
 
 This declaration is not a claim of historical recovered parity, a live export,
 or a hosting/deployment action. Its `fixture_validated` lifecycle declaration
-does not close the Stage 8 formal acceptance gate; see
-[Stage 8 evidence](STAGE8_EVIDENCE.md).
+does not itself close an acceptance gate. The primary and independent evidence,
+plus the user's 2026-08-14 browser-automation waiver, close the bounded Stage 8
+gate; see [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 ## Global invariants
 

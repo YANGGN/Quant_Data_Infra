@@ -42,8 +42,8 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes]:
     catalog_bytes = _render(catalog_payload)
     catalog_sha = hashlib.sha256(catalog_bytes).hexdigest()
 
-    if raw.get("schema_version") != "1.5.0" or raw.get("registry_version") != "2.7.0":
-        raise ValueError("Tool generation requires the reviewed Stage 9 registry revision")
+    if raw.get("schema_version") != "1.7.0" or raw.get("registry_version") != "2.10.0":
+        raise ValueError("Tool generation requires the reviewed canonical registry revision")
     raw["tool_schema_catalog"] = {
         "schema_id": CATALOG_ID,
         "schema_version": CATALOG_VERSION,

@@ -6,9 +6,14 @@ Scope: accepted implementation sequencing; Stages 1 through 5 are
 independently verified; the bounded Stage 6 four-route portal was accepted on
 2026-08-10 with an explicit browser-automation waiver; the bounded offline
 Stage 7 manual fixture rehearsal passed its primary gate and independent
-SolUltra verification on 2026-08-11; Stage 8 independent offline verification
-passed with browser verification pending; the bounded Stage 9 FMP slice passed
-primary and independent offline verification and live-receipt verification
+SolUltra verification on 2026-08-11; the bounded Stage 8 exit gate was accepted
+on 2026-08-14 after primary and independent offline verification, with an
+explicit waiver for unavailable in-app browser automation; the bounded Stage 9
+FMP slice passed primary and independent offline verification and live-receipt
+verification; the retained Stage 10 base and historical-extension candidates
+are complete and independently re-inspected; the bounded Stage 11 population
+and private candidate receipt are complete, with promotion and public exposure
+still closed
 
 ## 1. Purpose
 
@@ -33,14 +38,24 @@ The following decisions apply to every stage:
   passed its executable checks and was explicitly accepted with browser
   automation waived. The bounded offline Stage 7 manual fixture rehearsal has
   passed its primary gate and independent SolUltra verification. The bounded
-  Stage 8 JSON Atlas/export profile passed its primary offline fixture gate;
-  independent verification also passed; browser verification remains pending.
+  Stage 8 JSON Atlas/export profile passed its primary offline fixture gate and
+  independent verification. On 2026-08-14 the user explicitly waived the
+  unavailable in-app browser-automation check and accepted the bounded exit
+  gate as complete. The waiver does not claim the unrecorded browser checks
+  passed.
 - The user has authorized only one Stage 9 live-provider preparation:
   FMP daily OHLCV for `SPY`, inclusive `2026-07-01` through `2026-07-31`,
   under `/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. It is
   manual-only, one request, no retry, and candidate-only. The Stage 9 primary
   and independent offline gates and bounded live receipt passed. No operational
   promotion or old-store retirement is authorized.
+- The retained Stage 10 population is complete for its frozen 629-symbol roster
+  and eight-window historical extension. It remains private, non-production,
+  and candidate-only. Its provider requests must not be repeated.
+- Stage 11 completed only the exact BEA/EIA macro scope in the same isolated
+  cohort. Its BEA, EIA retail, and EIA weekly phases, targeted checks, and
+  private candidate receipt are complete. No provider request may be repeated,
+  and no promotion or public exposure is authorized.
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
@@ -68,8 +83,10 @@ The following decisions apply to every stage:
 | 5 | Composable 57-tool platform | No live access; intraday remains disabled | Independently verified offline evidence; bounded Stage 6 portal primary gate passed |
 | 6 | Bounded local portal (four fixed routes) | No mutation through UI | Accepted offline evidence with explicit browser-automation waiver |
 | 7 | Manual fixture job rehearsal and operational readiness | No live access; jobs disabled | Independently verified offline evidence; bounded Stage 8 is separately authorized |
-| 8 | One fixture-only JSON snapshot and static Atlas | Explicit SQLite online-backup copies only | Independently verified offline; browser gate pending |
+| 8 | One fixture-only JSON snapshot and static Atlas | Explicit SQLite online-backup copies only | Accepted after independent offline verification with explicit browser-automation waiver |
 | 9 | One manual FMP SPY non-production backfill and candidate receipt | Only the exact approved request after preflight | Bounded live population independently verified; no promotion |
+| 10 | Frozen 629-symbol FMP market-history base plus eight-window extension | Only the completed exact candidate requests | Retained private candidate receipts complete and independently re-inspected; no repeat or promotion |
+| 11 | Bounded BEA NIPA and EIA retail/weekly macro history | Only the exact serialized candidate requests | In progress: BEA and retail published; weekly and private receipt outstanding |
 
 Stages are ordered by dependency, not calendar duration. A later stage may be
 designed in parallel, but implementation does not cross an unmet exit gate.
@@ -452,10 +469,11 @@ live providers, scheduler installation, hosting, or operational promotion.
 
 ## 12. Stage 8 — Derived JSON snapshot and Atlas
 
-Status: **Implemented — primary offline fixture and independent SolUltra
-verification passed. Browser verification is pending.** The contract is defined in
-[ANALYTICAL_EXPORTS.md](docs/rebuild/ANALYTICAL_EXPORTS.md); its pending evidence
-record is [STAGE8_EVIDENCE.md](docs/rebuild/STAGE8_EVIDENCE.md).
+Status: **Complete for the bounded profile — primary offline fixture and
+independent SolUltra verification passed; the unavailable in-app
+browser-automation check was explicitly waived on 2026-08-14.** The contract is
+defined in [ANALYTICAL_EXPORTS.md](docs/rebuild/ANALYTICAL_EXPORTS.md); its
+accepted evidence record is [STAGE8_EVIDENCE.md](docs/rebuild/STAGE8_EVIDENCE.md).
 
 This is a deliberate forward reconstruction, not a claim of recovered Atlas
 source/package parity or 13-dataset historical coverage. It does not adopt
@@ -490,7 +508,7 @@ separately authorized profile.
   connection; `.vite` is excluded from source; no package manager, hosting, or
   deployment is part of this stage.
 
-### Completion gate — offline gates passed; browser pending
+### Completion gate — accepted with browser-automation waiver
 
 - The full dependency-free suite and deterministic two-root Stage 8 CLI run on
   explicit empty temporary roots and preserve all Stage 1 through Stage 7
@@ -503,9 +521,13 @@ separately authorized profile.
 - Pre-promotion and pointer/receipt failures preserve the last validated
   `current` snapshot; no immutable revision is overwritten.
 - Atlas works from its static public tree with no remote asset, database/API,
-  provider, scheduler, or write path; browser QA must pass before the exit gate closes.
-- Independent SolUltra verification inspected the integrated worktree and recorded
-  exact evidence/results; browser QA is the remaining exit condition.
+  provider, scheduler, or write path.
+- Independent SolUltra verification inspected the integrated worktree and
+  recorded exact offline evidence/results. The in-app browser client remained
+  unavailable before launch; the user explicitly waived that external
+  automation limitation on 2026-08-14 and accepted the bounded gate. Responsive,
+  keyboard, focus, reduced-motion, zoom, and runtime-network browser
+  observations remain unrecorded and are not represented as passing evidence.
 
 ## 13. Stage 9 — Bounded FMP non-production backfill (candidate-only)
 
@@ -557,7 +579,63 @@ placeholder.
   operator's account-specific responsibility and were not independently
   assessed. Operational promotion and old-store retirement remain closed.
 
-## 14. Cross-stage quality gates
+## 14. Stage 10 — Bounded FMP market-history candidates
+
+Status: **Retained base and eight-window extension populations complete and
+independently re-inspected; private, non-production, and candidate-only.** Exact
+receipt pins and the historical evidence qualification are in
+[Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md).
+
+### Completed scope
+
+- One frozen 629-symbol roster: current provider-reconciled S&P 500,
+  Nasdaq-100, and Dow 30 single names, 95 reviewed non-Russell ETFs, and 15
+  reviewed major indexes.
+- One original provider-returned full-history request per symbol, followed by
+  eight explicit inclusive windows per symbol from `1990-01-01` through
+  `2026-08-12`.
+- Base result: 621 completed symbols and eight retained failures.
+- Extension result: all 5,032 planned windows closed as 3,970 complete, 1,004
+  successful empty responses, and 58 authorized terminal outcomes across nine
+  tickers.
+
+### Disposition
+
+- Read-only inspection matched 4,235,893 current rows, 4,236,635 immutable
+  versions, and zero missing current-version references.
+- The accepted repository did not retain a point-in-time record proving that
+  independent verification preceded the live calls. This limitation is
+  disclosed and is not retroactively reconstructed.
+- No Stage 10 provider request may be repeated. Russell 2000 constituents,
+  `^RUT`, `IWM`, scheduling, promotion, retirement, public exposure, tools,
+  dashboards, Atlas, exports, and destructive operations remain excluded.
+
+## 15. Stage 11 — Bounded BEA/EIA macro candidate
+
+Status: **Private, non-production candidate complete.** The exact state and
+receipt evidence are recorded
+in [Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
+
+### Completed state
+
+- BEA NIPA `T10101/A191RL` and `T10105/A191RC` are published.
+- Paginated EIA monthly U.S. all-sector retail sales, revenue, price, and
+  customers are published.
+- One EIA weekly `PET.WCESTUS1.W` capture is published with 2,289 versioned
+  observations and 2,289 current pointers.
+- The final resume made zero BEA requests, zero retail requests, and one weekly
+  request; it did not repeat either completed phase.
+- Targeted integrity, foreign-key, duplicate, and current-pointer checks passed,
+  and the private candidate receipt is retained.
+
+### Disposition
+
+- Do not repeat any BEA or EIA request for this candidate.
+- Keep broader discovery, scheduling, promotion, retirement, public exposure,
+  tools, dashboards, Atlas, exports, backup/restore rehearsal, full-corpus
+  reconciliation, and destructive operations closed.
+
+## 16. Cross-stage quality gates
 
 Every implementation change must answer:
 
@@ -571,7 +649,7 @@ Every implementation change must answer:
 7. Can a temporary-store test prove failure without touching a live path?
 8. Can a research result cite exact data, code, parameters, and exclusions?
 
-## 15. Deferred scope
+## 17. Deferred scope
 
 The rebuild does not include:
 
@@ -584,7 +662,7 @@ The rebuild does not include:
 - Phillips–Perron until a validated numerical dependency is accepted; or
 - a provider-rights governance subsystem.
 
-## 16. Roadmap maintenance
+## 18. Roadmap maintenance
 
 - Roadmap stages describe sequence and gates, not detailed contracts.
 - Contract changes belong in the relevant specification and ADR first.

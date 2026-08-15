@@ -7,7 +7,8 @@ offline executable and independent verification on 2026-08-10. The user
 explicitly waived its unavailable browser-automation check. Chart and
 algorithm/backtest work remains deferred. The bounded fixture-only Stage 8 JSON
 snapshot and dependency-free static Atlas passed their primary offline fixture
-and independent gates; browser verification remains pending.
+and independent gates. The bounded Stage 8 gate was accepted on 2026-08-14
+with an explicit waiver for unavailable in-app browser automation.
 
 Reference reviewed: 2026-08-09 - [ThesisTrade](https://www.thesistrade.ai/)
 
@@ -284,9 +285,10 @@ open.
 ### 9.2 Current bounded Stage 8 evidence state
 
 Stage 8's primary and independent offline gates passed with stable evidence
-pins. Browser accessibility/security verification remains pending; the exact
-executable evidence is recorded in
-[Stage 8 evidence](STAGE8_EVIDENCE.md).
+pins. On 2026-08-14 the user explicitly waived unavailable in-app browser
+automation and accepted the bounded gate. Browser accessibility/security
+observations remain unrecorded and are not claimed as passing evidence. The
+exact executable evidence is recorded in [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 Stage 8 Atlas UI work requires:
 

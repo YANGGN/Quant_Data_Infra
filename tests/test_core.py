@@ -17,6 +17,7 @@ from quant_data.errors import (
     ResourceLimitError,
     ValidationError,
 )
+from quant_data import fingerprint as fingerprint_module
 from quant_data.fingerprint import logical_manifest, mutation_fingerprint
 from quant_data.fixtures import FixtureManifest
 from quant_data.json_codec import dumps_strict, loads_strict
@@ -465,6 +466,118 @@ INSERT INTO child(id, parent_id) VALUES ('child', 'missing');
         mutation_after = mutation_fingerprint(self.store_map)
         self.assertEqual(logical_before["sha256"], logical_after["sha256"])
         self.assertNotEqual(mutation_before["sha256"], mutation_after["sha256"])
+
+    def test_internal_fingerprint_digest_supports_reviewed_large_store_manifests(self) -> None:
+        payload = {"rows": ["x" * (9 * 1024 * 1024)]}
+        with self.assertRaises(ResourceLimitError):
+            dumps_strict(payload)
+        expected = hashlib.sha256(
+            dumps_strict(payload, max_bytes=10 * 1024 * 1024).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(fingerprint_module._fingerprint_digest(payload), expected)
+
+    def test_streaming_fingerprint_compacts_target_scale_relations(self) -> None:
+        """Large Stage-10-shaped tables do not become one giant JSON value."""
+
+        initialize_all(self.store_map, self.registry)
+        connection = sqlite3.connect(self.store_map.market)
+        connection.execute(
+            """
+            CREATE TABLE fingerprint_scale_rows (
+                row_id INTEGER PRIMARY KEY,
+                payload TEXT NOT NULL
+            ) STRICT
+            """
+        )
+        row_count = 250_000
+        payload = "stage10-scale-" + ("x" * 112)
+        for first in range(0, row_count, 5_000):
+            connection.executemany(
+                "INSERT INTO fingerprint_scale_rows(row_id, payload) VALUES (?, ?)",
+                (
+                    (number, f"{payload}{number:06d}")
+                    for number in range(first, min(first + 5_000, row_count))
+                ),
+            )
+        connection.commit()
+        connection.close()
+
+        market_dataset = self.registry.datasets_for(StoreRole.MARKET.value)[0]
+        scoped_registry = replace(
+            self.registry,
+            datasets=(
+                replace(
+                    market_dataset,
+                    relations=("fingerprint_scale_rows",),
+                ),
+            ),
+        )
+
+        mutation = mutation_fingerprint(self.store_map)
+        logical = logical_manifest(self.store_map, scoped_registry)
+        mutation_relation = mutation["stores"]["market"]["relations"][
+            "fingerprint_scale_rows"
+        ]
+        logical_relation = logical["stores"]["market"]["relations"][
+            "fingerprint_scale_rows"
+        ]
+        for relation in (mutation_relation, logical_relation):
+            self.assertEqual(
+                relation["fingerprint_format"],
+                "quant_data.sqlite_relation_fingerprint.v2",
+            )
+            self.assertEqual(relation["row_count"], row_count)
+            self.assertEqual(len(relation["row_sha256"]), 64)
+            self.assertGreater(relation["canonical_row_bytes"], row_count)
+            self.assertNotIn("rows", relation)
+        # The returned primitive remains safe for all current callers to
+        # render, compare, or persist even though its source relation is much
+        # larger than the public JSON envelope.
+        self.assertLess(len(dumps_strict(mutation).encode("utf-8")), 2_000_000)
+        self.assertLess(len(dumps_strict(logical).encode("utf-8")), 2_000_000)
+        self.assertEqual(
+            mutation["sha256"],
+            mutation_fingerprint(self.store_map)["sha256"],
+        )
+
+    def test_compact_fingerprint_sorts_canonical_mixed_storage_values(self) -> None:
+        """SQL-equal INTEGER/REAL values cannot leak physical insertion order."""
+
+        connection = sqlite3.connect(":memory:")
+        connection.row_factory = sqlite3.Row
+        connection.execute("CREATE TABLE forward(value BLOB)")
+        connection.execute("CREATE TABLE reverse(value BLOB)")
+        base = (None, 1, 1.0, -0.0, 0.0, "1", b"1")
+        values = [base[index % len(base)] for index in range(1_029)]
+        connection.executemany(
+            "INSERT INTO forward(value) VALUES (?)",
+            ((value,) for value in values),
+        )
+        connection.executemany(
+            "INSERT INTO reverse(value) VALUES (?)",
+            ((value,) for value in reversed(values)),
+        )
+
+        forward = fingerprint_module._table_rows(
+            connection,
+            "forward",
+            exclude_volatile=False,
+            budget=fingerprint_module._FingerprintBudget(),
+        )
+        reverse = fingerprint_module._table_rows(
+            connection,
+            "reverse",
+            exclude_volatile=False,
+            budget=fingerprint_module._FingerprintBudget(),
+        )
+        connection.close()
+
+        self.assertEqual(
+            forward["fingerprint_format"],
+            "quant_data.sqlite_relation_fingerprint.v2",
+        )
+        self.assertEqual(forward["row_count"], len(values))
+        self.assertEqual(forward, reverse)
 
 
 class TemporalAndJsonTests(unittest.TestCase):

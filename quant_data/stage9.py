@@ -30,7 +30,7 @@ from .operations.repopulation import (
     publish_promotion_candidate,
     reconcile_fmp_spy_market,
 )
-from .registry import CANONICAL_REGISTRY_PATH, load_registry
+from .registry import CANONICAL_REGISTRY_PATH, load_registry, stage9_registry_profile
 from .stage1 import explicit_store_map
 from .stage8 import run_clean_stage8_rebuild
 from .stores import StoreMap, StoreRole, read_connection
@@ -208,10 +208,12 @@ def run_clean_stage9_rebuild(
     stage8 = run_clean_stage8_rebuild(project_root=project, work_root=root / "stage8")
     if stage8.get("sha256") != _STAGE8_EVIDENCE_SHA256:
         raise ValidationError("Stage 9 did not preserve the approved Stage 8 evidence")
-    registry = load_registry(
-        project / CANONICAL_REGISTRY_PATH,
-        project_root=project,
-        environment={},
+    registry = stage9_registry_profile(
+        load_registry(
+            project / CANONICAL_REGISTRY_PATH,
+            project_root=project,
+            environment={},
+        )
     )
     if (
         registry.schema_version != "1.5.0"

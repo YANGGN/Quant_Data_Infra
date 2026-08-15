@@ -1,14 +1,17 @@
 # Stage 8 Evidence Record
 
-Status: **Primary and independent offline gates passed; in-app browser
-automation is blocked before launch and remains pending.**
+Status: **Accepted for the bounded profile. Primary and independent offline
+gates passed; unavailable in-app browser automation was explicitly waived by
+the user on 2026-08-14.**
 
 ## 1. Purpose and status boundary
 
 This record captures the primary and independent evidence for the bounded Stage
-8 derived export and Quant Data Atlas work. Both offline gates pass. The formal
-exit gate stays open because the required in-app browser client failed before
-launch. No substitute browser automation was used.
+8 derived export and Quant Data Atlas work. Both offline gates pass. The
+required in-app browser client failed before launch and no substitute browser
+automation was used. On 2026-08-14 the user explicitly waived that external
+limitation and accepted the bounded exit gate as complete. This disposition is
+not evidence that the unavailable browser checks passed.
 
 The user authorized only a deliberate forward reconstruction of one
 synthetic-fixture Atlas snapshot. It is not a recovery claim for the historical
@@ -197,5 +200,7 @@ Independent SolUltra verification passed: the corrected pointer regressions
 passed 2/2 in 3.504 seconds, the Atlas suite passed 37/37 in 31.588 seconds,
 and the exact full suite passed 319/319 in 247.166 seconds. Fresh CLI output,
 nonempty-root refusal, documentation pins, historical goldens, and final seals
-also matched. The offline candidate is verified; browser verification remains
-pending, so the formal Stage 8 exit gate remains open.
+also matched. The offline candidate is verified. On 2026-08-14 the user
+explicitly waived the unavailable in-app browser-automation check and accepted
+the bounded Stage 8 exit gate as complete. The unrecorded observations above
+remain limitations, not passing evidence.

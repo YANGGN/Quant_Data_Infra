@@ -37,9 +37,11 @@ only explicit synthetic-store roots, complete physical locks, SQLite online
 backup copies reopened query-only, and an exact derived-output root. It may
 atomically promote a fully validated immutable derived revision and its
 `current` pointer inside that output root; it may not promote an operational
-store. The bounded Stage 8 implementation has passed its primary offline fixture gate.
-Independent SolUltra verification also passed; browser verification remains pending, so
-the formal Stage 8 exit gate is not closed.
+store. The bounded Stage 8 implementation passed its primary offline fixture
+gate and independent SolUltra verification. On 2026-08-14 the user explicitly
+waived the unavailable in-app browser-automation check and accepted the bounded
+Stage 8 exit gate as complete. This waiver is not evidence that the unrecorded
+browser accessibility, responsive-layout, or runtime-network checks passed.
 
 The user has authorized one bounded Stage 9 preparation: a manual FMP daily
 OHLCV backfill for `SPY`, inclusive `2026-07-01` through `2026-07-31`, into
@@ -47,14 +49,104 @@ OHLCV backfill for `SPY`, inclusive `2026-07-01` through `2026-07-31`, into
 market-only non-production slice with one request, no retry, and
 `FMP_API_KEY` supplied only through the process environment. Its primary and
 independent offline gates and bounded live population receipt have passed.
-Promotion, old-store retirement, scheduling, Atlas/tool/
-dashboard exposure, and every other live provider remain closed.
+Promotion, old-store retirement, scheduling, and Atlas/tool/dashboard
+exposure remain closed.
+
+The user has now authorized a bounded Stage 10 FMP market-history population
+under
+`/home/volatility/quant-data-nonprod/stage10-fmp-market-history-v1`. Its
+scope is the current provider-reconciled S&P 500, Nasdaq-100, and Dow 30
+single-name roster, 95 reviewed non-Russell ETFs, and 15 reviewed major
+indexes. It may fetch one symbol at a time from the full daily EOD endpoint,
+retaining each symbol's earliest provider-returned OHLCV history without
+inventing a common start date or historical constituent membership. Russell
+2000 constituents, `^RUT`, `IWM`, automatic retries, scheduling, promotion,
+public exposure, and destructive operations remain excluded. Live calls may
+begin only after the complete Stage 10 offline and independent gates pass.
+On 2026-08-12 the user further authorized an additive Stage 10 historical
+extension for the same frozen 629-symbol roster. It may request the same full
+daily EOD endpoint with exactly `symbol`, `from`, and `to`, using eight fixed,
+inclusive, non-overlapping windows: seven five-calendar-year windows starting
+`1990-01-01` and one final `2025-01-01` through `2026-08-12` window. This is a
+successor candidate inside the same isolated non-production target; the
+completed base Stage 10 receipt remains immutable. All 629 symbols are in
+scope, including the eight prior broad-request failures, because these are new
+explicitly dated requests rather than implicit retries. The required first
+request is `AAPL` for `1990-01-01` through `1994-12-31`; it must prove the key's
+older-history entitlement before the remaining requests begin. A successful
+empty response is evidence only for a genuinely pre-listing window; the AAPL
+sentinel may not be empty. Returned dates outside the requested window, ambiguous crash-after-request
+state, automatic retry, scheduling, promotion, public exposure, and destructive
+operations remain excluded. After the AAPL sentinel succeeds, only an exact
+per-ticker HTTP 404, 410, or 422 application/json response with the reviewed
+FMP error envelope may be recorded as a terminal failed window and skipped; the
+final report must identify every failed ticker. Authentication, entitlement,
+rate-limit, server, transport, malformed-response, and resource failures remain
+systemic stop conditions, except that the exact sealed HTTP 402 response digest
+encountered during this run is the operator-authorized per-window
+entitlement-unavailable outcome. Live extension requests may begin only after
+new offline and independent gates pass.
+
+The retained Stage 10 base and extension receipts are complete and must not be
+re-requested. The base records 629 symbols (621 completed and eight retained
+failures). The extension closes all 5,032 planned windows as 3,970 complete,
+1,004 successful empty responses, and 58 authorized terminal outcomes across
+nine tickers. Both remain immutable, private, non-production candidates.
+Current evidence does not retroactively prove the point-in-time ordering of the
+pre-live independent gate; do not invent that historical proof.
+
+After the Stage 10 price population completes, the user has also authorized a
+bounded Stage 11 macro population in the macro store of that same isolated
+non-production cohort. It is limited to BEA NIPA table `T10101` quarterly
+history for series `A191RL`, table `T10105` quarterly history for series
+`A191RC`, EIA monthly U.S. all-sector
+electricity retail history for sales, revenue, price, and customers, and EIA
+weekly series `PET.WCESTUS1.W`. `BEA_API_KEY` and `EIA_API_KEY` may be read
+only from the process environment. Stage 11 requires dedicated non-fixture
+relations, complete pagination, local-capture availability, one request at a
+time, and serializes every exact logical BEA request, EIA retail page, and EIA
+weekly request. Each logical unit may make one initial physical attempt plus at
+most two automatic retries, only for connection/timeouts, HTTP 429, or HTTP
+500-599. Backoff is deterministic and has no jitter: one second before the
+first retry and two seconds before the second; every physical attempt observes
+at least one second of pacing. Authentication/authorization, non-429 4xx
+(including 408), redirects, wrong MIME, `200` provider-error envelopes,
+byte/resource bounds, and parser/schema/configuration/publication/database/
+integrity errors are never retried. No database write lock or transaction may
+be held during calls or sleeps, and a failed physical attempt creates neither
+evidence nor phase advancement. On success, existing `*_request_count` fields
+count physical attempts, while scope `max_requests` remains a count of logical
+units. Stage 11 also requires targeted database integrity and duplicate/current-
+pointer checks, and a private candidate-only receipt. Routine completion trusts
+successfully parsed provider responses and must not perform backup/restore or
+full-corpus reconciliation; broader investigation is reserved for a detected
+integrity anomaly. Immutable captures and versioned corrections must remain
+available as system-observed vintages. A provider release timestamp or vintage
+must be retained when supplied, but must not be invented when the source omits
+it. Stage 11 does not authorize broader BEA/EIA discovery,
+promotion, retirement, tools, dashboards, exports, or scheduling.
+
+Stage 11 is complete only as a retained private, non-production candidate. Its
+final resume state records `bea_published: true`, `retail_published: true`,
+and `weekly_published: true`. The retained macro candidate has 635 BEA, 1,136
+EIA retail, and 2,289 EIA weekly current rows with matching version counts;
+targeted integrity, foreign-key, duplicate, and current-pointer checks passed,
+and the private completion receipt exists. The final resume made no BEA or
+retail request and one weekly request. None of the Stage 11 provider requests
+may be repeated. The completed receipt remains pinned to registry `2.9.0`,
+schema `1.7.0`, and source digest
+`7e8ec6fc38d5a24962460d9c78a4df7754d3b29ad4b74c0c5e8ae807cd59ed56`;
+the successor canonical registry revision only encodes the reviewed retry
+policy and does not authorize another cohort. Promotion, retirement, tools,
+dashboards, exports, scheduling, and public exposure remain closed.
 
 Do not install, start, update, or remove a scheduler. Do not start a live
-provider except the exact manual Stage 9 FMP slice after its offline checks,
-credential preflight, and exact-target checks pass. That exception permits
-neither retry nor any other symbol, date range, target, provider, promotion,
-or store retirement. Do not host or deploy Atlas, connect it to operational
+provider except the exact manual Stage 9, Stage 10, and Stage 11 slices above
+after each slice's offline checks, independent verification, credential
+preflight, dependency receipt, and exact-target checks pass. Those exceptions
+permit only the reviewed Stage 11 transient retry policy above; otherwise,
+they permit no retry, scope expansion, target, provider, promotion, or
+store retirement. Do not host or deploy Atlas, connect it to operational
 stores, select default paths, run live diagnostics, or perform destructive
 operations.
 
@@ -231,8 +323,8 @@ All implementation agents must preserve these invariants:
   and
 - live providers, scheduler installation, promotion, and destructive storage
   operations require the applicable roadmap gate and explicit authorization;
-  the sole current live-provider exception is the bounded manual Stage 9 FMP
-  slice above, which remains non-production and candidate-only.
+  the current exceptions are only the bounded manual Stage 9, Stage 10, and
+  Stage 11 slices above, all non-production and candidate-only.
 
 ## Stop and escalate
 

@@ -20,7 +20,7 @@ from quant_data.market.fmp_daily_prices import (
     StdlibFmpDailyPriceTransport,
 )
 from quant_data.migrations import initialize_all
-from quant_data.registry import load_registry
+from quant_data.registry import load_registry, stage9_registry_profile
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import StoreRole, read_connection
 
@@ -80,7 +80,9 @@ class FmpDailyPriceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory(dir="/tmp")
         self.root = Path(self.temporary.name)
-        self.registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        self.registry = stage9_registry_profile(
+            load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        )
         self.stores = explicit_store_map(self.root / "stores")
         initialize_all(self.stores, self.registry)
 

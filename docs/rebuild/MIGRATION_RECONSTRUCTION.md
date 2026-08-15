@@ -1,14 +1,19 @@
 # Migration Reconstruction Map
 
-Status: Stage 1 through bounded Stage 4 resources are fixture-validated and independently verified; the one explicitly authorized Stage 9 resource is `fixture_validated` after primary and independent offline gates; 31 resources allocated
+Status: 33 resources allocated; the bounded Stage 1 through Stage 4 and
+explicitly authorized Stage 9, Stage 10, and Stage 11 resources are
+`fixture_validated`. Stage 10 retained population receipts are complete;
+the Stage 11 private population and completion receipt are complete.
 Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
 
 Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md),
 [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md),
 [Stage 3 acceptance evidence](STAGE3_EVIDENCE.md),
-[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md), and
-[Stage 9 primary evidence](STAGE9_EVIDENCE.md)
+[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md),
+[Stage 9 primary evidence](STAGE9_EVIDENCE.md),
+[Stage 10 evidence](STAGE10_EVIDENCE.md), and
+[Stage 11 evidence](STAGE11_EVIDENCE.md)
 
 ## Purpose
 
@@ -131,6 +136,43 @@ Independent re-verification passed after this allocation correction.
 This row does not claim a live FMP response/data population, operational
 promotion, or old-store retirement.
 
+## Fixture-validated Stage 10 allocation
+
+The user subsequently authorized a distinct, market-only Stage 10 profile for
+current S&P 500, Nasdaq-100, and Dow 30 constituents, a reviewed ETF/index
+roster, and the full daily OHLCV history returned per provider symbol. Russell
+2000 constituents are explicitly excluded. The allocation is deliberately
+separate from the frozen Stage 9 `SPY` relations and does not authorize an
+operational promotion, scheduler, public export, tool, dashboard, or store
+retirement.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `market:0010_stage10_market_history` | market | 10 | `quant_data/migrations/market/0010_stage10_market_history.sql` | `a7703655f6fe8089431eacdc78600582d6f5582589c0c38b531a2b93c7dc041a` | `fixture_validated` | Offline migration and hostile gates passed; retained base and extension candidate receipts recorded |
+
+This reviewed allocation freezes the store, ordinal, resource name, bounded
+semantic purpose, and exact UTF-8/LF resource digest. The canonical registry
+declares the same values. Population evidence and its historical sequencing
+qualification are recorded separately in
+[Stage 10 evidence](STAGE10_EVIDENCE.md).
+
+## Fixture-validated Stage 11 allocation
+
+The user has authorized one additive macro-store allocation for the bounded
+BEA/EIA population that follows a completed Stage 10 candidate. It uses
+dedicated non-fixture evidence and canonical relations; it does not reinterpret
+or write the frozen Stage 3 fixture relations. The immutable resource digest
+was recorded after byte review and before registry activation.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0012_stage11_bea_eia_live_history` | macro | 12 | `quant_data/migrations/macro/0012_stage11_bea_eia_live_history.sql` | `4f29eed2d73fcb1aa6f3c519a3360c132658cf152341261a18d4332e140fd0a5` | `fixture_validated` | Schema, syntax, hostile migration, and offline gates passed; private Stage 11 population and receipt complete |
+
+This allocation is limited to the two reviewed BEA NIPA table/series pairs,
+the complete paginated U.S./all-sector EIA retail scope, and weekly series
+`PET.WCESTUS1.W`. It grants no generic BEA/EIA discovery, scheduler,
+operational promotion, public consumer, or store-retirement authority.
+
 ## Legacy semantic cross-reference
 
 | New resource | Recovered evidence used | Deliberate stage boundary |
@@ -157,9 +199,11 @@ promotion, or old-store retirement.
 | `macro:0010_eia_weekly_fundamentals` | `0022` EIA weekly semantics | Content identity, versions, and snapshot-membership fixture contract only |
 | `macro:0011_us_recession_periods` | `0027` U.S. recession chronology | Completed-period chronology fixture contract only |
 | `market:0009_fmp_daily_price_backfill` | [plan.md](../../plan.md) 7.1 FMP daily OHLCV provider evidence; no recovered migration SQL, checksum, or ordinal | Exact Stage 9 `SPY` 2026-07-01 through 2026-07-31 candidate-only non-production slice only; no general FMP backfill |
+| `market:0010_stage10_market_history` | Explicit Stage 10 user authorization plus the accepted market identity, universe-snapshot, evidence, correction, and physical-lock contracts | Current S&P 500/Nasdaq-100/Dow 30 members plus the reviewed ETF/index roster and provider-returned daily OHLCV history; no Russell 2000 constituents or historical-membership claim |
+| `macro:0012_stage11_bea_eia_live_history` | Explicit Stage 11 user authorization plus the accepted macro evidence, local-capture availability, correction, pagination, and physical-lock contracts | Dedicated BEA NIPA and EIA retail/weekly candidate-only history; no fixture-table reinterpretation, vintage invention, or broader macro discovery |
 
-Except for the explicitly authorized Stage 9 row above, all other recovered
-and future migration scopes remain unallocated. The exact market options
+Except for the explicitly authorized Stage 9, Stage 10, and Stage 11 rows above, all
+other recovered and future migration scopes remain unallocated. The exact market options
 ownership at `0029`/`0030` and the filing-issuer derived-view invariants at
 `0031` are represented by the frozen Stage 4 resources above, without
 asserting historical SQL parity.
@@ -170,21 +214,22 @@ asserting historical SQL parity.
 2. Declare the same reviewed value in `config/system_registry.json`.
 3. Verify registry/resource/order integrity before opening a writer.
 4. Apply Stage 1 through Stage 4 resources only to four explicit temporary
-   paths during their fixture gates. `market:0009_fmp_daily_price_backfill` is
-   the sole later allocation and is only eligible under the exact Stage 9
-   manual candidate-only path after its remaining gates; it is not a general
-   live-provider or migration authorization.
+   paths during their fixture gates. The Stage 9 through Stage 11 resources are
+   eligible only inside their exact authorized non-production candidate paths
+   after their applicable offline gates. No allocation is generic
+   live-provider authorization.
 5. Run initialization, rerun, tamper, wrong-store, partial-failure, and
    source/backup/restored evidence tests.
 6. During a forward-preserving table rebuild, temporarily disable foreign-key
    enforcement only inside the atomic rebuild and require `foreign_key_check`
    before the migration ledger advances.
 7. Promote reconstruction state to `fixture_validated` only with the complete
-   applicable stage evidence. The 30 Stage 1 through Stage 4 resources have
-   passed their applicable primary fixture gates; `market:0009_fmp_daily_price_backfill`
-   is `fixture_validated` in the canonical registry after the primary Stage 9
-   offline gate. None can be relabeled `recovered_exact`.
-8. Stage 4 independent verification completed `G4`. Independent Stage 9
-   re-verification passed after this correction; every other future
-   migration allocation remains serialized under the next applicable roadmap
-   gate.
+   applicable stage evidence. The 30 Stage 1 through Stage 4 resources and the
+   Stage 9 through Stage 11 resources are `fixture_validated` in the canonical
+   registry after their applicable offline gates. None can be relabeled
+   `recovered_exact`.
+8. Stage 4 and Stage 9 independent verification passed. Stage 10 retained
+   candidate receipts were independently re-inspected. The Stage 11 private
+   candidate population and receipt are complete. Every
+   future migration allocation remains serialized under the next applicable
+   roadmap gate.

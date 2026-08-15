@@ -13,7 +13,9 @@ four-route local portal was accepted on 2026-08-10 with an explicit
 browser-automation waiver. The bounded offline Stage 7 manual fixture
 rehearsal is implemented and independently verified. The user has authorized
 the bounded offline Stage 8 JSON Atlas/export implementation. Its primary
-fixture gate and independent verification passed; browser verification remains pending.
+fixture gate and independent verification passed. On 2026-08-14 the user
+explicitly waived unavailable in-app browser automation and accepted the
+bounded Stage 8 exit gate as complete; this is not browser-pass evidence.
 Later documented behavior remains closed until separately authorized
 executable evidence passes.
 
@@ -23,6 +25,13 @@ in `/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. Its
 primary and independent offline gates and bounded live receipt passed. It is
 candidate-only and does not authorize a
 scheduler, public exposure, Atlas inclusion, promotion, or store retirement.
+
+The Stage 10 base population and eight-window historical extension are complete
+private candidates in the exact isolated target. Their retained receipts have
+been independently re-inspected and must not be re-requested. Stage 11 is also
+complete as a private candidate in the same cohort: BEA, EIA retail, and EIA
+weekly are published, its targeted checks passed, and its private completion
+receipt is retained. Its provider requests must not be repeated.
 
 Two user decisions narrow the work:
 
@@ -56,6 +65,8 @@ coverage.
 - [Stage 7 acceptance evidence](STAGE7_EVIDENCE.md)
 - [Stage 8 evidence record](STAGE8_EVIDENCE.md)
 - [Stage 9 evidence record](STAGE9_EVIDENCE.md)
+- [Stage 10 evidence record](STAGE10_EVIDENCE.md)
+- [Stage 11 evidence record](STAGE11_EVIDENCE.md)
 
 ### Detailed contracts
 
@@ -112,13 +123,19 @@ The current planning package is `Accepted`. Stages 1 through 5 are
 implemented and independently verified. The bounded Stage 6 portal is accepted
 with its browser-automation waiver. The bounded offline Stage 7 manual fixture
 rehearsal passed its primary gate and independent SolUltra verification. Stage
-8 is `Implemented` for its bounded offline JSON Atlas/export profile after its
-primary fixture gate and independent review passed. Browser verification remains
-pending, so its formal exit gate is not closed.
+8 is `Implemented` and accepted for its bounded offline JSON Atlas/export
+profile after its primary fixture gate and independent review passed. On
+2026-08-14 the user explicitly waived the unavailable in-app
+browser-automation check. The waiver closes the bounded exit gate without
+claiming that unrecorded browser checks passed.
 
 Stage 9 is `Bounded live population independently verified` for its exact FMP
-non-production slice only. Promotion and retirement remain excluded; Stage 8
-browser verification also remains pending.
+non-production slice only. Promotion and retirement remain excluded.
+The retained Stage 10 base and extension populations are complete,
+independently re-inspected private candidates; the missing point-in-time
+pre-live gate record is disclosed rather than reconstructed. The exact Stage 11
+population is complete as a private, non-production candidate. This does not
+authorize promotion, public exposure, scheduling, or another provider request.
 
 ## 5. Shared terminology
 

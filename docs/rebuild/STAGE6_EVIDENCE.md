@@ -136,7 +136,9 @@ On 2026-08-10 the user explicitly accepted that browser-automation limitation,
 authorized this Stage 6 commit, and authorized bounded offline Stage 7 work.
 This is a waiver, not a claim that the unavailable browser automation passed.
 The formal chart, indicator, algorithm, and backtest requirements remain
-deferred, and Stage 8 export/Atlas work remains closed.
+deferred. At this Stage 6 decision, Stage 8 export/Atlas work remained closed;
+its later authorization and acceptance are recorded in
+[Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 The prior independently verified platform state is recorded in the
 [Stage 5 acceptance evidence](STAGE5_EVIDENCE.md).

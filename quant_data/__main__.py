@@ -20,6 +20,8 @@ from .stage6 import compare_clean_stage6_rebuilds, run_clean_stage6_rebuild
 from .stage7 import compare_clean_stage7_rebuilds, run_clean_stage7_rebuild
 from .stage8 import compare_clean_stage8_rebuilds, run_clean_stage8_rebuild
 from .stage9 import compare_clean_stage9_rebuilds, run_clean_stage9_rebuild
+from .stage10 import compare_clean_stage10_rebuilds, run_clean_stage10_rebuild
+from .stage11 import compare_clean_stage11_rebuilds, run_clean_stage11_rebuild
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -37,6 +39,8 @@ def _parser() -> argparse.ArgumentParser:
             "stage7",
             "stage8",
             "stage9",
+            "stage10",
+            "stage11",
         ),
         help="Offline acceptance gate to execute",
     )
@@ -48,7 +52,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--store-root",
         required=True,
-        help="Explicit empty store root (Stage 1) or work root (Stages 2 through 9)",
+        help="Explicit empty store root (Stage 1) or work root (Stages 2 through 11)",
     )
     parser.add_argument(
         "--second-store-root",
@@ -156,6 +160,28 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
         elif arguments.stage == "stage9":
             evidence = run_clean_stage9_rebuild(
+                project_root=arguments.project_root,
+                work_root=arguments.store_root,
+            )
+        elif arguments.stage == "stage10" and arguments.second_store_root:
+            evidence = compare_clean_stage10_rebuilds(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
+            )
+        elif arguments.stage == "stage10":
+            evidence = run_clean_stage10_rebuild(
+                project_root=arguments.project_root,
+                work_root=arguments.store_root,
+            )
+        elif arguments.stage == "stage11" and arguments.second_store_root:
+            evidence = compare_clean_stage11_rebuilds(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
+            )
+        elif arguments.stage == "stage11":
+            evidence = run_clean_stage11_rebuild(
                 project_root=arguments.project_root,
                 work_root=arguments.store_root,
             )

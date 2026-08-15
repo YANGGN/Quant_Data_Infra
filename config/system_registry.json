@@ -96,6 +96,114 @@
       }
     },
     {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "market.stage10_fmp_universes",
+      "id": "fmp.market.stage10_universe_capture",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_complete_universe_snapshots",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "market.stage10.source_evidence",
+        "market.stage10.instruments",
+        "market.stage10.universes"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_operator_resume",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": [
+          "http_429",
+          "http_500",
+          "transport"
+        ]
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "scope_manifest_sha256",
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_snapshot"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 4194304,
+        "max_requests": 3,
+        "max_rows": 600,
+        "max_seconds": 135
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "market.stage10_fmp_daily_history",
+      "id": "fmp.market.stage10_daily_history",
+      "input_datasets": [
+        "market.stage10.instruments",
+        "market.stage10.universes"
+      ],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "market.stage10.source_evidence",
+        "market.stage10.daily_prices"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_operator_resume",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": [
+          "http_429",
+          "http_500",
+          "transport"
+        ]
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "scope_manifest_sha256",
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_history"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 30000,
+        "max_seconds": 45
+      }
+    },
+    {
       "configuration_env": [],
       "handler": "macro.rtdsm_fixture",
       "id": "fixture.macro.rtdsm_employ_import",
@@ -913,6 +1021,162 @@
         "max_rows": 10000,
         "max_seconds": 30
       }
+    },
+    {
+      "configuration_env": [
+        "BEA_API_KEY"
+      ],
+      "handler": "macro.stage11_bea_nipa_history",
+      "id": "bea.macro.stage11_nipa_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.bea.nipa_history_evidence",
+        "macro.bea.nipa_history"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "deterministic_1s_then_2s_no_jitter",
+        "honor_retry_after": false,
+        "max_attempts": 3,
+        "transient_classes": [
+          "connection",
+          "timeout",
+          "http_429",
+          "http_5xx"
+        ]
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_history"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 8388608,
+        "max_requests": 2,
+        "max_rows": 2000,
+        "max_seconds": 90
+      }
+    },
+    {
+      "configuration_env": [
+        "EIA_API_KEY"
+      ],
+      "handler": "macro.stage11_eia_retail_history",
+      "id": "eia.macro.stage11_electricity_retail_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.eia.electricity_retail_history_evidence",
+        "macro.eia.electricity_retail_history"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "deterministic_1s_then_2s_no_jitter",
+        "honor_retry_after": false,
+        "max_attempts": 3,
+        "transient_classes": [
+          "connection",
+          "timeout",
+          "http_429",
+          "http_5xx"
+        ]
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_history"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 8,
+        "max_rows": 40000,
+        "max_seconds": 360
+      }
+    },
+    {
+      "configuration_env": [
+        "EIA_API_KEY"
+      ],
+      "handler": "macro.stage11_eia_weekly_history",
+      "id": "eia.macro.stage11_petroleum_weekly_stock_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.eia.petroleum_weekly_stock_history_evidence",
+        "macro.eia.petroleum_weekly_stock_history"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "deterministic_1s_then_2s_no_jitter",
+        "honor_retry_after": false,
+        "max_attempts": 3,
+        "transient_classes": [
+          "connection",
+          "timeout",
+          "http_429",
+          "http_5xx"
+        ]
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_history"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 45
+      }
     }
   ],
   "compatibility_target": {
@@ -1722,6 +1986,312 @@
         "availability_precision": "datetime",
         "history_basis": "local_capture",
         "missingness": "not_applicable",
+        "observation_fields": [
+          "trade_date"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.stage10.source_evidence",
+      "identity": {
+        "stable_fields": [
+          "capture_id"
+        ],
+        "version_fields": [
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage10_universe_captures"
+          },
+          {
+            "kind": "table",
+            "name": "stage10_daily_price_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "response_digest",
+          "scope_manifest_binding",
+          "raw_evidence_retained_private",
+          "bounded_request",
+          "capture_time_not_source_time"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.stage10_universe_capture"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.stage10.instruments",
+      "identity": {
+        "stable_fields": [
+          "instrument_id"
+        ],
+        "version_fields": [
+          "provider_symbol",
+          "asset_type",
+          "effective_from"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage10_instruments"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "stable_instrument_identity",
+          "provider_symbol_exact",
+          "asset_type_exact",
+          "currency_provider_declared",
+          "ticker_not_used_as_cross_provider_identity"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "effective_from"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.stage10_universe_capture"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.stage10.universes",
+      "identity": {
+        "stable_fields": [
+          "universe_id",
+          "universe_snapshot_id"
+        ],
+        "version_fields": [
+          "as_of_date",
+          "membership_sha256"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage10_scope_snapshots"
+          },
+          {
+            "kind": "table",
+            "name": "stage10_universes"
+          },
+          {
+            "kind": "table",
+            "name": "stage10_universe_snapshots"
+          },
+          {
+            "kind": "table",
+            "name": "stage10_universe_snapshot_members"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "current_snapshot_only",
+          "complete_membership",
+          "scope_manifest_exact",
+          "provider_claim_reconciled",
+          "russell_excluded",
+          "share_class_deduplicated_for_fetch"
+        ],
+        "units": "membership"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "as_of_date"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.market.stage10_daily_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "market.stage10.daily_prices",
+      "identity": {
+        "stable_fields": [
+          "instrument_id",
+          "trade_date",
+          "provider",
+          "price_variant",
+          "currency_segment"
+        ],
+        "version_fields": [
+          "version_id",
+          "correction_sequence"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage10_daily_prices"
+          },
+          {
+            "kind": "table",
+            "name": "stage10_daily_price_versions"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "ohlc_consistent",
+          "volume_nonnegative",
+          "database_matches_captured_response",
+          "correction_chain",
+          "earliest_and_latest_returned_dates_recorded",
+          "history_gaps_explicit",
+          "no_membership_history_inference"
+        ],
+        "units": "provider_declared_currency_and_volume"
+      },
+      "revision_policy": "append_version",
+      "store": "market",
+      "temporal": {
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
         "observation_fields": [
           "trade_date"
         ],
@@ -3046,6 +3616,426 @@
         "macro.align_us_recessions",
         "macro.regime_snapshot"
       ],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "bea.macro.stage11_nipa_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.bea.nipa_history_evidence",
+      "identity": {
+        "stable_fields": [
+          "capture_id"
+        ],
+        "version_fields": [
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage11_bea_nipa_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "sanitized_response_digest",
+          "exact_two_table_scope",
+          "local_capture_availability"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "bea.macro.stage11_nipa_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.bea.nipa_history",
+      "identity": {
+        "stable_fields": [
+          "canonical_series_id",
+          "period"
+        ],
+        "version_fields": [
+          "version_id",
+          "correction_sequence"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage11_bea_nipa_observation_versions"
+          },
+          {
+            "kind": "table",
+            "name": "stage11_bea_nipa_observations"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "database_matches_captured_response",
+          "correction_chain",
+          "no_vintage_invention"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "append_version",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "period"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "eia.macro.stage11_electricity_retail_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.eia.electricity_retail_history_evidence",
+      "identity": {
+        "stable_fields": [
+          "capture_id"
+        ],
+        "version_fields": [
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage11_eia_retail_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "sanitized_response_digest",
+          "complete_pagination",
+          "tombstone_not_authorized"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "eia.macro.stage11_electricity_retail_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.eia.electricity_retail_history",
+      "identity": {
+        "stable_fields": [
+          "canonical_series_id",
+          "period",
+          "state_id",
+          "sector_id"
+        ],
+        "version_fields": [
+          "version_id",
+          "correction_sequence"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage11_eia_retail_observation_versions"
+          },
+          {
+            "kind": "table",
+            "name": "stage11_eia_retail_observations"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "database_matches_captured_response",
+          "complete_pagination",
+          "correction_chain"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "append_version",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "period"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "eia.macro.stage11_petroleum_weekly_stock_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.eia.petroleum_weekly_stock_history_evidence",
+      "identity": {
+        "stable_fields": [
+          "capture_id"
+        ],
+        "version_fields": [
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage11_eia_weekly_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "sanitized_response_digest",
+          "exact_series_scope",
+          "complete_history"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "eia.macro.stage11_petroleum_weekly_stock_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.eia.petroleum_weekly_stock_history",
+      "identity": {
+        "stable_fields": [
+          "canonical_series_id",
+          "period"
+        ],
+        "version_fields": [
+          "version_id",
+          "correction_sequence",
+          "content_sha256"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "stage11_eia_weekly_observation_versions"
+          },
+          {
+            "kind": "table",
+            "name": "stage11_eia_weekly_observations"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "database_matches_captured_response",
+          "content_identity",
+          "correction_chain"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "append_version",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "period"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
       "version": "1.0.0"
     },
     {
@@ -5794,6 +6784,18 @@
       "store": "market"
     },
     {
+      "dependencies": [
+        "market:0009_fmp_daily_price_backfill"
+      ],
+      "id": "market:0010_stage10_market_history",
+      "ordinal": 10,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/market/0010_stage10_market_history.sql",
+      "semantic_scope": "Deliberate Stage 10 forward reconstruction for current S&P 500, Nasdaq-100, and Dow 30 membership, curated ETF and major-index scope, and full provider-available daily OHLCV history in isolated non-production relations.",
+      "sha256": "a7703655f6fe8089431eacdc78600582d6f5582589c0c38b531a2b93c7dc041a",
+      "store": "market"
+    },
+    {
       "dependencies": [],
       "id": "macro:0001_foundation",
       "ordinal": 1,
@@ -5966,6 +6968,18 @@
       "resource": "quant_data/migrations/macro/0011_us_recession_periods.sql",
       "semantic_scope": "Deliberate Stage 3 completed U.S. recession chronology reconstruction; cross-reference recovered semantic 0027.",
       "sha256": "f8551fbe57ce8973c13f8c13146e8ee96c50d3a2de451166e03a57dca114a322",
+      "store": "macro"
+    },
+    {
+      "dependencies": [
+        "macro:0011_us_recession_periods"
+      ],
+      "id": "macro:0012_stage11_bea_eia_live_history",
+      "ordinal": 12,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/macro/0012_stage11_bea_eia_live_history.sql",
+      "semantic_scope": "Deliberate Stage 11 forward reconstruction for bounded BEA NIPA and EIA retail/weekly history in dedicated non-production macro relations.",
+      "sha256": "4f29eed2d73fcb1aa6f3c519a3360c132658cf152341261a18d4332e140fd0a5",
       "store": "macro"
     },
     {
@@ -6164,9 +7178,9 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.7.0",
+  "registry_version": "2.10.0",
   "schema_id": "quant_data.system_registry",
-  "schema_version": "1.5.0",
+  "schema_version": "1.7.0",
   "status": "validated",
   "stores": [
     {
@@ -6204,7 +7218,8 @@
         "market:0006_controlled_universes",
         "market:0007_options_core",
         "market:0008_option_surface_inputs",
-        "market:0009_fmp_daily_price_backfill"
+        "market:0009_fmp_daily_price_backfill",
+        "market:0010_stage10_market_history"
       ],
       "path_env": "QUANT_MARKET_DB_PATH",
       "write_coordination": {
@@ -6251,7 +7266,8 @@
         "macro:0008_soma_summary_only",
         "macro:0009_eia_electricity_retail",
         "macro:0010_eia_weekly_fundamentals",
-        "macro:0011_us_recession_periods"
+        "macro:0011_us_recession_periods",
+        "macro:0012_stage11_bea_eia_live_history"
       ],
       "path_env": "QUANT_MACRO_DB_PATH",
       "write_coordination": {

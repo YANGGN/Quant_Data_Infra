@@ -8,7 +8,7 @@ from pathlib import Path
 
 from quant_data.errors import RegistryError
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import load_registry, stage8_registry_profile
+from quant_data.registry import load_registry, stage8_registry_profile, stage9_registry_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -46,6 +46,7 @@ class Stage9RegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
+        registry = stage9_registry_profile(registry)
         self.assertEqual((registry.schema_version, registry.registry_version), ("1.5.0", "2.7.0"))
         self.assertEqual((len(registry.migrations), len(registry.datasets), len(registry.collectors)), (31, 36, 20))
 

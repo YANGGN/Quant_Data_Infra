@@ -41,7 +41,7 @@ from quant_data.operations.repopulation import (
     publish_promotion_candidate,
     reconcile_fmp_spy_market,
 )
-from quant_data.registry import load_registry
+from quant_data.registry import load_registry, stage9_registry_profile
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import stable_id
 
@@ -332,7 +332,9 @@ def _publish_scratch_correction(store_map, registry) -> None:
 
 class Stage9RepopulationTests(unittest.TestCase):
     def _registry(self):
-        return load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        return stage9_registry_profile(
+            load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+        )
 
     def _source(self, root: Path, registry, **seed_kwargs):
         source = explicit_store_map(root / "source")

@@ -10,7 +10,10 @@ primary fixture gate and independent SolUltra verification passed on
 The bounded offline Stage 8 implementation adds one fixture-only static JSON
 Atlas snapshot. It is a deliberate forward reconstruction, not a claim of
 recovered historical Atlas or 13-dataset parity. Its primary offline fixture
-gate and independent offline verification passed on 2026-08-11; browser verification remains pending.
+gate and independent offline verification passed on 2026-08-11. On 2026-08-14
+the user explicitly waived the unavailable in-app browser-automation check and
+accepted the bounded Stage 8 exit gate as complete; the waiver is not a claim
+that the unrecorded browser checks passed.
 
 The user has authorized a narrow Stage 9 preparation for one manual FMP
 end-of-day OHLCV slice: `SPY`, inclusive `2026-07-01` through `2026-07-31`,
@@ -22,6 +25,16 @@ independent offline gates and bounded live population receipt passed. Provider
 licensing remains the operator's account-specific responsibility.
 It does not authorize a scheduler, public exposure, Atlas inclusion,
 operational promotion, or old-store retirement.
+
+The bounded Stage 10 base population and eight-window historical extension are
+complete in
+`/home/volatility/quant-data-nonprod/stage10-fmp-market-history-v1`.
+Their retained private candidate receipts have been independently re-inspected;
+the provider requests must not be repeated. Stage 11 uses the macro store in
+that same isolated cohort. Its BEA, EIA retail, and EIA weekly phases are
+published, its targeted checks passed, and its private completion receipt is
+retained. No Stage 11 provider request may be repeated. The result remains a
+private, non-production candidate with no promotion or public exposure.
 
 The portal remains local-only with four fixed routes: Overview (`/`), GDP
 Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
@@ -39,8 +52,9 @@ copies. It validates a bounded cohort into an immutable derived revision with a
 private receipt and atomic `current` pointer, but it cannot promote operational
 stores. It neither adopts Parquet or DuckDB nor hosts/deploys Atlas; no live
 provider, scheduler, default-path, or destructive behavior is authorized. Its
-primary fixture gate and independent offline verification passed. Browser
-verification remains pending, so the formal Stage 8 exit gate is not closed.
+primary fixture gate and independent offline verification passed. The bounded
+exit gate was accepted on 2026-08-14 with an explicit waiver for the unavailable
+in-app browser-automation check. Browser observations remain unrecorded.
 
 The target design and sequencing are documented in [ARCHITECTURE.md](ARCHITECTURE.md),
 [ROADMAP.md](ROADMAP.md), and the [rebuild documentation index](docs/rebuild/README.md).
@@ -61,10 +75,14 @@ Stage 6 receipts and accepted verification state are recorded in
 the [Stage 6 acceptance evidence](docs/rebuild/STAGE6_EVIDENCE.md). The bounded
 Stage 7 acceptance and independent-verification receipts are recorded in the
 [Stage 7 acceptance evidence](docs/rebuild/STAGE7_EVIDENCE.md).
-The Stage 8 offline evidence and pending browser status are tracked in the
+The Stage 8 offline evidence and accepted browser-automation waiver are tracked in the
 [Stage 8 evidence](docs/rebuild/STAGE8_EVIDENCE.md).
 The bounded Stage 9 population and independently verified receipt are in
 [Stage 9 evidence](docs/rebuild/STAGE9_EVIDENCE.md).
+The retained Stage 10 base and historical-extension receipts are in
+[Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md). The completed private
+Stage 11 candidate and its receipt are in
+[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
 
 ## Validate Stage 1
 
@@ -203,7 +221,8 @@ for zero runtime network assets, and emits deterministic strict-JSON evidence.
 The bounded offline gate passed. The user explicitly accepted the unavailable
 automated browser check and authorized bounded offline Stage 7 work. Stage 8
 is implemented under its own bounded offline contract and its primary fixture
-gate and independent offline verification passed; browser verification remains pending.
+gate and independent offline verification passed. Its bounded exit gate was
+accepted on 2026-08-14 with the explicit browser-automation waiver.
 
 ## Validate Stage 7
 
@@ -247,8 +266,10 @@ dependency-free static Atlas. The primary gate passed 319 offline tests and
 the two-root CLI emitted evidence SHA
 `e1151f92176a6b5a9d57d18a215497baab7405187fa798537cd947be1dd80a3c`.
 Independent offline verification passed. The in-app browser client failed
-before launch, so browser observations and the formal Stage 8 exit gate remain
-pending; no alternate browser automation was substituted.
+before launch and no alternate browser automation was substituted. On
+2026-08-14 the user explicitly waived that external limitation and accepted the
+bounded exit gate as complete. Responsive, keyboard, focus, reduced-motion,
+zoom, and runtime-network browser observations remain unrecorded.
 
 ## Stage 9 status -- bounded live population independently verified
 
@@ -268,25 +289,46 @@ PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
   --second-store-root "$second_root"
 ```
 
-This is not a live-provider command. The primary gate records offline evidence
-SHA `1851168a239c2b3e344db77d20439a1e1a8264d0eae65c950e33f4dd06c583c4`.
-A live request remains conditional on independent review, a securely
-configured `FMP_API_KEY`,
-and the exact non-production target being empty and approved. Never paste a
-key into chat, a command line, a file, or the registry.
+This is not a live-provider command and cannot repeat the completed provider
+request. The primary gate records offline evidence SHA
+`1851168a239c2b3e344db77d20439a1e1a8264d0eae65c950e33f4dd06c583c4`.
+The bounded live receipt already passed and is recorded in
+[Stage 9 evidence](docs/rebuild/STAGE9_EVIDENCE.md).
+
+## Stage 10 status -- retained candidate populations complete
+
+The immutable base receipt covers the frozen 629-symbol roster: 621 completed
+symbols and eight retained failures. The immutable extension closes all 5,032
+planned windows as 3,970 complete, 1,004 successful empty responses, and 58
+authorized terminal outcomes across nine tickers. Read-only inspection matched
+the receipts and no provider request was repeated. These populations remain
+private, non-production, and candidate-only; see
+[Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md).
+
+## Stage 11 status -- retained private candidate complete
+
+The final bounded resume skipped the completed BEA and retail phases and made
+one successful weekly `PET.WCESTUS1.W` request. The retained macro candidate
+contains 635 BEA, 1,136 EIA retail, and 2,289 EIA weekly current rows with
+matching version counts. Targeted integrity, foreign-key, duplicate, and
+current-pointer checks passed and the private completion receipt was
+published. No Stage 11 request may be repeated; see
+[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
 
 ## Current public boundary
 
-The canonical registry is revision `2.7.0`, schema `1.5.0`. It preserves the
+The canonical registry is revision `2.10.0`, schema `1.7.0`. It preserves the
 four local-private Stage 6 dashboard exposures, eight ordered disabled
 `manual_fixture_only` jobs, and the one fixture-only manual JSON export,
 `atlas.fixture_snapshot`, with reciprocal declarations on
 `fixture.market.daily_prices`, `fixture.macro.gdp_vintages`,
-`fixture.company.issuers`, and `fixture.news.items`. It adds only the isolated
-market migration `market:0009_fmp_daily_price_backfill`, three FMP daily-price
-datasets, and the manual-only `fmp.market.daily_price_backfill` collector.
-Those FMP relations are deliberately absent from public tools, dashboard
-exposures, and Atlas exports.
+`fixture.company.issuers`, and `fixture.news.items`. In addition to the
+isolated Stage 9 declarations, it contains the private Stage 10 market-history
+and Stage 11 BEA/EIA candidate declarations. None of those live-candidate
+relations is exposed through public tools, dashboards, or Atlas exports.
+The completed Stage 11 receipt remains frozen to its historical
+`2.9.0`/`1.7.0` projection; revision `2.10.0` only makes the already
+reviewed retry policy canonical and does not authorize another provider run.
 
 The frozen Stage 7 rebuild keeps its historical `2.5.0`/`1.3.0`, zero-export
 projection; the frozen Stage 6 rebuild uses `2.4.0`/`1.2.0`, jobs-empty
@@ -304,7 +346,12 @@ initialize a store. Stage 7 jobs remain disabled and manual-fixture-only in
 their historical projection. The Stage 8 export has no public path, SQL,
 relation, or connection argument and no live-store/UI connection. Stage 6's
 browser-automation limitation was explicitly accepted by the user; Stage 7
-independent verification passed on 2026-08-11. Stage 8's primary offline gate and
-independent verification passed on 2026-08-11; browser verification remains pending.
+independent verification passed on 2026-08-11. Stage 8's primary offline gate
+and independent verification passed on 2026-08-11, and its bounded exit gate
+was accepted on 2026-08-14 with an explicit browser-automation waiver.
 Stage 9 is not a public boundary: its populated exact FMP slice remains
 non-production, manual-only, candidate-only, and independently verified.
+Stage 10 also remains private, non-production, and candidate-only. Stage 11 is
+complete only as a private, non-production candidate and has no public
+consumer or promotion authority. Registry declarations are not evidence of
+live completion; the retained receipt is.

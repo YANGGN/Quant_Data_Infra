@@ -212,6 +212,27 @@ _STAGE7_REGISTRY_SOURCE_SHA256 = (
 _STAGE8_REGISTRY_SOURCE_SHA256 = (
     "f4f565db7638ef026859af3f3b68b967ca54a80d1e09027d3afd1260cf53c10b"
 )
+_STAGE9_REGISTRY_SOURCE_SHA256 = (
+    "46ff0f92f92380c203aacaf54e511ed219f3bc43edaaba0fb5a6fbe29b95a145"
+)
+_STAGE10_REGISTRY_SOURCE_SHA256 = (
+    "c64aceefcc9a37cc0669398ea4d5817d997a5d82167941a204c2b77fffce77f9"
+)
+_STAGE11_REGISTRY_SOURCE_SHA256 = (
+    "7e8ec6fc38d5a24962460d9c78a4df7754d3b29ad4b74c0c5e8ae807cd59ed56"
+)
+_STAGE11_CANONICAL_RETRY_POLICY = {
+    "transient_classes": ["connection", "timeout", "http_429", "http_5xx"],
+    "max_attempts": 3,
+    "backoff": "deterministic_1s_then_2s_no_jitter",
+    "honor_retry_after": False,
+}
+_STAGE11_HISTORICAL_RETRY_POLICY = {
+    "transient_classes": ["http_429", "http_500", "transport"],
+    "max_attempts": 1,
+    "backoff": "none_operator_resume",
+    "honor_retry_after": False,
+}
 _STAGE9_COLLECTOR_ID = "fmp.market.daily_price_backfill"
 _STAGE9_DATASET_IDS = frozenset(
     {
@@ -221,6 +242,60 @@ _STAGE9_DATASET_IDS = frozenset(
     }
 )
 _STAGE9_MIGRATION_ID = "market:0009_fmp_daily_price_backfill"
+_STAGE10_COLLECTOR_IDS = frozenset(
+    {
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history",
+    }
+)
+_STAGE10_DATASET_IDS = frozenset(
+    {
+        "market.stage10.source_evidence",
+        "market.stage10.instruments",
+        "market.stage10.universes",
+        "market.stage10.daily_prices",
+    }
+)
+_STAGE10_MIGRATION_ID = "market:0010_stage10_market_history"
+_STAGE11_COLLECTOR_IDS = frozenset(
+    {
+        "bea.macro.stage11_nipa_history",
+        "eia.macro.stage11_electricity_retail_history",
+        "eia.macro.stage11_petroleum_weekly_stock_history",
+    }
+)
+_STAGE11_DATASET_IDS = frozenset(
+    {
+        "macro.bea.nipa_history_evidence",
+        "macro.bea.nipa_history",
+        "macro.eia.electricity_retail_history_evidence",
+        "macro.eia.electricity_retail_history",
+        "macro.eia.petroleum_weekly_stock_history_evidence",
+        "macro.eia.petroleum_weekly_stock_history",
+    }
+)
+_STAGE11_MIGRATION_ID = "macro:0012_stage11_bea_eia_live_history"
+_STAGE11_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "macro.bea.nipa_history_evidence": ("stage11_bea_nipa_captures",),
+    "macro.bea.nipa_history": (
+        "stage11_bea_nipa_observation_versions",
+        "stage11_bea_nipa_observations",
+    ),
+    "macro.eia.electricity_retail_history_evidence": (
+        "stage11_eia_retail_captures",
+    ),
+    "macro.eia.electricity_retail_history": (
+        "stage11_eia_retail_observation_versions",
+        "stage11_eia_retail_observations",
+    ),
+    "macro.eia.petroleum_weekly_stock_history_evidence": (
+        "stage11_eia_weekly_captures",
+    ),
+    "macro.eia.petroleum_weekly_stock_history": (
+        "stage11_eia_weekly_observation_versions",
+        "stage11_eia_weekly_observations",
+    ),
+}
 _STAGE7_JOB_IDS = (
     "news-hourly",
     "sec-daily",
@@ -1070,10 +1145,10 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.5.0"
+        or raw["schema_version"] != "1.7.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.7.0"
+        or raw["registry_version"] != "2.10.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2646,13 +2721,21 @@ def load_registry(
             {"max_requests", "max_rows", "max_bytes", "max_seconds"},
             f"{pointer}/workload_bounds",
         )
+        stage11_collector = collector_id in _STAGE11_COLLECTOR_IDS
         if any(
             isinstance(workload[name], bool)
             or not isinstance(workload[name], int)
             or workload[name] < 1
-            or workload[name] > MAX_JSON_BYTES
+            or workload[name]
+            > (16_777_216 if collector_id == "fmp.market.stage10_daily_history" or stage11_collector else MAX_JSON_BYTES)
             for name in workload
-        ) or workload["max_rows"] > 10_000:
+        ) or workload["max_rows"] > (
+            40_000
+            if collector_id == "eia.macro.stage11_electricity_retail_history"
+            else 30_000
+            if collector_id == "fmp.market.stage10_daily_history"
+            else 10_000
+        ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Collector bounds are invalid")
         retry = _nonempty_mapping(collector["retry_policy"], f"{pointer}/retry_policy")
         _require_keys(
@@ -2709,6 +2792,159 @@ def load_registry(
                 or configuration_env != ("FMP_API_KEY",)
             ):
                 raise _error(pointer, "stage9_fmp", "Stage 9 FMP collector drifted")
+        elif collector_id in _STAGE10_COLLECTOR_IDS:
+            universe_capture = collector_id == "fmp.market.stage10_universe_capture"
+            expected_inputs = (
+                ()
+                if universe_capture
+                else (
+                    "market.stage10.instruments",
+                    "market.stage10.universes",
+                )
+            )
+            expected_outputs = (
+                (
+                    "market.stage10.source_evidence",
+                    "market.stage10.instruments",
+                    "market.stage10.universes",
+                )
+                if universe_capture
+                else (
+                    "market.stage10.source_evidence",
+                    "market.stage10.daily_prices",
+                )
+            )
+            expected_includes = (
+                (
+                    "scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_snapshot",
+                )
+                if universe_capture
+                else (
+                    "scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_history",
+                )
+            )
+            expected_workload = (
+                {
+                    "max_requests": 3,
+                    "max_rows": 600,
+                    "max_bytes": 4_194_304,
+                    "max_seconds": 135,
+                }
+                if universe_capture
+                else {
+                    "max_requests": 1,
+                    "max_rows": 30_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 45,
+                }
+            )
+            if (
+                collector["handler"]
+                != (
+                    "market.stage10_fmp_universes"
+                    if universe_capture
+                    else "market.stage10_fmp_daily_history"
+                )
+                or collector["network"] is not True
+                or inputs != expected_inputs
+                or outputs != expected_outputs
+                or includes != expected_includes
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": (
+                        "append_complete_universe_snapshots"
+                        if universe_capture
+                        else "append_versions_and_move_current_projection"
+                    ),
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != expected_workload
+                or retry
+                != {
+                    "transient_classes": ["http_429", "http_500", "transport"],
+                    "max_attempts": 1,
+                    "backoff": "none_operator_resume",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "stage10_fmp",
+                    "Stage 10 FMP collector drifted",
+                )
+        elif collector_id in _STAGE11_COLLECTOR_IDS:
+            expected = {
+                "bea.macro.stage11_nipa_history": {
+                    "handler": "macro.stage11_bea_nipa_history",
+                    "outputs": (
+                        "macro.bea.nipa_history_evidence",
+                        "macro.bea.nipa_history",
+                    ),
+                    "configuration_env": ("BEA_API_KEY",),
+                    "workload": {
+                        "max_requests": 2,
+                        "max_rows": 2_000,
+                        "max_bytes": 8_388_608,
+                        "max_seconds": 90,
+                    },
+                },
+                "eia.macro.stage11_electricity_retail_history": {
+                    "handler": "macro.stage11_eia_retail_history",
+                    "outputs": (
+                        "macro.eia.electricity_retail_history_evidence",
+                        "macro.eia.electricity_retail_history",
+                    ),
+                    "configuration_env": ("EIA_API_KEY",),
+                    "workload": {
+                        "max_requests": 8,
+                        "max_rows": 40_000,
+                        "max_bytes": 16_777_216,
+                        "max_seconds": 360,
+                    },
+                },
+                "eia.macro.stage11_petroleum_weekly_stock_history": {
+                    "handler": "macro.stage11_eia_weekly_history",
+                    "outputs": (
+                        "macro.eia.petroleum_weekly_stock_history_evidence",
+                        "macro.eia.petroleum_weekly_stock_history",
+                    ),
+                    "configuration_env": ("EIA_API_KEY",),
+                    "workload": {
+                        "max_requests": 1,
+                        "max_rows": 5_000,
+                        "max_bytes": 16_777_216,
+                        "max_seconds": 45,
+                    },
+                },
+            }[collector_id]
+            if (
+                collector["handler"] != expected["handler"]
+                or collector["network"] is not True
+                or inputs
+                or outputs != expected["outputs"]
+                or includes
+                != ("request_scope", "normalization_version", "normalized_complete_history")
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != expected["workload"]
+                or retry != _STAGE11_CANONICAL_RETRY_POLICY
+                or configuration_env != expected["configuration_env"]
+            ):
+                raise _error(pointer, "stage11_macro", "Stage 11 macro collector drifted")
         elif collector["network"] is not False or any(
             not name.startswith("QUANT_") for name in configuration_env
         ):
@@ -3060,8 +3296,242 @@ def _export_free_dataset_projection(
     return projected, raw
 
 
+def stage11_registry_profile(registry: Registry) -> Registry:
+    """Project canonical retry-policy revision 2.10 back to Stage 11 exactly."""
+
+    stage11_collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) in _STAGE11_COLLECTOR_IDS
+    )
+    if (
+        registry.schema_version == "1.7.0"
+        and registry.registry_version == "2.9.0"
+    ):
+        if (
+            registry.source_sha256 != _STAGE11_REGISTRY_SOURCE_SHA256
+            or len(stage11_collectors) != 3
+            or any(
+                dict(item["retry_policy"]) != _STAGE11_HISTORICAL_RETRY_POLICY
+                for item in stage11_collectors
+            )
+        ):
+            raise RegistryError("Historical Stage 11 registry profile drifted")
+        return registry
+
+    if (
+        registry.schema_version != "1.7.0"
+        or registry.registry_version != "2.10.0"
+        or len(registry.migrations) != 33
+        or len(registry.datasets) != 46
+        or len(registry.collectors) != 25
+        or len(stage11_collectors) != 3
+        or any(
+            dict(item["retry_policy"]) != _STAGE11_CANONICAL_RETRY_POLICY
+            for item in stage11_collectors
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 11 profile")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.9.0"
+    for collector in raw["collectors"]:
+        if collector["id"] in _STAGE11_COLLECTOR_IDS:
+            collector["retry_policy"] = copy.deepcopy(
+                _STAGE11_HISTORICAL_RETRY_POLICY
+            )
+    return replace(
+        registry,
+        registry_version="2.9.0",
+        collectors=tuple(raw["collectors"]),
+        raw=raw,
+        source_sha256=_STAGE11_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage10_registry_profile(registry: Registry) -> Registry:
+    """Project the canonical Stage 11 registry back to Stage 10 exactly."""
+
+    if (
+        registry.schema_version == "1.7.0"
+        and registry.registry_version in {"2.9.0", "2.10.0"}
+    ):
+        registry = stage11_registry_profile(registry)
+    if (
+        registry.schema_version != "1.7.0"
+        or registry.registry_version != "2.9.0"
+        or len(registry.migrations) != 33
+        or len(registry.datasets) != 46
+        or len(registry.collectors) != 25
+        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
+        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
+        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
+        or _STAGE11_MIGRATION_ID not in {item.id for item in registry.migrations}
+        or not _STAGE11_DATASET_IDS.issubset(
+            {item.id for item in registry.datasets}
+        )
+        or not _STAGE11_COLLECTOR_IDS.issubset(
+            {str(item["id"]) for item in registry.collectors}
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 10 profile")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id != _STAGE11_MIGRATION_ID
+    )
+    datasets = tuple(
+        item for item in registry.datasets if item.id not in _STAGE11_DATASET_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in _STAGE11_COLLECTOR_IDS
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id != _STAGE11_MIGRATION_ID
+            ),
+        )
+        for store in registry.stores
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["schema_version"] = "1.6.0"
+    raw["registry_version"] = "2.8.0"
+    raw["migrations"] = [
+        item for item in raw["migrations"] if item["id"] != _STAGE11_MIGRATION_ID
+    ]
+    raw["datasets"] = [
+        item for item in raw["datasets"] if item["id"] not in _STAGE11_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] not in _STAGE11_COLLECTOR_IDS
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id != _STAGE11_MIGRATION_ID
+        ]
+    return replace(
+        registry,
+        schema_version="1.6.0",
+        registry_version="2.8.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_STAGE10_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def _stage10_input(registry: Registry) -> Registry:
+    if (
+        registry.schema_version == "1.7.0"
+        and registry.registry_version in {"2.9.0", "2.10.0"}
+    ):
+        return stage10_registry_profile(registry)
+    return registry
+
+
+def stage9_registry_profile(registry: Registry) -> Registry:
+    """Project the canonical registry back to Stage 9 exactly."""
+
+    registry = _stage10_input(registry)
+
+    if (
+        registry.schema_version != "1.6.0"
+        or registry.registry_version != "2.8.0"
+        or len(registry.migrations) != 32
+        or len(registry.datasets) != 40
+        or len(registry.collectors) != 22
+        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
+        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
+        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
+        or _STAGE10_MIGRATION_ID
+        not in {item.id for item in registry.migrations}
+        or not _STAGE10_DATASET_IDS.issubset(
+            {item.id for item in registry.datasets}
+        )
+        or not _STAGE10_COLLECTOR_IDS.issubset(
+            {str(item["id"]) for item in registry.collectors}
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 9 profile")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id != _STAGE10_MIGRATION_ID
+    )
+    datasets = tuple(
+        item for item in registry.datasets if item.id not in _STAGE10_DATASET_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in _STAGE10_COLLECTOR_IDS
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id != _STAGE10_MIGRATION_ID
+            ),
+        )
+        for store in registry.stores
+    )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["schema_version"] = "1.5.0"
+    raw["registry_version"] = "2.7.0"
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] != _STAGE10_MIGRATION_ID
+    ]
+    raw["datasets"] = [
+        item for item in raw["datasets"] if item["id"] not in _STAGE10_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] not in _STAGE10_COLLECTOR_IDS
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id != _STAGE10_MIGRATION_ID
+        ]
+    return replace(
+        registry,
+        schema_version="1.5.0",
+        registry_version="2.7.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_STAGE9_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def _stage9_input(registry: Registry) -> Registry:
+    registry = _stage10_input(registry)
+    if registry.schema_version == "1.6.0" and registry.registry_version == "2.8.0":
+        return stage9_registry_profile(registry)
+    return registry
+
+
 def stage8_registry_profile(registry: Registry) -> Registry:
     """Project the canonical Stage 9 registry back to Stage 8 exactly."""
+
+    registry = _stage9_input(registry)
 
     if (
         registry.schema_version != "1.5.0"
@@ -3136,6 +3606,7 @@ def stage8_registry_profile(registry: Registry) -> Registry:
 
 
 def _stage8_input(registry: Registry) -> Registry:
+    registry = _stage9_input(registry)
     if registry.schema_version == "1.5.0" and registry.registry_version == "2.7.0":
         return stage8_registry_profile(registry)
     return registry
