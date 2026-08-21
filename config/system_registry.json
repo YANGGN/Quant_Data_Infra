@@ -205,6 +205,103 @@
     },
     {
       "configuration_env": [],
+      "handler": "market.stage12b_fmp_daily_incremental_fixture",
+      "id": "market.stage12b.fmp_daily_incremental_fixture",
+      "input_datasets": [
+        "market.stage10.instruments",
+        "market.stage10.daily_prices"
+      ],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": false,
+      "output_datasets": [
+        "market.stage10.source_evidence",
+        "market.stage10.daily_prices"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 65536,
+        "max_requests": 1,
+        "max_rows": 5,
+        "max_seconds": 30
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "market.stage12c_fmp_daily_incremental_manual",
+      "id": "market.stage12c.fmp_daily_incremental_manual",
+      "input_datasets": [
+        "market.stage10.instruments",
+        "market.stage10.daily_prices"
+      ],
+      "mutation_policy": {
+        "mode": "append_versions_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "market.stage10.source_evidence",
+        "market.stage10.daily_prices"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "scope_manifest_sha256",
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 65536,
+        "max_requests": 1,
+        "max_rows": 2,
+        "max_seconds": 45
+      }
+    },
+    {
+      "configuration_env": [],
       "handler": "macro.rtdsm_fixture",
       "id": "fixture.macro.rtdsm_employ_import",
       "input_datasets": [],
@@ -425,6 +522,144 @@
         "max_requests": 1,
         "max_rows": 10000,
         "max_seconds": 30
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "macro.fmp_gdp_cpi_release_calendar",
+      "id": "fmp.macro.gdp_cpi_release_calendar_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.economic_calendar"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 1048576,
+        "max_requests": 1,
+        "max_rows": 2000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "macro.fmp_employment_release_calendar_refresh",
+      "id": "fmp.macro.employment_release_calendar_refresh",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.economic_calendar"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 1048576,
+        "max_requests": 1,
+        "max_rows": 2000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "macro.fmp_us_economic_calendar_wholesale",
+      "id": "fmp.macro.us_economic_calendar_wholesale",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_immutable_captures_and_rows",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.fmp.economic_calendar_evidence"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_complete_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 1048576,
+        "max_requests": 1,
+        "max_rows": 2000,
+        "max_seconds": 60
       }
     },
     {
@@ -1176,6 +1411,323 @@
         "max_requests": 1,
         "max_rows": 5000,
         "max_seconds": 45
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.live_gdp_vintages",
+      "id": "bea.macro.live_gdp_vintages",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_vintages_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.official_vintages_evidence",
+        "macro.official_vintages"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "source_vintage",
+          "normalization_version",
+          "normalized_vintage_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 1048576,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.live_cpi_vintages",
+      "id": "bls.macro.live_cpi_vintages",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_vintages_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.official_vintages_evidence",
+        "macro.official_vintages"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "source_vintage",
+          "normalization_version",
+          "normalized_vintage_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 8388608,
+        "max_requests": 15,
+        "max_rows": 10000,
+        "max_seconds": 300
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.live_employment_vintages",
+      "id": "philadelphia_fed.macro.live_employment_vintages",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_vintages_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.official_vintages_evidence",
+        "macro.official_vintages"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "source_vintage",
+          "normalization_version",
+          "normalized_vintage_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 2,
+        "max_rows": 500000,
+        "max_seconds": 600
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.live_employment_current",
+      "id": "bls.macro.live_employment_current",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_vintages_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.official_vintages_evidence",
+        "macro.official_vintages"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "source_vintage",
+          "normalization_version",
+          "normalized_vintage_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 2097152,
+        "max_requests": 1,
+        "max_rows": 300,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.cpi_current_history",
+      "id": "bls.macro.cpi_current_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_vintages_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.official_vintages_evidence",
+        "macro.official_vintages"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "source_vintage",
+          "normalization_version",
+          "normalized_vintage_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 2097152,
+        "max_requests": 7,
+        "max_rows": 1344,
+        "max_seconds": 300
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.gdp_cpi_vintage_history",
+      "id": "philadelphia_fed.macro.gdp_cpi_vintage_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_vintages_and_move_current_projection",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "macro.official_vintages_evidence",
+        "macro.official_vintages"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "source_vintage",
+          "normalization_version",
+          "normalized_vintage_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 8388608,
+        "max_requests": 4,
+        "max_rows": 10000,
+        "max_seconds": 300
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "news.fmp_stock_latest",
+      "id": "fmp.news.stock_latest",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_capture_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "news.fmp.stock_latest_evidence",
+        "news.fmp.stock_latest_articles"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_partial_page"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 67108864,
+        "max_requests": 1,
+        "max_rows": 1000,
+        "max_seconds": 60
       }
     }
   ],
@@ -2004,7 +2556,9 @@
       "active": true,
       "collector_ids": [
         "fmp.market.stage10_universe_capture",
-        "fmp.market.stage10_daily_history"
+        "fmp.market.stage10_daily_history",
+        "market.stage12b.fmp_daily_incremental_fixture",
+        "market.stage12c.fmp_daily_incremental_manual"
       ],
       "dashboard_ids": [],
       "export_ids": [],
@@ -2229,7 +2783,9 @@
     {
       "active": true,
       "collector_ids": [
-        "fmp.market.stage10_daily_history"
+        "fmp.market.stage10_daily_history",
+        "market.stage12b.fmp_daily_incremental_fixture",
+        "market.stage12c.fmp_daily_incremental_manual"
       ],
       "dashboard_ids": [],
       "export_ids": [],
@@ -2988,7 +3544,9 @@
     {
       "active": true,
       "collector_ids": [
-        "fixture.macro.calendar_import"
+        "fixture.macro.calendar_import",
+        "fmp.macro.gdp_cpi_release_calendar_history",
+        "fmp.macro.employment_release_calendar_refresh"
       ],
       "dashboard_ids": [
         "stage6.agent_tools"
@@ -4026,6 +4584,258 @@
         "missingness": "explicit_reason",
         "observation_fields": [
           "period"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "bea.macro.live_gdp_vintages",
+        "bls.macro.live_cpi_vintages",
+        "philadelphia_fed.macro.live_employment_vintages",
+        "bls.macro.live_employment_current",
+        "bls.macro.cpi_current_history",
+        "philadelphia_fed.macro.gdp_cpi_vintage_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "daily",
+        "expected_lag": "P1D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P7D"
+      },
+      "id": "macro.official_vintages_evidence",
+      "identity": {
+        "stable_fields": [
+          "capture_id"
+        ],
+        "version_fields": [
+          "response_sha256",
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "exact_official_source",
+          "raw_response_digest",
+          "complete_allowlisted_series"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "source_published_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "history_basis": "source_vintage",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of",
+          "first_release"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "bea.macro.live_gdp_vintages",
+        "bls.macro.live_cpi_vintages",
+        "philadelphia_fed.macro.live_employment_vintages",
+        "bls.macro.live_employment_current",
+        "bls.macro.cpi_current_history",
+        "philadelphia_fed.macro.gdp_cpi_vintage_history"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "daily",
+        "expected_lag": "P1D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P7D"
+      },
+      "id": "macro.official_vintages",
+      "identity": {
+        "stable_fields": [
+          "series_id",
+          "period_start",
+          "period_end"
+        ],
+        "version_fields": [
+          "source_vintage_identity",
+          "correction_sequence",
+          "version_id"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_series"
+          },
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_releases"
+          },
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_observation_versions"
+          },
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_observations"
+          },
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_capture_membership"
+          },
+          {
+            "kind": "table",
+            "name": "macro_live_vintage_gdp_provenance"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "source_vintage_lineage",
+          "correction_chain",
+          "current_pointer_order",
+          "exact_replay_no_write"
+        ],
+        "units": "series_contract"
+      },
+      "revision_policy": "append_version",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "available_at",
+          "captured_at"
+        ],
+        "availability_precision": "mixed",
+        "history_basis": "source_vintage",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "period_start",
+          "period_end",
+          "vintage_at"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of",
+          "first_release"
+        ]
+      },
+      "tool_ids": [
+        "macro.release_surprises"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.macro.us_economic_calendar_wholesale"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "macro.fmp.economic_calendar_evidence",
+      "identity": {
+        "stable_fields": [
+          "request_country",
+          "request_start_date",
+          "request_end_date"
+        ],
+        "version_fields": [
+          "capture_id",
+          "response_sha256",
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "fmp_economic_calendar_captures"
+          },
+          {
+            "kind": "table",
+            "name": "fmp_economic_calendar_rows"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "raw_response_retained_private",
+          "complete_us_calendar_batch",
+          "source_row_lineage",
+          "semantic_replay_no_write"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "macro",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "request_start_date",
+          "request_end_date"
         ],
         "observation_precision": "date",
         "range_semantics": "inclusive",
@@ -5223,6 +6033,167 @@
       "tool_ids": [
         "news.search"
       ],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.news.stock_latest"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "news.fmp.stock_latest_evidence",
+      "identity": {
+        "stable_fields": [
+          "collector_id",
+          "profile_id",
+          "request_scope_sha256"
+        ],
+        "version_fields": [
+          "attempt_id",
+          "outcome_id",
+          "capture_id",
+          "semantic_identity"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "fmp_stock_latest_attempts"
+          },
+          {
+            "kind": "table",
+            "name": "fmp_stock_latest_outcomes"
+          },
+          {
+            "kind": "table",
+            "name": "fmp_stock_latest_captures"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "intent_before_request",
+          "one_terminal_outcome",
+          "raw_response_retained_private",
+          "partial_page_no_tombstone"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "news",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "intent_recorded_at",
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.news.stock_latest"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "news.fmp.stock_latest_articles",
+      "identity": {
+        "stable_fields": [
+          "provider_namespace",
+          "site",
+          "source_url",
+          "symbol"
+        ],
+        "version_fields": [
+          "article_version_id",
+          "mutable_content_sha256",
+          "version_sequence"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "fmp_stock_latest_articles"
+          },
+          {
+            "kind": "table",
+            "name": "fmp_stock_latest_article_versions"
+          },
+          {
+            "kind": "table",
+            "name": "fmp_stock_latest_capture_articles"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_null",
+        "required_warnings": [],
+        "rules": [
+          "stable_identity_includes_symbol",
+          "normalized_mutable_content_hash",
+          "source_precision_preserved",
+          "partial_page_no_tombstone"
+        ],
+        "units": "source_declared"
+      },
+      "revision_policy": "append_version",
+      "store": "news",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_null",
+        "observation_fields": [
+          "published_date_raw"
+        ],
+        "observation_precision": "mixed",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [],
       "version": "1.0.0"
     }
   ],
@@ -6983,6 +7954,54 @@
       "store": "macro"
     },
     {
+      "dependencies": [
+        "macro:0012_stage11_bea_eia_live_history"
+      ],
+      "id": "macro:0013_live_gdp_cpi_vintages",
+      "ordinal": 13,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/macro/0013_live_gdp_cpi_vintages.sql",
+      "semantic_scope": "Bounded official BEA GDP and BLS CPI release-vintage evidence, immutable observation versions, and current projections for four reviewed series.",
+      "sha256": "9eab5c35c6377e6f22a927dbc4602e982ff3c8ae6095e782de546a05de58f5bc",
+      "store": "macro"
+    },
+    {
+      "dependencies": [
+        "macro:0013_live_gdp_cpi_vintages"
+      ],
+      "id": "macro:0014_live_employment_vintages",
+      "ordinal": 14,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/macro/0014_live_employment_vintages.sql",
+      "semantic_scope": "Bounded Philadelphia Fed real-time payroll and unemployment vintage evidence plus BLS current payroll and unemployment refresh for two reviewed employment series.",
+      "sha256": "79d1ed0a0ee7e059109bcd3238f1c7ab79148924b69c8eda282b09c0af245ee8",
+      "store": "macro"
+    },
+    {
+      "dependencies": [
+        "macro:0014_live_employment_vintages"
+      ],
+      "id": "macro:0015_live_macro_history_extension",
+      "ordinal": 15,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/macro/0015_live_macro_history_extension.sql",
+      "semantic_scope": "Bounded one-time BLS CPI current-history extension plus Philadelphia Fed source-native GDP/GNP and CPI vintage history for the reviewed series.",
+      "sha256": "31153005b135f6bb03d0c228488bee73b6c50051afaaf4b7f2a9252f957158b9",
+      "store": "macro"
+    },
+    {
+      "dependencies": [
+        "macro:0015_live_macro_history_extension"
+      ],
+      "id": "macro:0016_fmp_calendar_wholesale_evidence",
+      "ordinal": 16,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/macro/0016_fmp_calendar_wholesale_evidence.sql",
+      "semantic_scope": "Bounded FMP U.S. economic-calendar wholesale immutable evidence capture and raw-row lineage for local replay of reviewed consensus aliases.",
+      "sha256": "78dc02d34c0489c3f1fe4b7847870a18955606b1f47a3309ed8464ee9f3bbb4d",
+      "store": "macro"
+    },
+    {
       "dependencies": [],
       "id": "company:0001_foundation",
       "ordinal": 1,
@@ -7109,6 +8128,18 @@
       "semantic_scope": "Deliberate Stage 4 derived FTS5 search-index reconstruction; the index is not source truth.",
       "sha256": "fdc8e4b8ef838a3f61134e867c15391b8a7db31ebc492242b0a4d87218658402",
       "store": "news"
+    },
+    {
+      "dependencies": [
+        "news:0004_search_index"
+      ],
+      "id": "news:0005_fmp_stock_latest",
+      "ordinal": 5,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/news/0005_fmp_stock_latest.sql",
+      "semantic_scope": "Deliberate bounded FMP stock-latest raw-page evidence and private article-version reconstruction; one partial page never infers a tombstone.",
+      "sha256": "f2565061f5b908255838be875c05112b8bf91033295b87a5b955f9de2d142217",
+      "store": "news"
     }
   ],
   "presentation_order": {
@@ -7178,9 +8209,9 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.10.0",
+  "registry_version": "2.21.0",
   "schema_id": "quant_data.system_registry",
-  "schema_version": "1.7.0",
+  "schema_version": "1.8.0",
   "status": "validated",
   "stores": [
     {
@@ -7207,7 +8238,7 @@
         "ingestion_snapshot_artifacts",
         "data_quality_results"
       ],
-      "default_path": "data/market_data.sqlite",
+      "default_path": "data/market.sqlite",
       "id": "market",
       "migration_order": [
         "market:0001_foundation",
@@ -7253,7 +8284,7 @@
         "ingestion_snapshot_artifacts",
         "data_quality_results"
       ],
-      "default_path": "data/macro_data.sqlite",
+      "default_path": "data/macro.sqlite",
       "id": "macro",
       "migration_order": [
         "macro:0001_foundation",
@@ -7267,7 +8298,11 @@
         "macro:0009_eia_electricity_retail",
         "macro:0010_eia_weekly_fundamentals",
         "macro:0011_us_recession_periods",
-        "macro:0012_stage11_bea_eia_live_history"
+        "macro:0012_stage11_bea_eia_live_history",
+        "macro:0013_live_gdp_cpi_vintages",
+        "macro:0014_live_employment_vintages",
+        "macro:0015_live_macro_history_extension",
+        "macro:0016_fmp_calendar_wholesale_evidence"
       ],
       "path_env": "QUANT_MACRO_DB_PATH",
       "write_coordination": {
@@ -7301,7 +8336,7 @@
         "ingestion_snapshot_artifacts",
         "data_quality_results"
       ],
-      "default_path": "data/company_data.sqlite",
+      "default_path": "data/company.sqlite",
       "id": "company",
       "migration_order": [
         "company:0001_foundation",
@@ -7344,13 +8379,14 @@
         "ingestion_snapshot_artifacts",
         "data_quality_results"
       ],
-      "default_path": "data/news_data.sqlite",
+      "default_path": "data/news.sqlite",
       "id": "news",
       "migration_order": [
         "news:0001_foundation",
         "news:0002_control_plane",
         "news:0003_immutable_items",
-        "news:0004_search_index"
+        "news:0004_search_index",
+        "news:0005_fmp_stock_latest"
       ],
       "path_env": "QUANT_NEWS_DB_PATH",
       "write_coordination": {
@@ -11099,7 +12135,8 @@
         "expression": "rows + series + operations"
       },
       "datasets": [
-        "fixture.macro.economic_calendar"
+        "fixture.macro.economic_calendar",
+        "macro.official_vintages"
       ],
       "description": "Offline read-only macro.release_surprises operation.",
       "examples": [
@@ -11107,7 +12144,7 @@
           "as_of": null,
           "end_date": null,
           "identifiers": [
-            "fixture"
+            "us_gdp_real_qoq_saar_advance"
           ],
           "limit": 100,
           "mode": "latest",

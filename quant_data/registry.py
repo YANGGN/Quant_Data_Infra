@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import re
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -221,6 +222,98 @@ _STAGE10_REGISTRY_SOURCE_SHA256 = (
 _STAGE11_REGISTRY_SOURCE_SHA256 = (
     "7e8ec6fc38d5a24962460d9c78a4df7754d3b29ad4b74c0c5e8ae807cd59ed56"
 )
+_STAGE12_REGISTRY_SOURCE_SHA256 = (
+    "f65f7d039b73037012c6183c34501027f4298376ab94125e856e9dd79c6d234d"
+)
+_STAGE12A_REGISTRY_SOURCE_SHA256 = (
+    "80a41e9f124cccb85bbdda665e33b1ef408f538b7e50b499b630b5ce6c761e7e"
+)
+_STAGE12B_REGISTRY_SOURCE_SHA256 = (
+    "b39057d548d6ced6e7c0663ffafbee7e0c16c88a94baced584ff6949da7766f6"
+)
+_STAGE12C_REGISTRY_SOURCE_SHA256 = (
+    "c24398b35bc9fe9553dd85346dd3879abd6b802e1dd255ffb186d4ed9e1ea769"
+)
+_PRE_MACRO_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "b6cfa9db720f4cb878127eae001e6bc1d59e0c7421a8c65277b24ab8fe36adb6"
+)
+_PRE_EMPLOYMENT_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "8da35a5a21ecd097d62fe625bdb096ecf3f2eba62413346957372ea81b9d7992"
+)
+_PRE_MACRO_HISTORY_REGISTRY_SOURCE_SHA256 = (
+    "6040e45faa3ddbe522a97921a36e3a1f5ded34b3a4da7dd0ee32d52929e1fcb2"
+)
+_PRE_FMP_GDP_CPI_CALENDAR_REGISTRY_SOURCE_SHA256 = (
+    "177908e080573f051231c9f89b2bb2967e12fd1a3cc2b20754ce86c7d8a216e6"
+)
+_PRE_FMP_EMPLOYMENT_CALENDAR_REGISTRY_SOURCE_SHA256 = (
+    "f76a61027045c4408c60e57dacfcb5a17c617de4099395b1c6a62790e4019c4e"
+)
+_PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256 = (
+    "3c1caec6eedfb7e179d8a1f8e291ef6e8971da5f4539946ae76691ac53f22647"
+)
+_FMP_GDP_CPI_CALENDAR_COLLECTOR_ID = (
+    "fmp.macro.gdp_cpi_release_calendar_history"
+)
+_FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID = (
+    "fmp.macro.employment_release_calendar_refresh"
+)
+_FMP_GDP_CPI_CALENDAR_DATASET_ID = "fixture.macro.economic_calendar"
+_FMP_GDP_CPI_OFFICIAL_DATASET_ID = "macro.official_vintages"
+_FMP_GDP_CPI_SURPRISE_TOOL_ID = "macro.release_surprises"
+_FMP_WHOLESALE_CALENDAR_MIGRATION_ID = (
+    "macro:0016_fmp_calendar_wholesale_evidence"
+)
+_FMP_WHOLESALE_CALENDAR_DATASET_ID = "macro.fmp.economic_calendar_evidence"
+_FMP_WHOLESALE_CALENDAR_COLLECTOR_ID = (
+    "fmp.macro.us_economic_calendar_wholesale"
+)
+_FMP_WHOLESALE_CALENDAR_RELATIONS = (
+    "fmp_economic_calendar_captures",
+    "fmp_economic_calendar_rows",
+)
+_STAGE12B_COLLECTOR_ID = "market.stage12b.fmp_daily_incremental_fixture"
+_STAGE12C_COLLECTOR_ID = "market.stage12c.fmp_daily_incremental_manual"
+_STAGE12C_OUTPUT_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.daily_prices",
+)
+_STAGE12C_INPUT_DATASET_IDS = (
+    "market.stage10.instruments",
+    "market.stage10.daily_prices",
+)
+_STAGE12C_EXPECTED_DATASET_COLLECTOR_IDS: Mapping[str, tuple[str, ...]] = {
+    "market.stage10.source_evidence": (
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+        _STAGE12C_COLLECTOR_ID,
+    ),
+    "market.stage10.daily_prices": (
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+        _STAGE12C_COLLECTOR_ID,
+    ),
+}
+_STAGE12B_OUTPUT_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.daily_prices",
+)
+_STAGE12B_INPUT_DATASET_IDS = (
+    "market.stage10.instruments",
+    "market.stage10.daily_prices",
+)
+_STAGE12B_EXPECTED_DATASET_COLLECTOR_IDS: Mapping[str, tuple[str, ...]] = {
+    "market.stage10.source_evidence": (
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+    ),
+    "market.stage10.daily_prices": (
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+    ),
+}
 _STAGE11_CANONICAL_RETRY_POLICY = {
     "transient_classes": ["connection", "timeout", "http_429", "http_5xx"],
     "max_attempts": 3,
@@ -275,6 +368,33 @@ _STAGE11_DATASET_IDS = frozenset(
     }
 )
 _STAGE11_MIGRATION_ID = "macro:0012_stage11_bea_eia_live_history"
+_MACRO_VINTAGE_MIGRATION_ID = "macro:0013_live_gdp_cpi_vintages"
+_MACRO_VINTAGE_DATASET_IDS = frozenset(
+    {
+        "macro.official_vintages_evidence",
+        "macro.official_vintages",
+    }
+)
+_MACRO_VINTAGE_COLLECTOR_IDS = frozenset(
+    {
+        "bea.macro.live_gdp_vintages",
+        "bls.macro.live_cpi_vintages",
+    }
+)
+_EMPLOYMENT_VINTAGE_MIGRATION_ID = "macro:0014_live_employment_vintages"
+_EMPLOYMENT_VINTAGE_COLLECTOR_IDS = frozenset(
+    {
+        "philadelphia_fed.macro.live_employment_vintages",
+        "bls.macro.live_employment_current",
+    }
+)
+_MACRO_HISTORY_MIGRATION_ID = "macro:0015_live_macro_history_extension"
+_MACRO_HISTORY_COLLECTOR_IDS = frozenset(
+    {
+        "bls.macro.cpi_current_history",
+        "philadelphia_fed.macro.gdp_cpi_vintage_history",
+    }
+)
 _STAGE11_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
     "macro.bea.nipa_history_evidence": ("stage11_bea_nipa_captures",),
     "macro.bea.nipa_history": (
@@ -294,6 +414,26 @@ _STAGE11_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
     "macro.eia.petroleum_weekly_stock_history": (
         "stage11_eia_weekly_observation_versions",
         "stage11_eia_weekly_observations",
+    ),
+}
+_FMP_STOCK_LATEST_COLLECTOR_ID = "fmp.news.stock_latest"
+_FMP_STOCK_LATEST_DATASET_IDS = frozenset(
+    {
+        "news.fmp.stock_latest_evidence",
+        "news.fmp.stock_latest_articles",
+    }
+)
+_FMP_STOCK_LATEST_MIGRATION_ID = "news:0005_fmp_stock_latest"
+_FMP_STOCK_LATEST_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "news.fmp.stock_latest_evidence": (
+        "fmp_stock_latest_attempts",
+        "fmp_stock_latest_outcomes",
+        "fmp_stock_latest_captures",
+    ),
+    "news.fmp.stock_latest_articles": (
+        "fmp_stock_latest_articles",
+        "fmp_stock_latest_article_versions",
+        "fmp_stock_latest_capture_articles",
     ),
 }
 _STAGE7_JOB_IDS = (
@@ -1145,10 +1285,10 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.7.0"
+        or raw["schema_version"] != "1.8.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.10.0"
+        or raw["registry_version"] != "2.21.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -1934,10 +2074,10 @@ def load_registry(
     stores: list[StoreDeclaration] = []
     expected_roles = {role.value for role in STORE_ROLES}
     expected_defaults = {
-        "market": "data/market_data.sqlite",
-        "macro": "data/macro_data.sqlite",
-        "company": "data/company_data.sqlite",
-        "news": "data/news_data.sqlite",
+        "market": "data/market.sqlite",
+        "macro": "data/macro.sqlite",
+        "company": "data/company.sqlite",
+        "news": "data/news.sqlite",
     }
     expected_control = (
         "schema_migrations",
@@ -2722,15 +2862,31 @@ def load_registry(
             f"{pointer}/workload_bounds",
         )
         stage11_collector = collector_id in _STAGE11_COLLECTOR_IDS
+        fmp_stock_latest_collector = collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID
+        max_workload_bytes = (
+            67_108_864
+            if fmp_stock_latest_collector
+            else 16_777_216
+            if (
+                collector_id == "fmp.market.stage10_daily_history"
+                or collector_id
+                == "philadelphia_fed.macro.live_employment_vintages"
+                or stage11_collector
+            )
+            else MAX_JSON_BYTES
+        )
         if any(
             isinstance(workload[name], bool)
             or not isinstance(workload[name], int)
             or workload[name] < 1
-            or workload[name]
-            > (16_777_216 if collector_id == "fmp.market.stage10_daily_history" or stage11_collector else MAX_JSON_BYTES)
+            or workload[name] > max_workload_bytes
             for name in workload
         ) or workload["max_rows"] > (
-            40_000
+            500_000
+            if collector_id == "philadelphia_fed.macro.live_employment_vintages"
+            else 1_000
+            if fmp_stock_latest_collector
+            else 40_000
             if collector_id == "eia.macro.stage11_electricity_retail_history"
             else 30_000
             if collector_id == "fmp.market.stage10_daily_history"
@@ -2756,7 +2912,270 @@ def load_registry(
         configuration_env = _string_array(
             collector["configuration_env"], f"{pointer}/configuration_env"
         )
-        if collector_id == _STAGE9_COLLECTOR_ID:
+        if collector_id == _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "macro.fmp_gdp_cpi_release_calendar"
+                or collector["network"] is not True
+                or inputs
+                or outputs != (_FMP_GDP_CPI_CALENDAR_DATASET_ID,)
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 2_000,
+                    "max_bytes": 1_048_576,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_macro_calendar",
+                    "FMP GDP/CPI calendar collector drifted",
+                )
+        elif collector_id == _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "macro.fmp_employment_release_calendar_refresh"
+                or collector["network"] is not True
+                or inputs
+                or outputs != (_FMP_GDP_CPI_CALENDAR_DATASET_ID,)
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 2_000,
+                    "max_bytes": 1_048_576,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_employment_calendar",
+                    "FMP employment calendar collector drifted",
+                )
+        elif collector_id == _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.fmp_us_economic_calendar_wholesale"
+                or collector["network"] is not True
+                or inputs
+                or outputs != (_FMP_WHOLESALE_CALENDAR_DATASET_ID,)
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy != {
+                    "mode": "append_immutable_captures_and_rows",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != {
+                    "max_requests": 1,
+                    "max_rows": 2_000,
+                    "max_bytes": 1_048_576,
+                    "max_seconds": 60,
+                }
+                or retry != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_wholesale_calendar",
+                    "FMP wholesale calendar collector drifted",
+                )
+        elif collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID:
+            if (
+                collector["handler"] != "news.fmp_stock_latest"
+                or collector["network"] is not True
+                or inputs
+                or outputs
+                != (
+                    "news.fmp.stock_latest_evidence",
+                    "news.fmp.stock_latest_articles",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_partial_page",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_capture_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 1_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_stock_latest",
+                    "FMP stock-latest collector drifted",
+                )
+        elif collector_id == _STAGE12B_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "market.stage12b_fmp_daily_incremental_fixture"
+                or collector["network"] is not False
+                or inputs != _STAGE12B_INPUT_DATASET_IDS
+                or outputs != _STAGE12B_OUTPUT_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes != ("captured_at", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 5,
+                    "max_bytes": 65_536,
+                    "max_seconds": 30,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "stage12b_fixture",
+                    "Stage 12B incremental fixture collector drifted",
+                )
+        elif collector_id == _STAGE12C_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "market.stage12c_fmp_daily_incremental_manual"
+                or collector["network"] is not True
+                or inputs != _STAGE12C_INPUT_DATASET_IDS
+                or outputs != _STAGE12C_OUTPUT_DATASET_IDS
+                or includes
+                != (
+                    "scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 2,
+                    "max_bytes": 65_536,
+                    "max_seconds": 45,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "stage12c_live",
+                    "Stage 12C manual collector drifted",
+                )
+        elif collector_id == _STAGE9_COLLECTOR_ID:
             if (
                 collector["handler"] != "market.fmp_daily_price"
                 or collector["network"] is not True
@@ -2945,6 +3364,104 @@ def load_registry(
                 or configuration_env != expected["configuration_env"]
             ):
                 raise _error(pointer, "stage11_macro", "Stage 11 macro collector drifted")
+        elif collector_id in (
+            _MACRO_VINTAGE_COLLECTOR_IDS
+            | _EMPLOYMENT_VINTAGE_COLLECTOR_IDS
+            | _MACRO_HISTORY_COLLECTOR_IDS
+        ):
+            expected = {
+                "bea.macro.live_gdp_vintages": {
+                    "handler": "macro.live_gdp_vintages",
+                    "workload": {
+                        "max_requests": 1,
+                        "max_rows": 5_000,
+                        "max_bytes": 1_048_576,
+                        "max_seconds": 60,
+                    },
+                },
+                "bls.macro.live_cpi_vintages": {
+                    "handler": "macro.live_cpi_vintages",
+                    "workload": {
+                        "max_requests": 15,
+                        "max_rows": 10_000,
+                        "max_bytes": 8_388_608,
+                        "max_seconds": 300,
+                    },
+                },
+                "philadelphia_fed.macro.live_employment_vintages": {
+                    "handler": "macro.live_employment_vintages",
+                    "workload": {
+                        "max_requests": 2,
+                        "max_rows": 500_000,
+                        "max_bytes": 16_777_216,
+                        "max_seconds": 600,
+                    },
+                },
+                "bls.macro.live_employment_current": {
+                    "handler": "macro.live_employment_current",
+                    "workload": {
+                        "max_requests": 1,
+                        "max_rows": 300,
+                        "max_bytes": 2_097_152,
+                        "max_seconds": 60,
+                    },
+                },
+                "bls.macro.cpi_current_history": {
+                    "handler": "macro.cpi_current_history",
+                    "workload": {
+                        "max_requests": 7,
+                        "max_rows": 1_344,
+                        "max_bytes": 2_097_152,
+                        "max_seconds": 300,
+                    },
+                },
+                "philadelphia_fed.macro.gdp_cpi_vintage_history": {
+                    "handler": "macro.gdp_cpi_vintage_history",
+                    "workload": {
+                        "max_requests": 4,
+                        "max_rows": 10_000,
+                        "max_bytes": 8_388_608,
+                        "max_seconds": 300,
+                    },
+                },
+            }[collector_id]
+            if (
+                collector["handler"] != expected["handler"]
+                or collector["network"] is not True
+                or inputs
+                or outputs
+                != (
+                    "macro.official_vintages_evidence",
+                    "macro.official_vintages",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "source_vintage",
+                    "normalization_version",
+                    "normalized_vintage_batch",
+                )
+                or excludes != ("captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_vintages_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != expected["workload"]
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "macro_vintages",
+                    "Live GDP/CPI vintage collector drifted",
+                )
         elif collector["network"] is not False or any(
             not name.startswith("QUANT_") for name in configuration_env
         ):
@@ -3296,8 +3813,1393 @@ def _export_free_dataset_projection(
     return projected, raw
 
 
+
+
+def fmp_wholesale_calendar_registry_profile(registry: Registry) -> Registry:
+    """Project wholesale FMP calendar evidence back to the exact 2.20 registry."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.20.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.20.0"
+            or len(registry.migrations) != 37
+            or len(registry.datasets) != 50
+            or len(registry.collectors) != 36
+            or _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+            in {item.id for item in registry.migrations}
+            or _FMP_WHOLESALE_CALENDAR_DATASET_ID
+            in {item.id for item in registry.datasets}
+            or _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or registry.store("macro").migration_order[-1]
+            != _MACRO_HISTORY_MIGRATION_ID
+        ):
+            raise RegistryError("Historical pre-FMP-wholesale registry profile drifted")
+        return registry
+
+    expected_migration_raw = {
+        "dependencies": [_MACRO_HISTORY_MIGRATION_ID],
+        "id": _FMP_WHOLESALE_CALENDAR_MIGRATION_ID,
+        "ordinal": 16,
+        "reconstruction_state": "fixture_validated",
+        "resource": "quant_data/migrations/macro/0016_fmp_calendar_wholesale_evidence.sql",
+        "semantic_scope": "Bounded FMP U.S. economic-calendar wholesale immutable evidence capture and raw-row lineage for local replay of reviewed consensus aliases.",
+        "sha256": "78dc02d34c0489c3f1fe4b7847870a18955606b1f47a3309ed8464ee9f3bbb4d",
+        "store": "macro",
+    }
+    expected_dataset = {
+        "active": True,
+        "collector_ids": [_FMP_WHOLESALE_CALENDAR_COLLECTOR_ID],
+        "dashboard_ids": [],
+        "export_ids": [],
+        "freshness": {
+            "cadence": "manual",
+            "expected_lag": "P0D",
+            "health_severity": "warning",
+            "if_new": True,
+            "measured_from": "successful_capture",
+            "stale_after": "P30D",
+        },
+        "id": _FMP_WHOLESALE_CALENDAR_DATASET_ID,
+        "identity": {
+            "stable_fields": [
+                "request_country", "request_start_date", "request_end_date"
+            ],
+            "version_fields": [
+                "capture_id", "response_sha256", "semantic_identity"
+            ],
+        },
+        "layer": "evidence",
+        "physical": {"relations": [
+            {"kind": "table", "name": _FMP_WHOLESALE_CALENDAR_RELATIONS[0]},
+            {"kind": "table", "name": _FMP_WHOLESALE_CALENDAR_RELATIONS[1]},
+        ]},
+        "quality_contract": {
+            "missingness": "not_applicable",
+            "required_warnings": [],
+            "rules": [
+                "raw_response_retained_private",
+                "complete_us_calendar_batch",
+                "source_row_lineage",
+                "semantic_replay_no_write",
+            ],
+            "units": "source_declared",
+        },
+        "revision_policy": "immutable_capture",
+        "store": "macro",
+        "temporal": {
+            "availability_fields": ["captured_at"],
+            "availability_precision": "datetime",
+            "history_basis": "local_capture",
+            "missingness": "not_applicable",
+            "observation_fields": ["request_start_date", "request_end_date"],
+            "observation_precision": "date",
+            "range_semantics": "inclusive",
+            "timezone_rule": "source_native_no_conversion",
+            "vintage_modes": ["latest", "as_of"],
+        },
+        "tool_ids": [],
+        "version": "1.0.0",
+    }
+    expected_collector = {
+        "configuration_env": ["FMP_API_KEY"],
+        "handler": "macro.fmp_us_economic_calendar_wholesale",
+        "id": _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_immutable_captures_and_rows",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": [_FMP_WHOLESALE_CALENDAR_DATASET_ID],
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "api_key", "captured_at", "http_headers", "source_row_order"
+            ],
+            "includes": [
+                "request_scope", "normalization_version", "normalized_complete_batch"
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 1_048_576,
+            "max_requests": 1,
+            "max_rows": 2_000,
+            "max_seconds": 60,
+        },
+    }
+    expected_migration = MigrationDeclaration(
+        _FMP_WHOLESALE_CALENDAR_MIGRATION_ID,
+        "macro",
+        16,
+        expected_migration_raw["resource"],
+        expected_migration_raw["sha256"],
+        expected_migration_raw["semantic_scope"],
+        (_MACRO_HISTORY_MIGRATION_ID,),
+        "fixture_validated",
+    )
+    migration_matches = tuple(
+        item for item in registry.migrations
+        if item.id == _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+    )
+    dataset_matches = tuple(
+        item for item in registry.datasets
+        if item.id == _FMP_WHOLESALE_CALENDAR_DATASET_ID
+    )
+    collector_matches = tuple(
+        item for item in registry.collectors
+        if str(item["id"]) == _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID
+    )
+    raw_migration_matches = [
+        item for item in registry.raw["migrations"]
+        if item.get("id") == _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+    ]
+    raw_dataset_matches = [
+        item for item in registry.raw["datasets"]
+        if item.get("id") == _FMP_WHOLESALE_CALENDAR_DATASET_ID
+    ]
+    raw_collector_matches = [
+        item for item in registry.raw["collectors"]
+        if item.get("id") == _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID
+    ]
+    raw_macro_stores = [
+        item for item in registry.raw["stores"] if item.get("id") == "macro"
+    ]
+    if (
+        version != ("1.8.0", "2.21.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 37
+        or len(migration_matches) != 1
+        or migration_matches[0] != expected_migration
+        or len(dataset_matches) != 1
+        or dataset_matches[0].store != "macro"
+        or dataset_matches[0].layer != "evidence"
+        or dataset_matches[0].relations != _FMP_WHOLESALE_CALENDAR_RELATIONS
+        or dataset_matches[0].collector_ids != (_FMP_WHOLESALE_CALENDAR_COLLECTOR_ID,)
+        or dataset_matches[0].tool_ids
+        or dataset_matches[0].dashboard_ids
+        or dataset_matches[0].export_ids
+        or len(collector_matches) != 1
+        or dict(collector_matches[0]) != expected_collector
+        or tuple(registry.store("macro").migration_order[-2:])
+        != (_MACRO_HISTORY_MIGRATION_ID, _FMP_WHOLESALE_CALENDAR_MIGRATION_ID)
+        or len(raw_migration_matches) != 1
+        or dict(raw_migration_matches[0]) != expected_migration_raw
+        or len(raw_dataset_matches) != 1
+        or dict(raw_dataset_matches[0]) != expected_dataset
+        or len(raw_collector_matches) != 1
+        or dict(raw_collector_matches[0]) != expected_collector
+        or len(raw_macro_stores) != 1
+        or tuple(raw_macro_stores[0].get("migration_order", ())[-2:])
+        != (_MACRO_HISTORY_MIGRATION_ID, _FMP_WHOLESALE_CALENDAR_MIGRATION_ID)
+        or any(
+            step.collector_id == _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.20")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.20.0"
+    raw["migrations"] = [
+        item for item in raw["migrations"]
+        if item["id"] != _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+    ]
+    raw["datasets"] = [
+        item for item in raw["datasets"]
+        if item["id"] != _FMP_WHOLESALE_CALENDAR_DATASET_ID
+    ]
+    raw["collectors"] = [
+        item for item in raw["collectors"]
+        if item["id"] != _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID
+    ]
+    raw_macro_stores = [
+        item for item in raw["stores"] if item.get("id") == "macro"
+    ]
+    if len(raw_macro_stores) != 1:
+        raise RegistryError("Canonical FMP wholesale macro-store binding drifted")
+    raw_macro_stores[0]["migration_order"] = [
+        migration_id for migration_id in raw_macro_stores[0]["migration_order"]
+        if migration_id != _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+    ]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if hashlib.sha256(projected_payload).hexdigest() != _PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256:
+        raise RegistryError("Canonical FMP wholesale calendar projection drifted")
+
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id for migration_id in store.migration_order
+                if migration_id != _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+            ),
+        ) if store.id == "macro" else store
+        for store in registry.stores
+    )
+    migrations = tuple(
+        item for item in registry.migrations
+        if item.id != _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+    )
+    datasets = tuple(
+        item for item in registry.datasets
+        if item.id != _FMP_WHOLESALE_CALENDAR_DATASET_ID
+    )
+    collectors = tuple(
+        item for item in registry.collectors
+        if str(item["id"]) != _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.20.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def fmp_employment_release_calendar_registry_profile(registry: Registry) -> Registry:
+    """Project the employment FMP calendar refresh collector back to 2.19."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = fmp_wholesale_calendar_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    calendar_matches = tuple(
+        item
+        for item in registry.datasets
+        if item.id == _FMP_GDP_CPI_CALENDAR_DATASET_ID
+    )
+    if len(calendar_matches) != 1:
+        raise RegistryError("FMP employment calendar dataset declaration drifted")
+    calendar = calendar_matches[0]
+    expected_calendar_collectors = (
+        "fixture.macro.calendar_import",
+        _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID,
+        _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID,
+    )
+    historical_calendar_collectors = expected_calendar_collectors[:-1]
+    if version == ("1.8.0", "2.19.0"):
+        if (
+            registry.source_sha256
+            != _PRE_FMP_EMPLOYMENT_CALENDAR_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.19.0"
+            or len(registry.migrations) != 37
+            or len(registry.datasets) != 50
+            or len(registry.collectors) != 35
+            or _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or calendar.collector_ids != historical_calendar_collectors
+        ):
+            raise RegistryError(
+                "Historical pre-FMP-employment-calendar registry profile drifted"
+            )
+        return registry
+
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID
+    )
+    expected_collector = {
+        "configuration_env": ["FMP_API_KEY"],
+        "handler": "macro.fmp_employment_release_calendar_refresh",
+        "id": _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": [_FMP_GDP_CPI_CALENDAR_DATASET_ID],
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "api_key",
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_complete_batch",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 1_048_576,
+            "max_requests": 1,
+            "max_rows": 2_000,
+            "max_seconds": 60,
+        },
+    }
+    if (
+        version != ("1.8.0", "2.20.0")
+        or len(registry.migrations) != 37
+        or len(registry.datasets) != 50
+        or len(registry.collectors) != 36
+        or len(collector_matches) != 1
+        or dict(collector_matches[0]) != expected_collector
+        or calendar.collector_ids != expected_calendar_collectors
+        or any(
+            step.collector_id == _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.19")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.19.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID
+    ]
+    raw_calendar = [
+        item
+        for item in raw["datasets"]
+        if item.get("id") == _FMP_GDP_CPI_CALENDAR_DATASET_ID
+    ]
+    if (
+        len(raw_calendar) != 1
+        or tuple(raw_calendar[0].get("collector_ids", ()))
+        != expected_calendar_collectors
+    ):
+        raise RegistryError("Canonical FMP employment calendar binding drifted")
+    raw_calendar[0]["collector_ids"] = list(historical_calendar_collectors)
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_FMP_EMPLOYMENT_CALENDAR_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical FMP employment calendar projection drifted")
+
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID
+    )
+    datasets = tuple(
+        replace(item, collector_ids=historical_calendar_collectors)
+        if item.id == _FMP_GDP_CPI_CALENDAR_DATASET_ID
+        else item
+        for item in registry.datasets
+    )
+    return replace(
+        registry,
+        registry_version="2.19.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_FMP_EMPLOYMENT_CALENDAR_REGISTRY_SOURCE_SHA256,
+    )
+
+def fmp_gdp_cpi_release_calendar_registry_profile(registry: Registry) -> Registry:
+    """Project the manual FMP GDP/CPI calendar collector back to 2.18."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = fmp_employment_release_calendar_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    calendar_matches = tuple(
+        item
+        for item in registry.datasets
+        if item.id == _FMP_GDP_CPI_CALENDAR_DATASET_ID
+    )
+    if len(calendar_matches) != 1:
+        raise RegistryError("FMP GDP/CPI calendar dataset declaration drifted")
+    calendar = calendar_matches[0]
+    official_matches = tuple(
+        item
+        for item in registry.datasets
+        if item.id == _FMP_GDP_CPI_OFFICIAL_DATASET_ID
+    )
+    surprise_tool_matches = tuple(
+        item
+        for item in registry.tools
+        if item["id"] == _FMP_GDP_CPI_SURPRISE_TOOL_ID
+    )
+    if len(official_matches) != 1 or len(surprise_tool_matches) != 1:
+        raise RegistryError("FMP GDP/CPI surprise dependency declaration drifted")
+    official = official_matches[0]
+    surprise_tool = surprise_tool_matches[0]
+    if version == ("1.8.0", "2.18.0"):
+        if (
+            registry.source_sha256
+            != _PRE_FMP_GDP_CPI_CALENDAR_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.18.0"
+            or len(registry.migrations) != 37
+            or len(registry.datasets) != 50
+            or len(registry.collectors) != 34
+            or _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or calendar.collector_ids != ("fixture.macro.calendar_import",)
+            or official.tool_ids
+            or tuple(surprise_tool["datasets"])
+            != (_FMP_GDP_CPI_CALENDAR_DATASET_ID,)
+            or surprise_tool["examples"][0]["identifiers"] != ["fixture"]
+        ):
+            raise RegistryError("Historical pre-FMP-calendar registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.19.0")
+        or len(registry.migrations) != 37
+        or len(registry.datasets) != 50
+        or len(registry.collectors) != 35
+        or sum(
+            str(item["id"]) == _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID
+            for item in registry.collectors
+        )
+        != 1
+        or calendar.collector_ids
+        != (
+            "fixture.macro.calendar_import",
+            _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID,
+        )
+        or official.tool_ids != (_FMP_GDP_CPI_SURPRISE_TOOL_ID,)
+        or tuple(surprise_tool["datasets"])
+        != (
+            _FMP_GDP_CPI_CALENDAR_DATASET_ID,
+            _FMP_GDP_CPI_OFFICIAL_DATASET_ID,
+        )
+        or surprise_tool["examples"][0]["identifiers"]
+        != ["us_gdp_real_qoq_saar_advance"]
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.18")
+
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id != _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID
+            ),
+        )
+        if item.id == _FMP_GDP_CPI_CALENDAR_DATASET_ID
+        else replace(
+            item,
+            tool_ids=tuple(
+                tool_id
+                for tool_id in item.tool_ids
+                if tool_id != _FMP_GDP_CPI_SURPRISE_TOOL_ID
+            ),
+        )
+        if item.id == _FMP_GDP_CPI_OFFICIAL_DATASET_ID
+        else item
+        for item in registry.datasets
+    )
+    projected_surprise_tool = copy.deepcopy(dict(surprise_tool))
+    projected_surprise_tool["datasets"] = [
+        dataset_id
+        for dataset_id in projected_surprise_tool["datasets"]
+        if dataset_id != _FMP_GDP_CPI_OFFICIAL_DATASET_ID
+    ]
+    projected_surprise_tool["examples"][0]["identifiers"] = ["fixture"]
+    tools = tuple(
+        projected_surprise_tool
+        if item["id"] == _FMP_GDP_CPI_SURPRISE_TOOL_ID
+        else item
+        for item in registry.tools
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.18.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID
+    ]
+    for dataset in raw["datasets"]:
+        if dataset.get("id") == _FMP_GDP_CPI_CALENDAR_DATASET_ID:
+            dataset["collector_ids"] = [
+                collector_id
+                for collector_id in dataset["collector_ids"]
+                if collector_id != _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID
+            ]
+        elif dataset.get("id") == _FMP_GDP_CPI_OFFICIAL_DATASET_ID:
+            dataset["tool_ids"] = [
+                tool_id
+                for tool_id in dataset["tool_ids"]
+                if tool_id != _FMP_GDP_CPI_SURPRISE_TOOL_ID
+            ]
+    for tool in raw["tools"]:
+        if tool.get("id") == _FMP_GDP_CPI_SURPRISE_TOOL_ID:
+            tool["datasets"] = [
+                dataset_id
+                for dataset_id in tool["datasets"]
+                if dataset_id != _FMP_GDP_CPI_OFFICIAL_DATASET_ID
+            ]
+            tool["examples"][0]["identifiers"] = ["fixture"]
+    return replace(
+        registry,
+        registry_version="2.18.0",
+        datasets=datasets,
+        collectors=collectors,
+        tools=tools,
+        raw=raw,
+        source_sha256=_PRE_FMP_GDP_CPI_CALENDAR_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def macro_history_extension_registry_profile(registry: Registry) -> Registry:
+    """Project the one-time macro-history extension back to registry 2.17."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = fmp_gdp_cpi_release_calendar_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.17.0"):
+        if (
+            registry.source_sha256 != _PRE_MACRO_HISTORY_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.17.0"
+            or len(registry.migrations) != 36
+            or len(registry.datasets) != 50
+            or len(registry.collectors) != 32
+        ):
+            raise RegistryError("Historical pre-history-extension registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.18.0")
+        or len(registry.migrations) != 37
+        or len(registry.datasets) != 50
+        or len(registry.collectors) != 34
+        or registry.store("macro").migration_order[-1]
+        != _MACRO_HISTORY_MIGRATION_ID
+        or _MACRO_HISTORY_MIGRATION_ID
+        not in {item.id for item in registry.migrations}
+        or not _MACRO_HISTORY_COLLECTOR_IDS.issubset(
+            {str(item["id"]) for item in registry.collectors}
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.17")
+
+    expected_collectors = (
+        "bea.macro.live_gdp_vintages",
+        "bls.macro.live_cpi_vintages",
+        "philadelphia_fed.macro.live_employment_vintages",
+        "bls.macro.live_employment_current",
+        "bls.macro.cpi_current_history",
+        "philadelphia_fed.macro.gdp_cpi_vintage_history",
+    )
+    history_datasets = {
+        item.id: item
+        for item in registry.datasets
+        if item.id in _MACRO_VINTAGE_DATASET_IDS
+    }
+    if set(history_datasets) != set(_MACRO_VINTAGE_DATASET_IDS) or any(
+        tuple(item.collector_ids) != expected_collectors
+        for item in history_datasets.values()
+    ):
+        raise RegistryError("Canonical macro-history dataset bindings drifted")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id != _MACRO_HISTORY_MIGRATION_ID
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in _MACRO_HISTORY_COLLECTOR_IDS
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id not in _MACRO_HISTORY_COLLECTOR_IDS
+            ),
+        )
+        if item.id in _MACRO_VINTAGE_DATASET_IDS
+        else item
+        for item in registry.datasets
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id != _MACRO_HISTORY_MIGRATION_ID
+            ),
+        )
+        for store in registry.stores
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.17.0"
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] != _MACRO_HISTORY_MIGRATION_ID
+    ]
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] not in _MACRO_HISTORY_COLLECTOR_IDS
+    ]
+    for dataset in raw["datasets"]:
+        if dataset.get("id") in _MACRO_VINTAGE_DATASET_IDS:
+            dataset["collector_ids"] = [
+                collector_id
+                for collector_id in dataset["collector_ids"]
+                if collector_id not in _MACRO_HISTORY_COLLECTOR_IDS
+            ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id != _MACRO_HISTORY_MIGRATION_ID
+        ]
+    return replace(
+        registry,
+        registry_version="2.17.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_MACRO_HISTORY_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def employment_vintage_registry_profile(registry: Registry) -> Registry:
+    """Project the employment-vintage revision back to registry 2.16."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.18.0"),
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = macro_history_extension_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.16.0"):
+        if (
+            registry.source_sha256
+            != _PRE_EMPLOYMENT_VINTAGE_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.16.0"
+            or len(registry.migrations) != 35
+            or len(registry.datasets) != 50
+            or len(registry.collectors) != 30
+        ):
+            raise RegistryError("Historical pre-employment registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.17.0")
+        or len(registry.migrations) != 36
+        or len(registry.datasets) != 50
+        or len(registry.collectors) != 32
+        or registry.store("macro").migration_order[-1]
+        != _EMPLOYMENT_VINTAGE_MIGRATION_ID
+        or _EMPLOYMENT_VINTAGE_MIGRATION_ID
+        not in {item.id for item in registry.migrations}
+        or not _EMPLOYMENT_VINTAGE_COLLECTOR_IDS.issubset(
+            {str(item["id"]) for item in registry.collectors}
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.16")
+
+    expected_collectors = (
+        "bea.macro.live_gdp_vintages",
+        "bls.macro.live_cpi_vintages",
+        "philadelphia_fed.macro.live_employment_vintages",
+        "bls.macro.live_employment_current",
+    )
+    employment_datasets = {
+        item.id: item
+        for item in registry.datasets
+        if item.id in _MACRO_VINTAGE_DATASET_IDS
+    }
+    if set(employment_datasets) != set(_MACRO_VINTAGE_DATASET_IDS) or any(
+        tuple(item.collector_ids) != expected_collectors
+        for item in employment_datasets.values()
+    ):
+        raise RegistryError("Canonical employment dataset bindings drifted")
+
+    migrations = tuple(
+        item
+        for item in registry.migrations
+        if item.id != _EMPLOYMENT_VINTAGE_MIGRATION_ID
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in _EMPLOYMENT_VINTAGE_COLLECTOR_IDS
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id not in _EMPLOYMENT_VINTAGE_COLLECTOR_IDS
+            ),
+        )
+        if item.id in _MACRO_VINTAGE_DATASET_IDS
+        else item
+        for item in registry.datasets
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id != _EMPLOYMENT_VINTAGE_MIGRATION_ID
+            ),
+        )
+        for store in registry.stores
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.16.0"
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] != _EMPLOYMENT_VINTAGE_MIGRATION_ID
+    ]
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] not in _EMPLOYMENT_VINTAGE_COLLECTOR_IDS
+    ]
+    for dataset in raw["datasets"]:
+        if dataset.get("id") in _MACRO_VINTAGE_DATASET_IDS:
+            dataset["collector_ids"] = [
+                collector_id
+                for collector_id in dataset["collector_ids"]
+                if collector_id not in _EMPLOYMENT_VINTAGE_COLLECTOR_IDS
+            ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id != _EMPLOYMENT_VINTAGE_MIGRATION_ID
+        ]
+    return replace(
+        registry,
+        registry_version="2.16.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_EMPLOYMENT_VINTAGE_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def macro_vintage_registry_profile(registry: Registry) -> Registry:
+    """Project the live GDP/CPI vintage revision back to registry 2.15."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.17.0"),
+        ("1.8.0", "2.18.0"),
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = employment_vintage_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.15.0"):
+        if (
+            registry.source_sha256 != _PRE_MACRO_VINTAGE_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.15.0"
+            or len(registry.migrations) != 34
+            or len(registry.datasets) != 48
+            or len(registry.collectors) != 28
+        ):
+            raise RegistryError("Historical pre-vintage registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.16.0")
+        or len(registry.migrations) != 35
+        or len(registry.datasets) != 50
+        or len(registry.collectors) != 30
+        or registry.store("macro").migration_order[-1]
+        != _MACRO_VINTAGE_MIGRATION_ID
+        or _MACRO_VINTAGE_MIGRATION_ID
+        not in {item.id for item in registry.migrations}
+        or not _MACRO_VINTAGE_DATASET_IDS.issubset(
+            {item.id for item in registry.datasets}
+        )
+        or not _MACRO_VINTAGE_COLLECTOR_IDS.issubset(
+            {str(item["id"]) for item in registry.collectors}
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.15")
+
+    migrations = tuple(
+        item for item in registry.migrations if item.id != _MACRO_VINTAGE_MIGRATION_ID
+    )
+    datasets = tuple(
+        item for item in registry.datasets if item.id not in _MACRO_VINTAGE_DATASET_IDS
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in _MACRO_VINTAGE_COLLECTOR_IDS
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id != _MACRO_VINTAGE_MIGRATION_ID
+            ),
+        )
+        for store in registry.stores
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.15.0"
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] != _MACRO_VINTAGE_MIGRATION_ID
+    ]
+    raw["datasets"] = [
+        item for item in raw["datasets"] if item["id"] not in _MACRO_VINTAGE_DATASET_IDS
+    ]
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] not in _MACRO_VINTAGE_COLLECTOR_IDS
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id != _MACRO_VINTAGE_MIGRATION_ID
+        ]
+    return replace(
+        registry,
+        registry_version="2.15.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_MACRO_VINTAGE_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage12d_registry_profile(registry: Registry) -> Registry:
+    """Project the current basename-aligned registry back to Stage 12D."""
+
+    historical_defaults = {
+        "market": "data/market.sqlite",
+        "macro": "data/macro_data.sqlite",
+        "company": "data/company_data.sqlite",
+        "news": "data/news_data.sqlite",
+    }
+    current_defaults = {
+        "market": "data/market.sqlite",
+        "macro": "data/macro.sqlite",
+        "company": "data/company.sqlite",
+        "news": "data/news.sqlite",
+    }
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.16.0"),
+        ("1.8.0", "2.17.0"),
+        ("1.8.0", "2.18.0"),
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = macro_vintage_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.14.0"):
+        if (
+            registry.source_sha256 != _STAGE12C_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.14.0"
+            or {
+                role: registry.store(role).default_path
+                for role in historical_defaults
+            }
+            != historical_defaults
+        ):
+            raise RegistryError("Historical Stage 12D registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.15.0")
+        or len(registry.migrations) != 34
+        or len(registry.datasets) != 48
+        or len(registry.collectors) != 28
+        or {
+            role: registry.store(role).default_path for role in current_defaults
+        }
+        != current_defaults
+    ):
+        raise RegistryError("Canonical registry cannot reproduce Stage 12D")
+
+    stores = tuple(
+        replace(store, default_path=historical_defaults[store.id])
+        for store in registry.stores
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw_stores = {item.get("id"): item for item in raw["stores"]}
+    if set(raw_stores) != set(current_defaults) or any(
+        raw_stores[role].get("default_path") != current_defaults[role]
+        for role in current_defaults
+    ):
+        raise RegistryError("Canonical raw store defaults drifted")
+    for role, default_path in historical_defaults.items():
+        raw_stores[role]["default_path"] = default_path
+    raw["registry_version"] = "2.14.0"
+    return replace(
+        registry,
+        registry_version="2.14.0",
+        stores=stores,
+        raw=raw,
+        source_sha256=_STAGE12C_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage12c_registry_profile(registry: Registry) -> Registry:
+    """Project the Stage 12C manual collector revision back to Stage 12B."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.15.0"),
+        ("1.8.0", "2.16.0"),
+        ("1.8.0", "2.17.0"),
+        ("1.8.0", "2.18.0"),
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = stage12d_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.13.0"):
+        if (
+            registry.source_sha256 != _STAGE12B_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.13.0"
+            or len(registry.migrations) != 34
+            or len(registry.datasets) != 48
+            or len(registry.collectors) != 27
+            or _STAGE12C_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _STAGE12C_COLLECTOR_ID in dataset.collector_ids
+                for dataset in registry.datasets
+            )
+        ):
+            raise RegistryError("Historical Stage 12B registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.14.0")
+        or registry.store("market").default_path != "data/market.sqlite"
+        or len(registry.migrations) != 34
+        or len(registry.datasets) != 48
+        or len(registry.collectors) != 28
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 12B profile")
+
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _STAGE12C_COLLECTOR_ID
+    )
+    datasets_by_id = {item.id: item for item in registry.datasets}
+    if len(collector_matches) != 1 or not set(
+        _STAGE12C_OUTPUT_DATASET_IDS
+    ).issubset(datasets_by_id):
+        raise RegistryError("Canonical Stage 12C collector is incomplete")
+    collector = collector_matches[0]
+    if (
+        collector["version"] != "1.0.0"
+        or collector["handler"] != "market.stage12c_fmp_daily_incremental_manual"
+        or collector["network"] is not True
+        or tuple(collector["configuration_env"]) != ("FMP_API_KEY",)
+        or tuple(collector["input_datasets"]) != _STAGE12C_INPUT_DATASET_IDS
+        or tuple(collector["output_datasets"]) != _STAGE12C_OUTPUT_DATASET_IDS
+        or dict(collector["semantic_identity"])
+        != {
+            "excludes": [
+                "api_key",
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "scope_manifest_sha256",
+                "request_scope",
+                "normalization_version",
+                "normalized_complete_batch",
+            ],
+        }
+        or dict(collector["mutation_policy"])
+        != {
+            "mode": "append_versions_and_move_current_projection",
+            "unchanged": "zero_persistent_writes",
+        }
+        or dict(collector["workload_bounds"])
+        != {
+            "max_requests": 1,
+            "max_rows": 2,
+            "max_bytes": 65_536,
+            "max_seconds": 45,
+        }
+        or dict(collector["retry_policy"])
+        != {
+            "transient_classes": [],
+            "max_attempts": 1,
+            "backoff": "none",
+            "honor_retry_after": False,
+        }
+        or collector["physical_locks"] != "derived_from_output_store_paths"
+        or dict(collector["schedule_eligibility"]) != {"mode": "manual_only"}
+        or any(
+            tuple(datasets_by_id[dataset_id].collector_ids)
+            != expected_collector_ids
+            for dataset_id, expected_collector_ids in (
+                _STAGE12C_EXPECTED_DATASET_COLLECTOR_IDS.items()
+            )
+        )
+    ):
+        raise RegistryError("Canonical Stage 12C collector drifted")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw_collector_matches = [
+        item
+        for item in raw["collectors"]
+        if item.get("id") == _STAGE12C_COLLECTOR_ID
+    ]
+    if len(raw_collector_matches) != 1:
+        raise RegistryError("Canonical Stage 12C raw collector is incomplete")
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _STAGE12C_COLLECTOR_ID
+    ]
+    for dataset in raw["datasets"]:
+        expected_collector_ids = _STAGE12C_EXPECTED_DATASET_COLLECTOR_IDS.get(
+            dataset.get("id")
+        )
+        if expected_collector_ids is None:
+            continue
+        if tuple(dataset.get("collector_ids", ())) != expected_collector_ids:
+            raise RegistryError("Canonical Stage 12C dataset binding drifted")
+        dataset["collector_ids"] = [
+            collector_id
+            for collector_id in dataset["collector_ids"]
+            if collector_id != _STAGE12C_COLLECTOR_ID
+        ]
+    raw["registry_version"] = "2.13.0"
+    datasets = tuple(
+        replace(
+            dataset,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in dataset.collector_ids
+                if collector_id != _STAGE12C_COLLECTOR_ID
+            ),
+        )
+        for dataset in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _STAGE12C_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.13.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_STAGE12B_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage12b_registry_profile(registry: Registry) -> Registry:
+    """Project the Stage 12B fixture collector revision back to Stage 12A."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.17.0"),
+        ("1.8.0", "2.16.0"),
+        ("1.8.0", "2.15.0"),
+        ("1.8.0", "2.14.0"),
+        ("1.8.0", "2.18.0"),
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = stage12c_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.12.0"):
+        raw_market = [
+            store for store in registry.raw["stores"] if store.get("id") == "market"
+        ]
+        if (
+            registry.source_sha256 != _STAGE12A_REGISTRY_SOURCE_SHA256
+            or registry.store("market").default_path != "data/market.sqlite"
+            or registry.raw.get("registry_version") != "2.12.0"
+            or len(raw_market) != 1
+            or raw_market[0].get("default_path") != "data/market.sqlite"
+            or _STAGE12B_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _STAGE12B_COLLECTOR_ID in dataset.collector_ids
+                for dataset in registry.datasets
+            )
+        ):
+            raise RegistryError("Historical Stage 12A registry profile drifted")
+        return registry
+
+    if (
+        version != ("1.8.0", "2.13.0")
+        or registry.store("market").default_path != "data/market.sqlite"
+        or len(registry.migrations) != 34
+        or len(registry.datasets) != 48
+        or len(registry.collectors) != 27
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the Stage 12A profile")
+
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _STAGE12B_COLLECTOR_ID
+    )
+    datasets_by_id = {item.id: item for item in registry.datasets}
+    if len(collector_matches) != 1 or not set(
+        _STAGE12B_OUTPUT_DATASET_IDS
+    ).issubset(datasets_by_id):
+        raise RegistryError("Canonical Stage 12B fixture collector is incomplete")
+    collector = collector_matches[0]
+    if (
+        collector["version"] != "1.0.0"
+        or collector["handler"] != "market.stage12b_fmp_daily_incremental_fixture"
+        or collector["network"] is not False
+        or tuple(collector["input_datasets"]) != _STAGE12B_INPUT_DATASET_IDS
+        or tuple(collector["output_datasets"]) != _STAGE12B_OUTPUT_DATASET_IDS
+        or dict(collector["semantic_identity"])
+        != {
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_complete_batch",
+            ],
+            "excludes": ["captured_at", "source_row_order"],
+        }
+        or dict(collector["mutation_policy"])
+        != {
+            "mode": "append_versions_and_move_current_projection",
+            "unchanged": "zero_persistent_writes",
+        }
+        or dict(collector["workload_bounds"])
+        != {
+            "max_requests": 1,
+            "max_rows": 5,
+            "max_bytes": 65_536,
+            "max_seconds": 30,
+        }
+        or dict(collector["retry_policy"])
+        != {
+            "transient_classes": [],
+            "max_attempts": 1,
+            "backoff": "none",
+            "honor_retry_after": False,
+        }
+        or tuple(collector["configuration_env"])
+        or collector["physical_locks"] != "derived_from_output_store_paths"
+        or dict(collector["schedule_eligibility"]) != {"mode": "manual_only"}
+        or any(
+            tuple(datasets_by_id[dataset_id].collector_ids)
+            != expected_collector_ids
+            for dataset_id, expected_collector_ids in (
+                _STAGE12B_EXPECTED_DATASET_COLLECTOR_IDS.items()
+            )
+        )
+    ):
+        raise RegistryError("Canonical Stage 12B fixture collector drifted")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw_collector_matches = [
+        item
+        for item in raw["collectors"]
+        if item.get("id") == _STAGE12B_COLLECTOR_ID
+    ]
+    if len(raw_collector_matches) != 1:
+        raise RegistryError("Canonical Stage 12B raw collector is incomplete")
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _STAGE12B_COLLECTOR_ID
+    ]
+    for dataset in raw["datasets"]:
+        expected_collector_ids = _STAGE12B_EXPECTED_DATASET_COLLECTOR_IDS.get(
+            dataset.get("id")
+        )
+        if expected_collector_ids is None:
+            continue
+        if tuple(dataset.get("collector_ids", ())) != expected_collector_ids:
+            raise RegistryError("Canonical Stage 12B dataset binding drifted")
+        dataset["collector_ids"] = [
+            collector_id
+            for collector_id in dataset["collector_ids"]
+            if collector_id != _STAGE12B_COLLECTOR_ID
+        ]
+    raw["registry_version"] = "2.12.0"
+    datasets = tuple(
+        replace(
+            dataset,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in dataset.collector_ids
+                if collector_id != _STAGE12B_COLLECTOR_ID
+            ),
+        )
+        for dataset in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _STAGE12B_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.12.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_STAGE12A_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def stage12_registry_profile(registry: Registry) -> Registry:
+    """Project the path-only Stage 12 revision back to canonical revision 2.11."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.17.0"),
+        ("1.8.0", "2.16.0"),
+        ("1.8.0", "2.15.0"),
+        ("1.8.0", "2.14.0"),
+        ("1.8.0", "2.18.0"),
+        ("1.8.0", "2.19.0"),
+        ("1.8.0", "2.20.0"),
+        ("1.8.0", "2.21.0"),
+    }:
+        registry = stage12c_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.13.0"):
+        registry = stage12b_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.11.0"):
+        if (
+            registry.store("market").default_path != "data/market_data.sqlite"
+            or registry.source_sha256 != _STAGE12_REGISTRY_SOURCE_SHA256
+        ):
+            raise RegistryError("Historical Stage 12 registry profile drifted")
+        return registry
+    if (
+        version != ("1.8.0", "2.12.0")
+        or registry.store("market").default_path != "data/market.sqlite"
+    ):
+        raise RegistryError("Canonical registry cannot reproduce the pre-Stage 12 profile")
+
+    stores = tuple(
+        replace(store, default_path="data/market_data.sqlite")
+        if store.id == "market"
+        else store
+        for store in registry.stores
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw_market = [
+        store for store in raw["stores"] if store.get("id") == "market"
+    ]
+    if (
+        len(raw_market) != 1
+        or raw_market[0].get("default_path") != "data/market.sqlite"
+    ):
+        raise RegistryError("Canonical Stage 12 market path drifted")
+    raw_market[0]["default_path"] = "data/market_data.sqlite"
+    raw["registry_version"] = "2.11.0"
+    return replace(
+        registry,
+        registry_version="2.11.0",
+        stores=stores,
+        raw=raw,
+        source_sha256=_STAGE12_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def stage11_registry_profile(registry: Registry) -> Registry:
-    """Project canonical retry-policy revision 2.10 back to Stage 11 exactly."""
+    """Project the current Stage 12 revision back to Stage 11 exactly."""
+
+    if (
+        registry.schema_version == "1.8.0"
+        and registry.registry_version
+        in {
+            "2.12.0",
+            "2.13.0",
+            "2.14.0",
+            "2.15.0",
+            "2.16.0",
+            "2.17.0",
+            "2.18.0",
+            "2.19.0",
+            "2.20.0",
+            "2.21.0",
+        }
+    ):
+        registry = stage12_registry_profile(registry)
 
     stage11_collectors = tuple(
         item
@@ -3318,6 +5220,101 @@ def stage11_registry_profile(registry: Registry) -> Registry:
         ):
             raise RegistryError("Historical Stage 11 registry profile drifted")
         return registry
+
+    if registry.schema_version == "1.8.0" and registry.registry_version == "2.11.0":
+        fmp_migrations = tuple(
+            item
+            for item in registry.migrations
+            if item.id == _FMP_STOCK_LATEST_MIGRATION_ID
+        )
+        if (
+            len(registry.migrations) != 34
+            or len(registry.datasets) != 48
+            or len(registry.collectors) != 26
+            or len(stage11_collectors) != 3
+            or len(fmp_migrations) != 1
+            or fmp_migrations[0].store != "news"
+            or fmp_migrations[0].ordinal != 5
+            or not _FMP_STOCK_LATEST_DATASET_IDS.issubset(
+                {item.id for item in registry.datasets}
+            )
+            or _FMP_STOCK_LATEST_COLLECTOR_ID
+            not in {str(item["id"]) for item in registry.collectors}
+            or registry.store("news").migration_order[-1]
+            != _FMP_STOCK_LATEST_MIGRATION_ID
+            or any(
+                dict(item["retry_policy"]) != _STAGE11_CANONICAL_RETRY_POLICY
+                for item in stage11_collectors
+            )
+        ):
+            raise RegistryError(
+                "Canonical registry cannot reproduce the Stage 11 profile"
+            )
+        migrations = tuple(
+            item
+            for item in registry.migrations
+            if item.id != _FMP_STOCK_LATEST_MIGRATION_ID
+        )
+        datasets = tuple(
+            item
+            for item in registry.datasets
+            if item.id not in _FMP_STOCK_LATEST_DATASET_IDS
+        )
+        collectors = tuple(
+            item
+            for item in registry.collectors
+            if str(item["id"]) != _FMP_STOCK_LATEST_COLLECTOR_ID
+        )
+        stores = tuple(
+            replace(
+                store,
+                migration_order=tuple(
+                    migration_id
+                    for migration_id in store.migration_order
+                    if migration_id != _FMP_STOCK_LATEST_MIGRATION_ID
+                ),
+            )
+            for store in registry.stores
+        )
+        raw = copy.deepcopy(dict(registry.raw))
+        raw["schema_version"] = "1.7.0"
+        raw["registry_version"] = "2.10.0"
+        raw["migrations"] = [
+            item
+            for item in raw["migrations"]
+            if item["id"] != _FMP_STOCK_LATEST_MIGRATION_ID
+        ]
+        raw["datasets"] = [
+            item
+            for item in raw["datasets"]
+            if item["id"] not in _FMP_STOCK_LATEST_DATASET_IDS
+        ]
+        raw["collectors"] = [
+            item
+            for item in raw["collectors"]
+            if item["id"] != _FMP_STOCK_LATEST_COLLECTOR_ID
+        ]
+        for store in raw["stores"]:
+            store["migration_order"] = [
+                migration_id
+                for migration_id in store["migration_order"]
+                if migration_id != _FMP_STOCK_LATEST_MIGRATION_ID
+            ]
+        registry = replace(
+            registry,
+            schema_version="1.7.0",
+            registry_version="2.10.0",
+            stores=stores,
+            migrations=migrations,
+            datasets=datasets,
+            collectors=collectors,
+            raw=raw,
+        )
+        stage11_collectors = tuple(
+            item
+            for item in registry.collectors
+            if str(item["id"]) in _STAGE11_COLLECTOR_IDS
+        )
 
     if (
         registry.schema_version != "1.7.0"
@@ -3353,8 +5350,22 @@ def stage10_registry_profile(registry: Registry) -> Registry:
     """Project the canonical Stage 11 registry back to Stage 10 exactly."""
 
     if (
-        registry.schema_version == "1.7.0"
-        and registry.registry_version in {"2.9.0", "2.10.0"}
+        (registry.schema_version, registry.registry_version)
+        in {
+            ("1.8.0", "2.14.0"),
+            ("1.8.0", "2.15.0"),
+            ("1.8.0", "2.16.0"),
+            ("1.8.0", "2.17.0"),
+            ("1.8.0", "2.18.0"),
+            ("1.8.0", "2.19.0"),
+            ("1.8.0", "2.20.0"),
+            ("1.8.0", "2.21.0"),
+            ("1.8.0", "2.13.0"),
+            ("1.8.0", "2.12.0"),
+            ("1.8.0", "2.11.0"),
+            ("1.7.0", "2.9.0"),
+            ("1.7.0", "2.10.0"),
+        }
     ):
         registry = stage11_registry_profile(registry)
     if (
@@ -3431,8 +5442,22 @@ def stage10_registry_profile(registry: Registry) -> Registry:
 
 def _stage10_input(registry: Registry) -> Registry:
     if (
-        registry.schema_version == "1.7.0"
-        and registry.registry_version in {"2.9.0", "2.10.0"}
+        (registry.schema_version, registry.registry_version)
+        in {
+            ("1.8.0", "2.14.0"),
+            ("1.8.0", "2.15.0"),
+            ("1.8.0", "2.16.0"),
+            ("1.8.0", "2.17.0"),
+            ("1.8.0", "2.18.0"),
+            ("1.8.0", "2.19.0"),
+            ("1.8.0", "2.20.0"),
+            ("1.8.0", "2.21.0"),
+            ("1.8.0", "2.13.0"),
+            ("1.8.0", "2.12.0"),
+            ("1.8.0", "2.11.0"),
+            ("1.7.0", "2.9.0"),
+            ("1.7.0", "2.10.0"),
+        }
     ):
         return stage10_registry_profile(registry)
     return registry
@@ -3622,7 +5647,12 @@ def stage2_registry_profile(registry: Registry) -> Registry:
     validated canonical registry and retains the original resource bytes.
     """
 
-    registry = _stage8_input(registry)
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    if hashlib.sha256(payload).hexdigest() == registry.source_sha256:
+        registry = _stage8_input(registry)
     migration_ids = {item.id for item in registry.migrations}
     dataset_ids = {item.id for item in registry.datasets}
     collector_ids = {str(item["id"]) for item in registry.collectors}

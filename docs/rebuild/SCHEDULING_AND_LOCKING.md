@@ -12,10 +12,15 @@ installed or authorized to contact a live provider or operational store.
 
 Related documents:
 
+- [Current operating envelope](CURRENT_OPERATING_ENVELOPE.md)
 - [Architecture](../../ARCHITECTURE.md)
 - [System registry specification](SYSTEM_REGISTRY_SPEC.md)
 - [Data and time contracts](DATA_AND_TIME_CONTRACTS.md)
 - [Roadmap](../../ROADMAP.md)
+- [Stage 12B incremental Market v1 collector](STAGE12B_INCREMENTAL_MARKET_V1.md)
+- [Stage 12C two-session Market v1 gap contract](STAGE12C_MARKET_GAP_V1.md)
+- [Stage 12D no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+- [Stage 12D evidence record](STAGE12D_EVIDENCE.md)
 - [ADR 0006: Lock by resolved physical store](../adr/0006-lock-by-physical-store.md)
 
 ## Scope
@@ -34,7 +39,72 @@ This document specifies:
 It authorizes only the reviewed synthetic-fixture rehearsal against explicit
 temporary stores and private state roots. It does not authorize live/network
 collection, operational or default database paths, scheduler installation,
-update, removal or start, deployment, exports, promotion, or live diagnostics.
+update, removal or start, deployment, exports, promotion, or live diagnostics,
+except for the completed bounded Stage 12C slice recorded in its evidence.
+The completed and independently verified Stage 12D no-transfer proof had no
+provider, scheduler, or public-consumer capability. A later explicit user
+decision separately authorized the fixed GDP/CPI vintage timer described
+below. A subsequent explicit decision authorized the separate fixed
+employment-vintage timer. A further explicit decision authorized the fixed FMP
+macro-calendar timer described below. These are the only three recurring
+exceptions; none broadens the disabled recovered job catalog or Stage 12E.
+The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
+authoritative concise list of allowed recurring units.
+
+## Active GDP/CPI vintage refresh
+
+`quant-data-macro-vintages.timer` is one of three recurring scheduling
+exceptions in this document. It runs the fixed zero-argument refresh wrapper at
+09:05 America/New_York, Monday through Friday, with `Persistent=false`.
+Each invocation makes exactly one BEA workbook request and one BLS current API
+request, with no retry, credential, caller path, migration, or archive fetch.
+Network parsing completes before the publisher takes the physical macro-store
+lock; publication uses a short transaction, and unchanged normalized content
+causes zero writes. The 14 BLS annual archive requests belong only to the
+completed manual backfill and must not recur through the timer.
+
+The service is fixed to
+`/home/volatility/Python_Projects/Quant_Data_Infra/data/macro.sqlite`, runs with
+`NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome=read-only`, a private
+temporary directory, and a `0077` umask. Its first service-level run completed
+as two semantic no-ops before the timer was enabled.
+
+## Active employment-vintage refresh
+
+`quant-data-employment-vintages.timer` is the second recurring scheduling
+exception. It runs on the first Friday of each month
+at 10:05 America/New_York with `Persistent=false`. The recurring path makes
+exactly one credential-free BLS request for `CES0000000001` and
+`LNS14000000`, with no retry or migration. It never refetches the completed
+Philadelphia Fed payroll or unemployment historical workbooks. Network and
+parsing finish before the publisher obtains the physical macro-store lock;
+unchanged normalized facts cause zero writes.
+
+The service has the same fixed `data/macro.sqlite` target and systemd hardening
+as the GDP/CPI service. A manual service invocation outside the monthly release
+window completed successfully with `requested=0`, proving that the calendar
+gate performs no provider request. The timer is enabled and waiting for
+`2026-09-04 10:05 EDT`.
+
+## Active FMP macro-calendar refresh
+
+`quant-data-fmp-macro-calendar.timer` is the third recurring scheduling
+exception. It runs at 08:15 and 08:45 America/New_York, Monday through Friday,
+with `Persistent=false`. Each invocation makes one bounded current-window FMP
+calendar request with no retry. The exact response is retained as private
+wholesale raw evidence before independent GDP/CPI and employment
+normalization.
+
+Network fetch and parsing finish before the publisher obtains the fixed
+physical macro-store lock. The two publishers retain independent semantic
+replay and lineage, and unchanged normalized content causes zero writes. The
+timer does not repeat either completed 56-window historical backfill, add a
+provider or series, change the reviewed alias mapping, or authorize a caller-
+selected path.
+
+The completed macro-history extension and retained Stage 11 weekly adoption
+are one-time manual operations. They have no timer and do not broaden either
+historical vintage collector above or the FMP calendar exception.
 
 ## Safety principles
 
@@ -84,6 +154,29 @@ proposal is approved.
 Progression is monotonic. Failure at a stage returns the job to that stage; it
 does not authorize skipping ahead.
 
+For Market v1, the [Stage 12 contract](STAGE12_MARKET_V1.md) applies this
+progression serially:
+
+- Stage 12A freezes authority, exact coverage, and the canonical path without
+  reaching a provider or database;
+- Stage 12B is `Implemented and independently verified — offline fixture-only`
+  under its [focused collector contract](STAGE12B_INCREMENTAL_MARKET_V1.md) and
+  [evidence record](STAGE12B_EVIDENCE.md): it uses registry `2.13.0`/schema
+  `1.8.0` and the existing `0010` model only in explicit temporary fixture
+  stores, with no live provider, API key, network, default or retained store,
+  migration, promotion, cutover, public consumer, or scheduler action;
+- Stage 12C is **implemented and independently verified** under its
+  [focused two-session contract](STAGE12C_MARKET_GAP_V1.md) and
+  [evidence record](STAGE12C_EVIDENCE.md). Its completed provider work may not
+  be repeated, and it did not authorize a scheduler;
+- Stage 12D is **complete and independently verified** under its
+  [no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+  and [evidence record](STAGE12D_EVIDENCE.md). Exactly two read-only proofs
+  produced immutable receipts and left database/WAL/SHM/journal stamps
+  unchanged; it made no copy, transfer, backup, migration, provider/network,
+  consumer, or scheduler action; and
+- Stage 12E remains closed as the later external scheduling proposal.
+
 ### Stage 0: static registry validation
 
 Validate job names, step graphs, logical store declarations, dependencies,
@@ -127,7 +220,11 @@ backup/restore evidence before repeating the run.
 
 An operational manual run requires exact store targets, backup and rollback
 evidence, a reviewed plan digest, bounded scope, and an operator present. A
-successful run does not install a schedule.
+successful run does not install a schedule. This general transfer-oriented
+progression does not override a narrower accepted source contract: the
+[Stage 12D no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+controls the already-populated project-local market target and prohibits a
+backup, transfer, or rollback operation as part of its proof.
 
 ### Stage 5: external scheduling proposal
 

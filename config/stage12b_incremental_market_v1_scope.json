@@ -1,0 +1,128 @@
+{
+  "closed_capabilities": [
+    "calendar_lookup",
+    "default_database_selection",
+    "environment_credentials",
+    "live_transport",
+    "network",
+    "provider_api",
+    "scheduler",
+    "stage10_request_replay"
+  ],
+  "collector": {
+    "workload_bounds": {
+      "max_bytes": 65536,
+      "max_requests": 1,
+      "max_rows": 5,
+      "max_seconds": 30
+    },
+    "configuration_env": [],
+    "handler": "market.stage12b_fmp_daily_incremental_fixture",
+    "id": "market.stage12b.fmp_daily_incremental_fixture",
+    "input_datasets": [
+      "market.stage10.instruments",
+      "market.stage10.daily_prices"
+    ],
+    "mutation_policy": {
+      "mode": "append_versions_and_move_current_projection",
+      "unchanged": "zero_persistent_writes"
+    },
+    "network": false,
+    "output_datasets": [
+      "market.stage10.source_evidence",
+      "market.stage10.daily_prices"
+    ],
+    "physical_locks": "derived_from_output_store_paths",
+    "retry_policy": {
+      "backoff": "none",
+      "honor_retry_after": false,
+      "max_attempts": 1,
+      "transient_classes": []
+    },
+    "schedule_eligibility": {
+      "mode": "manual_only"
+    },
+    "semantic_identity": {
+      "excludes": [
+        "captured_at",
+        "source_row_order"
+      ],
+      "includes": [
+        "request_scope",
+        "normalization_version",
+        "normalized_complete_batch"
+      ]
+    },
+    "version": "1.0.0"
+  },
+  "contract": "quant_data.stage12b_incremental_market_v1_scope",
+  "fixture_plan": {
+    "mode": "offline_synthetic_fixture_only",
+    "response": {
+      "encoding": "utf-8",
+      "exact_row_keys": [
+        "symbol",
+        "date",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+        "change",
+        "changePercent",
+        "vwap"
+      ],
+      "media_type": "application/json",
+      "top_level": "list"
+    },
+    "session_dates": {
+      "calendar_lookup": "forbidden",
+      "caller_supplied": "required",
+      "maximum": 5,
+      "minimum": 1
+    },
+    "symbols_per_request": 1,
+    "window": {
+      "inclusive_max_calendar_days": 7
+    }
+  },
+  "publication": {
+    "availability": "local_capture_only",
+    "currency_segment": "provider_native",
+    "existing_instrument": "required",
+    "normalization_version": "stage12b.fmp.daily_incremental.fixture.v1",
+    "relations": [
+      "stage10_daily_price_captures",
+      "stage10_daily_price_versions",
+      "stage10_daily_prices"
+    ]
+  },
+  "stage12a_binding": {
+    "frozen_roster": {
+      "asset_type_counts": {
+        "equity": 519,
+        "etf": 95,
+        "index": 15
+      },
+      "price_variant": "fmp_full_eod_v1",
+      "provider": "fmp",
+      "symbol_count": 629
+    },
+    "roster_sha256": "a81f62a5fe3710011e1fe6eabfe7fcd483726a23f2dc9b0a7e592b4c78327fbb",
+    "scope_contract": "quant_data.stage12_market_v1_scope",
+    "scope_manifest_sha256": "8266f431519913879797a14ea0baa781b6c7e0dfe78365a5ff0107e386a0ad29",
+    "scope_version": "1.0.0",
+    "scope_file_sha256": "12e9a7380ad22c9595d922c1a53320f3c52e368cb688adf1d97bf4d7c9a18bf6",
+    "source_bindings": {
+      "resume_artifact_sha256": "1c0a9f941d829170e4085ef133df6343dadf32d975168ce43aa3724749553795",
+      "stage10_failure_manifest_sha256": "1b0b2a64ca302b1c5c411f927d625e852fd176a0d0aeebba20ba71ba9b9ebceb",
+      "stage10_registry_source_sha256": "c64aceefcc9a37cc0669398ea4d5817d997a5d82167941a204c2b77fffce77f9",
+      "stage10_resume_contract": "quant_data.stage10_backfill_resume",
+      "stage10_resume_version": "1.1.0",
+      "stage10_scope_manifest_sha256": "0782e0fdf39c3113f3c9537238200c9c73495f2fc2462637792d723cf33e68fd",
+      "stage10_target_profile_id": "stage10_fmp_market_history_v1"
+    }
+  },
+  "target_profile_id": "stage12b_incremental_market_v1_fixture",
+  "version": "1.0.0"
+}

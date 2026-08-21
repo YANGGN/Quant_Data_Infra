@@ -51,7 +51,12 @@ from quant_data.operations.stage10_history_extension_transition_empty_chain impo
     build_stage10_history_extension_authorization_proof,
 )
 from quant_data.stage1 import explicit_store_map
-from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry, stage10_registry_profile
+from quant_data.registry import (
+    CANONICAL_REGISTRY_PATH,
+    load_registry,
+    stage10_registry_profile,
+    stage11_registry_profile,
+)
 from quant_data.stores import StoreRole, read_connection
 
 
@@ -207,15 +212,20 @@ class Stage10HistoryExtensionLiveTests(unittest.TestCase):
 
         self.captured_at = datetime(2026, 8, 12, 12, 0, tzinfo=timezone.utc)
         self.clock = _Clock()
-        self.cohort_registry = load_registry(
+        current_registry = load_registry(
             _PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
             project_root=_PROJECT_ROOT,
             environment={},
         )
+        self.cohort_registry = stage11_registry_profile(current_registry)
         self.registry = stage10_registry_profile(self.cohort_registry)
         self.assertEqual(
+            (current_registry.schema_version, current_registry.registry_version),
+            ("1.8.0", "2.21.0"),
+        )
+        self.assertEqual(
             (self.cohort_registry.schema_version, self.cohort_registry.registry_version),
-            ("1.7.0", "2.10.0"),
+            ("1.7.0", "2.9.0"),
         )
         self.assertEqual(
             (self.registry.schema_version, self.registry.registry_version),

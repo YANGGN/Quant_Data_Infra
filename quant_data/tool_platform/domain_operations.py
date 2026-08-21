@@ -7,6 +7,7 @@ Stage 5 results; absent composites remain explicitly not established.
 
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 from math import isfinite
 from typing import Any, Iterable, Mapping, Sequence
@@ -20,6 +21,16 @@ from quant_data.errors import ValidationError
 from quant_data.macro.stage3_repository import (
     MacroStage3RecessionQuery,
     MacroStage3Repository,
+)
+from quant_data.macro.fmp_release_surprises import (
+    ALL_SURPRISE_KINDS,
+    CPI_KINDS,
+    EVENT_DATE_AVAILABILITY_ASSUMPTION,
+    GDP_ADVANCE_KIND,
+    NONFARM_PAYROLLS_KIND,
+    UNEMPLOYMENT_RATE_KIND,
+    MacroReleaseSurpriseRepository,
+    ReleaseSurprise,
 )
 from quant_data.market.stage4_options import (
     OptionsStage4Query,
@@ -93,6 +104,15 @@ _COMPANY_EARNINGS_NAMES = frozenset(
         "company.get_guidance_history",
     }
 )
+_GDP_REFERENCE_PERIOD = re.compile(r"^\d{4}Q[1-4]$")
+_CPI_REFERENCE_PERIOD = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+_GDP_RELEASE_MAPPING = {
+    "advance": ("exact_bea_advance_date", False),
+    "initial": ("exact_bea_initial_date", False),
+    "second": ("exact_bea_second_release_date", True),
+    "third": ("exact_bea_third_release_date", True),
+}
+_EMPLOYMENT_REFERENCE_PERIOD = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 def _limit(arguments: Mapping[str, Any], *, maximum: int = 10_000) -> int:
@@ -314,12 +334,412 @@ def _is_fixture_unavailable(error: ValidationError) -> bool:
     return "unavailable" in message or "no option capture" in message
 
 
+def _has_fixed_release_surprise_mapping(row: ReleaseSurprise) -> bool:
+    if (
+        row.kind not in ALL_SURPRISE_KINDS
+        or not isinstance(row.event_id, str)
+        or not row.event_id
+        or not isinstance(row.event_version_id, str)
+        or not row.event_version_id
+        or row.availability_assumption != EVENT_DATE_AVAILABILITY_ASSUMPTION
+        or not isinstance(row.coalesced_event_version_ids, tuple)
+        or any(
+            not isinstance(version_id, str) or not version_id
+            for version_id in row.coalesced_event_version_ids
+        )
+        or len(set(row.coalesced_event_version_ids)) != len(row.coalesced_event_version_ids)
+        or row.event_version_id in row.coalesced_event_version_ids
+    ):
+        return False
+    if row.kind == GDP_ADVANCE_KIND:
+        expected = _GDP_RELEASE_MAPPING.get(row.release_stage)
+        return (
+            expected is not None
+            and row.actual_source == "bea_gdp_vintage"
+            and row.consensus_mapping_basis == expected[0]
+            and row.is_fallback is expected[1]
+            and isinstance(row.reference_period, str)
+            and _GDP_REFERENCE_PERIOD.fullmatch(row.reference_period) is not None
+            and isinstance(row.official_version_id, str)
+            and bool(row.official_version_id)
+            and not row.coalesced_event_version_ids
+        )
+    if row.kind in CPI_KINDS:
+        if (
+            row.actual_source != "fmp_calendar"
+            or row.unit != "%"
+            or not isinstance(row.reference_period, str)
+            or _CPI_REFERENCE_PERIOD.fullmatch(row.reference_period) is None
+            or row.official_version_id is not None
+            or row.official_prior_version_id is not None
+            or row.release_stage is not None
+            or row.is_fallback
+        ):
+            return False
+        if row.consensus_mapping_basis == "same_fmp_event":
+            if row.coalesced_event_version_ids:
+                return False
+        elif (
+            row.consensus_mapping_basis
+            == "same_day_fmp_cpi_complementary_fields"
+        ):
+            if not row.coalesced_event_version_ids or row.status != "ok":
+                return False
+        else:
+            return False
+        if row.status == "ok":
+            return (
+                isinstance(row.fmp_actual, Decimal)
+                and row.fmp_actual.is_finite()
+                and isinstance(row.official_actual, Decimal)
+                and row.official_actual.is_finite()
+                and row.official_actual == row.fmp_actual
+                and isinstance(row.consensus, Decimal)
+                and row.consensus.is_finite()
+                and isinstance(row.surprise, Decimal)
+                and row.surprise.is_finite()
+                and row.surprise == row.official_actual - row.consensus
+            )
+        if row.status == "missing_consensus":
+            return (
+                isinstance(row.fmp_actual, Decimal)
+                and row.fmp_actual.is_finite()
+                and isinstance(row.official_actual, Decimal)
+                and row.official_actual.is_finite()
+                and row.official_actual == row.fmp_actual
+                and row.consensus is None
+                and row.surprise is None
+            )
+        if row.status == "missing_actual":
+            return (
+                row.fmp_actual is None
+                and row.official_actual is None
+                and row.surprise is None
+                and (
+                    row.consensus is None
+                    or (
+                        isinstance(row.consensus, Decimal)
+                        and row.consensus.is_finite()
+                    )
+                )
+            )
+        return False
+    if row.kind == NONFARM_PAYROLLS_KIND:
+        if (
+            row.actual_source != "fmp_calendar"
+            or row.consensus_mapping_basis
+            != "same_fmp_payroll_reference_period"
+            or row.unit != "thousands_persons"
+            or not isinstance(row.reference_period, str)
+            or _EMPLOYMENT_REFERENCE_PERIOD.fullmatch(row.reference_period) is None
+            or row.official_version_id is not None
+            or row.official_prior_version_id is not None
+            or row.release_stage is not None
+            or row.is_fallback
+            or row.coalesced_event_version_ids
+        ):
+            return False
+        if row.status == "ok":
+            return (
+                isinstance(row.fmp_actual, Decimal)
+                and row.fmp_actual.is_finite()
+                and isinstance(row.official_actual, Decimal)
+                and row.official_actual == row.fmp_actual
+                and isinstance(row.consensus, Decimal)
+                and row.consensus.is_finite()
+                and isinstance(row.surprise, Decimal)
+                and row.surprise.is_finite()
+                and row.surprise == row.official_actual - row.consensus
+            )
+        if row.status == "missing_consensus":
+            return (
+                isinstance(row.fmp_actual, Decimal)
+                and row.fmp_actual.is_finite()
+                and isinstance(row.official_actual, Decimal)
+                and row.official_actual == row.fmp_actual
+                and row.consensus is None
+                and row.surprise is None
+            )
+        if row.status == "missing_actual":
+            return (
+                row.fmp_actual is None
+                and row.official_actual is None
+                and row.surprise is None
+                and (
+                    row.consensus is None
+                    or (
+                        isinstance(row.consensus, Decimal)
+                        and row.consensus.is_finite()
+                    )
+                )
+            )
+        return False
+    if row.kind == UNEMPLOYMENT_RATE_KIND:
+        if (
+            row.actual_source != "fmp_calendar"
+            or row.consensus_mapping_basis
+            != "same_fmp_unemployment_reference_period"
+            or row.unit != "percent"
+            or not isinstance(row.reference_period, str)
+            or _EMPLOYMENT_REFERENCE_PERIOD.fullmatch(row.reference_period) is None
+            or row.official_version_id is not None
+            or row.official_prior_version_id is not None
+            or row.release_stage is not None
+            or row.is_fallback
+            or row.coalesced_event_version_ids
+        ):
+            return False
+        if row.status == "ok":
+            return (
+                isinstance(row.fmp_actual, Decimal)
+                and row.fmp_actual.is_finite()
+                and isinstance(row.official_actual, Decimal)
+                and row.official_actual.is_finite()
+                and row.official_actual == row.fmp_actual
+                and isinstance(row.consensus, Decimal)
+                and row.consensus.is_finite()
+                and isinstance(row.surprise, Decimal)
+                and row.surprise.is_finite()
+                and row.surprise == row.official_actual - row.consensus
+            )
+        if row.status == "missing_consensus":
+            return (
+                isinstance(row.fmp_actual, Decimal)
+                and row.fmp_actual.is_finite()
+                and isinstance(row.official_actual, Decimal)
+                and row.official_actual.is_finite()
+                and row.official_actual == row.fmp_actual
+                and row.consensus is None
+                and row.surprise is None
+            )
+        if row.status == "missing_actual":
+            return (
+                row.fmp_actual is None
+                and row.official_actual is None
+                and row.surprise is None
+                and (
+                    row.consensus is None
+                    or (
+                        isinstance(row.consensus, Decimal)
+                        and row.consensus.is_finite()
+                    )
+                )
+            )
+        return False
+    return (
+        row.actual_source == "fmp_calendar"
+        and row.consensus_mapping_basis == "same_fmp_event"
+        and row.reference_period is None
+        and row.official_version_id is None
+        and not row.coalesced_event_version_ids
+    )
+
+
+def _release_surprise_official_version_ids(
+    row: ReleaseSurprise,
+) -> tuple[str, ...]:
+    if row.kind == GDP_ADVANCE_KIND:
+        candidates = (row.official_version_id,)
+    elif row.kind == NONFARM_PAYROLLS_KIND:
+        candidates = ()
+    elif row.kind == UNEMPLOYMENT_RATE_KIND:
+        candidates = ()
+    else:
+        candidates = ()
+    return tuple(
+        value for value in candidates if isinstance(value, str) and value
+    )
+
+
+def _release_surprise_calendar_version_ids(
+    row: ReleaseSurprise,
+) -> tuple[str, ...]:
+    return (row.event_version_id, *row.coalesced_event_version_ids)
+
+
 def _macro_operation(
     name: str,
     arguments: Mapping[str, Any],
     context: ToolExecutionContext,
     registry: Registry,
 ) -> QueryResult:
+    if name == "macro.release_surprises":
+        if (
+            isinstance(registry, Registry)
+            and "macro.official_vintages" not in registry.tool(name)["datasets"]
+        ):
+            return _not_established(
+                name,
+                arguments,
+                reason="no_fixed_read_only_gateway_for_requested_macro_semantics",
+            )
+        temporal = _temporal_mode(arguments, supported=frozenset({"latest"}))
+        if temporal is None:
+            return _not_established(
+                name,
+                arguments,
+                reason="release_surprises_supports_latest_only",
+            )
+        identifiers = _identifiers(arguments)
+        if any(identifier not in ALL_SURPRISE_KINDS for identifier in identifiers):
+            raise ValidationError(
+                "Macro release surprise identifiers must be canonical kinds"
+            )
+        limit = min(_limit(arguments), 1_000)
+        rows = MacroReleaseSurpriseRepository(
+            macro_store=context.store_map.macro,
+            registry=registry,
+        ).query(
+            start_date=arguments.get("start_date"),
+            end_date=arguments.get("end_date"),
+            kinds=identifiers or None,
+        )
+        if not isinstance(rows, tuple) or not all(
+            isinstance(row, ReleaseSurprise) for row in rows
+        ):
+            raise ValidationError("Macro surprise repository returned an invalid result")
+        if any(not _has_fixed_release_surprise_mapping(row) for row in rows):
+            raise ValidationError("Macro surprise repository violated the fixed source mapping")
+        returned = rows[:limit]
+        values = tuple(
+            _project(
+                {
+                    "event_id": row.event_id,
+                    "event_version_id": row.event_version_id,
+                    "kind": row.kind,
+                    "event_at": row.event_at,
+                    "reference_period": row.reference_period,
+                    "consensus": row.consensus,
+                    "consensus_mapping_basis": row.consensus_mapping_basis,
+                    "fmp_actual": row.fmp_actual,
+                    "official_actual": row.official_actual,
+                    "surprise": row.surprise,
+                    "unit": row.unit,
+                    "actual_source": row.actual_source,
+                    "availability_assumption": row.availability_assumption,
+                    "status": row.status,
+                    "official_version_id": row.official_version_id,
+                    "official_prior_version_id": row.official_prior_version_id,
+                    "release_stage": row.release_stage,
+                    "is_fallback": row.is_fallback,
+                },
+                (
+                    "event_id",
+                    "event_version_id",
+                    "kind",
+                    "event_at",
+                    "reference_period",
+                    "consensus",
+                    "consensus_mapping_basis",
+                    "fmp_actual",
+                    "official_actual",
+                    "surprise",
+                    "unit",
+                    "actual_source",
+                    "availability_assumption",
+                    "status",
+                    "official_version_id",
+                    "official_prior_version_id",
+                    "release_stage",
+                    "is_fallback",
+                ),
+            )
+            for row in returned
+        )
+        warnings: list[WarningV1] = [
+            WarningV1(
+                "historical_consensus_availability_assumption",
+                "Historical FMP consensus is treated as available at the UTC event time.",
+            )
+        ]
+        if any(row.kind == GDP_ADVANCE_KIND for row in returned):
+            warnings.append(
+                WarningV1(
+                    "gdp_actual_source",
+                    "GDP surprises use the matching BEA release vintage; FMP actual is comparison-only.",
+                )
+            )
+        if any(
+            row.kind == GDP_ADVANCE_KIND and row.is_fallback
+            for row in returned
+        ):
+            warnings.append(
+                WarningV1(
+                    "gdp_later_release_fallback",
+                    "GDP surprise uses the earliest available same-stage second or third release.",
+                )
+            )
+        cpi_rows = tuple(row for row in returned if row.kind in CPI_KINDS)
+        if cpi_rows:
+            warnings.append(
+                WarningV1(
+                    "cpi_actual_source",
+                    "CPI surprises use actual and consensus from the same FMP release event.",
+                )
+            )
+        if any(row.coalesced_event_version_ids for row in cpi_rows):
+            warnings.append(
+                WarningV1(
+                    "cpi_complementary_fields_coalesced",
+                    "A CPI surprise combines unique complementary FMP actual and consensus fields from the same release day.",
+                )
+            )
+        payroll_rows = tuple(
+            row for row in returned if row.kind == NONFARM_PAYROLLS_KIND
+        )
+        if payroll_rows:
+            warnings.append(
+                WarningV1(
+                    "payroll_actual_source",
+                    "Payroll surprises use actual and consensus from the same reference-period FMP calendar event.",
+                )
+            )
+        unemployment_rows = tuple(
+            row for row in returned if row.kind == UNEMPLOYMENT_RATE_KIND
+        )
+        if unemployment_rows:
+            warnings.append(
+                WarningV1(
+                    "unemployment_actual_source",
+                    "Unemployment surprises use actual and consensus from the same reference-period FMP calendar event.",
+                )
+            )
+        return QueryResult(
+            tool=name,
+            records=records_from_mappings("macro_release_surprise", values),
+            warnings=tuple(warnings),
+            lineage=tuple(
+                reference
+                for row in returned
+                for reference in (
+                    *tuple(
+                        LineageRef(
+                            dataset_id="fixture.macro.economic_calendar",
+                            store_role="macro",
+                            semantic_id=version_id,
+                            canonical_version_id=version_id,
+                        )
+                        for version_id in _release_surprise_calendar_version_ids(row)
+                    ),
+                    *tuple(
+                        LineageRef(
+                            dataset_id="macro.official_vintages",
+                            store_role="macro",
+                            semantic_id=version_id,
+                            canonical_version_id=version_id,
+                        )
+                        for version_id in _release_surprise_official_version_ids(row)
+                    ),
+                )
+            ),
+            truncation=TruncationV1(
+                len(rows) > len(returned),
+                limit,
+                len(returned),
+                len(rows),
+                len(rows) > len(returned),
+            ),
+        )
     if name != "macro.align_us_recessions":
         return _not_established(
             name,

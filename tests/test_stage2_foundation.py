@@ -45,6 +45,7 @@ from quant_data.stores import (
     physical_lock_key,
     resolve_store_map,
 )
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -175,7 +176,14 @@ class Stage2RegistryTests(unittest.TestCase):
 
 class Stage2RoutingAndLockTests(unittest.TestCase):
     def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
         self.registry = _registry()
+
+    def tearDown(self) -> None:
+        assert_project_data_unchanged(
+            self._project_data_before,
+            project_root=PROJECT_ROOT,
+        )
 
     def test_resolver_precedence_is_explicit_and_never_uses_ambient_state(self) -> None:
         defaults = resolve_store_map(
@@ -184,7 +192,6 @@ class Stage2RoutingAndLockTests(unittest.TestCase):
             environment={},
         )
         self.assertEqual(defaults.market, PROJECT_ROOT / "data" / "market_data.sqlite")
-        self.assertFalse((PROJECT_ROOT / "data").exists())
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             env = {

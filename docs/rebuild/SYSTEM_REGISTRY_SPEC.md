@@ -4,13 +4,109 @@
 
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
-`QUANT_SYSTEM_REGISTRY_PATH`. The current canonical registry is revision
-`2.10.0`, schema `1.7.0`, status `validated`. It preserves the Stage 8 set
-of 57 tools, four local-private dashboard exposures, eight disabled
+`QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
+`2.21.0`, schema `1.8.0`. The former `2.22.0`/`validated` working candidate is
+rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
+and is not an accepted registry revision. Registry validation and artifact
+presence are declarative, not authorization or evidence of provider execution,
+canonical publication, public exposure, or scheduler operation. Because the
+candidate never entered the active configuration lineage, restoring exact
+`2.21.0` does not change its declarative content or create a `2.23.0`
+revision. For any operational task, first read the
+[current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
+
+The documented lineage preserves the Stage 8 set of 57 tools, four
+local-private dashboard exposures, eight disabled
 `manual_fixture_only` jobs, and one bounded `manual_only`/fixture-only JSON
 Atlas export. It also declares the isolated Stage 9, private Stage 10
-market-history, and private Stage 11 BEA/EIA candidate resources. None of those
-live-candidate datasets has a tool, dashboard, or Atlas exposure.
+market-history, private Stage 11 BEA/EIA candidate, and bounded
+fixture-validated FMP stock-latest news resources. None of those private
+datasets has a tool, dashboard, or Atlas exposure. Registry `2.13.0` also
+declares only the offline fixture collector
+`market.stage12b.fmp_daily_incremental_fixture` with handler
+`market.stage12b_fmp_daily_incremental_fixture`, as defined by the
+[Stage 12B contract](STAGE12B_INCREMENTAL_MARKET_V1.md). It selects
+`data/market.sqlite` as the current market default; neither declaration opens
+or accepts an existing file, and the Stage 12B declaration has no live provider,
+API-key, network, default/retained-store, migration, public-consumer, or
+scheduler authority.
+Registry `2.14.0` adds only
+`market.stage12c.fmp_daily_incremental_manual`, defined by the
+[Stage 12C contract](STAGE12C_MARKET_GAP_V1.md). Stage 12C is complete and
+independently verified; the binding provider outcomes and final target state
+are in its [immutable evidence record](STAGE12C_EVIDENCE.md), not inferred from
+the declaration. Revision `2.14.0` adds no migration, public exposure, or
+scheduler declaration. Its exact historical projection restores `2.13.0`
+before Stage 12B and earlier evidence. Stage 12D is complete and independently
+verified under its
+[no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and [evidence record](STAGE12D_EVIDENCE.md); it did not change this registry.
+Registry `2.15.0` changes only the remaining current store defaults to
+`data/macro.sqlite`, `data/company.sqlite`, and `data/news.sqlite`, matching
+the files already present beside `data/market.sqlite`. It creates, copies,
+moves, opens, or mutates no SQLite file. Its exact historical projection
+restores registry `2.14.0` and the three prior `_data` declarations before
+Stage 12C/D or earlier evidence is reproduced.
+Registry `2.16.0` adds macro ordinal 13, two private datasets, and the fixed
+official BEA/BLS GDP/CPI vintage collectors. Registry `2.17.0` adds macro
+ordinal 14 and only the private Philadelphia Fed historical and BLS current
+employment collectors. Registry `2.18.0` adds macro ordinal 15 and two
+manual-only deep-history collectors; both successor revisions reuse the two
+private official-vintage datasets. Registry `2.19.0` adds only the manual-only
+`fmp.macro.gdp_cpi_release_calendar_history` collector, reusing
+`fixture.macro.economic_calendar` and the existing `macro.official_vintages`
+tool dependency. It adds no migration, dataset, job, scheduler, new public-
+consumer identity, or surprise table. The existing `macro.release_surprises`
+tool is now established over the calendar and official-vintages relations. The
+`2.19.0` declaration adds no new tool, dashboard, export, credential, or
+caller-selected path. On demand, GDP selects one best-available record per
+quarter: an exact-date BEA first release (`advance`, or source-native
+`initial`), otherwise an exact-date `second`, then an exact-date `third`.
+Every selection compares FMP consensus with the BEA actual from the same
+release date and stage; FMP GDP actual is never used. Equivalent reviewed
+aliases collapse only when their same-date values agree; conflicts fail
+closed. Later stages are explicitly marked `is_fallback`. The current
+canonical read returns all 55 quarters from `2012Q4` through `2026Q2`: 10
+advance, one initial, 10 second, and 34 third; 54 have numeric surprises and
+`2012Q4` is `missing_consensus`. At that revision, the 864 CPI results use
+actual and consensus from the same FMP event version. This derived policy adds
+no migration, physical table, provider request, or scheduler. At revision
+`2.19.0`, the inventory was 37 migrations, 50 datasets, and 35 collectors.
+The exact
+`2.19.0` to `2.18.0` projection removes only the FMP calendar collector; the
+`2.18.0` to `2.17.0` projection removes only
+migration 0015 and the two history collectors; the `2.17.0` to `2.16.0`
+projection removes only
+migration 0014 and the two employment collectors; the existing `2.16.0` to
+`2.15.0` projection then removes only the GDP/CPI vintage slice.
+
+Registry `2.20.0` adds only
+`fmp.macro.employment_release_calendar_refresh` and its reciprocal binding to
+the established economic-calendar dataset. It adds no migration, dataset, job,
+timer, surprise table, or public route. A separate explicit user decision
+authorized the fixed refresh unit recorded in the
+[current operating envelope](CURRENT_OPERATING_ENVELOPE.md); that host-level
+scheduler state is not a registry declaration. Its exact projection restores
+byte-exact `2.19.0`.
+
+Registry `2.21.0` adds macro migration
+`macro:0016_fmp_calendar_wholesale_evidence`, the private
+`macro.fmp.economic_calendar_evidence` dataset, and the manual-only
+`fmp.macro.us_economic_calendar_wholesale` collector. The dataset owns only
+`fmp_economic_calendar_captures` and `fmp_economic_calendar_rows`; it adds no
+public tool, dashboard, export, job, timer, or surprise table. The canonical
+inventory is now 38 migrations, 51 datasets, and 37 collectors. Its exact
+`2.21.0` to `2.20.0` projection removes only those three declarations and
+restores byte-exact `2.20.0`.
+
+ADR 0011 rejects the never-active `2.22.0` candidate
+`macro:0017_bls_cpi_release_archive`, its archive datasets, collector, and
+relations. It is not part of the 38/51/37 inventory, has no migration
+allocation or accepted completion evidence, and must not be activated. CPI
+surprises use FMP actual and consensus under the documented complementary-row
+repair rule; the retired archive cannot validate, fill, replace, or otherwise
+affect them. The completed `2.16.0` BLS annual-revision snapshots and current
+BLS refresh remain separate accepted declarations.
 
 The frozen Stage 10 projection remains `2.8.0`/`1.6.0`; the frozen Stage 9
 projection remains `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains
@@ -114,10 +210,20 @@ Required default paths:
 
 | Store | Default path | Override |
 | --- | --- | --- |
-| market | data/market_data.sqlite | QUANT_MARKET_DB_PATH |
-| macro | data/macro_data.sqlite | QUANT_MACRO_DB_PATH |
-| company | data/company_data.sqlite | QUANT_COMPANY_DB_PATH |
-| news | data/news_data.sqlite | QUANT_NEWS_DB_PATH |
+| market | data/market.sqlite | QUANT_MARKET_DB_PATH |
+| macro | data/macro.sqlite | QUANT_MACRO_DB_PATH |
+| company | data/company.sqlite | QUANT_COMPANY_DB_PATH |
+| news | data/news.sqlite | QUANT_NEWS_DB_PATH |
+
+The current market default is fixed by ADR 0009. The superseded
+`data/market_data.sqlite` name is not a fallback, alias, or second active
+market store. An exact historical registry projection may restore that prior
+declaration only to reproduce already accepted Stage 1–11 evidence; it cannot
+be used as current runtime routing.
+
+Likewise, `data/macro_data.sqlite`, `data/company_data.sqlite`, and
+`data/news_data.sqlite` are historical registry declarations, not current
+fallbacks or aliases.
 
 The legacy `data/quant_data.sqlite` and `QUANT_DB_PATH` pair must not appear in
 an active runtime registry. Unified runtime compatibility is retired; a future
@@ -277,6 +383,79 @@ then two-second backoff and no jitter. Historical Stage 11 execution projects
 back to the exact `2.9.0` declaration and source digest bound into the
 completed receipt. This successor revision neither rewrites that receipt nor
 authorizes a new live cohort.
+
+Schema `1.8.0`, registry `2.11.0`, adds the bounded FMP stock-latest news
+fixture contract: `news:0005_fmp_stock_latest`, two private news datasets, and
+one manual-only collector. Its fixture evidence does not prove complete or live
+news coverage and does not authorize another provider request.
+
+Registry `2.12.0` keeps schema `1.8.0` and changes no migration, dataset,
+collector, job, tool, dashboard, or export identity. It changes only the current
+market default to `data/market.sqlite` under ADR 0009. The
+`stage12_registry_profile` projection restores `data/market_data.sqlite` and
+registry `2.11.0` before the existing Stage 11/10/earlier projections run.
+That compatibility exists only for immutable historical evidence; the old path
+is not current routing, a fallback, or an alias.
+
+Registry `2.13.0` keeps schema `1.8.0` and adds the bounded Stage 12B fixture
+collector only: `market.stage12b.fmp_daily_incremental_fixture`, handler
+`market.stage12b_fmp_daily_incremental_fixture`, `manual_only` schedule
+eligibility, one attempt, no transient retry classes or backoff, and finite
+fixture bounds of 65,536 bytes, one request, five rows, and 30 seconds. It uses
+the existing `0010` capture/version/current model only in explicit temporary
+fixture stores and creates no migration, public exposure, or provider authority.
+The exact `2.13.0` to `2.12.0` historical projection removes the Stage 12B
+declaration and restores the accepted `2.12.0` registry before Stage 12A and
+earlier evidence is reproduced. It is not a live, operational, or scheduler
+authorization.
+
+Registry `2.14.0` keeps schema `1.8.0` and adds only
+`market.stage12c.fmp_daily_incremental_manual`. It creates no migration,
+public exposure, or scheduler authority. The exact `2.14.0` to `2.13.0`
+historical projection removes that declaration before Stage 12B and earlier
+evidence is reproduced. The completed Stage 12C provider work remains bound
+only to [its private receipt and evidence record](STAGE12C_EVIDENCE.md);
+neither the current registry nor a historical projection alone proves a
+provider call or database mutation. The completed Stage 12D no-transfer proof used the existing
+`2.14.0`/schema `1.8.0` binding without repinning or modifying it; see its
+[immutable evidence record](STAGE12D_EVIDENCE.md).
+
+Registry `2.15.0` keeps schema `1.8.0` and changes only the current macro,
+company, and news default basenames to `macro.sqlite`, `company.sqlite`, and
+`news.sqlite`. The exact `2.15.0` to `2.14.0` projection restores the prior
+declarations and exact Stage 12C/D registry source hash. No database file is
+created, renamed, copied, opened, or mutated by this declaration change.
+
+Registry `2.16.0` keeps schema `1.8.0` and adds only
+`macro:0013_live_gdp_cpi_vintages`, `macro.official_vintages_evidence`,
+`macro.official_vintages`, `bea.macro.live_gdp_vintages`, and
+`bls.macro.live_cpi_vintages`. The model retains raw official evidence and
+source-release identities without reinterpreting the Stage 11 candidate
+relations. The exact historical projection restores `2.15.0`.
+
+Registry `2.17.0` keeps schema `1.8.0` and adds only
+`macro:0014_live_employment_vintages`,
+`philadelphia_fed.macro.live_employment_vintages`, and
+`bls.macro.live_employment_current`. It broadens the isolated official-vintage
+model only for the two exact BLS employment series, retaining Philadelphia Fed
+RTDSM source-vintage identities with local-capture availability and BLS current
+facts in the same versioned lineage. The exact historical projection restores
+byte-exact registry `2.16.0`.
+
+Registry `2.18.0` keeps schema `1.8.0` and adds only
+`macro:0015_live_macro_history_extension`,
+`bls.macro.cpi_current_history`, and
+`philadelphia_fed.macro.gdp_cpi_vintage_history`. It reuses the two private
+official-vintage datasets. Both collectors are manual-only, one-attempt, and
+credential-free; no new scheduler or public exposure is declared. Its exact
+historical projection restores byte-exact registry `2.17.0`.
+
+Registry `2.19.0` keeps schema `1.8.0` and adds only the manual-only
+`fmp.macro.gdp_cpi_release_calendar_history` collector. It reuses
+`fixture.macro.economic_calendar` and the existing `macro.official_vintages`
+tool dependency, with no migration, dataset, job, scheduler, public consumer,
+or physical surprise table. Its exact historical projection restores
+byte-exact registry `2.18.0`.
 
 #### 2026-08-13 Stage 11 runtime compatibility clarification
 
@@ -451,9 +630,12 @@ Validation fails closed unless all of the following hold:
 20. Unsupported layers, formats, schema versions, status values, and optional capabilities are rejected rather than guessed.
 21. Secrets and secret values do not appear anywhere in the registry, examples, generated documentation, logs, or exported manifests.
 22. Registry iteration and generated output are deterministic across processes and platforms.
-23. The sole live-enabled collector is manual-only and confined to the reviewed
-    Stage 9 request scope; it cannot obtain a scheduler, public exposure,
-    operational-promotion, or retirement capability through the registry.
+23. Every network-capable collector is explicitly classified. A manual-only
+    declaration grants no provider execution or recurrence; either action
+    requires a separate explicit user decision and accepted operational
+    contract or evidence. The registry never grants credential use, scheduler
+    installation or invocation, public exposure, promotion, retirement, or
+    permission to repeat completed work.
 
 ## Loading and validation
 
@@ -541,7 +723,7 @@ status: proposed
 
 stores:
   - id: market
-    default_path: data/market_data.sqlite
+    default_path: data/market.sqlite
     path_env: QUANT_MARKET_DB_PATH
     control_tables:
       - schema_migrations

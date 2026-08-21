@@ -13,7 +13,10 @@ FMP slice passed primary and independent offline verification and live-receipt
 verification; the retained Stage 10 base and historical-extension candidates
 are complete and independently re-inspected; the bounded Stage 11 population
 and private candidate receipt are complete, with promotion and public exposure
-still closed
+still closed; the bounded Stage 12A authority/path gate and Stage 12B
+fixture-only collector are implemented and independently verified; Stages 12C
+and 12D are complete and independently verified as bounded no-copy/no-transfer
+results; Stage 12E remains closed
 
 ## 1. Purpose
 
@@ -59,6 +62,95 @@ The following decisions apply to every stage:
 - A dedicated provider-rights governance subsystem is outside this rebuild
   plan. Provider access and retention choices remain explicit implementation
   inputs rather than a new platform feature.
+- On 2026-08-15 the user selected `data/market.sqlite` as the canonical
+  project-local market default. Stage 12A is complete and independently
+  verified as the authority/path gate; Stage 12B is complete and independently
+  verified as an offline fixture-only collector. The bounded no-copy Stage 12C
+  population is complete and independently verified; its immutable
+  [evidence record](docs/rebuild/STAGE12C_EVIDENCE.md) binds registry
+  `2.14.0`/schema `1.8.0`, its frozen plan, and final receipt. It made no
+  second full database copy and closes 629 one-attempt units as 619 published,
+  three successful-empty, and seven sealed authorized HTTP 402 terminal
+  outcomes. Stage 12D is complete and independently verified under the
+  [no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md),
+  [immutable evidence record](docs/rebuild/STAGE12D_EVIDENCE.md), and
+  [ADR 0010](docs/adr/0010-stage12d-no-transfer-market-adoption.md). Exactly
+  two read-only proofs produced distinct immutable receipts with one semantic
+  proof and exact target/sidecar neutrality. Independent reconciliation did
+  not reopen SQLite or compute a new full-database hash. No copy, transfer,
+  backup, migration, registry change, provider/network access, public-consumer
+  exposure, or scheduler action occurred. Stage 12E remains closed.
+- Registry `2.15.0` aligned the remaining current store defaults with the
+  existing `data/macro.sqlite`, `data/company.sqlite`, and `data/news.sqlite`
+  files. It performs no database operation, and its exact historical
+  projection restores `2.14.0` plus the prior `_data` declarations before
+  Stage 12C/D evidence is reproduced.
+- Registry `2.16.0` adds the isolated official GDP/CPI vintage model. The
+  canonical macro backfill is complete with 16 captures, four series, 2,136
+  releases, 4,012 versions, and 640 current observations; fixed integrity and
+  lineage checks passed. The non-persistent weekday 09:05 ET user timer is
+  active and refreshes only current BEA/BLS inputs. The 14 historical BLS
+  archive requests are complete and excluded from recurring execution.
+- Registry `2.17.0` adds the isolated employment-vintage extension. The
+  completed three-request backfill retained Philadelphia Fed RTDSM payroll and
+  unemployment matrices plus one BLS current capture. It added 984 releases,
+  14,449 versions, and 1,993 current observations with clean hashes, lineage,
+  corrections, and pointers. The non-persistent first-Friday 10:05 ET timer is
+  active and makes only the one two-series BLS current request; historical
+  workbooks are never scheduled or repeated.
+- Registry `2.18.0` adds the one-time macro-history extension at ordinal 15
+  and two manual-only collectors. The completed run reused five sealed source
+  responses, made exactly six BLS requests, and added 14,577 versions plus
+  1,980 current observations. A separate local-only adoption copied the sealed
+  2,289-row Stage 11 weekly crude cohort without a provider request. No new
+  timer, public consumer, credential, or dataset was added; exact projection
+  restores byte-exact `2.17.0`.
+- Registry `2.19.0` adds only the manual-only
+  `fmp.macro.gdp_cpi_release_calendar_history` collector, reusing
+  `fixture.macro.economic_calendar` and the existing
+  `macro.official_vintages` tool dependency. The completed, no-repeat manual
+  history covers exactly 56 contiguous windows of at most 90 days from
+  `2013-01-01` through `2026-08-17`, with 941 normalized FMP calendar
+  events/versions. It adds no migration, dataset, job, scheduler, or surprise
+  table; no timer was installed, the two existing macro timers are unchanged,
+  and its exact historical projection restores `2.18.0`. On demand, GDP uses
+  one best-available record per quarter: an exact-date BEA first release
+  (`advance`, or source-native `initial`), otherwise an exact-date `second`,
+  then an exact-date `third`. FMP consensus is always compared with the BEA
+  actual from that same release date and stage; FMP GDP actual is never used.
+  Equivalent reviewed aliases collapse only when their same-date values agree,
+  and conflicts fail closed. Later stages are explicitly marked `is_fallback`.
+  The current canonical read returns all 55 quarters from `2012Q4` through
+  `2026Q2`: 10 advance, one initial, 10 second, and 34 third; 54 have numeric
+  surprises and `2012Q4` is `missing_consensus`. CPI has 864 unchanged
+  same-event results. This derived policy adds no provider request or
+  scheduler.
+- Registry `2.20.0` adds only the reviewed
+  `fmp.macro.employment_release_calendar_refresh` declaration and establishes
+  payroll and unemployment surprise calculation from each same-reference-
+  period FMP actual and consensus. Its
+  bounded, non-persistent incremental refresh timer is
+  installed, enabled, and active at 08:15 and 08:45 America/New_York on
+  weekdays under the user's explicit scheduler approval. Exact projection
+  restores byte-exact `2.19.0`.
+- Registry `2.21.0` adds macro migration 0016, one private wholesale FMP
+  calendar evidence dataset, and one manual-only collector. The completed
+  one-time run retained all 42,890 rows and raw response bytes from 56
+  contiguous 2013-01-01 through 2026-08-17 windows. The original zero-network
+  replay normalized 323 v1 employment events/versions. Additive v2 payroll and
+  v3 unemployment replays each wrote 162 reference-period-aware events and
+  versions. They now expose 324 on-demand surprises: 162 per series, with 321
+  `ok`, two `missing_consensus`, and one `missing_actual`. Integrity, hashes,
+  membership, and run/artifact/snapshot lineage are clean; identical second
+  replays wrote nothing. No provider request, public consumer, surprise table,
+  job, or new timer was added, and exact projection restores byte-exact
+  `2.20.0`.
+- On 2026-08-21, [ADR 0011](docs/adr/0011-retire-proposed-bls-cpi-release-archive.md)
+  rejected the never-active `2.22.0` BLS CPI original-release archive candidate.
+  The current accepted registry remains exact `2.21.0`; CPI surprises are
+  FMP-only, and no archive source, migration, provider action, or scheduler
+  follows from the retirement. This does not alter the completed `2.16.0` BLS
+  annual-revision backfill or current BLS refresh.
 - SQLite remains the authoritative operational store unless benchmarks and an
   accepted decision record justify a change.
 - The four operational boundaries are market, macro, company, and news.
@@ -86,7 +178,8 @@ The following decisions apply to every stage:
 | 8 | One fixture-only JSON snapshot and static Atlas | Explicit SQLite online-backup copies only | Accepted after independent offline verification with explicit browser-automation waiver |
 | 9 | One manual FMP SPY non-production backfill and candidate receipt | Only the exact approved request after preflight | Bounded live population independently verified; no promotion |
 | 10 | Frozen 629-symbol FMP market-history base plus eight-window extension | Only the completed exact candidate requests | Retained private candidate receipts complete and independently re-inspected; no repeat or promotion |
-| 11 | Bounded BEA NIPA and EIA retail/weekly macro history | Only the exact serialized candidate requests | In progress: BEA and retail published; weekly and private receipt outstanding |
+| 11 | Bounded BEA NIPA and EIA retail/weekly macro history | Only the exact serialized candidate requests | Retained private candidate receipt complete; no repeat or promotion |
+| 12 | Serial Market v1 operationalization | Completed Stage 12C manual slice and Stage 12D fixed-target read-only proofs | 12A/12B independently verified; [Stage 12C](docs/rebuild/STAGE12C_EVIDENCE.md) and [Stage 12D](docs/rebuild/STAGE12D_EVIDENCE.md) complete and independently verified; 12E closed |
 
 Stages are ordered by dependency, not calendar duration. A later stage may be
 designed in parallel, but implementation does not cross an unmet exit gate.
@@ -635,7 +728,136 @@ in [Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
   tools, dashboards, Atlas, exports, backup/restore rehearsal, full-corpus
   reconciliation, and destructive operations closed.
 
-## 16. Cross-stage quality gates
+## 16. Stage 12 — Serial Market v1 operationalization
+
+Status: **Stages 12A and 12B implemented and independently verified within
+their offline boundaries; Stages 12C and 12D complete and independently
+verified; Stage 12E closed.** The focused
+[Stage 12C two-session contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md),
+[Stage 12C evidence record](docs/rebuild/STAGE12C_EVIDENCE.md),
+[Stage 12D no-transfer contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md),
+[Stage 12D evidence record](docs/rebuild/STAGE12D_EVIDENCE.md),
+[Stage 12 Market v1 contract](docs/rebuild/STAGE12_MARKET_V1.md),
+[Stage 12B collector contract](docs/rebuild/STAGE12B_INCREMENTAL_MARKET_V1.md),
+the immutable [Stage 12A evidence record](docs/rebuild/STAGE12_EVIDENCE.md),
+[Stage 12B evidence record](docs/rebuild/STAGE12B_EVIDENCE.md), and
+the path decisions [ADR 0009](docs/adr/0009-canonical-market-operational-path.md)
+and [ADR 0010](docs/adr/0010-stage12d-no-transfer-market-adoption.md)
+
+### Stage 12A — Authority and coverage freeze
+
+- Designate `data/market.sqlite` as the current project-relative market
+  default while preserving exact historical registry projections.
+- Freeze the explicit 629-symbol Market v1 roster, asset classifications,
+  retained Stage 10 receipt bindings, coverage counts, and non-claims in one
+  strict machine-readable manifest.
+- Run a dependency-free deterministic gate using explicit temporary roots only.
+  It may not open a SQLite database, consult credentials, use the network,
+  repeat a provider request, move/copy data, or change a scheduler.
+
+### Stage 12B — incremental collector
+
+Status: **Implemented and independently verified — offline fixture-only.** See
+the [focused Stage 12B contract](docs/rebuild/STAGE12B_INCREMENTAL_MARKET_V1.md)
+and [Stage 12B evidence](docs/rebuild/STAGE12B_EVIDENCE.md).
+
+- Implement and fixture-test a new bounded collector under registry `2.13.0`,
+  schema `1.8.0`; never schedule, reopen, or repeat the sealed Stage 10
+  backfill or receipts.
+- Use the existing `0010` capture/version/current model only in explicit
+  temporary fixture stores. No live provider, API key, environment access,
+  network, default or retained store, migration, promotion, cutover, public
+  consumer, or scheduler action is permitted.
+
+### Stage 12C — bounded two-session Market v1 gap completion
+
+Status: **Completed and independently verified — bounded manual no-copy
+two-session population.** See the [focused contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md)
+and immutable [evidence record](docs/rebuild/STAGE12C_EVIDENCE.md).
+
+- The frozen 629-symbol Stage 12A roster used only `2026-08-13` and
+  `2026-08-14`, with `AAPL` as the first complete sentinel and the reviewed
+  sorted roster thereafter.
+- The existing project-local `data/market.sqlite` initially matched the
+  immutable retained Stage 10 baseline at SHA-256
+  `b0ee0a02cc74e603320d0fa4f7a68a64339f8ed834229bdc480efa0351cc6f3c`;
+  the retained source remains immutable and no second full database copy was made.
+- Registry `2.14.0`/schema `1.8.0` adds only
+  `market.stage12c.fmp_daily_incremental_manual`; its exact historical
+  projection restores `2.13.0` before Stage 12B and earlier evidence.
+- The receipt binds all 629 one-attempt chains: 619 published complete, three
+  successful-empty noncoverage outcomes, and seven narrowly sealed authorized
+  HTTP 402 outcomes. It is not a general HTTP 402 policy; all other HTTP 402
+  responses remain systemic.
+- The final target has 4,237,131 current rows, 4,237,873 immutable versions,
+  and 5,210 captures, with clean integrity, foreign-key, duplicate, and
+  current-pointer checks. Final source-neutral checks used
+  `mode=ro&immutable=1` after a zero-WAL precondition; the earlier `-shm`
+  timestamp side effect is disclosed and is not a database mutation.
+- **12D — no-transfer adoption/freeze (complete and independently verified):**
+  the [Stage 12D contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+  and [evidence](docs/rebuild/STAGE12D_EVIDENCE.md) record exactly two
+  fixed-target read-only proofs, two distinct immutable receipts with one
+  semantic digest, exact database/WAL/SHM/journal neutrality, and clean fixed
+  checks. The independent reconciliation did not reopen SQLite or compute a
+  new full-database hash. No copy, move, replacement, transfer, backup,
+  migration, registry bump, promotion pointer, provider/network access, public
+  exposure, or scheduler change occurred.
+- **12E — market-only scheduling proposal (closed):** Stage 12D evidence is
+  accepted, but Stage 12E still requires a separate explicit user decision;
+  installation and first start remain separate explicit actions.
+
+### Stage 12C exit gate
+
+**Complete.** The offline and independent gates passed before the manual slice.
+The initial environment-only credential stop made no provider request or
+database mutation; the later separately authorized invocation was not an
+automatic retry and completed the frozen plan. The immutable receipt
+`0b598c7f5df93cb21104bcf6a45ae3e798a56eda7682474d59b2a81def683f88` binds
+the exact scope, attempts, outcomes, sidecars, target checks, and final
+integrity/current-pointer results. See
+[Stage 12C evidence](docs/rebuild/STAGE12C_EVIDENCE.md).
+
+### Stage 12A exit gate
+
+- Accepted documentation, registry revision `2.12.0`, and executable scope
+  agree on `data/market.sqlite` with no fallback to the superseded name.
+- The exact roster and retained evidence bindings reject drift, unknown fields,
+  secrets, broadened coverage, and opened successor phases.
+- Current canonical resolution produces only the selected path, without
+  creating it; historical Stage 1–11 projections and evidence hashes remain
+  reproducible.
+- Focused tests, the complete dependency-free suite, and independent
+  verification pass with no database, provider, scheduler, or destructive
+  side effect.
+
+### Stage 12B exit gate
+
+- The current `2.13.0` registry and exact `2.12.0` projection reproduce
+  their pinned source digests.
+- Pure dry runs and two-root fixture rehearsals are deterministic and path-free;
+  exact and reordered replay are total no-writes.
+- New keys append initial versions, changed keys append strictly later
+  corrections, and all failure paths preserve atomicity and point-in-time
+  ordering.
+- Scope-byte drift, forged scope objects, path aliases, hard links, inode
+  replacement before or during locking, malformed/partial data, and resource
+  failures fail closed before unintended SQLite access or mutation.
+- The complete dependency-free suite and independent verification pass without
+  a live provider, credential, default/retained store, migration, cutover,
+  public consumer, or scheduler action.
+
+Stage 12A completion did not itself authorize later work. Stage 12B remains
+complete only within its offline fixture boundary. A further user decision
+authorized Stage 12C, which is now complete under its
+[focused contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md) and immutable
+[evidence record](docs/rebuild/STAGE12C_EVIDENCE.md). Its provider work may not
+be repeated. Stage 12D is complete and independently verified under its
+[no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Stage 12E remains
+closed.
+
+## 17. Cross-stage quality gates
 
 Every implementation change must answer:
 
@@ -649,7 +871,7 @@ Every implementation change must answer:
 7. Can a temporary-store test prove failure without touching a live path?
 8. Can a research result cite exact data, code, parameters, and exclusions?
 
-## 17. Deferred scope
+## 18. Deferred scope
 
 The rebuild does not include:
 
@@ -662,7 +884,7 @@ The rebuild does not include:
 - Phillips–Perron until a validated numerical dependency is accepted; or
 - a provider-rights governance subsystem.
 
-## 18. Roadmap maintenance
+## 19. Roadmap maintenance
 
 - Roadmap stages describe sequence and gates, not detailed contracts.
 - Contract changes belong in the relevant specification and ADR first.

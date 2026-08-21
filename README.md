@@ -36,6 +36,42 @@ published, its targeted checks passed, and its private completion receipt is
 retained. No Stage 11 provider request may be repeated. The result remains a
 private, non-production candidate with no promotion or public exposure.
 
+On 2026-08-15 the user selected `data/market.sqlite` as the canonical
+project-relative market default. Stage 12A is implemented and independently
+verified as the authority/path gate, and Stage 12B is implemented and
+independently verified as an offline fixture-only collector. The bounded
+manual no-copy Stage 12C population is now complete and independently verified
+under its [two-session contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md) and
+immutable [evidence record](docs/rebuild/STAGE12C_EVIDENCE.md). Registry
+`2.14.0`/schema `1.8.0` binds 629 one-attempt chains: 619 published
+complete, three successful-empty, and seven narrowly sealed authorized HTTP 402
+terminal outcomes. The final project-local target has 4,237,131 current rows,
+4,237,873 immutable versions, and 5,210 captures with clean invariants.
+Stage 12D is complete and independently verified under its
+[no-transfer project-local adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and immutable [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Its exact
+two canonical read-only proofs produced distinct receipts with one semantic
+proof and left the database, WAL, SHM, and journal stamps unchanged. The
+independent post-proof reconciliation did not reopen SQLite or compute a new
+full-database hash; this is not backup or recovery evidence. Stage 12D created
+no second database, copy, move, replacement, backup, migration, registry bump,
+promotion pointer, provider/network access, public exposure, or scheduler
+change. Registry `2.14.0`/schema `1.8.0` and `data/market.sqlite` remain
+authoritative. Stage 12E remains closed.
+
+### FMP credentials for future authorized runs
+
+Future FMP runners that are otherwise authorized by their focused contract use
+`quant_data.credentials.read_project_credential` automatically immediately
+before permitted transport. A nonblank process-environment `FMP_API_KEY` wins;
+only when it is absent or blank may the helper resolve that single named key
+from the exact canonical project-root `.env` file. The helper does not import
+other keys into the process environment, load arbitrary dotenv files, expand
+or interpolate variables or commands, or log or persist secrets. Do not paste
+API keys into chat, command lines, receipts, or sidecars. This credential
+delivery rule does not authorize a provider, scope, retry, scheduler, or any
+other work that the focused contract does not already authorize.
+
 The portal remains local-only with four fixed routes: Overview (`/`), GDP
 Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
 (`/agent-tools`). Stage 7 adds eight disabled `manual_fixture_only` job
@@ -82,7 +118,14 @@ The bounded Stage 9 population and independently verified receipt are in
 The retained Stage 10 base and historical-extension receipts are in
 [Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md). The completed private
 Stage 11 candidate and its receipt are in
-[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
+[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md). The completed no-transfer
+adoption/freeze proofs are in
+[Stage 12D evidence](docs/rebuild/STAGE12D_EVIDENCE.md).
+
+The [Stage 12 Market v1 contract](docs/rebuild/STAGE12_MARKET_V1.md),
+[Stage 12B incremental collector contract](docs/rebuild/STAGE12B_INCREMENTAL_MARKET_V1.md),
+and [canonical-path ADR](docs/adr/0009-canonical-market-operational-path.md)
+record the current boundary; [Stage 12 evidence](docs/rebuild/STAGE12_EVIDENCE.md) remains immutable Stage 12A evidence.
 
 ## Validate Stage 1
 
@@ -315,9 +358,150 @@ current-pointer checks passed and the private completion receipt was
 published. No Stage 11 request may be repeated; see
 [Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
 
+## GDP/CPI source vintages -- populated and scheduled
+
+The canonical `data/macro.sqlite` now stores the bounded official vintage
+scope for BEA real/nominal GDP and BLS all-items/core CPI. The clean backfill
+published 16 immutable captures, four series, 2,136 releases, 4,012 versions,
+and 640 current observations. GDP history begins at `2002Q1`; the BLS annual
+revision snapshots begin at `2008-01`. Raw payload hashes, integrity, foreign
+keys, duplicates, correction sequences, and current pointers were reconciled.
+
+`quant-data-macro-vintages.timer` is enabled for weekdays at 09:05
+America/New_York. Each run fetches only the current BEA workbook and current
+BLS API response, makes no retry, applies no migration, and writes nothing
+when normalized values are unchanged. It does not repeat the 14-file archive
+backfill. Installation and inspection commands are in
+[the systemd README](deploy/systemd/README.md).
+
+## Employment source vintages -- populated and scheduled
+
+The same canonical macro store now also retains Philadelphia Fed RTDSM payroll
+and unemployment vintage matrices plus the current two-series BLS response.
+The one-time backfill published three captures and added 984 release identities,
+14,449 immutable versions, and 1,993 current observations. Payroll covers
+`1939-01` through `2026-07`; unemployment covers `1948-01` through `2026-07`.
+RTDSM source-vintage labels are preserved without inventing an exact release
+date, and their availability remains the local capture time.
+
+`quant-data-employment-vintages.timer` is enabled for the first Friday of each
+month at 10:05 America/New_York. It is non-persistent and fetches only the
+current BLS payroll/unemployment response: no credential, retry, migration, or
+historical-workbook refetch. A manual outside-window service check completed
+with zero requests. The next scheduled run is `2026-09-04 10:05 EDT`.
+
+## Deep macro history and weekly crude adoption -- complete
+
+The one-time macro-history extension reused five sealed source responses and
+made exactly six new credential-free BLS requests. All-items CPI now reaches
+`1947-01`, core CPI reaches `1957-01`, and the Philadelphia Fed `NOUTPUT` and
+`ROUTPUT` matrices are stored as separate source-native GNP/GDP level series.
+The extension added 11 captures, 1,165 releases, 14,577 versions, and 1,980
+current observations. Exact source-vintage labels are retained without
+inventing release dates.
+
+The retained Stage 11 weekly crude cohort was then adopted locally with no
+provider request: one capture and 2,289 versions/current observations from
+`1982-08-20` through `2026-08-07`. No new timer was installed; the two existing
+macro timers remain the only scheduled macro collectors. The pre-change backup
+is `data/.macro-backups/macro.sqlite.pre-history-extension-20260817T1243-0400`
+with SHA-256 `5fbf583e24ad62e146c850797e39140a204e018ae029e5f39137381f3fcbd58d`.
+
+## FMP GDP/CPI release-calendar history and surprises -- complete
+
+Registry `2.19.0`/schema `1.8.0` adds one manual-only collector,
+`fmp.macro.gdp_cpi_release_calendar_history`. It reuses
+`fixture.macro.economic_calendar` and the existing `macro.official_vintages`
+tool dependency; it adds no migration, dataset, job, scheduler, or physical
+surprise table. The completed manual history used exactly 56 contiguous windows
+of at most 90 days from `2013-01-01` through `2026-08-17`, retaining 941 FMP
+events and 941 versions: 216 core MoM, 217 core YoY, 214 headline MoM, 217
+headline YoY, and 77 GDP. The reviewed target alias map is exact, with no fuzzy
+target matching, and ignores bare CPI, GDP Price Index, and GDP Consumer Spending labels.
+
+Historical FMP consensus uses the explicit `event_at_utc` availability
+assumption. GDP surprise is computed on demand as one best-available record per
+quarter. It prefers a BEA first release on the exact FMP event date
+(`advance`, or source-native `initial`); when that consensus is absent, it
+selects an exact-date `second`, then exact-date `third` release. Every
+selection compares FMP consensus with the BEA actual from the same release date
+and stage; FMP GDP actual is never used. Equivalent reviewed aliases on the
+same date collapse only when their values agree; conflicts fail closed.
+Later-stage selections are explicitly marked `is_fallback`. The current
+canonical read returns all 55 quarters from `2012Q4` through `2026Q2`: 10
+advance, one initial, 10 second, and 34 third. Fifty-four have numeric surprises
+and `2012Q4` is `missing_consensus`. CPI has 864 results. Ordinary CPI uses
+actual and consensus from the same FMP event version. This derived mapping adds
+no migration, physical surprise table, provider request, or scheduler.
+
+Under [ADR 0011](docs/adr/0011-retire-proposed-bls-cpi-release-archive.md),
+CPI surprise calculation is FMP-only: an ordinary result takes actual and
+consensus from one FMP event, while a narrow repair may combine complementary
+rows only when CPI kind, derived reference month, UTC event date, and unit
+match and each finite side is unique. The later event remains primary and
+source event-version lineage is retained. Same-side or incomplete rows remain
+missing, conflicts fail closed, and no BLS original-release archive may
+validate, fill, replace, or otherwise affect a CPI result. The proposed
+`2.22.0` archive candidate was never activated; its retirement does not alter
+the completed `2.16.0` BLS annual-revision snapshots or current BLS refresh.
+Before the run, `data/macro.sqlite` was backed up to
+`data/.macro-backups/macro.sqlite.pre-fmp-consensus-20260817T1507-0400` (mode
+`0600`, SHA-256
+`c257c332b83682d82dde921964a0000edb4a9250ea118831c046a1c63dfcad6d`). Integrity,
+foreign-key, lineage, and duplicate checks are clean. The manual history is
+complete and must not be repeated; no timer was installed and the two existing
+macro timers remain unchanged.
+
+The user-authorized incremental calendar refresh code reuses one FMP response
+for both GDP/CPI and employment. It is bounded to 08:15 and 08:45
+America/New_York on weekdays, one request, and no retry. The reviewed
+non-persistent `quant-data-fmp-macro-calendar.timer` is installed, enabled, and
+active under the user's explicit scheduler approval. Each family has an
+independent semantic identity, and the refresh retains wholesale raw evidence
+before local normalization. Payroll and unemployment surprises remain
+on-demand calculations. Both use the actual and consensus from the same
+reference-period FMP release row. Official employment vintages remain
+available for inspection but are not used in either surprise calculation.
+
+Registry `2.21.0` adds migration
+`macro:0016_fmp_calendar_wholesale_evidence`, a private raw-evidence dataset,
+and one manual-only wholesale collector. The completed one-time run covered all
+56 contiguous windows from `2013-01-01` through `2026-08-17` and retained
+every response byte plus all 42,890 rows in 56 immutable captures. The recovery
+backup `data/.macro-backups/macro.sqlite.pre-fmp-wholesale-20260818T1918-0400`
+has mode `0600` and SHA-256
+`44d4420cb2569f792bf19489febcf68a16c2d3916cad9893905c31aee681269b`.
+
+The original zero-network local replay normalized 323 v1 employment
+events/versions: 161 payroll and 162 unemployment. One-time additive v2 and v3
+repairs replayed the same 56 immutable captures with zero provider requests
+and wrote 162 reference-period-aware payroll plus 162 unemployment events and
+versions. It now exposes 324 on-demand employment surprises: 162 for each
+series, with 321 `ok`, two `missing_consensus`, and one `missing_actual`.
+Delayed releases now map by their explicit reference month; unemployment
+`2025-10` remains `missing_actual` because FMP supplied only consensus. An
+identical second replay of each version wrote nothing. The payroll recovery
+backup is
+`data/.macro-backups/macro.sqlite.pre-payroll-reference-replay-20260820T1740-0400`
+(mode `0600`, SHA-256
+`8bb8441440458667267a4a608b88eeab9c1f4777f1e691bb53698f60fef2093e`).
+The unemployment recovery backup is
+`data/.macro-backups/macro.sqlite.pre-unemployment-reference-replay-20260820T2001-0400`
+(mode `0600`, SHA-256
+`bfad4cf56c53c69ca3d5951ca93af6aecf582831834636c059ca941bc15f1d73`).
+Integrity and lineage checks are clean. No provider request, new timer, public
+route, physical surprise table, or caller-selected database path was added;
+the exact `2.21.0` projection restores byte-exact `2.20.0`.
+
+The never-active `2.22.0` candidate
+`macro:0017_bls_cpi_release_archive` is rejected by ADR 0011 and is not a
+registry successor. Exact `2.21.0` remains the accepted configuration; no
+archive dataset, collector, relation, migration, or archive-derived CPI
+lineage remains in scope.
+
 ## Current public boundary
 
-The canonical registry is revision `2.10.0`, schema `1.7.0`. It preserves the
+The canonical registry is revision `2.21.0`, schema `1.8.0`. It preserves the
 four local-private Stage 6 dashboard exposures, eight ordered disabled
 `manual_fixture_only` jobs, and the one fixture-only manual JSON export,
 `atlas.fixture_snapshot`, with reciprocal declarations on
@@ -327,8 +511,69 @@ isolated Stage 9 declarations, it contains the private Stage 10 market-history
 and Stage 11 BEA/EIA candidate declarations. None of those live-candidate
 relations is exposed through public tools, dashboards, or Atlas exports.
 The completed Stage 11 receipt remains frozen to its historical
-`2.9.0`/`1.7.0` projection; revision `2.10.0` only makes the already
-reviewed retry policy canonical and does not authorize another provider run.
+`2.9.0`/`1.7.0` projection. Revision `2.10.0` only made its reviewed retry
+policy canonical; revision `2.11.0` adds the bounded FMP stock-latest news
+fixture contract without proving or authorizing full live news coverage; and
+revision `2.12.0` changes only the current market default to
+`data/market.sqlite`. Exact historical projections restore
+`data/market_data.sqlite`; the former name is not a current fallback or alias.
+Revision `2.13.0` adds only the bounded Stage 12B fixture collector declaration:
+it uses the existing `0010` model in explicit temporary fixture stores, has no
+new migration or public exposure, and does not authorize a provider, API key,
+network, default or retained store, promotion, cutover, or scheduler. Its exact
+historical projection restores `2.12.0` before reproducing Stage 12A and earlier
+evidence. None of those revisions authorizes another Stage 9–11 provider run.
+
+Revision `2.14.0` adds only the bounded Stage 12C manual collector declaration;
+its exact projection restores `2.13.0` before Stage 12B and earlier evidence.
+The declaration itself is not live evidence; the completed bounded population
+is recorded in [Stage 12C evidence](docs/rebuild/STAGE12C_EVIDENCE.md). The
+named-only credential fallback was delivery policy only, not a registry or
+provider-scope expansion, and no Stage 9-11 provider work is reopened.
+
+Revision `2.15.0` changes only the remaining current store defaults to
+`data/macro.sqlite`, `data/company.sqlite`, and `data/news.sqlite`, matching
+the existing project-local files. It performs no database copy, rename, open,
+or mutation. Its exact historical projection restores `2.14.0` and the prior
+three `_data` declarations for Stage 12C/D and earlier evidence.
+
+Revision `2.16.0` adds only `macro:0013_live_gdp_cpi_vintages`, the private
+GDP/CPI evidence and canonical datasets, and their two fixed official-source
+collectors. It adds no public tool, dashboard, export, credential, or caller
+path. Its exact historical projection removes those declarations and restores
+`2.15.0`.
+
+Revision `2.17.0` adds only `macro:0014_live_employment_vintages` and the
+private Philadelphia Fed historical and BLS current employment collectors.
+It reuses the two private official-vintage datasets, adds no public consumer or
+credential, and preserves raw evidence plus version/current lineage. Its exact
+historical projection removes migration 0014 and those two collectors and
+restores byte-exact revision `2.16.0`.
+
+Revision `2.18.0` adds only `macro:0015_live_macro_history_extension` and two
+manual-only history collectors. It reuses the private official-vintage
+datasets, adds no credential, public consumer, or scheduler, and projects
+byte-exactly back to `2.17.0`.
+
+Revision `2.19.0` adds only
+`fmp.macro.gdp_cpi_release_calendar_history`, reusing the established calendar
+relation and official-vintages tool dependency. It adds no migration, dataset,
+job, scheduler, public consumer, or surprise table; its exact historical
+projection restores `2.18.0`.
+
+Revision `2.20.0` adds only
+`fmp.macro.employment_release_calendar_refresh` and its reciprocal binding to
+the existing economic-calendar dataset. It adds no migration, dataset, job,
+timer, physical surprise table, or new route; its exact historical projection
+restores byte-exact revision `2.19.0`.
+
+Revision `2.21.0` adds only
+`macro:0016_fmp_calendar_wholesale_evidence`, the private
+`macro.fmp.economic_calendar_evidence` dataset, and
+`fmp.macro.us_economic_calendar_wholesale`. Its two physical relations retain
+immutable response bytes and complete raw-row projections. It adds no public
+consumer, job, scheduler, export, or surprise table; its exact historical
+projection restores byte-exact revision `2.20.0`.
 
 The frozen Stage 7 rebuild keeps its historical `2.5.0`/`1.3.0`, zero-export
 projection; the frozen Stage 6 rebuild uses `2.4.0`/`1.2.0`, jobs-empty
@@ -355,3 +600,16 @@ Stage 10 also remains private, non-production, and candidate-only. Stage 11 is
 complete only as a private, non-production candidate and has no public
 consumer or promotion authority. Registry declarations are not evidence of
 live completion; the retained receipt is.
+
+Stage 12A remains immutable offline authority/coverage evidence, and Stage 12B
+remains fixture-only evidence. Stage 12C is complete only as the exact private
+bounded no-copy population recorded in its
+[evidence record](docs/rebuild/STAGE12C_EVIDENCE.md); it does not create a
+general HTTP 402 rule, transfer or promote a database, expose a public
+consumer, or authorize a scheduler. The final neutral source check used
+`mode=ro&immutable=1` after a zero-WAL precondition; the disclosed earlier
+`-shm` timestamp effect was not a database mutation. Stage 12D is complete and independently verified under its
+[no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Its two read-only
+proofs were filesystem-neutral and created only their immutable private
+receipts. Stage 12E remains closed.

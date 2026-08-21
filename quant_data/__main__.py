@@ -6,7 +6,7 @@ import argparse
 import sys
 from collections.abc import Sequence
 
-from .errors import QuantDataError
+from .errors import QuantDataError, ValidationError
 from .json_codec import dumps_strict
 from .stage1 import (
     compare_clean_rebuilds as compare_clean_stage1_rebuilds,
@@ -22,6 +22,15 @@ from .stage8 import compare_clean_stage8_rebuilds, run_clean_stage8_rebuild
 from .stage9 import compare_clean_stage9_rebuilds, run_clean_stage9_rebuild
 from .stage10 import compare_clean_stage10_rebuilds, run_clean_stage10_rebuild
 from .stage11 import compare_clean_stage11_rebuilds, run_clean_stage11_rebuild
+from .stage12 import (
+    compare_stage12a_authority_gates,
+    run_stage12a_authority_gate,
+)
+
+
+from .stage12b import compare_clean_stage12b_rebuilds
+from .stage12c import compare_clean_stage12c_rebuilds
+from .stage12d import compare_clean_stage12d_rebuilds
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -41,6 +50,10 @@ def _parser() -> argparse.ArgumentParser:
             "stage9",
             "stage10",
             "stage11",
+            "stage12a",
+            "stage12b",
+            "stage12c",
+            "stage12d",
         ),
         help="Offline acceptance gate to execute",
     )
@@ -52,7 +65,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--store-root",
         required=True,
-        help="Explicit empty store root (Stage 1) or work root (Stages 2 through 11)",
+        help="Explicit empty store root (Stage 1) or neutral work root (Stages 2 through 12D)",
     )
     parser.add_argument(
         "--second-store-root",
@@ -184,6 +197,47 @@ def main(argv: Sequence[str] | None = None) -> int:
             evidence = run_clean_stage11_rebuild(
                 project_root=arguments.project_root,
                 work_root=arguments.store_root,
+            )
+        elif arguments.stage == "stage12a" and arguments.second_store_root:
+            evidence = compare_stage12a_authority_gates(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
+            )
+        elif arguments.stage == "stage12a":
+            evidence = run_stage12a_authority_gate(
+                project_root=arguments.project_root,
+                work_root=arguments.store_root,
+            )
+        elif arguments.stage == "stage12b":
+            if not arguments.second_store_root:
+                raise ValidationError(
+                    "Stage 12B requires an explicit --second-store-root"
+                )
+            evidence = compare_clean_stage12b_rebuilds(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
+            )
+        elif arguments.stage == "stage12c":
+            if not arguments.second_store_root:
+                raise ValidationError(
+                    "Stage 12C requires an explicit --second-store-root"
+                )
+            evidence = compare_clean_stage12c_rebuilds(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
+            )
+        elif arguments.stage == "stage12d":
+            if not arguments.second_store_root:
+                raise ValidationError(
+                    "Stage 12D requires an explicit --second-store-root"
+                )
+            evidence = compare_clean_stage12d_rebuilds(
+                project_root=arguments.project_root,
+                first_work_root=arguments.store_root,
+                second_work_root=arguments.second_store_root,
             )
         else:  # pragma: no cover - argparse enforces the closed stage inventory
             raise AssertionError("Unsupported stage selection")

@@ -1,0 +1,200 @@
+{
+  "approval_status": "offline_fixture_rehearsal_validated_live_not_run",
+  "canonical_registry": {
+    "revision": "2.13.0",
+    "schema_version": "1.8.0",
+    "source_sha256": "b39057d548d6ced6e7c0663ffafbee7e0c16c88a94baced584ff6949da7766f6"
+  },
+  "collector": {
+    "handler": "market.stage12b_fmp_daily_incremental_fixture",
+    "id": "market.stage12b.fmp_daily_incremental_fixture",
+    "max_attempts": 1,
+    "max_bytes": 65536,
+    "max_rows": 5,
+    "max_seconds": 30,
+    "schedule_mode": "manual_only"
+  },
+  "contract": "quant_data.stage12b_incremental_market_v1_fixture_gate",
+  "contract_version": "1.0.0",
+  "dry_run": {
+    "credential_environment_reads": 0,
+    "filesystem_mutations": 0,
+    "fixture_transport_calls": 0,
+    "locks_acquired": 0,
+    "network_calls": 0,
+    "scheduler_actions": 0,
+    "sqlite_stores_opened": 0,
+    "subprocess_calls": 0,
+    "transactions_started": 0,
+    "work_root_policy": "explicit_absent_or_empty_isolated_fixture_only"
+  },
+  "evidence_sha256": "8daef487dd9eb42bf4c2711dd5682ffb21751d0c15efc3e71ea8c00e2365ef4e",
+  "execution": {
+    "credential_environment_reads": 0,
+    "fixture_transport_calls": 14,
+    "live_provider_calls": 0,
+    "network_calls": 0,
+    "operational_sqlite_stores_opened": 0,
+    "scheduler_actions": 0,
+    "stage9_to_stage11_runner_calls": 0,
+    "temporary_fixture_store_roles_initialized": 4
+  },
+  "fixture_rehearsal": {
+    "canonical_counts": {
+      "ingestion_artifacts": 3,
+      "ingestion_runs": 4,
+      "ingestion_snapshots": 3,
+      "stage10_daily_price_captures": 3,
+      "stage10_daily_price_versions": 5,
+      "stage10_daily_prices": 4,
+      "stage10_instruments": 1
+    },
+    "integrity": {
+      "broken_supersession_count": 0,
+      "duplicate_current_count": 0,
+      "foreign_key_violation_count": 0,
+      "integrity_check": [
+        "ok"
+      ],
+      "invalid_current_pointer_count": 0,
+      "maximum_correction_sequence": 2
+    },
+    "migration_heads": {
+      "company": [
+        "company:0001_foundation",
+        "company:0002_control_plane",
+        "company:0003_sec_core",
+        "company:0004_corporate_actions",
+        "company:0005_corporate_action_integrity",
+        "company:0006_earnings_expectations",
+        "company:0007_filing_issuer_view"
+      ],
+      "macro": [
+        "macro:0001_foundation",
+        "macro:0002_vertical_slice",
+        "macro:0003_control_plane",
+        "macro:0004_stage3_core",
+        "macro:0005_gdp_vintages",
+        "macro:0006_treasury_yield_curves",
+        "macro:0007_economic_calendar",
+        "macro:0008_soma_summary_only",
+        "macro:0009_eia_electricity_retail",
+        "macro:0010_eia_weekly_fundamentals",
+        "macro:0011_us_recession_periods",
+        "macro:0012_stage11_bea_eia_live_history"
+      ],
+      "market": [
+        "market:0001_foundation",
+        "market:0002_vertical_slice",
+        "market:0003_control_plane",
+        "market:0004_instrument_catalog",
+        "market:0005_instrument_classifications",
+        "market:0006_controlled_universes",
+        "market:0007_options_core",
+        "market:0008_option_surface_inputs",
+        "market:0009_fmp_daily_price_backfill",
+        "market:0010_stage10_market_history"
+      ],
+      "news": [
+        "news:0001_foundation",
+        "news:0002_control_plane",
+        "news:0003_immutable_items",
+        "news:0004_search_index",
+        "news:0005_fmp_stock_latest"
+      ]
+    },
+    "nonmarket_stores_unchanged": true,
+    "operation_order": [
+      "fixture_response_delivered",
+      "parser_started",
+      "parser_completed",
+      "candidate_prepared",
+      "physical_market_lock_acquired",
+      "market_connection_opened",
+      "write_transaction_open"
+    ],
+    "preseeded_instrument": {
+      "asset_type": "equity",
+      "symbol": "AAPL"
+    },
+    "publication": {
+      "changed_overlap_correction": {
+        "outcome": "published",
+        "written_versions": 1
+      },
+      "empty": {
+        "outcome": "empty",
+        "written_versions": 0
+      },
+      "exact_replay": {
+        "outcome": "unchanged",
+        "written_versions": 0
+      },
+      "first_complete": {
+        "outcome": "published",
+        "written_versions": 3
+      },
+      "new_date": {
+        "outcome": "published",
+        "written_versions": 1
+      },
+      "reordered_replay": {
+        "outcome": "unchanged",
+        "written_versions": 0
+      }
+    },
+    "rejections": [
+      "malformed_json",
+      "partial_complete_batch",
+      "retry_classified_status_503",
+      "raw_bytes_different_descriptor",
+      "elapsed_seconds_bound",
+      "backdated_changed_key",
+      "lock_failure",
+      "commit_failure"
+    ],
+    "store_fingerprint_sha256": {
+      "company": "7c1773c7fa77fb96cc86594ea5800637cd115d9fc014a960e07356f80390737e",
+      "macro": "1fdf9fe011f9631c2d305ac614162d1006b1c2d3f97c364db6d45cb6148dfdcc",
+      "market": "19ddee3362f325add66b8047b4bd39b559276c4f0828cd803a977b0cdc137e02",
+      "news": "c0cfe61413f6907e483f5a8848da878db14e55c5ef731620b9ac893d06ec4fa6"
+    }
+  },
+  "plan": {
+    "collector": {
+      "handler": "market.stage12b_fmp_daily_incremental_fixture",
+      "id": "market.stage12b.fmp_daily_incremental_fixture",
+      "max_attempts": 1,
+      "retry_transient_classes": []
+    },
+    "fixture_request": {
+      "asset_type": "equity",
+      "endpoint_path": "/stable/historical-price-eod/full",
+      "from": "2026-08-10",
+      "price_variant": "fmp_full_eod_v1",
+      "provider": "fmp",
+      "session_count": 3,
+      "symbol": "AAPL",
+      "to": "2026-08-12"
+    },
+    "phase": "stage12b_offline_fixture_only",
+    "store": {
+      "lock_identity": "derived_from_explicit_fixture_market_store",
+      "role": "market",
+      "selection": "explicit_isolated_fixture_root"
+    }
+  },
+  "schema_version": "1.0.0",
+  "scope": {
+    "stage12a_manifest_sha256": "8266f431519913879797a14ea0baa781b6c7e0dfe78365a5ff0107e386a0ad29",
+    "stage12a_roster_sha256": "a81f62a5fe3710011e1fe6eabfe7fcd483726a23f2dc9b0a7e592b4c78327fbb",
+    "stage12a_scope_file_sha256": "12e9a7380ad22c9595d922c1a53320f3c52e368cb688adf1d97bf4d7c9a18bf6",
+    "stage12b_manifest_sha256": "91d202540e24d2f94a3adb10135dde0bb3ee0c787c801bf66e547d649a7a3dfb",
+    "target_profile_id": "stage12b_incremental_market_v1_fixture"
+  },
+  "stage12a_projection": {
+    "revision": "2.12.0",
+    "schema_version": "1.8.0",
+    "source_sha256": "80a41e9f124cccb85bbdda665e33b1ef408f538b7e50b499b630b5ce6c761e7e"
+  }
+}

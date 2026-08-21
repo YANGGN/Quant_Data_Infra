@@ -32,10 +32,37 @@ EIA retail, and EIA weekly phases are published, targeted checks passed, and
 its private completion receipt is retained. No provider request may be
 repeated.
 
+On 2026-08-15 the user authorized bounded offline Stage 12A and selected
+`data/market.sqlite` as the canonical project-local market path. Stage 12A
+freezes Market v1 authority and coverage only. It does not open or move an
+existing database, repeat a provider request, promote a candidate, or
+install/start a scheduler. The user subsequently authorized and completed the
+[Stage 12B incremental collector](docs/rebuild/STAGE12B_INCREMENTAL_MARKET_V1.md)
+as an independently verified, dependency-free offline fixture-only
+implementation; [Stage 12B evidence](docs/rebuild/STAGE12B_EVIDENCE.md) records
+registry `2.13.0`/schema `1.8.0`, the existing `0010` model, and explicit
+temporary fixture stores. It authorizes no live/provider/API-key/network/
+default-or-retained-store, migration, promotion, cutover, public-consumer, or
+scheduler action.
+
+The Stage 12B gate did not itself authorize later work. Stage 12C was
+authorized separately and is complete under its
+[focused two-session contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md) and
+[immutable evidence](docs/rebuild/STAGE12C_EVIDENCE.md). It used the canonical
+project-local `data/market.sqlite` without a second full database copy and
+closed the frozen 629-symbol roster as 619 published, three successful-empty,
+and seven narrowly authorized HTTP 402 outcomes. Stage 12D then completed the
+[no-transfer adoption proof](docs/rebuild/STAGE12D_EVIDENCE.md): exactly two
+immutable, query-only canonical proofs produced distinct receipts with the
+same semantic result and left the main database, WAL, SHM, and rollback-journal
+stamps unchanged. It made no copy, migration, or registry change. Stage 12E
+remains closed; no scheduler or public exposure is authorized.
 
 The principal decisions are recorded in:
 
 - [ADR 0001: Four operational SQLite stores](docs/adr/0001-four-operational-sqlite-stores.md)
+- [ADR 0009: Canonical market operational path](docs/adr/0009-canonical-market-operational-path.md)
+- [ADR 0011: Retire proposed BLS CPI original-release archive](docs/adr/0011-retire-proposed-bls-cpi-release-archive.md)
 - [ADR 0002: One machine-readable system registry](docs/adr/0002-single-machine-readable-registry.md)
 - [ADR 0003: Three-layer data architecture](docs/adr/0003-three-layer-data-architecture.md)
 - [ADR 0008: Fresh store-local reconstruction migrations](docs/adr/0008-fresh-store-local-reconstruction-migrations.md)
@@ -124,10 +151,10 @@ The target has four operational SQLite stores. These are write and failure bound
 
 | Store | Default path | Environment override | Primary ownership |
 | --- | --- | --- | --- |
-| Market | data/market_data.sqlite | QUANT_MARKET_DB_PATH | Instruments, dated identifiers, classifications, daily prices and versions, price requests, option contracts and immutable option captures |
-| Macro | data/macro_data.sqlite | QUANT_MACRO_DB_PATH | Calendar, macro catalogs and versioned observations, GDP vintages, Treasury curves, funding and liquidity, recession chronology, SOMA summaries, and EIA facts |
-| Company | data/company_data.sqlite | QUANT_COMPANY_DB_PATH | SEC issuers, submissions, filings, facts, normalized fundamentals, corporate actions, share history, earnings events, consensus, and guidance |
-| News | data/news_data.sqlite | QUANT_NEWS_DB_PATH | Immutable source artifacts, logical items and changed-content versions, capture membership, labels, retractions, and search indexes |
+| Market | data/market.sqlite | QUANT_MARKET_DB_PATH | Instruments, dated identifiers, classifications, daily prices and versions, price requests, option contracts and immutable option captures |
+| Macro | data/macro.sqlite | QUANT_MACRO_DB_PATH | Calendar, macro catalogs and versioned observations, GDP vintages, Treasury curves, funding and liquidity, recession chronology, SOMA summaries, and EIA facts |
+| Company | data/company.sqlite | QUANT_COMPANY_DB_PATH | SEC issuers, submissions, filings, facts, normalized fundamentals, corporate actions, share history, earnings events, consensus, and guidance |
+| News | data/news.sqlite | QUANT_NEWS_DB_PATH | Immutable source artifacts, logical items and changed-content versions, capture membership, labels, retractions, and search indexes |
 
 Options belong to the market store. ETF, equity, and index prices share one instrument model and one daily-price fact family; asset type is metadata, not a reason to create a table per symbol or asset class.
 
@@ -185,17 +212,55 @@ Every Stage 2 store carries the same ten control-plane relations:
 - **data_quality_results** retains immutable quality outcomes tied to the
   published work.
 
-The system registry is declarative source configuration. The current revision
-is `2.10.0` with schema version `1.7.0`. It preserves the bounded Stage 8
+The system registry is declarative source configuration. The current accepted
+revision is `2.21.0` with schema version `1.8.0`. It preserves the bounded Stage 8
 declaration: 57 reviewed public tool names, four local-private dashboard
 exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
 manual JSON Atlas export. It adds isolated private declarations for the Stage 9
-slice, Stage 10 market history, and Stage 11 BEA/EIA history. Those declarations
-are not public-tool, dashboard, or Atlas exposure, and registry declaration is
-not live acceptance evidence. The completed Stage 11 receipt remains bound to
-the frozen `2.9.0`/`1.7.0` projection; revision `2.10.0` canonically
-records its reviewed retry policy without authorizing a new run. The frozen
-Stage 10 projection remains
+slice, Stage 10 market history, Stage 11 BEA/EIA history, and the bounded
+fixture-validated FMP stock-latest news contract. Those declarations are not
+public-tool, dashboard, or Atlas exposure, and registry declaration is not live
+acceptance evidence. The completed Stage 11 receipt remains bound to the frozen
+`2.9.0`/`1.7.0` projection; revision `2.10.0` canonically records its
+reviewed retry policy without authorizing a new run. Revision `2.11.0` adds
+only the FMP news fixture contract and does not prove full or live news
+coverage. Revision `2.12.0` changes the current market default to
+`data/market.sqlite`; its historical projection restores the former path
+before reproducing earlier evidence. Revision `2.13.0` adds only the bounded
+Stage 12B fixture collector declaration, with no migration or public exposure;
+it uses the existing `0010` model only in explicit temporary fixture stores and
+does not authorize a provider, API key, network, default or retained store,
+promotion, cutover, or scheduler. Its exact historical projection restores
+`2.12.0` before reproducing Stage 12A and earlier evidence. Revision `2.14.0`
+keeps schema `1.8.0` and adds only
+`market.stage12c.fmp_daily_incremental_manual`. It adds no migration, public
+exposure, or scheduler declaration. Its exact historical projection restores
+`2.13.0` before Stage 12B and earlier evidence; its declaration is not a
+provider call, database mutation, or acceptance result. Revision `2.15.0`
+changes only the current
+macro, company, and news default basenames to match the existing
+`macro.sqlite`, `company.sqlite`, and `news.sqlite` files. Its exact projection
+restores `2.14.0` and the prior declarations before Stage 12C/D evidence is
+reproduced; it performs no database file operation. Revision `2.16.0` adds the
+isolated official GDP/CPI vintage migration, two private datasets, and two
+fixed BEA/BLS collectors. It has no public consumer or caller-selected path;
+its exact projection restores `2.15.0`. Revision `2.17.0` adds only the
+employment-vintage migration and the private Philadelphia Fed historical and
+BLS current employment collectors. It reuses the two private official-vintage
+datasets, adds no public consumer or credential, and projects exactly back to
+`2.16.0`. Revision `2.18.0` adds the one-time macro-history migration and two
+manual-only collectors, reuses the private official-vintage datasets, and adds
+no credential, public consumer, or scheduler. Its exact projection restores
+byte-exact `2.17.0`. Revision `2.19.0` adds the manual FMP GDP/CPI
+release-calendar collector; revision `2.20.0` adds the bounded FMP employment
+calendar refresh declaration; and revision `2.21.0` adds wholesale FMP calendar
+evidence and local-replay support. These declarations add no public CPI
+surprise table. Under ADR 0011, the never-active `2.22.0` BLS CPI
+original-release archive candidate is rejected: CPI surprise actual and
+consensus remain FMP-only, and no archive source may alter output or lineage.
+This narrow retirement does not change the completed `2.16.0` BLS
+annual-revision snapshots or its current BLS refresh. The frozen Stage 10
+projection remains
 `2.8.0`/`1.6.0`; the frozen Stage 9 projection remains
 `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains
 `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6
@@ -458,7 +523,11 @@ The implemented Stage 1 through Stage 8 boundary remains offline. Stages 9
 through 11 are separately authorized, tightly isolated non-production
 exceptions. Stage 9 passed its bounded receipt gate; Stage 10 retained
 candidate populations are complete; Stage 11 is complete only as a retained
-private candidate. Stage 7 rebuilds the accepted
+private candidate. Stage 12C is complete and its provider exception is closed;
+none of its requests may be repeated. Stage 12D completed only the no-transfer,
+immutable/query-only adoption proof for `data/market.sqlite`, with no copy,
+migration, registry bump, scheduler, or public exposure. Stage 12E remains
+closed. Stage 7 rebuilds the accepted
 Stage 6 synthetic fixture cohort under explicit temporary roots, then validates
 eight disabled manual fixture plans, injected outcome cases, real fixture
 replay, ordered physical locking, retries, active timeouts, private receipt-last

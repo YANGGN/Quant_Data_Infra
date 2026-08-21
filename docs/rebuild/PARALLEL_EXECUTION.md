@@ -4,6 +4,11 @@ Status: Accepted
 Planning baseline: 2026-08-09  
 Scope: dependency-aware multi-agent execution of the rebuild roadmap
 
+> **Exception workflow:** ordinary bounded development follows the
+> [fast path](FAST_PATH_DEVELOPMENT.md): one owner, focused validation, and a
+> concise handoff. Use this parallel plan only when an accepted contract or the
+> fast-path escalation criteria require it. Parallelism is not a default gate.
+
 ## 1. Purpose
 
 This document explains how to run useful parts of the rebuild concurrently
@@ -32,6 +37,18 @@ is complete as a private candidate in the same isolated cohort: BEA, EIA
 retail, and EIA weekly are published, targeted checks passed, and the private
 receipt is retained. No Stage 11 request may be repeated.
 
+The bounded offline Stage 12A authority/path gate is implemented and independently
+verified; see [Stage 12 evidence](STAGE12_EVIDENCE.md). Stage 12B is implemented
+and independently verified offline and fixture-only under its
+[focused collector contract](STAGE12B_INCREMENTAL_MARKET_V1.md) and
+[evidence record](STAGE12B_EVIDENCE.md). Its gate did not authorize later work.
+**Stage 12C is complete and independently verified** under
+[the focused two-session contract](STAGE12C_MARKET_GAP_V1.md) and
+[evidence record](STAGE12C_EVIDENCE.md). Stage 12D is complete and
+independently verified under its
+[no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and [evidence record](STAGE12D_EVIDENCE.md); Stage 12E remains closed.
+
 ## 2. Capacity and operating model
 
 The project configuration assumes one SolUltra primary plus at most three
@@ -46,6 +63,28 @@ Parallelism is a throughput tool, not an objective by itself. Use all available
 slots when work is genuinely independent. Queue or serialize work when two
 lanes share a file, identifier space, schema decision, database, or acceptance
 boundary.
+
+### Delegated task contract
+
+Every delegated task must state:
+
+1. one concrete objective;
+2. whether it is read-only or write-capable;
+3. the exact owned files or directories for a writer;
+4. the authoritative specifications and fixed interfaces;
+5. the required validation and evidence;
+6. what the agent must not change; and
+7. the condition for stopping and escalating.
+
+Parallel writers require disjoint ownership. A subagent must stop and report a
+required change outside its ownership instead of crossing the boundary, and
+must not spawn another agent unless the primary explicitly delegated that
+authority.
+
+Every subagent returns its objective and owned scope; files changed or an
+explicit read-only statement; validation commands and results; assumptions and
+unresolved risks; shared changes requested from the integration owner; and a
+clear `ready for integration` or `blocked` conclusion.
 
 ## 3. Dependency graph
 
@@ -90,12 +129,20 @@ G9  One manual FMP SPY non-production backfill; candidate receipt verified
  |
 G10 Frozen 629-symbol market-history base and extension; receipts retained
  |
-G11 Bounded BEA/EIA macro candidate; weekly/receipt gate remains open
+G11 Bounded BEA/EIA macro candidate complete; no repeat or promotion
+ |
+G12A Market v1 authority, explicit roster, and canonical-path offline gate independently verified
+ |
+G12B Fixture-only incremental collector independently verified; no live/provider/store cutover/scheduler work
+ |
+G12C Bounded no-copy two-session population complete; private receipt retained
+ |
+G12D No-transfer adoption/freeze complete and independently verified; Stage 12E closed
 ```
 
-`G0` through `G11` are integration gates, not agent tasks. A later stage may
-have read-only design, test planning, or fixture preparation in progress, but
-its executable implementation cannot land before the preceding gate passes.
+`G0` through `G12D` are integration gates, not agent tasks. `G12B` remains
+within its immutable fixture-only boundary; `G12D` passed within its fixed
+no-transfer contract and immutable [evidence record](STAGE12D_EVIDENCE.md).
 
 ## 4. Hard serialized owners
 
@@ -335,6 +382,71 @@ current-pointer checks passed and the private candidate receipt is retained.
 The wave authorizes no additional request, promotion, scheduling, or public
 exposure. Evidence is recorded in
 [Stage 11 evidence](STAGE11_EVIDENCE.md).
+
+### Wave 12A — Market v1 authority and canonical path
+
+Status: **Implemented and independently verified.**
+
+The primary owns the path decision, registry revision `2.12.0`, historical
+projection compatibility, and integration. One isolated implementation lane
+owns the strict Market v1 manifest/loader/gate/tests. It freezes the explicit
+629-symbol retained roster and binds the source-only Stage 10 resume/scope
+digests without opening the retained SQLite stores.
+
+No lane called a provider, consulted credentials, created/opened a default
+database, copied or moved data, changed a scheduler, reopened Stage 10/11, or
+began Stages 12B through 12E. The independent SolUltra verifier checked
+deterministic evidence, hostile manifest mutations, path neutrality, historical
+registry hashes, the focused suite, and the complete dependency-free suite.
+Evidence is recorded in [the Stage 12 contract](STAGE12_MARKET_V1.md) and the
+[Stage 12 evidence record](STAGE12_EVIDENCE.md).
+
+### Wave 12B — fixture-only incremental Market v1 collector
+
+Status: **Implemented and independently verified — offline fixture-only.**
+
+The primary owns registry `2.13.0`/schema `1.8.0`, the exact `2.13.0` to
+`2.12.0` historical projection, shared contracts, and integration. Scoped
+implementation lanes may build only the collector described by the
+[Stage 12B contract](STAGE12B_INCREMENTAL_MARKET_V1.md): the frozen 629-symbol
+scope, injected response fixtures, and existing `0010` capture/version/current
+model in explicit temporary fixture stores. No lane may use a live provider,
+API key, environment configuration, network, default or retained store, new
+migration, promotion, project-local cutover, public consumer, or scheduler.
+
+The completed fixture gate, correction history, deterministic two-root
+evidence, focused compatibility checks, and full dependency-free suite are
+recorded in [Stage 12B evidence](STAGE12B_EVIDENCE.md). Completion does not
+broaden the boundary above.
+Stage 12A/B evidence remains immutable and retains its own offline boundary.
+
+### Wave 12C — bounded two-session Market v1 gap completion
+
+Status: **Implemented and independently verified — bounded manual no-copy
+completion.** The primary owns registry `2.14.0`/schema `1.8.0`, its exact
+`2.13.0` projection, and integration. The completed lane was limited to the
+[Stage 12C contract](STAGE12C_MARKET_GAP_V1.md) and its immutable
+[evidence record](STAGE12C_EVIDENCE.md): 629 one-attempt units closed as 619
+published complete, three successful-empty, and seven narrowly sealed
+authorized HTTP 402 outcomes. The exact private receipt, final counts, and
+`mode=ro&immutable=1` source-neutrality method are recorded there. The lane
+does not authorize a repeat, transfer, public consumer, or scheduler.
+
+### Wave 12D — no-transfer project-local adoption/freeze
+
+Status: **Complete and independently verified — no-transfer read-only
+adoption/freeze.**
+
+The primary owns the accepted [Stage 12D contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md),
+[immutable evidence](STAGE12D_EVIDENCE.md),
+[ADR 0010](../adr/0010-stage12d-no-transfer-market-adoption.md), fixed scope,
+and integration. The bounded and independent gates passed, exactly two
+canonical proofs produced immutable receipts with one semantic proof, and the
+target plus sidecar stamps remained unchanged. The independent reconciliation
+did not reopen SQLite or compute a new full-database hash. No copy, move,
+replacement, transfer, backup, migration, registry change, provider/network
+access, scheduler change, or consumer exposure occurred. Stage 12E remains
+closed.
 
 ## 6. Four-thread cadence
 

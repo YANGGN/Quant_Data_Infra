@@ -7,6 +7,7 @@ from pathlib import Path
 from quant_data.errors import ConflictError
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.stage6 import compare_clean_stage6_rebuilds, run_clean_stage6_rebuild
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,15 @@ STORE_FILENAMES = {
 
 
 class Stage6IntegrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
+
+    def tearDown(self) -> None:
+        assert_project_data_unchanged(
+            self._project_data_before,
+            project_root=PROJECT_ROOT,
+        )
+
     def test_two_clean_rebuilds_match_the_approved_stage6_evidence(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             temporary = Path(directory)
@@ -80,8 +90,6 @@ class Stage6IntegrationTests(unittest.TestCase):
                         },
                         STORE_FILENAMES,
                     )
-        self.assertFalse((PROJECT_ROOT / "data").exists())
-
     def test_clean_rebuild_refuses_a_nonempty_explicit_work_root(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             root = Path(directory)

@@ -1,9 +1,12 @@
 # Migration Reconstruction Map
 
-Status: 33 resources allocated; the bounded Stage 1 through Stage 4 and
+Status: 38 resources allocated; the bounded Stage 1 through Stage 4 and
 explicitly authorized Stage 9, Stage 10, and Stage 11 resources are
-`fixture_validated`. Stage 10 retained population receipts are complete;
-the Stage 11 private population and completion receipt are complete.
+`fixture_validated`. Stage 10 retained population receipts are complete; the
+Stage 11 private population and completion receipt are complete; and the
+official GDP/CPI, employment-vintage, and FMP wholesale-evidence migrations
+are populated in the canonical macro store. The proposed BLS CPI
+original-release archive is rejected and has no allocation in this map.
 Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
 
@@ -173,6 +176,108 @@ the complete paginated U.S./all-sector EIA retail scope, and weekly series
 `PET.WCESTUS1.W`. It grants no generic BEA/EIA discovery, scheduler,
 operational promotion, public consumer, or store-retirement authority.
 
+## Official GDP/CPI vintage allocation
+
+The user authorized one isolated canonical macro-store allocation for official
+BEA GDP release history and BLS CPI revision snapshots. It does not reinterpret
+the Stage 3 fixture model or the retained Stage 11 candidate relations.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0013_live_gdp_cpi_vintages` | macro | 13 | `quant_data/migrations/macro/0013_live_gdp_cpi_vintages.sql` | `9eab5c35c6377e6f22a927dbc4602e982ff3c8ae6095e782de546a05de58f5bc` | `fixture_validated` | Parser, migration, publisher, registry, and operation gates passed; 16 official captures populated and current-only refresh scheduled |
+
+The allocation owns seven dedicated relations for raw evidence, four fixed
+series, source-vintage releases, immutable versions, current pointers,
+capture membership, and GDP provenance. It grants no broader macro discovery,
+credential, public consumer, caller-selected path, or repeat of the completed
+14-file CPI archive backfill.
+
+## Official employment-vintage allocation
+
+The user authorized one isolated successor allocation for Philadelphia Fed
+RTDSM payroll/unemployment history and the two exact BLS current employment
+series. It extends only the dedicated official-vintage relations created by
+macro ordinal 13.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0014_live_employment_vintages` | macro | 14 | `quant_data/migrations/macro/0014_live_employment_vintages.sql` | `79d1ed0a0ee7e059109bcd3238f1c7ab79148924b69c8eda282b09c0af245ee8` | `fixture_validated` | Parser, migration, publisher, registry, operation, lineage, and independent gates passed; three official captures populated and current-only BLS refresh scheduled |
+
+The migration preserves all ordinal-13 rows and triggers while adding only the
+Philadelphia Fed provider and the exact payroll/unemployment series aliases.
+Provider-safe release, version, and membership triggers reject Philadelphia
+Fed lineage for non-employment BLS series while preserving semantic replay.
+It grants no broader RTDSM/BLS discovery, credential, public consumer,
+caller-selected path, or repeat of the completed two-workbook backfill.
+
+## Official macro-history extension allocation
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0015_live_macro_history_extension` | macro | 15 | `quant_data/migrations/macro/0015_live_macro_history_extension.sql` | `31153005b135f6bb03d0c228488bee73b6c50051afaaf4b7f2a9252f957158b9` | `fixture_validated` | One-time deep CPI and Philadelphia Fed output/CPI history completed; no recurring collector or public exposure added |
+
+Macro ordinal 15 preserves all ordinal-13/14 rows while adding only the two
+source-native Philadelphia Fed output series and the narrow Philadelphia Fed
+CPI evidence aliases. The completed manual operation reused five sealed
+responses, made six BLS requests, and added 14,577 immutable versions. It does
+not reinterpret the BEA GDP series, add a scheduler, or authorize a repeat.
+The exact registry projection removes this migration and its two collectors to
+restore byte-exact registry `2.17.0`.
+
+## FMP wholesale calendar evidence allocation
+
+Registry `2.21.0` adds one forward macro allocation for immutable wholesale
+FMP U.S. economic-calendar response bytes and raw-row lineage. It follows the
+official macro-history extension and supports local replay of reviewed
+consensus aliases without a second provider request.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0016_fmp_calendar_wholesale_evidence` | macro | 16 | `quant_data/migrations/macro/0016_fmp_calendar_wholesale_evidence.sql` | `78dc02d34c0489c3f1fe4b7847870a18955606b1f47a3309ed8464ee9f3bbb4d` | `fixture_validated` | One-time wholesale calendar history and zero-network local replays complete; no public consumer or new timer |
+
+Macro ordinal 16 preserves ordinal-13 through ordinal-15 relations while
+adding only raw FMP calendar capture and row evidence. It does not add a BLS
+original-release archive, surprise table, public consumer, scheduler, or
+authority to repeat completed history.
+
+## Rejected BLS CPI original-release archive candidate
+
+The working `2.22.0` candidate declared
+`macro:0017_bls_cpi_release_archive` at macro ordinal 17 with resource
+`quant_data/migrations/macro/0017_bls_cpi_release_archive.sql`. It was never
+allocated by this map or supported by an accepted completion record. Under
+[ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md), it is a
+rejected candidate rather than an outstanding future allocation. It must not
+be applied, assigned a later ordinal, retained as a fallback, or revived under
+a renamed resource without a new explicit user decision. This does not alter
+the completed `2.16.0` BLS annual-revision snapshots or their current refresh.
+
+The explicitly authorized 2026-08-21 immutable read-only canonical check found
+the exact accepted `0016` row as the macro-store head and found no `0017` ID,
+ordinal, or resource collision and no archive capture, release, fact, trigger,
+or index relation. Main/WAL/SHM/journal physical stamps were identical before
+and after, with all sidecars absent. Ignored scratch captures and a
+pre-publication backup show that the abandoned workflow was invoked, but they
+do not supersede the canonical ledger result or constitute an accepted
+allocation/completion record.
+
+## Bounded FMP stock-news allocation
+
+The user has authorized one deliberate forward reconstruction for a
+manual-only FMP stock-latest news page. It is a private news-store population
+contract, not recovered provider history or public news coverage. The reviewed
+resource follows `news:0004_search_index`; its offline fixture gate and every
+live gate remain pending.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `news:0005_fmp_stock_latest` | news | 5 | `quant_data/migrations/news/0005_fmp_stock_latest.sql` | `f2565061f5b908255838be875c05112b8bf91033295b87a5b955f9de2d142217` | `fixture_validated` | Focused offline fixture gate passed; live gate pending |
+
+The allocation retains an immutable pre-request intent, at most one terminal
+outcome, and exact raw response bytes before private article/version and
+capture-membership rows. It grants no scheduler, retry, fallback endpoint,
+second page, public consumer, promotion, or store-retirement authority.
+
 ## Legacy semantic cross-reference
 
 | New resource | Recovered evidence used | Deliberate stage boundary |
@@ -201,12 +306,19 @@ operational promotion, public consumer, or store-retirement authority.
 | `market:0009_fmp_daily_price_backfill` | [plan.md](../../plan.md) 7.1 FMP daily OHLCV provider evidence; no recovered migration SQL, checksum, or ordinal | Exact Stage 9 `SPY` 2026-07-01 through 2026-07-31 candidate-only non-production slice only; no general FMP backfill |
 | `market:0010_stage10_market_history` | Explicit Stage 10 user authorization plus the accepted market identity, universe-snapshot, evidence, correction, and physical-lock contracts | Current S&P 500/Nasdaq-100/Dow 30 members plus the reviewed ETF/index roster and provider-returned daily OHLCV history; no Russell 2000 constituents or historical-membership claim |
 | `macro:0012_stage11_bea_eia_live_history` | Explicit Stage 11 user authorization plus the accepted macro evidence, local-capture availability, correction, pagination, and physical-lock contracts | Dedicated BEA NIPA and EIA retail/weekly candidate-only history; no fixture-table reinterpretation, vintage invention, or broader macro discovery |
+| `macro:0013_live_gdp_cpi_vintages` | Explicit GDP/CPI vintage authorization plus accepted immutable evidence, source-vintage availability, version, no-write replay, and physical-lock contracts | Four fixed official BEA/BLS series with bounded historical archives and current-only refresh; no Stage 11 reinterpretation or broader macro discovery |
+| `macro:0014_live_employment_vintages` | Explicit employment-vintage authorization plus accepted immutable evidence, provider-alias lineage, source-vintage identity, no-write replay, and physical-lock contracts | Philadelphia Fed payroll/unemployment matrices plus exact BLS current payroll/unemployment series; no invented release dates, historical refetch, or broader macro discovery |
+| `macro:0015_live_macro_history_extension` | Explicit one-time macro-history authorization plus sealed-response adoption, source-native series, provider-alias lineage, and exact registry projection | Seven fixed BLS CPI windows and four Philadelphia Fed GDP/GNP/CPI matrices; no repeat, scheduler, public consumer, or BEA-series reinterpretation |
+| `macro:0016_fmp_calendar_wholesale_evidence` | Explicit `2.21.0` FMP wholesale-calendar authorization plus immutable raw-evidence, local-replay, no-write, and physical-lock contracts | One-time retained FMP calendar response/row evidence supporting local replays; no original-release archive, public consumer, scheduler, or repeat provider request |
+| `news:0005_fmp_stock_latest` | Explicit bounded FMP stock-news authorization plus accepted news evidence, version, and physical-lock contracts | One private page-zero/page-limit-1000 capture only; no historical completeness, tombstone inference, public consumer, or live-success claim |
 
-Except for the explicitly authorized Stage 9, Stage 10, and Stage 11 rows above, all
-other recovered and future migration scopes remain unallocated. The exact market options
-ownership at `0029`/`0030` and the filing-issuer derived-view invariants at
-`0031` are represented by the frozen Stage 4 resources above, without
-asserting historical SQL parity.
+Except for the explicitly authorized Stage 9, Stage 10, Stage 11, official
+macro-vintage, FMP wholesale-evidence, and bounded FMP stock-news rows above,
+all other recovered and future migration scopes remain unallocated. The
+rejected `macro:0017_bls_cpi_release_archive` candidate is not an unallocated
+future scope. The exact market options ownership at `0029`/`0030` and the
+filing-issuer derived-view invariants at `0031` are represented by the frozen
+Stage 4 resources above, without asserting historical SQL parity.
 
 ## Activation checklist
 

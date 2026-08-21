@@ -30,6 +30,7 @@ from quant_data.temporal import (
     TemporalValue,
     availability_at_or_before,
 )
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -129,13 +130,20 @@ class RegistryAndFixtureTests(unittest.TestCase):
 
 class StoreAndMigrationTests(unittest.TestCase):
     def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.store_map = temporary_store_map(self.root)
         self.registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
     def tearDown(self) -> None:
-        self.temporary.cleanup()
+        try:
+            self.temporary.cleanup()
+        finally:
+            assert_project_data_unchanged(
+                self._project_data_before,
+                project_root=PROJECT_ROOT,
+            )
 
     def test_all_four_stores_initialize_and_rerun_deterministically(self) -> None:
         first_status = initialize_all(self.store_map, self.registry)
@@ -160,7 +168,6 @@ class StoreAndMigrationTests(unittest.TestCase):
             len(first_status["news"]),
             len(self.registry.migrations_for("news")),
         )
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_stage2_registry_rebuild_preserves_stage1_rows_and_foreign_keys(self) -> None:
         stage2_registry = stage2_registry_profile(self.registry)

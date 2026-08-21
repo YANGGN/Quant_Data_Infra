@@ -271,6 +271,27 @@ def migrate_store(
         return tuple(item.id for item in declarations)
 
 
+def migrate_and_register_store(
+    store_map: StoreMap,
+    registry: Registry,
+    role: StoreRole | str,
+    *,
+    applied_at: str,
+) -> tuple[str, ...]:
+    """Apply and register one explicit store without touching the other three."""
+
+    normalized = StoreRole(role)
+    store_map.validate_distinct()
+    result = migrate_store(store_map, registry, normalized, applied_at=applied_at)
+    _register_datasets(
+        store_map,
+        registry,
+        normalized,
+        registered_at=applied_at,
+    )
+    return result
+
+
 def _register_datasets(
     store_map: StoreMap,
     registry: Registry,

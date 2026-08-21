@@ -17,6 +17,7 @@ from quant_data.stage5 import (
     compare_clean_stage5_rebuilds,
     run_clean_stage5_rebuild,
 )
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -24,6 +25,15 @@ GOLDEN_PATH = PROJECT_ROOT / "tests" / "fixtures" / "stage5_golden.json"
 
 
 class Stage5IntegrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
+
+    def tearDown(self) -> None:
+        assert_project_data_unchanged(
+            self._project_data_before,
+            project_root=PROJECT_ROOT,
+        )
+
     def test_two_clean_rebuilds_match_the_approved_stage5_evidence(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             temporary = Path(directory)
@@ -62,8 +72,6 @@ class Stage5IntegrationTests(unittest.TestCase):
             }
             self.assertEqual(dumps_strict(actual), dumps_strict(golden))
             dumps_strict(evidence)
-        self.assertFalse((PROJECT_ROOT / "data").exists())
-
     def test_all_public_tools_cannot_reach_writer_entry_points(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             temporary = Path(directory)

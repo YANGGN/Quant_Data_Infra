@@ -16,6 +16,7 @@ from quant_data.macro.rtdsm_fixture import parse_rtdsm_fixture
 from quant_data.migrations import initialize_all
 from quant_data.registry import load_registry
 from quant_data.stores import StoreMap, StoreRole, read_connection
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -45,6 +46,7 @@ class _SingleFixtureManifest:
 
 class RtdsmEmployTests(unittest.TestCase):
     def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.store_map = temporary_store_map(self.root)
@@ -55,7 +57,13 @@ class RtdsmEmployTests(unittest.TestCase):
         self.repository = MacroSeriesRepository(self.store_map, self.registry)
 
     def tearDown(self) -> None:
-        self.temporary.cleanup()
+        try:
+            self.temporary.cleanup()
+        finally:
+            assert_project_data_unchanged(
+                self._project_data_before,
+                project_root=PROJECT_ROOT,
+            )
 
     def _counts(self) -> dict[str, int]:
         relations = (
@@ -452,7 +460,6 @@ class RtdsmEmployTests(unittest.TestCase):
                 logical_manifest(first_map, self.registry)["sha256"],
                 logical_manifest(second_map, self.registry)["sha256"],
             )
-        self.assertFalse((PROJECT_ROOT / "data").exists())
         self.assertIsInstance(store_logical_manifest(self.store_map, self.registry, StoreRole.MACRO)["sha256"], str)
 
 

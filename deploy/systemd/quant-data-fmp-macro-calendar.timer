@@ -1,0 +1,13 @@
+[Unit]
+Description=Refresh FMP GDP and CPI calendar around weekday releases
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 08:15:00 America/New_York
+OnCalendar=Mon..Fri *-*-* 08:45:00 America/New_York
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=false
+Unit=quant-data-fmp-macro-calendar.service
+
+[Install]
+WantedBy=timers.target

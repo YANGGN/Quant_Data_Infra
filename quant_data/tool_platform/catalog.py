@@ -152,7 +152,10 @@ _DATASETS: dict[str, tuple[str, ...]] = {
     "macro.describe_series": ("fixture.macro.stage3_catalog",),
     "macro.get_series": ("fixture.macro.rtdsm_employ",),
     "macro.get_intraday_releases": ("fixture.macro.economic_calendar",),
-    "macro.release_surprises": ("fixture.macro.economic_calendar",),
+    "macro.release_surprises": (
+        "fixture.macro.economic_calendar",
+        "macro.official_vintages",
+    ),
     "macro.revision_analysis": (
         "fixture.macro.gdp_vintages",
         "fixture.macro.rtdsm_employ",
@@ -288,8 +291,13 @@ def _example(profile: ToolProfile, series_example: Mapping[str, Any]) -> dict[st
             "as_of": None,
             "unsafe_ok": True,
         }
+    identifiers = (
+        ["us_gdp_real_qoq_saar_advance"]
+        if profile.name == "macro.release_surprises"
+        else ["fixture"]
+    )
     return {
-        "identifiers": ["fixture"],
+        "identifiers": identifiers,
         "mode": "latest",
         "as_of": None,
         "start_date": None,

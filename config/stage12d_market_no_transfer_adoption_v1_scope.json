@@ -1,0 +1,99 @@
+{
+  "access": {
+    "backup": false,
+    "caller_arguments": false,
+    "caller_path": false,
+    "caller_sql": false,
+    "checkpoint": false,
+    "connection_uri_query": "mode=ro&immutable=1",
+    "database_write_lock": false,
+    "generic_database_helper": false,
+    "journal_mode": false,
+    "normal_reader": false,
+    "query_only": true,
+    "restore": false
+  },
+  "closed_capabilities": [
+    "backup",
+    "caller_path",
+    "caller_sql",
+    "credential",
+    "database_copy",
+    "database_move",
+    "database_replace",
+    "database_write",
+    "env_configuration",
+    "migration",
+    "network",
+    "promotion",
+    "provider",
+    "public_consumer",
+    "registry_bump",
+    "retained_source_reopen",
+    "scheduler",
+    "stage12e",
+    "transfer"
+  ],
+  "contract": "quant_data.stage12d_market_no_transfer_adoption_v1",
+  "expected_database": {
+    "availability_policy": "available_at_equals_captured_at",
+    "captures": 5210,
+    "correction_sequence": 1,
+    "current_rows": 4237131,
+    "duplicate_current": 0,
+    "foreign_key_violations": 0,
+    "integrity": "ok",
+    "invalid_current_pointer": 0,
+    "stage12c_captures": 619,
+    "stage12c_current_rows": 1238,
+    "stage12c_version_rows": 1238,
+    "supersession": null,
+    "terminal_database_facts": 0,
+    "version_rows": 4237873
+  },
+  "receipt_policy": {
+    "create_mode": "O_EXCL",
+    "max_proofs": 2,
+    "private_receipt_root": "data/.stage12/market-v1/stage12d-no-transfer-adoption",
+    "receipt_format": "json",
+    "receipt_mode": "0600",
+    "receipt_schema": "quant_data.stage12d_market_no_transfer_receipt_v1",
+    "root_mode": "0700",
+    "semantic_proof": "path_secret_raw_body_free"
+  },
+  "registry": {
+    "revision": "2.14.0",
+    "schema_version": "1.8.0"
+  },
+  "stage12c": {
+    "completion_receipt_path": "data/.stage12/market-v1/stage12c-20260813-20260814/completion.json",
+    "completion_receipt_sha256": "0b598c7f5df93cb21104bcf6a45ae3e798a56eda7682474d59b2a81def683f88",
+    "ledger": {
+      "authorized_http_402": 7,
+      "closed": 629,
+      "published_complete": 619,
+      "successful_empty": 3
+    },
+    "plan_sha256": "5e5c07f03313c1a0d3d3980fa8a900973a301664fecf84e6d37ab3c2f38a92f1",
+    "scope_file_sha256": "24d8448c124cedb5deb745b50943291d955f05e7a95ac1d9747a7d51b6760226",
+    "scope_semantic_sha256": "2c11fd5bfe99160e7949db3a87f2e3b1616a829b975424df40ec7f4fb16d5392"
+  },
+  "stage12e": {
+    "status": "closed"
+  },
+  "target": {
+    "direct_regular_file": true,
+    "non_symlink": true,
+    "project_relative_path": "data/market.sqlite",
+    "quiet_target": true,
+    "required_link_count": 1,
+    "stamp_components": [
+      "main",
+      "wal",
+      "shm",
+      "journal"
+    ],
+    "wal_and_rollback_journal": "absent_or_zero"
+  },
+  "version": "1.0.0"
+}

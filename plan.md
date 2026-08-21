@@ -1948,3 +1948,21 @@ snapshots plus `company_sec_filing_snapshot_membership`. Migration 0031 also:
 - added `idx_company_sec_filing_membership_accession`; and
 - installed issuer-scope, first-observed and guidance-accession validity
   triggers.
+
+## 21. Dated clarification: Stage 12 canonical market path
+
+Decision date: 2026-08-15
+
+Historical references in this recovery document to `data/market_data.sqlite`
+remain evidence of the earlier design and are not rewritten. The explicit user
+decision and accepted [ADR 0009](docs/adr/0009-canonical-market-operational-path.md)
+now designate `data/market.sqlite` as the sole current project-relative market
+default. Exact historical registry projections may retain the former value only
+to reproduce accepted Stage 1–11 evidence.
+
+This clarification changes no existing file, candidate, or receipt and
+authorizes no database access, copy, move, population, promotion, provider
+request, public exposure, or scheduler action. Bounded offline Stage 12A freezes
+Market v1 authority, its explicit retained roster and coverage/non-claims, and
+the later serial lifecycle gates. Stages 12B through 12E require separate
+authorization.

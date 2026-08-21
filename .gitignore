@@ -34,3 +34,9 @@ sites/quant-data-atlas/.vite/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local recovery and command artifacts
+*.orig
+/tmp/
+/=1
+/*grep -Ei 2008*

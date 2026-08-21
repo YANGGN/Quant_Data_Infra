@@ -12,16 +12,24 @@ Later recovery evidence confirms four mature operational domains and exact defau
 
 See the [architecture](../../ARCHITECTURE.md), [registry specification](../rebuild/SYSTEM_REGISTRY_SPEC.md), and [three-layer decision](0003-three-layer-data-architecture.md).
 
+[ADR 0009](0009-canonical-market-operational-path.md) supersedes only this
+ADR's original market default-path field; the four-store decision and all
+other ownership, override, locking, and backup semantics remain accepted.
+
 ## Decision
 
 Use four operational SQLite stores:
 
 | Store | Default path | Override | Scope |
 | --- | --- | --- | --- |
-| market | data/market_data.sqlite | QUANT_MARKET_DB_PATH | Instruments, identifiers, classifications, shared daily prices, and options |
-| macro | data/macro_data.sqlite | QUANT_MACRO_DB_PATH | Calendar, GDP, macro observations and vintages, rates, liquidity, SOMA summaries, recession chronology, and energy |
-| company | data/company_data.sqlite | QUANT_COMPANY_DB_PATH | SEC issuers, filings, facts, normalized fundamentals, corporate actions, shares, earnings, consensus, and guidance |
-| news | data/news_data.sqlite | QUANT_NEWS_DB_PATH | Immutable captures, logical items and versions, labels, retractions, and search |
+| market | data/market.sqlite | QUANT_MARKET_DB_PATH | Instruments, identifiers, classifications, shared daily prices, and options |
+| macro | data/macro.sqlite | QUANT_MACRO_DB_PATH | Calendar, GDP, macro observations and vintages, rates, liquidity, SOMA summaries, recession chronology, and energy |
+| company | data/company.sqlite | QUANT_COMPANY_DB_PATH | SEC issuers, filings, facts, normalized fundamentals, corporate actions, shares, earnings, consensus, and guidance |
+| news | data/news.sqlite | QUANT_NEWS_DB_PATH | Immutable captures, logical items and versions, labels, retractions, and search |
+
+Registry `2.15.0` aligns these current basenames with the already-existing
+project-local files. Historical registry projections retain the prior names
+where required to reproduce accepted evidence; they are not runtime aliases.
 
 The boundary is operational:
 

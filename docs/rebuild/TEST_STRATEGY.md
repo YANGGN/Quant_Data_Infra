@@ -67,8 +67,10 @@ Before initialization, the harness:
   exists.
 
 After the test, it asserts that every created filesystem object resolves inside
-the test root. A test that creates `data/market_data.sqlite` or another default
+the test root. A test that creates `data/market.sqlite` or another default
 path fails even if its value assertions pass.
+Tests also prove that the superseded `data/market_data.sqlite` name is never
+used as a silent fallback or compatibility alias.
 
 Parallel tests receive separate roots. Tests that exercise writer locking use
 separate connections/processes against one explicitly named temporary store;

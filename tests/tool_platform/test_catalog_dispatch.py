@@ -38,6 +38,7 @@ from quant_data.tool_platform.results import QueryResult
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
 CATALOG_PATH = PROJECT_ROOT / "quant_data" / "generated" / "tool_contract_schemas_v1.json"
+CATALOG_SHA256 = "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 
 
 def explicit_nonexistent_stores(root: Path) -> StoreMap:
@@ -65,8 +66,8 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
-        self.assertEqual(self.registry.schema_version, "1.7.0")
-        self.assertEqual(self.registry.registry_version, "2.10.0")
+        self.assertEqual(self.registry.schema_version, "1.8.0")
+        self.assertEqual(self.registry.registry_version, "2.21.0")
         stage5 = stage5_registry_profile(self.registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
         self.assertEqual(stage5.registry_version, "2.3.0")
@@ -91,10 +92,12 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
     def test_generated_artifacts_are_current_and_checksum_bound(self) -> None:
         before = (hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest(),
             hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest())
+        self.assertEqual(before[1], CATALOG_SHA256)
         generate(PROJECT_ROOT, check=True)
         after = (hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest(),
             hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest())
         self.assertEqual(before, after)
+        self.assertEqual(after[1], CATALOG_SHA256)
         self.assertEqual(after[1], self.registry.raw["tool_schema_catalog"]["sha256"])
 
     def test_manifest_has_57_sanitized_generated_contracts(self) -> None:

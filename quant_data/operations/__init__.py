@@ -39,6 +39,14 @@ _LAZY_EXPORTS = {
     "inspect_all": (".health", "inspect_all"),
     "inspect_all_stores": (".health", "inspect_all_stores"),
     "inspect_store": (".health", "inspect_store"),
+    "FmpStockLatestPopulationResult": (
+        ".fmp_stock_latest_news_backfill",
+        "FmpStockLatestPopulationResult",
+    ),
+    "populate_fmp_stock_latest_news": (
+        ".fmp_stock_latest_news_backfill",
+        "populate_fmp_stock_latest_news",
+    ),
 }
 
 
@@ -57,6 +65,7 @@ __all__ = [
     "BackupCohort",
     "DryRunPlan",
     "FixtureStepBinding",
+    "FmpStockLatestPopulationResult",
     "JobRunReceipt",
     "JobStepError",
     "LockWaitReceipt",
@@ -80,6 +89,7 @@ __all__ = [
     "inspect_all",
     "inspect_all_stores",
     "inspect_store",
+    "populate_fmp_stock_latest_news",
     "restore_all",
     "build_dry_run_plan",
     "retry_policy_for",

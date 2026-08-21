@@ -1,0 +1,149 @@
+{
+  "authority_bindings": {
+    "stage12a": {
+      "frozen_roster": {
+        "asset_type_counts": {
+          "equity": 519,
+          "etf": 95,
+          "index": 15
+        },
+        "price_variant": "fmp_full_eod_v1",
+        "provider": "fmp",
+        "symbol_count": 629
+      },
+      "roster_sha256": "a81f62a5fe3710011e1fe6eabfe7fcd483726a23f2dc9b0a7e592b4c78327fbb",
+      "scope_contract": "quant_data.stage12_market_v1_scope",
+      "scope_file_sha256": "12e9a7380ad22c9595d922c1a53320f3c52e368cb688adf1d97bf4d7c9a18bf6",
+      "scope_manifest_sha256": "8266f431519913879797a14ea0baa781b6c7e0dfe78365a5ff0107e386a0ad29",
+      "scope_version": "1.0.0"
+    },
+    "stage12b": {
+      "collector_id": "market.stage12b.fmp_daily_incremental_fixture",
+      "normalization_version": "stage12b.fmp.daily_incremental.fixture.v1",
+      "scope_contract": "quant_data.stage12b_incremental_market_v1_scope",
+      "scope_file_sha256": "671d0b62cbcc82c92eaf59fe129e4dad12f2f327995f24b81ffbb206d7645392",
+      "scope_manifest_sha256": "91d202540e24d2f94a3adb10135dde0bb3ee0c787c801bf66e547d649a7a3dfb",
+      "scope_version": "1.0.0"
+    }
+  },
+  "closed_capabilities": [
+    "additional_dates",
+    "additional_symbols",
+    "default_database_selection",
+    "migration",
+    "public_consumer",
+    "scheduler",
+    "second_full_database_copy",
+    "source_mutation",
+    "stage10_request_replay",
+    "target_replacement"
+  ],
+  "collector": {
+    "workload_bounds": {
+      "max_bytes": 65536,
+      "max_requests": 1,
+      "max_rows": 2,
+      "max_seconds": 45
+    },
+    "configuration_env": [
+      "FMP_API_KEY"
+    ],
+    "handler": "market.stage12c_fmp_daily_incremental_manual",
+    "id": "market.stage12c.fmp_daily_incremental_manual",
+    "input_datasets": [
+      "market.stage10.instruments",
+      "market.stage10.daily_prices"
+    ],
+    "mutation_policy": {
+      "mode": "append_versions_and_move_current_projection",
+      "unchanged": "zero_persistent_writes"
+    },
+    "network": true,
+    "output_datasets": [
+      "market.stage10.source_evidence",
+      "market.stage10.daily_prices"
+    ],
+    "physical_locks": "derived_from_output_store_paths",
+    "retry_policy": {
+      "backoff": "none",
+      "honor_retry_after": false,
+      "max_attempts": 1,
+      "transient_classes": []
+    },
+    "schedule_eligibility": {
+      "mode": "manual_only"
+    },
+    "semantic_identity": {
+      "excludes": [
+        "api_key",
+        "captured_at",
+        "http_headers",
+        "source_row_order"
+      ],
+      "includes": [
+        "scope_manifest_sha256",
+        "request_scope",
+        "normalization_version",
+        "normalized_complete_batch"
+      ]
+    },
+    "version": "1.0.0"
+  },
+  "contract": "quant_data.stage12c_market_gap_v1_scope",
+  "publication": {
+    "availability": "local_capture_only",
+    "currency_segment": "provider_native",
+    "existing_instrument": "required",
+    "normalization_version": "stage12c.fmp.daily_incremental.live.v1",
+    "relations": [
+      "stage10_daily_price_captures",
+      "stage10_daily_price_versions",
+      "stage10_daily_prices"
+    ]
+  },
+  "request_plan": {
+    "endpoint_path": "/stable/historical-price-eod/full",
+    "expected_session_dates": [
+      "2026-08-13",
+      "2026-08-14"
+    ],
+    "from": "2026-08-13",
+    "logical_unit_count": 629,
+    "query_parameters": [
+      "symbol",
+      "from",
+      "to"
+    ],
+    "remaining_symbol_order": "stage12a_frozen_roster_lexicographic_excluding_sentinel",
+    "sentinel_symbol": "AAPL",
+    "symbols_per_request": 1,
+    "to": "2026-08-14"
+  },
+  "response": {
+    "complete_row_count": 2,
+    "encoding": "utf-8",
+    "exact_row_keys": [
+      "symbol",
+      "date",
+      "open",
+      "high",
+      "low",
+      "close",
+      "volume",
+      "change",
+      "changePercent",
+      "vwap"
+    ],
+    "media_type": "application/json",
+    "top_level": "list"
+  },
+  "source_target": {
+    "project_store_path": "data/market.sqlite",
+    "private_state_root": "data/.stage12/market-v1/stage12c-20260813-20260814",
+    "retained_source_initial_sha256": "b0ee0a02cc74e603320d0fa4f7a68a64339f8ed834229bdc480efa0351cc6f3c",
+    "retained_source_literal": "/home/volatility/quant-data-nonprod/stage10-fmp-market-history-v1/stores/market.sqlite",
+    "same_baseline_required": true
+  },
+  "target_profile_id": "stage12c_market_gap_v1_project_default",
+  "version": "1.0.0"
+}
