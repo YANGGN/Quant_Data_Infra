@@ -252,6 +252,9 @@ _PRE_FMP_EMPLOYMENT_CALENDAR_REGISTRY_SOURCE_SHA256 = (
 _PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256 = (
     "3c1caec6eedfb7e179d8a1f8e291ef6e8971da5f4539946ae76691ac53f22647"
 )
+_PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256 = (
+    "b16724532234c3c1082326bdd2f0957c8518508849bcc5d090728fcfd2e3a8cd"
+)
 _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID = (
     "fmp.macro.gdp_cpi_release_calendar_history"
 )
@@ -271,6 +274,15 @@ _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID = (
 _FMP_WHOLESALE_CALENDAR_RELATIONS = (
     "fmp_economic_calendar_captures",
     "fmp_economic_calendar_rows",
+)
+_FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID = (
+    "fmp.macro.treasury_yield_curve_history"
+)
+_FMP_TREASURY_YIELD_CURVE_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+    "fixture.macro.treasury_yield_curves",
 )
 _STAGE12B_COLLECTOR_ID = "market.stage12b.fmp_daily_incremental_fixture"
 _STAGE12C_COLLECTOR_ID = "market.stage12c.fmp_daily_incremental_manual"
@@ -1288,7 +1300,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.8.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.21.0"
+        or raw["registry_version"] != "2.23.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2872,6 +2884,7 @@ def load_registry(
                 or collector_id
                 == "philadelphia_fed.macro.live_employment_vintages"
                 or stage11_collector
+                or collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
             )
             else MAX_JSON_BYTES
         )
@@ -2890,6 +2903,8 @@ def load_registry(
             if collector_id == "eia.macro.stage11_electricity_retail_history"
             else 30_000
             if collector_id == "fmp.market.stage10_daily_history"
+            else 20_000
+            if collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
             else 10_000
         ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Collector bounds are invalid")
@@ -3046,6 +3061,48 @@ def load_registry(
                     pointer,
                     "fmp_wholesale_calendar",
                     "FMP wholesale calendar collector drifted",
+                )
+        elif collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.fmp_treasury_yield_curve_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _FMP_TREASURY_YIELD_CURVE_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_12_tenor_batch",
+                )
+                or excludes != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                    "unknown_provider_fields",
+                )
+                or mutation_policy != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_treasury_yield_curve",
+                    "FMP Treasury yield-curve collector drifted",
                 )
         elif collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID:
             if (
@@ -3815,10 +3872,189 @@ def _export_free_dataset_projection(
 
 
 
+def fmp_treasury_yield_curve_registry_profile(registry: Registry) -> Registry:
+    """Project the FMP Treasury collector back to exact registry 2.21."""
+
+    version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _FMP_TREASURY_YIELD_CURVE_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("FMP Treasury dataset declarations drifted")
+
+    if version == ("1.8.0", "2.21.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256
+            or registry.raw.get("registry_version") != "2.21.0"
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 37
+            or _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID in item.collector_ids
+                for item in target_datasets
+                if item is not None
+            )
+            or registry.store("macro").migration_order[-1]
+            != _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+        ):
+            raise RegistryError(
+                "Historical pre-FMP-Treasury registry profile drifted"
+            )
+        return registry
+
+    expected_collector = {
+        "configuration_env": ["FMP_API_KEY"],
+        "handler": "macro.fmp_treasury_yield_curve_history",
+        "id": _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_FMP_TREASURY_YIELD_CURVE_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "api_key",
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+                "unknown_provider_fields",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_12_tenor_batch",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 16_777_216,
+            "max_requests": 1,
+            "max_rows": 20_000,
+            "max_seconds": 60,
+        },
+    }
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+    )
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _FMP_TREASURY_YIELD_CURVE_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            not dataset.collector_ids
+            or dataset.collector_ids[-1]
+            != _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+            or dataset.collector_ids.count(
+                _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+            )
+            != 1
+        ):
+            raise RegistryError("FMP Treasury dataset collector binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[:-1]
+
+    if (
+        version != ("1.8.0", "2.23.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 38
+        or len(collector_matches) != 1
+        or dict(collector_matches[0]) != expected_collector
+        or registry.store("macro").migration_order[-1]
+        != _FMP_WHOLESALE_CALENDAR_MIGRATION_ID
+        or any(
+            step.collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.21")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.21.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id]
+            + (_FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID,)
+        ):
+            raise RegistryError("Canonical FMP Treasury raw binding drifted")
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_FMP_TREASURY_YIELD_CURVE_DATASET_IDS):
+        raise RegistryError("Canonical FMP Treasury dataset inventory drifted")
+
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical FMP Treasury projection drifted")
+
+    datasets = tuple(
+        replace(item, collector_ids=historical_collectors[item.id])
+        if item.id in historical_collectors
+        else item
+        for item in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.21.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def fmp_wholesale_calendar_registry_profile(registry: Registry) -> Registry:
     """Project wholesale FMP calendar evidence back to the exact 2.20 registry."""
 
     version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.23.0"):
+        registry = fmp_treasury_yield_curve_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
     if version == ("1.8.0", "2.20.0"):
         payload = (
             json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
@@ -4085,6 +4321,7 @@ def fmp_employment_release_calendar_registry_profile(registry: Registry) -> Regi
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.23.0"),
         ("1.8.0", "2.21.0"),
     }:
         registry = fmp_wholesale_calendar_registry_profile(registry)
@@ -4236,6 +4473,7 @@ def fmp_gdp_cpi_release_calendar_registry_profile(registry: Registry) -> Registr
     if version in {
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = fmp_employment_release_calendar_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -4393,6 +4631,7 @@ def macro_history_extension_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = fmp_gdp_cpi_release_calendar_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -4519,6 +4758,7 @@ def employment_vintage_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = macro_history_extension_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -4647,6 +4887,7 @@ def macro_vintage_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = employment_vintage_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -4757,6 +4998,7 @@ def stage12d_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = macro_vintage_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -4820,6 +5062,7 @@ def stage12c_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = stage12d_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -4979,6 +5222,7 @@ def stage12b_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = stage12c_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -5135,6 +5379,7 @@ def stage12_registry_profile(registry: Registry) -> Registry:
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
+        ("1.8.0", "2.23.0"),
     }:
         registry = stage12c_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
@@ -5197,6 +5442,7 @@ def stage11_registry_profile(registry: Registry) -> Registry:
             "2.19.0",
             "2.20.0",
             "2.21.0",
+            "2.23.0",
         }
     ):
         registry = stage12_registry_profile(registry)
@@ -5360,6 +5606,7 @@ def stage10_registry_profile(registry: Registry) -> Registry:
             ("1.8.0", "2.19.0"),
             ("1.8.0", "2.20.0"),
             ("1.8.0", "2.21.0"),
+            ("1.8.0", "2.23.0"),
             ("1.8.0", "2.13.0"),
             ("1.8.0", "2.12.0"),
             ("1.8.0", "2.11.0"),
@@ -5452,6 +5699,7 @@ def _stage10_input(registry: Registry) -> Registry:
             ("1.8.0", "2.19.0"),
             ("1.8.0", "2.20.0"),
             ("1.8.0", "2.21.0"),
+            ("1.8.0", "2.23.0"),
             ("1.8.0", "2.13.0"),
             ("1.8.0", "2.12.0"),
             ("1.8.0", "2.11.0"),

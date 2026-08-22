@@ -663,6 +663,56 @@
       }
     },
     {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "macro.fmp_treasury_yield_curve_history",
+      "id": "fmp.macro.treasury_yield_curve_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog",
+        "fixture.macro.treasury_yield_curves"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order",
+          "unknown_provider_fields"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_12_tenor_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 20000,
+        "max_seconds": 60
+      }
+    },
+    {
       "configuration_env": [],
       "handler": "macro.stage3_fixture",
       "id": "fixture.macro.soma_import",
@@ -2876,7 +2926,8 @@
         "fixture.macro.bls_import",
         "fixture.macro.bis_import",
         "fixture.macro.chicago_fed_import",
-        "fixture.macro.bea_import"
+        "fixture.macro.bea_import",
+        "fmp.macro.treasury_yield_curve_history"
       ],
       "dashboard_ids": [
         "stage1.overview"
@@ -2976,7 +3027,8 @@
         "fixture.macro.bls_import",
         "fixture.macro.bis_import",
         "fixture.macro.chicago_fed_import",
-        "fixture.macro.bea_import"
+        "fixture.macro.bea_import",
+        "fmp.macro.treasury_yield_curve_history"
       ],
       "dashboard_ids": [
         "stage1.overview",
@@ -3302,7 +3354,8 @@
         "fixture.macro.bls_import",
         "fixture.macro.bis_import",
         "fixture.macro.chicago_fed_import",
-        "fixture.macro.bea_import"
+        "fixture.macro.bea_import",
+        "fmp.macro.treasury_yield_curve_history"
       ],
       "dashboard_ids": [
         "stage6.agent_tools"
@@ -3461,7 +3514,8 @@
     {
       "active": true,
       "collector_ids": [
-        "fixture.macro.treasury_import"
+        "fixture.macro.treasury_import",
+        "fmp.macro.treasury_yield_curve_history"
       ],
       "dashboard_ids": [
         "stage6.agent_tools"
@@ -8209,7 +8263,7 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.21.0",
+  "registry_version": "2.23.0",
   "schema_id": "quant_data.system_registry",
   "schema_version": "1.8.0",
   "status": "validated",

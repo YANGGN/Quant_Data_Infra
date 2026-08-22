@@ -340,7 +340,7 @@ def _validate_registry(registry: Registry) -> None:
     if (
         not isinstance(registry, Registry)
         or registry.schema_version != "1.8.0"
-        or registry.registry_version != "2.21.0"
+        or registry.registry_version not in {"2.21.0", "2.23.0"}
     ):
         raise ValidationError("FMP stock-latest importer requires the reviewed canonical registry")
     collector_matches = [

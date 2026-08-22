@@ -8,21 +8,29 @@ from pathlib import Path
 
 from quant_data.errors import RegistryError
 from quant_data.registry import (
-    fmp_employment_release_calendar_registry_profile,
+    fmp_treasury_yield_curve_registry_profile,
     load_registry,
 )
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
-COLLECTOR_ID = "fmp.macro.employment_release_calendar_refresh"
-DATASET_ID = "fixture.macro.economic_calendar"
-PRE_EMPLOYMENT_CALENDAR_SOURCE_SHA256 = (
-    "f76a61027045c4408c60e57dacfcb5a17c617de4099395b1c6a62790e4019c4e"
+COLLECTOR_ID = "fmp.macro.treasury_yield_curve_history"
+DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+    "fixture.macro.treasury_yield_curves",
+)
+PRE_TREASURY_SOURCE_SHA256 = (
+    "b16724532234c3c1082326bdd2f0957c8518508849bcc5d090728fcfd2e3a8cd"
+)
+CURRENT_SOURCE_SHA256 = (
+    "1c672f602735af44d19abb5d678492c053fac7d001b17e0aba2d6ed398689c08"
 )
 EXPECTED_COLLECTOR = {
     "configuration_env": ["FMP_API_KEY"],
-    "handler": "macro.fmp_employment_release_calendar_refresh",
+    "handler": "macro.fmp_treasury_yield_curve_history",
     "id": COLLECTOR_ID,
     "input_datasets": [],
     "mutation_policy": {
@@ -30,7 +38,7 @@ EXPECTED_COLLECTOR = {
         "unchanged": "zero_persistent_writes",
     },
     "network": True,
-    "output_datasets": [DATASET_ID],
+    "output_datasets": list(DATASET_IDS),
     "physical_locks": "derived_from_output_store_paths",
     "retry_policy": {
         "backoff": "none_single_attempt",
@@ -45,24 +53,25 @@ EXPECTED_COLLECTOR = {
             "captured_at",
             "http_headers",
             "source_row_order",
+            "unknown_provider_fields",
         ],
         "includes": [
             "request_scope",
             "normalization_version",
-            "normalized_complete_batch",
+            "normalized_12_tenor_batch",
         ],
     },
     "version": "1.0.0",
     "workload_bounds": {
-        "max_bytes": 1_048_576,
+        "max_bytes": 16_777_216,
         "max_requests": 1,
-        "max_rows": 2_000,
+        "max_rows": 20_000,
         "max_seconds": 60,
     },
 }
 
 
-class FmpEmploymentCalendarRegistryTests(unittest.TestCase):
+class FmpTreasuryCurveRegistryTests(unittest.TestCase):
     def _registry(self):
         return load_registry(
             REGISTRY_PATH,
@@ -70,10 +79,11 @@ class FmpEmploymentCalendarRegistryTests(unittest.TestCase):
             environment={},
         )
 
-    def test_canonical_employment_calendar_collector_is_exact_and_unjobbed(self) -> None:
+    def test_canonical_treasury_collector_is_exact_and_unjobbed(self) -> None:
         registry = self._registry()
 
         self.assertEqual(registry.revision, "2.23.0")
+        self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
             (38, 51, 38),
@@ -82,14 +92,13 @@ class FmpEmploymentCalendarRegistryTests(unittest.TestCase):
             item for item in registry.collectors if item["id"] == COLLECTOR_ID
         )
         self.assertEqual(dict(collector), EXPECTED_COLLECTOR)
-        calendar = next(item for item in registry.datasets if item.id == DATASET_ID)
+        datasets = {item.id: item for item in registry.datasets}
+        for dataset_id in DATASET_IDS:
+            self.assertEqual(datasets[dataset_id].collector_ids[-1], COLLECTOR_ID)
+            self.assertEqual(datasets[dataset_id].collector_ids.count(COLLECTOR_ID), 1)
         self.assertEqual(
-            calendar.collector_ids,
-            (
-                "fixture.macro.calendar_import",
-                "fmp.macro.gdp_cpi_release_calendar_history",
-                COLLECTOR_ID,
-            ),
+            registry.store("macro").migration_order[-1],
+            "macro:0016_fmp_calendar_wholesale_evidence",
         )
         self.assertFalse(
             any(
@@ -99,43 +108,40 @@ class FmpEmploymentCalendarRegistryTests(unittest.TestCase):
             )
         )
 
-    def test_revision_219_projection_is_byte_exact_and_drift_closed(self) -> None:
+    def test_revision_221_projection_is_byte_exact_and_drift_closed(self) -> None:
         registry = self._registry()
 
-        historical = fmp_employment_release_calendar_registry_profile(registry)
-        self.assertEqual(historical.revision, "2.19.0")
-        self.assertEqual(
-            historical.source_sha256,
-            PRE_EMPLOYMENT_CALENDAR_SOURCE_SHA256,
-        )
+        historical = fmp_treasury_yield_curve_registry_profile(registry)
+        self.assertEqual(historical.revision, "2.21.0")
+        self.assertEqual(historical.source_sha256, PRE_TREASURY_SOURCE_SHA256)
         self.assertNotIn(COLLECTOR_ID, {item["id"] for item in historical.collectors})
-        calendar = next(item for item in historical.datasets if item.id == DATASET_ID)
-        self.assertEqual(
-            calendar.collector_ids,
-            (
-                "fixture.macro.calendar_import",
-                "fmp.macro.gdp_cpi_release_calendar_history",
-            ),
-        )
+        for dataset in historical.datasets:
+            self.assertNotIn(COLLECTOR_ID, dataset.collector_ids)
         payload = (
             json.dumps(historical.raw, ensure_ascii=True, indent=2, sort_keys=True)
             + "\n"
         ).encode("utf-8")
         self.assertEqual(
             hashlib.sha256(payload).hexdigest(),
-            PRE_EMPLOYMENT_CALENDAR_SOURCE_SHA256,
+            PRE_TREASURY_SOURCE_SHA256,
         )
 
-        raw = json.loads(json.dumps(registry.raw))
-        fixture_collector = next(
-            item
-            for item in raw["collectors"]
-            if item["id"] == "fixture.macro.calendar_import"
+        collectors = tuple(
+            {
+                **dict(item),
+                "workload_bounds": {
+                    **dict(item["workload_bounds"]),
+                    "max_rows": 19_999,
+                },
+            }
+            if item["id"] == COLLECTOR_ID
+            else item
+            for item in registry.collectors
         )
-        fixture_collector["version"] = "1.0.1"
-        drifted = replace(registry, raw=raw)
         with self.assertRaises(RegistryError):
-            fmp_employment_release_calendar_registry_profile(drifted)
+            fmp_treasury_yield_curve_registry_profile(
+                replace(registry, collectors=collectors)
+            )
 
 
 if __name__ == "__main__":

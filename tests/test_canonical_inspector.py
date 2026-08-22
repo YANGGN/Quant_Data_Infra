@@ -147,6 +147,41 @@ class CanonicalInspectorTests(unittest.TestCase):
             INSERT INTO macro_live_vintage_observations VALUES
               ('macro.gdp.real_qoq_saar_pct', '2026Q2', 'gdp-v1');
 
+            CREATE TABLE treasury_yield_curve_versions (
+                curve_version_id TEXT PRIMARY KEY,
+                provider TEXT NOT NULL,
+                curve_date TEXT NOT NULL,
+                curve_variant TEXT NOT NULL,
+                tenor TEXT NOT NULL,
+                series_id TEXT NOT NULL,
+                yield_value TEXT,
+                missing_reason TEXT,
+                available_at TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                correction_sequence INTEGER NOT NULL
+            );
+            INSERT INTO treasury_yield_curve_versions VALUES
+              (
+                'curve-20260820-1m-v1', 'fmp', '2026-08-20', 'par_yield',
+                '1M', 'macro.treasury.par_yield.1m', '4.20', NULL,
+                '2026-08-20T22:00:00Z', '2026-08-20T22:00:00Z', 1
+              ),
+              (
+                'curve-20260820-10y-v1', 'fmp', '2026-08-20', 'par_yield',
+                '10Y', 'macro.treasury.par_yield.10y', '4.30', NULL,
+                '2026-08-20T22:00:00Z', '2026-08-20T22:00:00Z', 1
+              ),
+              (
+                'curve-20260820-10y-v2', 'fmp', '2026-08-20', 'par_yield',
+                '10Y', 'macro.treasury.par_yield.10y', '4.40', NULL,
+                '2026-08-21T12:00:00Z', '2026-08-21T12:00:00Z', 2
+              ),
+              (
+                'curve-20260821-1m-v1', 'fmp', '2026-08-21', 'par_yield',
+                '1M', 'macro.treasury.par_yield.1m', '4.10', NULL,
+                '2026-08-21T22:00:00Z', '2026-08-21T22:00:00Z', 1
+              );
+
             CREATE TABLE ingestion_runs (
                 run_id TEXT PRIMARY KEY,
                 dataset_id TEXT NOT NULL,
@@ -330,6 +365,11 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "2026-07-30-advance",
             ),
             (
+                "/api/rows?view=treasury-curve&tenor=10Y"
+                "&start_date=2026-08-20&end_date=2026-08-20",
+                "4.40",
+            ),
+            (
                 "/api/rows?view=fmp-economic-calendar&country=US&priority=High"
                 "&event_name=Non%20Farm&keyword=jobs&start_date=2026-08-07"
                 "&end_date=2026-08-07",
@@ -343,6 +383,16 @@ class CanonicalInspectorTests(unittest.TestCase):
                 payload = loads_strict(response.body)
                 self.assertEqual(payload["execution"], "read_only")
                 self.assertIn(expected, str(payload["result"]["rows"]))
+
+        treasury = self.application.handle(
+            "GET",
+            "/api/rows?view=treasury-curve&tenor=10Y"
+            "&start_date=2026-08-20&end_date=2026-08-20",
+        )
+        treasury_result = loads_strict(treasury.body)["result"]
+        self.assertEqual(treasury_result["total"], 1)
+        self.assertEqual(treasury_result["rows"][0]["yield_percent"], "4.40")
+        self.assertEqual(treasury_result["rows"][0]["correction"], 2)
 
         surprise = SimpleNamespace(
             event_at="2026-07-30T12:30:00Z",
@@ -593,6 +643,7 @@ class CanonicalInspectorTests(unittest.TestCase):
         document = response.body.decode("utf-8")
         self.assertIn("Canonical Data Inspector", document)
         self.assertIn("Apple Inc.", document)
+        self.assertIn("Treasury curve", document)
         self.assertIn("Raw FMP calendar", document)
         self.assertIn("Database paths, SQL, writes, and provider calls are not available", document)
         self.assertNotIn(str(self.market), document)
@@ -628,6 +679,7 @@ class CanonicalInspectorTests(unittest.TestCase):
             ("/api/rows?view=market-prices&symbol=AAPL%20OR%201=1", 400),
             ("/api/rows?view=macro-current&series=unknown", 400),
             ("/api/rows?view=macro-surprises&stage=revised", 400),
+            ("/api/rows?view=treasury-curve&tenor=overnight", 400),
             (
                 f"/api/rows?view=macro-surprises&kind={NONFARM_PAYROLLS_KIND}"
                 "&stage=second",

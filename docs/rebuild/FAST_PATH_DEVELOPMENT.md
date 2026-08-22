@@ -2,42 +2,76 @@
 
 Status: Accepted default workflow
 Accepted: 2026-08-17
+Revised: 2026-08-21
 
 ## Purpose
 
-Use this fast path for ordinary development. The goal is to deliver the
+Use this fast path for ordinary bounded development and operations. The goal
+is to deliver the
 requested outcome safely without turning a bounded change into a new project
 stage.
 
 The fast path is not permission to skip correctness, safety, or relevant
 validation. It chooses the smallest process that can establish them.
 
-## Eligibility
+## Applicability and lanes
 
-A task is fast-path eligible only when all of these are true:
+The fast path is the default for all bounded work. Persistent data, an
+existing credential path, a live provider, a canonical store, or a minimal
+private registry binding does not by itself require a separate stage,
+contract, subagent, or independent verifier. Add the smallest gate for the
+actual risk instead of switching workflows by category.
 
-- the change is local and readily reversible;
-- it does not change persistent data, a shared contract, public behavior, or a
-  canonical safety boundary;
-- it needs no credential, live provider, deployment, scheduler, external
-  write, or destructive action;
-- focused validation can establish correctness; and
-- one owner can finish it without crossing a serialized semantic hotspot.
+### Local fast path
 
-If any item is false, name the specific escalation trigger and add only the
-gate needed for that risk.
+Use the local lane for code, tests, documentation, and other readily
+reversible work with no external or persistent effect. One owner, focused
+validation, and one final diff review are sufficient.
+
+### Bounded operational fast path
+
+The operational lane may use an existing provider integration, credential
+helper, canonical store, and append/upsert publisher when all of these are
+true:
+
+- the current explicit user request authorizes the provider, target dataset,
+  and intended current or historical outcome;
+- the agent states a finite date/universe scope, request cap, and exact target
+  before execution; that authorization covers every enumerated unit inside
+  the stated cap without a separate approval per unit;
+- provider integration, credential name and resolver, store role/path, schema,
+  lock discipline, and publisher semantics already exist and are reused;
+- input is bounded and validated before the database lock or transaction;
+  network work never occurs while either is held;
+- writes use existing relations and an atomic, replay-safe append, version, or
+  natural-key upsert path; no delete, rewrite, migration, store replacement,
+  promotion, or retirement is involved;
+- no scheduler, recurring automation, public exposure, deployment, or new
+  credential-storage mechanism is introduced;
+- focused preflight tests and bounded post-write counts/integrity checks can
+  establish correctness; and
+- one owner can complete the coupled change.
+
+A collector declaration or reciprocal binding to an existing private dataset
+may use this lane when it adds no migration, dataset ownership, public tool,
+job, timer, export, or caller-selected path. The integration owner still owns
+the registry edit and runs adjacent registry validation.
 
 ## Default workflow
 
-1. State the outcome and a short acceptance checklist.
+1. State the outcome and a short acceptance checklist. For an operational
+   task, also state the finite workload, request cap, existing credential
+   path, and exact store.
 2. Let one owner inspect and perform one initial implementation cycle.
 3. Run the smallest focused test or check that proves the change.
-4. Review the final diff once for scope, safety, and unrelated edits.
-5. Correct only concrete test failures, review findings, or newly discovered
+4. For an authorized operational task, execute only the stated workload and
+   perform bounded post-write count, integrity, and target checks.
+5. Review the final diff once for scope, safety, and unrelated edits.
+6. Correct only concrete test failures, review findings, or newly discovered
    requirements; batch related corrections into one pass.
-6. Update existing documentation once, only if durable behavior, usage,
+7. Update existing documentation once, only if durable behavior, usage,
    contract, or operations changed.
-7. Report the result, validation, intentionally unrun checks, and any real
+8. Report the result, validation, intentionally unrun checks, and any real
    limitation.
 
 For an ordinary task, planning should take minutes, not hours. Timebox design
@@ -53,7 +87,10 @@ rehearsals.
 - Do not create subagents for one coupled change.
 - Do not create a new ADR, stage contract, evidence record, manifest, or golden
   file unless the change actually introduces that kind of durable authority.
-- Do not run the full test suite when a focused test covers a local change.
+  Existing provider, credential, and canonical-store use under the bounded
+  operational lane does not by itself require one.
+- Do not run the full test suite when focused tests cover a local or bounded
+  operational change.
 - Do not repeat verification cycles one finding at a time; batch related
   findings into one correction pass.
 - Reuse approved databases and artifacts. Do not copy or rebuild a large store
@@ -73,14 +110,18 @@ Escalate to the parallel execution and independent-verification workflow only
 when an accepted contract requires it or at least one of these conditions is
 present:
 
-- a migration, registry, shared schema, or cross-store invariant changes;
+- a migration, shared schema, dataset ownership boundary, or cross-store
+  invariant changes;
 - the operation is destructive, irreversible, or difficult to recover;
-- live provider access, credentials, deployment, scheduling, or public
-  exposure is involved;
+- a new provider, credential name/resolver/storage mechanism, or unbounded or
+  materially costly workload is introduced;
+- deployment, scheduling, recurring automation, public exposure, writable UI,
+  store promotion, replacement, or retirement is involved;
 - two or more genuinely independent workstreams can materially shorten the
   work;
 - a security boundary or broad compatibility surface changes; or
-- failure could silently corrupt canonical data.
+- failure could silently corrupt canonical data and the existing transactional
+  or replay guarantees are insufficient.
 
 Even then, use only the agents and gates needed for the identified risk. The
 [parallel execution plan](PARALLEL_EXECUTION.md) is an exception workflow, not
@@ -90,10 +131,12 @@ Risk-specific minimums are:
 
 | Risk | Minimum added gate |
 | --- | --- |
+| Existing provider/credential plus bounded writes to existing relations | Explicit current scope, focused preflight, exact target, and bounded post-write counts/integrity |
+| Private collector binding to existing datasets | Integration-owner edit and adjacent registry validation |
 | Shared interface or compatibility surface | Impact review and adjacent integration validation |
-| Migration, registry, persistent data, or cross-store invariant | Applicable accepted contract, recovery/rollback analysis, and independent verification |
-| Credential, provider, scheduler, deployment, or public action | Current operating-envelope review and explicit authority |
-| Destructive or canonical-data action | Exact-target proof, recovery evidence, explicit authority, and independent verification |
+| Migration, new dataset ownership, shared schema, or cross-store invariant | Applicable accepted contract, recovery/rollback analysis, and independent verification |
+| New credential/provider/security mechanism, scheduler, deployment, or public action | Current operating-envelope review, explicit authority, and the gate specific to the changed boundary |
+| Destructive action or canonical-store safety-boundary change | Exact-target proof, recovery evidence, explicit authority, and independent verification |
 | Independent parallel lanes | Disjoint ownership, one integration owner, and one final verification pass |
 
 ## Validation rule
@@ -103,13 +146,17 @@ Use this validation ladder:
 1. Run the narrowest affected unit, lint, type, link, or content check.
 2. Add adjacent integration checks only when a changed interface has adjacent
    consumers.
-3. Run the full suite only for plausibly broad regressions, uncertain test
+3. For a bounded operational run, add only exact-target counts, integrity,
+   lineage/replay checks relevant to the publisher, and sidecar/fingerprint
+   checks when the established store procedure requires them.
+4. Run the full suite only for plausibly broad regressions, uncertain test
    selection, a required exit gate, or an explicit user request.
-4. State what ran and what was deliberately not run.
+5. State what ran and what was deliberately not run.
 
 Independent verification is required only when an accepted contract or the
-escalation conditions above require it. Routine local and reversible changes
-finish after focused validation and a final diff review.
+heavy-workflow conditions above require it. Routine local work and bounded
+operational work through established safety mechanisms finish after focused
+validation, the applicable post-operation checks, and a final diff review.
 
 ## Definition of done
 

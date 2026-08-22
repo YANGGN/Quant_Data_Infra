@@ -12,8 +12,11 @@ exposure, or destructive operation.
 This envelope consolidates existing user decisions and evidence. It grants no
 new execution authority. Code, credentials, registry declarations, unit files,
 database files, and historical instructions establish only that artifacts
-exist. If an action is not explicitly permitted by the current user request
-and its accepted contract, stop.
+exist. If an action is not explicitly permitted by the current user request,
+stop. A separate focused contract is required only when the
+[fast-path](FAST_PATH_DEVELOPMENT.md) heavy-workflow criteria require one;
+otherwise the current request plus a stated bounded operational scope is
+sufficient authority.
 
 Detailed receipts, hashes, counts, request rules, and historical limitations
 remain in the linked contracts and evidence. This file records only the
@@ -54,6 +57,33 @@ The current canonical project-relative store declarations are:
 
 A registry path declaration never authorizes opening, creating, migrating, or
 writing the corresponding database.
+
+## Bounded manual operational fast path
+
+A current explicit user request may authorize a finite manual provider
+workload, use of an existing credential resolver, and writes to an existing
+canonical store without creating a new project stage or evidence program.
+Before execution, the agent states the resolved provider/dataset, exact store,
+date or universe scope, request cap, and retry policy. That single
+authorization covers all enumerated units within the stated cap; a separate
+approval is not required for each window or symbol.
+
+This lane is available only when the established provider integration,
+credential name/resolver, schema, store role/path, locks, and replay-safe
+publisher are reused. Responses are bounded and validated before locking;
+network work is complete before a write transaction begins; writes are atomic
+and use existing relations; and focused preflight plus post-write counts and
+integrity checks can establish the result. A private collector binding to
+existing datasets is allowed when it adds no migration, dataset ownership,
+job, timer, export, public tool, or caller-selected path.
+
+This is task-scoped authority, not a standing provider or store permission. It
+does not cover a new provider or credential mechanism, migration, destructive
+rewrite, store copy/replacement/promotion/retirement, scheduler, recurring
+automation, deployment, public exposure, or an unbounded/materially costly
+workload. Those actions retain their applicable heavier gates. It also does
+not silently reopen a completed no-repeat population; the current user request
+must identify that population if repetition is intended.
 
 ## Retired BLS CPI original-release archive candidate
 
@@ -125,14 +155,16 @@ or scheduler.
 
 ## Closed operations
 
-Without a new explicit user decision and the applicable accepted gate:
+Outside a current bounded operational authorization or an applicable accepted
+heavier gate:
 
 - do not make a live provider request outside the three clock-driven
   exceptions above;
-- do not read or introduce a credential for an unapproved operation;
+- do not read an existing credential or introduce a credential mechanism for
+  an unapproved operation;
 - do not install, start, enable, disable, update, or remove a scheduler;
-- do not open, create, migrate, copy, move, back up, replace, promote, retire,
-  or destructively inspect a canonical store;
+- do not open or write an existing canonical store, or create, migrate, copy,
+  move, back up, replace, promote, retire, or destructively inspect one;
 - do not expose a public tool, dashboard, export, route, or caller-selected
   database path;
 - do not host or deploy Atlas, connect it to operational stores, or run live
@@ -142,19 +174,23 @@ Without a new explicit user decision and the applicable accepted gate:
 - do not infer authority from a declaration, test, unit file, executable,
   database, environment variable, or historical instruction.
 
-Read-only canonical checks are allowed only when the applicable accepted
-procedure makes them in scope. An ordinary SQLite open can create or update
-sidecars and is not presumed mutation-free.
+Read-only canonical checks are allowed when the bounded operational scope or
+applicable accepted procedure makes them in scope. They must use the
+established immutable/fingerprint-preserving procedure; an ordinary SQLite
+open can create or update sidecars and is not presumed mutation-free.
 
 ## Required document routing
 
 | Work | Additional authority |
 | --- | --- |
-| Registry or migration | [Registry specification](SYSTEM_REGISTRY_SPEC.md), [migration reconstruction map](MIGRATION_RECONSTRUCTION.md), applicable ADR, and explicit current scope |
-| Provider, timer, scheduler, path, or lock | [Scheduling and locking](SCHEDULING_AND_LOCKING.md) and the applicable collector/stage contract |
+| Private collector binding to existing datasets | [Fast path](FAST_PATH_DEVELOPMENT.md), [registry specification](SYSTEM_REGISTRY_SPEC.md), and explicit current scope |
+| Migration, registry schema/dataset ownership, or shared identity | [Registry specification](SYSTEM_REGISTRY_SPEC.md), [migration reconstruction map](MIGRATION_RECONSTRUCTION.md), applicable ADR, and explicit current scope |
+| Provider, credential, canonical path, or lock | [Fast path](FAST_PATH_DEVELOPMENT.md), [scheduling and locking](SCHEDULING_AND_LOCKING.md), and an applicable collector/stage contract only when the heavy-workflow criteria require one |
+| Timer or scheduler | [Scheduling and locking](SCHEDULING_AND_LOCKING.md), explicit current authority, and the applicable accepted contract |
 | Identity, availability, as-of, or missingness | [Data and time contracts](DATA_AND_TIME_CONTRACTS.md) and `ARCHITECTURE.md` |
 | Market default | Stage 12C/12D contracts and evidence linked above |
-| Tool, dashboard, export, Atlas, or public route | [Tool platform](TOOL_PLATFORM_SPEC.md), applicable UI/export contract, and explicit public/deployment authority |
+| Fixed local read-only tool or Inspector | [Fast path](FAST_PATH_DEVELOPMENT.md) and [tool platform](TOOL_PLATFORM_SPEC.md) |
+| Writable UI, export, Atlas, deployment, or public route | [Tool platform](TOOL_PLATFORM_SPEC.md), applicable UI/export contract, and explicit public/deployment authority |
 | Destructive, promotion, retirement, copy, or backup action | Exact target, recovery evidence, applicable contract, and a new explicit user decision |
 
 If these sources conflict, do not select the permissive interpretation. Stop,

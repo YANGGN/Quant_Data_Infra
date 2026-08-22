@@ -37,11 +37,12 @@ from .macro.fmp_release_surprises import (
     GDP_ADVANCE_KIND,
     MacroReleaseSurpriseRepository,
 )
+from .macro.fmp_treasury_curve import CURVE_VARIANT, PROVIDER, TENOR_MANIFEST
 from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map
 
 
-_CURRENT_REGISTRY = "2.21.0"
+_CURRENT_REGISTRY = "2.23.0"
 _CURRENT_SCHEMA = "1.8.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
@@ -50,6 +51,7 @@ _VIEWS = (
     "macro-current",
     "macro-vintages",
     "macro-surprises",
+    "treasury-curve",
     "fmp-economic-calendar",
 )
 _VIEW_LABELS = {
@@ -58,8 +60,10 @@ _VIEW_LABELS = {
     "macro-current": "Macro current",
     "macro-vintages": "Macro vintages",
     "macro-surprises": "Release surprises",
+    "treasury-curve": "Treasury curve",
     "fmp-economic-calendar": "Raw FMP calendar",
 }
+_TREASURY_TENORS = tuple(item.tenor for item in TENOR_MANIFEST)
 _MACRO_SERIES = (
     "macro.gdp.real_qoq_saar_pct",
     "macro.gdp.nominal_billions",
@@ -80,7 +84,7 @@ _MAX_PAGE = 1000
 
 
 class CanonicalInspectorReadService:
-    """Six fixed query templates over server-owned canonical store paths."""
+    """Fixed query templates over server-owned canonical store paths."""
 
     def __init__(self, store_map: StoreMap, registry: Registry) -> None:
         self._stores = store_map
@@ -97,6 +101,10 @@ class CanonicalInspectorReadService:
             "macro-vintages": {"view", "series", "period", "direction", "page", "limit"},
             "macro-surprises": {
                 "view", "kind", "stage", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "treasury-curve": {
+                "view", "tenor", "start_date", "end_date",
                 "direction", "page", "limit",
             },
             "fmp-economic-calendar": {
@@ -125,6 +133,8 @@ class CanonicalInspectorReadService:
             result = self._macro_rows(query, direction, page, limit, current=False)
         elif view == "macro-surprises":
             result = self._macro_surprises(query, direction, page, limit)
+        elif view == "treasury-curve":
+            result = self._treasury_curve(query, direction, page, limit)
         else:
             result = self._fmp_economic_calendar(query, direction, page, limit)
         result.update({"view": view, "page": page, "limit": limit, "direction": direction})
@@ -180,7 +190,9 @@ class CanonicalInspectorReadService:
               ON instrument.instrument_id=price.instrument_id
             WHERE {' AND '.join(where)}
         """
-        with _immutable_market_connection(self._stores.market) as connection:
+        with _immutable_store_connection(
+            self._stores.market, expected_role="market"
+        ) as connection:
             total = int(connection.execute(count_sql, tuple(parameters)).fetchone()[0])
             rows = _rows(
                 connection.execute(
@@ -211,7 +223,9 @@ class CanonicalInspectorReadService:
             LIMIT ? OFFSET ?
         """
         count_sql = f"SELECT COUNT(*) FROM stage10_instruments WHERE {' AND '.join(where)}"
-        with _immutable_market_connection(self._stores.market) as connection:
+        with _immutable_store_connection(
+            self._stores.market, expected_role="market"
+        ) as connection:
             total = int(connection.execute(count_sql, tuple(parameters)).fetchone()[0])
             rows = _rows(connection.execute(sql, (*parameters, limit, (page - 1) * limit)).fetchall())
         return _result(columns, rows, total, page, limit, {"search": search})
@@ -339,6 +353,94 @@ class CanonicalInspectorReadService:
                 "start_date": start,
                 "end_date": end,
             },
+        )
+
+    def _treasury_curve(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        tenor = query.get("tenor", "")
+        if tenor and tenor not in _TREASURY_TENORS:
+            raise ValidationError("Treasury tenor is invalid")
+        start = _optional_date(query.get("start_date"), "/start_date")
+        end = _optional_date(query.get("end_date"), "/end_date")
+        if start and end and start > end:
+            raise ValidationError("Treasury curve date range is invalid")
+
+        where = ["provider=?", "curve_variant=?"]
+        parameters: list[object] = [PROVIDER, CURVE_VARIANT]
+        if tenor:
+            where.append("tenor=?")
+            parameters.append(tenor)
+        if start:
+            where.append("curve_date>=?")
+            parameters.append(start)
+        if end:
+            where.append("curve_date<=?")
+            parameters.append(end)
+        predicate = " AND ".join(where)
+        latest = f"""
+            WITH latest AS (
+                SELECT provider, curve_date, curve_variant, tenor,
+                       MAX(correction_sequence) AS correction_sequence
+                FROM treasury_yield_curve_versions
+                WHERE {predicate}
+                GROUP BY provider, curve_date, curve_variant, tenor
+            )
+        """
+        base = """
+            FROM treasury_yield_curve_versions AS version
+            JOIN latest
+              ON latest.provider=version.provider
+             AND latest.curve_date=version.curve_date
+             AND latest.curve_variant=version.curve_variant
+             AND latest.tenor=version.tenor
+             AND latest.correction_sequence=version.correction_sequence
+        """
+        tenor_order = "CASE version.tenor " + " ".join(
+            f"WHEN '{item}' THEN {ordinal}"
+            for ordinal, item in enumerate(_TREASURY_TENORS, start=1)
+        ) + " ELSE 99 END"
+        columns = (
+            "curve_date", "tenor", "yield_percent", "missing_reason",
+            "correction", "available_at", "captured_at",
+        )
+        sql = (
+            latest
+            + """
+            SELECT version.curve_date, version.tenor,
+                   version.yield_value AS yield_percent,
+                   version.missing_reason,
+                   version.correction_sequence AS correction,
+                   version.available_at, version.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY version.curve_date {direction.upper()}, {tenor_order} ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    latest + "SELECT COUNT(*) " + base,
+                    tuple(parameters),
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {"tenor": tenor, "start_date": start, "end_date": end},
         )
 
     def _fmp_economic_calendar(
@@ -565,44 +667,48 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
 
 
 @contextmanager
-def _immutable_market_connection(path: Path) -> Iterator[sqlite3.Connection]:
-    """Open the quiet canonical market store without touching its WAL/SHM state."""
+def _immutable_store_connection(
+    path: Path, *, expected_role: str
+) -> Iterator[sqlite3.Connection]:
+    """Open one quiet canonical store without touching its WAL/SHM state."""
 
+    if expected_role not in {"market", "macro"}:
+        raise ValidationError("Canonical inspector store role is invalid")
     if path.is_symlink() or not path.is_file():
-        raise StoreUnavailableError("Canonical market store is unavailable")
+        raise StoreUnavailableError("Canonical store is unavailable")
     before_sidecars = {name: _sidecar_stamp(path, name) for name in ("wal", "shm", "journal")}
     for name in ("wal", "journal"):
         stamp = before_sidecars[name]
         if stamp is not None and stamp[4] != 0:
-            raise StoreUnavailableError("Canonical market store is not quiet")
+            raise StoreUnavailableError("Canonical store is not quiet")
     flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(path, flags)
     except OSError as exc:
-        raise StoreUnavailableError("Canonical market store is unavailable") from exc
+        raise StoreUnavailableError("Canonical store is unavailable") from exc
     connection: sqlite3.Connection | None = None
     try:
         before = os.fstat(descriptor)
         if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise StoreUnavailableError("Canonical market store identity is invalid")
+            raise StoreUnavailableError("Canonical store identity is invalid")
         current = os.stat(path, follow_symlinks=False)
         if (current.st_dev, current.st_ino) != (before.st_dev, before.st_ino):
-            raise StoreUnavailableError("Canonical market store identity changed")
+            raise StoreUnavailableError("Canonical store identity changed")
         uri = f"file:/proc/self/fd/{descriptor}?mode=ro&immutable=1"
         connection = sqlite3.connect(uri, uri=True, timeout=0.0, isolation_level=None)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA query_only=ON")
         if connection.execute("PRAGMA query_only").fetchone()[0] != 1:
-            raise StoreUnavailableError("Canonical market connection is not query-only")
+            raise StoreUnavailableError("Canonical connection is not query-only")
         connection.execute("BEGIN")
         role = connection.execute(
             "SELECT store_role FROM store_metadata WHERE singleton=1"
         ).fetchone()
-        if role is None or role[0] != "market":
-            raise StoreUnavailableError("Canonical market store has the wrong role")
+        if role is None or role[0] != expected_role:
+            raise StoreUnavailableError("Canonical store has the wrong role")
         yield connection
     except sqlite3.Error as exc:
-        raise StoreUnavailableError("Canonical market store is unavailable") from exc
+        raise StoreUnavailableError("Canonical store is unavailable") from exc
     finally:
         if connection is not None:
             if connection.in_transaction:
@@ -619,9 +725,9 @@ def _immutable_market_connection(path: Path) -> Iterator[sqlite3.Connection]:
                 after.st_size, after.st_mtime_ns, after.st_ctime_ns,
             )
             if stable_before != stable_after:
-                raise StoreUnavailableError("Canonical market store changed during inspection")
+                raise StoreUnavailableError("Canonical store changed during inspection")
             if any(_sidecar_stamp(path, name) != before_sidecars[name] for name in before_sidecars):
-                raise StoreUnavailableError("Canonical market sidecar changed during inspection")
+                raise StoreUnavailableError("Canonical store sidecar changed during inspection")
         finally:
             os.close(descriptor)
 
@@ -792,6 +898,17 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         )
         fields.append(f'<label>Series<select name="series">{options}</select></label>')
         fields.append(_input("period", "Exact period", query.get("period"), placeholder="2026Q2 or 2026-07"))
+    elif view == "treasury-curve":
+        selected = str(query.get("tenor", ""))
+        options = '<option value="">All tenors</option>' + "".join(
+            f'<option value="{html.escape(item, quote=True)}"'
+            + (" selected" if item == selected else "")
+            + f">{html.escape(item)}</option>"
+            for item in _TREASURY_TENORS
+        )
+        fields.append(f'<label>Tenor<select name="tenor">{options}</select></label>')
+        fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
+        fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
     elif view == "macro-surprises":
         selected = str(query.get("kind", GDP_ADVANCE_KIND))
         options = "".join(
