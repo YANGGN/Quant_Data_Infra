@@ -1,7 +1,7 @@
 # Current Operating Envelope
 
 Status: Current operational routing snapshot; non-authorizing
-Reconciled: 2026-08-21
+Reconciled: 2026-08-22
 
 ## Purpose
 
@@ -28,17 +28,24 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.21.0`, schema `1.8.0`. The former
-working `2.22.0`/`validated` candidate is rejected under
+The current accepted registry is revision `2.30.0`, schema `1.8.0`, with
+source SHA-256 `4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6`.
+The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
-authority. Because it never entered the active configuration lineage,
-byte-exact restoration of `2.21.0` is a candidate discard rather than a new
-registry revision.
+authority. Because it never entered the active configuration lineage, it
+remains absent from the later additive Treasury `2.23.0`, NY Fed headline
+rate `2.24.0`, NY Fed repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
+official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
+macro extension `2.29.0`, and BLS price/wage/productivity `2.30.0`
+revisions. None adds a scheduler, public surface, dataset ownership, migration,
+or credential mechanism; `2.29.0` reuses the existing EIA credential
+resolver for its single EIA request, while `2.30.0` is credential-free.
 
-An explicitly authorized 2026-08-21 immutable read-only proof confirmed that
-the current canonical macro store identifies itself as `macro`, ends at the
-exact accepted ordinal-16 FMP wholesale migration under registry `2.21.0`,
+An explicitly authorized 2026-08-21 immutable read-only proof, performed while
+registry `2.21.0` was current, confirmed that the canonical macro store
+identifies itself as `macro`, ends at the exact accepted ordinal-16 FMP
+wholesale migration,
 and contains no `0017` ledger collision or BLS original-release archive
 relation. Main/WAL/SHM/journal physical stamps were unchanged and all
 sidecars were absent. This one-time proof grants no continuing canonical-read
@@ -144,8 +151,82 @@ The following are completed, retained operations, not standing permissions:
   population;
 - the one-time Philadelphia Fed employment historical-workbook population;
 - the one-time macro-history extension and local Stage 11 weekly adoption;
-- the one-time FMP GDP/CPI release-calendar history; and
-- the one-time FMP wholesale calendar history and its local replay.
+- the one-time FMP GDP/CPI release-calendar history;
+- the one-time FMP wholesale calendar history and its local replay;
+- the one-time FMP Treasury curve population;
+- the one-request New York Fed headline-rate population for the inclusive
+  requested window `2016-03-01` through `2026-08-21`, published to
+  `data/macro.sqlite` on 2026-08-21. It retained 11,549 current observations:
+  2,632 EFFR, 2,632 OBFR, and 2,095 each for TGCR, BGCR, and SOFR. The provider
+  returned observations through `2026-08-20`; integrity and foreign-key checks
+  passed, and the fixed local Inspector read returned EFFR `3.63` for that
+  date;
+- the one-request New York Fed repo-facility population for the inclusive
+  requested window `2016-03-01` through `2026-08-21`, published to
+  `data/macro.sqlite` on 2026-08-22. It retained 3,882 current observations:
+  2,618 ON RRP rows from `2016-03-01` through `2026-08-21`, and 1,264 SRF
+  rows from the facility start `2021-07-29` through `2026-08-21`. The latest
+  accepted amounts were USD 200,000,000 for ON RRP and USD 0 for SRF. Integrity
+  and foreign-key checks passed, and the fixed local Inspector returned both
+  series under the `Repo facilities` view at registry `2.26.0`; and
+- the one-request New York Fed aggregate SOMA-summary population for the
+  inclusive requested window `2003-07-09` through `2026-08-21`, published
+  to `data/macro.sqlite` on 2026-08-22. The provider returned 1,207 weekly
+  summaries through `2026-08-19`; all nine declared aggregate components per
+  week were retained as 10,863 component rows in the existing SOMA relations,
+  with source-empty values represented explicitly and amounts stored in
+  thousands of USD. Integrity and foreign-key checks passed, and the fixed
+  local Inspector returned 1,207 latest total-holdings rows under the
+  `SOMA summary` view at registry `2.26.0`;
+- the one-request Federal Reserve H.4.1 population for the requested window
+  `2002-12-18` through `2026-08-22`, published to `data/macro.sqlite` on
+  2026-08-22 from one FRED ZIP carrying the underlying Board series. It
+  retained 1,236 weekly observations each for total assets, reserve balances,
+  and the Treasury General Account through `2026-08-19` (3,708 total);
+- the one-request Chicago Fed population for the requested window
+  `1971-01-08` through `2026-08-22`, published on 2026-08-22. It retained
+  2,902 weekly observations each for NFCI and ANFCI through `2026-08-14`
+  (5,804 total); and
+- the two-request BIS U.S. private non-financial credit population for the
+  requested window `1961-Q1` through `2026-Q2`, published on 2026-08-22.
+  Credit-to-GDP and its gap each retained 260 quarters from `1961-Q1` through
+  `2025-Q4`; debt-service ratio retained 108 quarters from `1999-Q1`
+  through `2025-Q4` (628 total). Immutable read-only integrity checks passed
+  after all three `2.27.0` populations, and the fixed Inspector views are
+  `Fed H.4.1 liquidity`, `Financial conditions`, and `BIS credit conditions`.
+- the one-request NY Fed CMDI population for the requested window
+  `2005-01-07` through `2026-08-22`, published on 2026-08-22 from the
+  fixed official workbook. It retained 1,125 weekly observations each for
+  the overall market, investment-grade, and high-yield indexes through
+  `2026-07-24` (3,375 total). Immutable read-only integrity and foreign-key
+  checks passed, and the restarted local Inspector returns all 1,125
+  overall-market rows under `Corporate bond distress` at registry `2.28.0`;
+- the one-request Treasury Fiscal Data TGA population for the requested window
+  `2005-10-01` through `2026-08-22`, published on 2026-08-22. The provider
+  returned and the canonical store retained 1,089 daily observations from
+  `2022-04-18` through `2026-08-20`;
+- the one-request EIA Lower-48 working natural-gas-storage population,
+  published on 2026-08-22 through the existing EIA credential resolver. It
+  retained 868 weekly observations from `2010-01-01` through `2026-08-14`;
+  and
+- the one-request NBER business-cycle chronology population, published on
+  2026-08-22 from the fixed official JSON. It retained 2,061 derived monthly
+  recession-indicator observations from `1854-12` through `2026-08`.
+  Immutable read-only integrity and foreign-key checks passed after all three
+  `2.29.0` populations, and the fixed Inspector views return 1,089 Treasury,
+  868 natural-gas, and 2,061 recession rows; and
+- the credential-free BLS price/wage/productivity population. Its initial
+  fixed 2017 through 2026 API request, published on 2026-08-22, retained 115
+  monthly PPI, 115 monthly average-hourly-earnings, and 38 quarterly
+  labor-productivity observations. Five later authorized, non-overlapping
+  productivity-only requests for 1947-1956 through 1987-1996 added 199 rows.
+  The immutable read-only checkpoint is therefore 115 PPI observations from
+  `2017-01` through `2026-07`, 115 earnings observations over the same
+  range, and 237 productivity observations from `1947-Q2` through
+  `2026-Q2` (467 total). The attempted 1997-2006 mixed request was rejected
+  before publication, and the missing 1997-2016 extension remains incomplete.
+  The initial request and five successful historical windows must not be
+  repeated; any revised remaining scope requires new finite authorization.
 
 The rebuild [index](README.md), root [project record](../../README.md), and
 stage evidence own the exact scope, receipt, waiver, hash, count, and historical

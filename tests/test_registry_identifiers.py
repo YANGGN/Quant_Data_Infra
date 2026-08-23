@@ -94,7 +94,7 @@ class RegistryIdentifierTests(unittest.TestCase):
 
         self.assertEqual(len(registry.stores), 4)
         self.assertEqual(registry.schema_version, "1.8.0")
-        self.assertEqual(registry.registry_version, "2.23.0")
+        self.assertEqual(registry.registry_version, "2.30.0")
         self.assertEqual(
             {store.id: store.default_path for store in registry.stores},
             {
@@ -112,7 +112,7 @@ class RegistryIdentifierTests(unittest.TestCase):
         )
         self.assertEqual(len(registry.migrations), 38)
         self.assertEqual(len(registry.datasets), 51)
-        self.assertEqual(len(registry.collectors), 38)
+        self.assertEqual(len(registry.collectors), 49)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")

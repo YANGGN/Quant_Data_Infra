@@ -33,11 +33,11 @@ class MacroHistoryExtensionRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             (registry.schema_version, registry.registry_version),
-            ("1.8.0", "2.23.0"),
+            ("1.8.0", "2.29.0"),
         )
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (38, 51, 38),
+            (38, 51, 48),
         )
 
         migration = next(item for item in registry.migrations if item.id == MIGRATION_ID)

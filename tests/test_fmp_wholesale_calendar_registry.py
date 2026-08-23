@@ -32,10 +32,10 @@ class FmpWholesaleCalendarRegistryTests(unittest.TestCase):
     def test_private_wholesale_declaration_and_exact_preimage_projection(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.23.0")
+        self.assertEqual(registry.revision, "2.29.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (38, 51, 38),
+            (38, 51, 48),
         )
         migration = next(item for item in registry.migrations if item.id == MIGRATION_ID)
         self.assertEqual(

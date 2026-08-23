@@ -38,11 +38,30 @@ from .macro.fmp_release_surprises import (
     MacroReleaseSurpriseRepository,
 )
 from .macro.fmp_treasury_curve import CURVE_VARIANT, PROVIDER, TENOR_MANIFEST
+from .macro.official_conditions import (
+    BIS_MANIFEST,
+    BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST,
+    CHICAGO_MANIFEST,
+    CMDI_MANIFEST,
+    EIA_GAS_MANIFEST,
+    H41_MANIFEST,
+    NBER_RECESSION_MANIFEST,
+    TREASURY_TGA_MANIFEST,
+)
+from .macro.nyfed_overnight_rates import (
+    PROVIDER as NYFED_PROVIDER,
+    RATE_MANIFEST,
+)
+from .macro.nyfed_repo_facilities import (
+    FACILITY_MANIFEST,
+    PROVIDER as NYFED_REPO_PROVIDER,
+)
+from .macro.nyfed_soma_summary import COMPONENT_MANIFEST as SOMA_COMPONENT_MANIFEST
 from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map
 
 
-_CURRENT_REGISTRY = "2.23.0"
+_CURRENT_REGISTRY = "2.30.0"
 _CURRENT_SCHEMA = "1.8.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
@@ -51,7 +70,18 @@ _VIEWS = (
     "macro-current",
     "macro-vintages",
     "macro-surprises",
+    "price-wage-productivity",
     "treasury-curve",
+    "overnight-rates",
+    "repo-facilities",
+    "soma-summary",
+    "h41-liquidity",
+    "treasury-cash",
+    "financial-conditions",
+    "bis-credit",
+    "credit-market-distress",
+    "natural-gas-storage",
+    "recession-chronology",
     "fmp-economic-calendar",
 )
 _VIEW_LABELS = {
@@ -60,10 +90,37 @@ _VIEW_LABELS = {
     "macro-current": "Macro current",
     "macro-vintages": "Macro vintages",
     "macro-surprises": "Release surprises",
+    "price-wage-productivity": "Prices, wages & productivity",
     "treasury-curve": "Treasury curve",
+    "overnight-rates": "Overnight rates",
+    "repo-facilities": "Repo facilities",
+    "soma-summary": "SOMA summary",
+    "h41-liquidity": "Fed H.4.1 liquidity",
+    "treasury-cash": "Treasury cash balance",
+    "financial-conditions": "Financial conditions",
+    "bis-credit": "BIS credit conditions",
+    "credit-market-distress": "Corporate bond distress",
+    "natural-gas-storage": "Natural gas storage",
+    "recession-chronology": "Recession chronology",
     "fmp-economic-calendar": "Raw FMP calendar",
 }
 _TREASURY_TENORS = tuple(item.tenor for item in TENOR_MANIFEST)
+_OVERNIGHT_RATE_CODES = tuple(item.code for item in RATE_MANIFEST)
+_REPO_FACILITY_CODES = tuple(item.code for item in FACILITY_MANIFEST)
+_SOMA_COMPONENTS = tuple(item.category for item in SOMA_COMPONENT_MANIFEST)
+_OFFICIAL_VIEW_MANIFESTS = {
+    "price-wage-productivity": (
+        "bls",
+        BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST,
+    ),
+    "h41-liquidity": ("federal_reserve_h41", H41_MANIFEST),
+    "treasury-cash": ("treasury_fiscal_data", TREASURY_TGA_MANIFEST),
+    "financial-conditions": ("chicagofed", CHICAGO_MANIFEST),
+    "bis-credit": ("bis", BIS_MANIFEST),
+    "credit-market-distress": ("nyfed_cmdi", CMDI_MANIFEST),
+    "natural-gas-storage": ("eia", EIA_GAS_MANIFEST),
+    "recession-chronology": ("nber", NBER_RECESSION_MANIFEST),
+}
 _MACRO_SERIES = (
     "macro.gdp.real_qoq_saar_pct",
     "macro.gdp.nominal_billions",
@@ -107,6 +164,50 @@ class CanonicalInspectorReadService:
                 "view", "tenor", "start_date", "end_date",
                 "direction", "page", "limit",
             },
+            "overnight-rates": {
+                "view", "rate", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "repo-facilities": {
+                "view", "facility", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "soma-summary": {
+                "view", "component", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "price-wage-productivity": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "h41-liquidity": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "treasury-cash": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "financial-conditions": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "bis-credit": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "credit-market-distress": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "natural-gas-storage": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "recession-chronology": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
             "fmp-economic-calendar": {
                 "view", "country", "priority", "event_name", "keyword",
                 "start_date", "end_date", "direction", "page", "limit",
@@ -135,6 +236,16 @@ class CanonicalInspectorReadService:
             result = self._macro_surprises(query, direction, page, limit)
         elif view == "treasury-curve":
             result = self._treasury_curve(query, direction, page, limit)
+        elif view == "overnight-rates":
+            result = self._overnight_rates(query, direction, page, limit)
+        elif view == "repo-facilities":
+            result = self._repo_facilities(query, direction, page, limit)
+        elif view == "soma-summary":
+            result = self._soma_summary(query, direction, page, limit)
+        elif view in _OFFICIAL_VIEW_MANIFESTS:
+            result = self._official_series(
+                view, query, direction, page, limit
+            )
         else:
             result = self._fmp_economic_calendar(query, direction, page, limit)
         result.update({"view": view, "page": page, "limit": limit, "direction": direction})
@@ -441,6 +552,393 @@ class CanonicalInspectorReadService:
             page,
             limit,
             {"tenor": tenor, "start_date": start, "end_date": end},
+        )
+
+    def _overnight_rates(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        rate = query.get("rate", "").upper()
+        if rate and rate not in _OVERNIGHT_RATE_CODES:
+            raise ValidationError("Overnight rate is invalid")
+        start = _optional_date(query.get("start_date"), "/start_date")
+        end = _optional_date(query.get("end_date"), "/end_date")
+        if start and end and start > end:
+            raise ValidationError("Overnight-rate date range is invalid")
+
+        placeholders = ", ".join("?" for _ in _OVERNIGHT_RATE_CODES)
+        where = [
+            "series.provider=?",
+            f"series.provider_series_code IN ({placeholders})",
+        ]
+        parameters: list[object] = [NYFED_PROVIDER, *_OVERNIGHT_RATE_CODES]
+        if rate:
+            where.append("series.provider_series_code=?")
+            parameters.append(rate)
+        if start:
+            where.append("version.period_start>=?")
+            parameters.append(start)
+        if end:
+            where.append("version.period_start<=?")
+            parameters.append(end)
+        predicate = " AND ".join(where)
+        base = f"""
+            FROM macro_observations AS observation
+            JOIN macro_observation_versions AS version
+              ON version.version_id=observation.current_version_id
+            JOIN macro_series AS series
+              ON series.series_id=version.series_id
+            WHERE {predicate}
+        """
+        rate_order = "CASE series.provider_series_code " + " ".join(
+            f"WHEN '{item}' THEN {ordinal}"
+            for ordinal, item in enumerate(_OVERNIGHT_RATE_CODES, start=1)
+        ) + " ELSE 99 END"
+        columns = (
+            "effective_date",
+            "rate",
+            "title",
+            "rate_percent",
+            "missing_reason",
+            "correction",
+            "available_at",
+            "captured_at",
+        )
+        sql = (
+            """
+            SELECT version.period_start AS effective_date,
+                   series.provider_series_code AS rate,
+                   series.title,
+                   version.value_text AS rate_percent,
+                   version.missing_reason,
+                   version.correction_sequence AS correction,
+                   version.available_at,
+                   version.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY version.period_start {direction.upper()}, {rate_order} ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    "SELECT COUNT(*) " + base, tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {"rate": rate, "start_date": start, "end_date": end},
+        )
+
+    def _repo_facilities(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        facility = query.get("facility", "").upper()
+        if facility and facility not in _REPO_FACILITY_CODES:
+            raise ValidationError("Repo facility is invalid")
+        start = _optional_date(query.get("start_date"), "/start_date")
+        end = _optional_date(query.get("end_date"), "/end_date")
+        if start and end and start > end:
+            raise ValidationError("Repo-facility date range is invalid")
+
+        placeholders = ", ".join("?" for _ in _REPO_FACILITY_CODES)
+        where = [
+            "series.provider=?",
+            f"series.provider_series_code IN ({placeholders})",
+        ]
+        parameters: list[object] = [
+            NYFED_REPO_PROVIDER,
+            *_REPO_FACILITY_CODES,
+        ]
+        if facility:
+            where.append("series.provider_series_code=?")
+            parameters.append(facility)
+        if start:
+            where.append("version.period_start>=?")
+            parameters.append(start)
+        if end:
+            where.append("version.period_start<=?")
+            parameters.append(end)
+        predicate = " AND ".join(where)
+        base = f"""
+            FROM macro_observations AS observation
+            JOIN macro_observation_versions AS version
+              ON version.version_id=observation.current_version_id
+            JOIN macro_series AS series
+              ON series.series_id=version.series_id
+            WHERE {predicate}
+        """
+        facility_order = "CASE series.provider_series_code " + " ".join(
+            f"WHEN '{item}' THEN {ordinal}"
+            for ordinal, item in enumerate(_REPO_FACILITY_CODES, start=1)
+        ) + " ELSE 99 END"
+        columns = (
+            "effective_date",
+            "facility",
+            "title",
+            "accepted_usd",
+            "correction",
+            "available_at",
+            "captured_at",
+        )
+        sql = (
+            """
+            SELECT version.period_start AS effective_date,
+                   series.provider_series_code AS facility,
+                   series.title,
+                   version.value_text AS accepted_usd,
+                   version.correction_sequence AS correction,
+                   version.available_at,
+                   version.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY version.period_start {direction.upper()},
+                     {facility_order} ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    "SELECT COUNT(*) " + base, tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {"facility": facility, "start_date": start, "end_date": end},
+        )
+
+    def _official_series(
+        self,
+        view: str,
+        query: Mapping[str, str],
+        direction: str,
+        page: int,
+        limit: int,
+    ) -> dict[str, Any]:
+        provider, manifest = _OFFICIAL_VIEW_MANIFESTS[view]
+        series_id = query.get("series", "")
+        series_ids = tuple(item.series_id for item in manifest)
+        if series_id and series_id not in series_ids:
+            raise ValidationError("Official macro series is invalid")
+        start = _optional_date(query.get("start_date"), "/start_date")
+        end = _optional_date(query.get("end_date"), "/end_date")
+        if start and end and start > end:
+            raise ValidationError("Official macro date range is invalid")
+
+        placeholders = ", ".join("?" for _ in series_ids)
+        where = [
+            "series.provider=?",
+            f"series.series_id IN ({placeholders})",
+        ]
+        parameters: list[object] = [provider, *series_ids]
+        if series_id:
+            where.append("series.series_id=?")
+            parameters.append(series_id)
+        if start:
+            where.append("version.period_start>=?")
+            parameters.append(start)
+        if end:
+            where.append("version.period_start<=?")
+            parameters.append(end)
+        predicate = " AND ".join(where)
+        base = f"""
+            FROM macro_observations AS observation
+            JOIN macro_observation_versions AS version
+              ON version.version_id=observation.current_version_id
+            JOIN macro_series AS series
+              ON series.series_id=version.series_id
+            WHERE {predicate}
+        """
+        series_order = "CASE series.series_id " + " ".join(
+            f"WHEN '{item}' THEN {ordinal}"
+            for ordinal, item in enumerate(series_ids, start=1)
+        ) + " ELSE 99 END"
+        columns = (
+            "period_start",
+            "period_end",
+            "series",
+            "title",
+            "value",
+            "unit",
+            "missing_reason",
+            "correction",
+            "available_at",
+            "captured_at",
+        )
+        sql = (
+            """
+            SELECT version.period_start,
+                   version.period_end,
+                   series.series_id AS series,
+                   series.title,
+                   version.value_text AS value,
+                   version.unit,
+                   version.missing_reason,
+                   version.correction_sequence AS correction,
+                   version.available_at,
+                   version.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY version.period_start {direction.upper()},
+                     {series_order} ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    "SELECT COUNT(*) " + base,
+                    tuple(parameters),
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {
+                "series": series_id,
+                "start_date": start,
+                "end_date": end,
+            },
+        )
+
+    def _soma_summary(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        component = query.get("component", "")
+        if component and component not in _SOMA_COMPONENTS:
+            raise ValidationError("SOMA component is invalid")
+        start = _optional_date(query.get("start_date"), "/start_date")
+        end = _optional_date(query.get("end_date"), "/end_date")
+        if start and end and start > end:
+            raise ValidationError("SOMA date range is invalid")
+
+        where = ["ranked.snapshot_rank=1"]
+        parameters: list[object] = []
+        if component:
+            where.append("component.category=?")
+            parameters.append(component)
+        if start:
+            where.append("component.as_of_date>=?")
+            parameters.append(start)
+        if end:
+            where.append("component.as_of_date<=?")
+            parameters.append(end)
+        predicate = " AND ".join(where)
+        latest = """
+            WITH ranked AS (
+                SELECT snapshot.snapshot_id, snapshot.as_of_date,
+                       snapshot.captured_at,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY snapshot.as_of_date
+                           ORDER BY snapshot.captured_at DESC,
+                                    snapshot.snapshot_id DESC
+                       ) AS snapshot_rank
+                FROM soma_snapshots AS snapshot
+                JOIN ingestion_runs AS run ON run.run_id=snapshot.run_id
+                WHERE snapshot.completeness='complete'
+                  AND run.status='succeeded'
+            )
+        """
+        base = f"""
+            FROM ranked
+            JOIN soma_summary_components AS component
+              ON component.snapshot_id=ranked.snapshot_id
+            WHERE {predicate}
+        """
+        component_order = "CASE component.category " + " ".join(
+            f"WHEN '{item}' THEN {ordinal}"
+            for ordinal, item in enumerate(_SOMA_COMPONENTS, start=1)
+        ) + " ELSE 99 END"
+        columns = (
+            "as_of_date",
+            "component",
+            "amount_thousands_usd",
+            "missing_reason",
+            "measure",
+            "unit",
+            "available_at",
+            "captured_at",
+        )
+        sql = (
+            latest
+            + """
+            SELECT component.as_of_date,
+                   component.category AS component,
+                   component.value_text AS amount_thousands_usd,
+                   component.missing_reason,
+                   component.measure,
+                   component.unit,
+                   component.available_at,
+                   ranked.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY component.as_of_date {direction.upper()},
+                     {component_order} ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    latest + "SELECT COUNT(*) " + base,
+                    tuple(parameters),
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {"component": component, "start_date": start, "end_date": end},
         )
 
     def _fmp_economic_calendar(
@@ -909,6 +1407,85 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         fields.append(f'<label>Tenor<select name="tenor">{options}</select></label>')
         fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
         fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
+    elif view == "overnight-rates":
+        selected = str(query.get("rate", ""))
+        options = '<option value="">All rates</option>' + "".join(
+            f'<option value="{html.escape(item, quote=True)}"'
+            + (" selected" if item == selected else "")
+            + f">{html.escape(item)}</option>"
+            for item in _OVERNIGHT_RATE_CODES
+        )
+        fields.append(f'<label>Rate<select name="rate">{options}</select></label>')
+        fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
+        fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
+    elif view == "repo-facilities":
+        selected = str(query.get("facility", ""))
+        options = '<option value="">All facilities</option>' + "".join(
+            f'<option value="{html.escape(item, quote=True)}"'
+            + (" selected" if item == selected else "")
+            + f">{html.escape(item)}</option>"
+            for item in _REPO_FACILITY_CODES
+        )
+        fields.append(
+            f'<label>Facility<select name="facility">{options}</select></label>'
+        )
+        fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
+        fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
+    elif view == "soma-summary":
+        selected = str(query.get("component", ""))
+        options = '<option value="">All components</option>' + "".join(
+            f'<option value="{html.escape(item, quote=True)}"'
+            + (" selected" if item == selected else "")
+            + f">{html.escape(item.replace('_', ' ').title())}</option>"
+            for item in _SOMA_COMPONENTS
+        )
+        fields.append(
+            f'<label>Component<select name="component">{options}</select></label>'
+        )
+        fields.append(
+            _input(
+                "start_date",
+                "Start date",
+                query.get("start_date"),
+                input_type="date",
+            )
+        )
+        fields.append(
+            _input(
+                "end_date",
+                "End date",
+                query.get("end_date"),
+                input_type="date",
+            )
+        )
+    elif view in _OFFICIAL_VIEW_MANIFESTS:
+        selected = str(query.get("series", ""))
+        _, manifest = _OFFICIAL_VIEW_MANIFESTS[view]
+        options = '<option value="">All series</option>' + "".join(
+            f'<option value="{html.escape(item.series_id, quote=True)}"'
+            + (" selected" if item.series_id == selected else "")
+            + f">{html.escape(item.title)}</option>"
+            for item in manifest
+        )
+        fields.append(
+            f'<label>Series<select name="series">{options}</select></label>'
+        )
+        fields.append(
+            _input(
+                "start_date",
+                "Start date",
+                query.get("start_date"),
+                input_type="date",
+            )
+        )
+        fields.append(
+            _input(
+                "end_date",
+                "End date",
+                query.get("end_date"),
+                input_type="date",
+            )
+        )
     elif view == "macro-surprises":
         selected = str(query.get("kind", GDP_ADVANCE_KIND))
         options = "".join(

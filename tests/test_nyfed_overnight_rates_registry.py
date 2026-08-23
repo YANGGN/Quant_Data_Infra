@@ -3,75 +3,33 @@ from __future__ import annotations
 from dataclasses import replace
 import hashlib
 import json
-import unittest
 from pathlib import Path
+import unittest
 
 from quant_data.errors import RegistryError
 from quant_data.registry import (
-    fmp_treasury_yield_curve_registry_profile,
     load_registry,
+    nyfed_overnight_rates_registry_profile,
 )
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
-COLLECTOR_ID = "fmp.macro.treasury_yield_curve_history"
+COLLECTOR_ID = "nyfed.macro.overnight_rates_history"
 DATASET_IDS = (
     "fixture.macro.rtdsm_employ_evidence",
     "fixture.macro.rtdsm_employ",
     "fixture.macro.stage3_catalog",
-    "fixture.macro.treasury_yield_curves",
 )
-PRE_TREASURY_SOURCE_SHA256 = (
-    "b16724532234c3c1082326bdd2f0957c8518508849bcc5d090728fcfd2e3a8cd"
+PRE_NYFED_SOURCE_SHA256 = (
+    "1c672f602735af44d19abb5d678492c053fac7d001b17e0aba2d6ed398689c08"
 )
 CURRENT_SOURCE_SHA256 = (
     "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
 )
-EXPECTED_COLLECTOR = {
-    "configuration_env": ["FMP_API_KEY"],
-    "handler": "macro.fmp_treasury_yield_curve_history",
-    "id": COLLECTOR_ID,
-    "input_datasets": [],
-    "mutation_policy": {
-        "mode": "append_versions_and_snapshot_membership",
-        "unchanged": "zero_persistent_writes",
-    },
-    "network": True,
-    "output_datasets": list(DATASET_IDS),
-    "physical_locks": "derived_from_output_store_paths",
-    "retry_policy": {
-        "backoff": "none_single_attempt",
-        "honor_retry_after": False,
-        "max_attempts": 1,
-        "transient_classes": [],
-    },
-    "schedule_eligibility": {"mode": "manual_only"},
-    "semantic_identity": {
-        "excludes": [
-            "api_key",
-            "captured_at",
-            "http_headers",
-            "source_row_order",
-            "unknown_provider_fields",
-        ],
-        "includes": [
-            "request_scope",
-            "normalization_version",
-            "normalized_12_tenor_batch",
-        ],
-    },
-    "version": "1.0.0",
-    "workload_bounds": {
-        "max_bytes": 16_777_216,
-        "max_requests": 1,
-        "max_rows": 20_000,
-        "max_seconds": 60,
-    },
-}
 
 
-class FmpTreasuryCurveRegistryTests(unittest.TestCase):
+class NyFedOvernightRatesRegistryTests(unittest.TestCase):
     def _registry(self):
         return load_registry(
             REGISTRY_PATH,
@@ -79,7 +37,7 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
             environment={},
         )
 
-    def test_canonical_treasury_collector_is_exact_and_unjobbed(self) -> None:
+    def test_collector_is_exact_manual_and_unjobbed(self) -> None:
         registry = self._registry()
 
         self.assertEqual(registry.revision, "2.29.0")
@@ -91,19 +49,16 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID
         )
-        self.assertEqual(dict(collector), EXPECTED_COLLECTOR)
+        self.assertEqual(collector["handler"], "macro.nyfed_overnight_rates_history")
+        self.assertEqual(collector["configuration_env"], [])
+        self.assertTrue(collector["network"])
+        self.assertEqual(collector["output_datasets"], list(DATASET_IDS))
+        self.assertEqual(collector["schedule_eligibility"], {"mode": "manual_only"})
+        self.assertEqual(collector["retry_policy"]["max_attempts"], 1)
         datasets = {item.id: item for item in registry.datasets}
         for dataset_id in DATASET_IDS:
             self.assertIn(COLLECTOR_ID, datasets[dataset_id].collector_ids)
             self.assertEqual(datasets[dataset_id].collector_ids.count(COLLECTOR_ID), 1)
-        self.assertEqual(
-            datasets["fixture.macro.treasury_yield_curves"].collector_ids[-1],
-            COLLECTOR_ID,
-        )
-        self.assertEqual(
-            registry.store("macro").migration_order[-1],
-            "macro:0016_fmp_calendar_wholesale_evidence",
-        )
         self.assertFalse(
             any(
                 step.collector_id == COLLECTOR_ID
@@ -112,12 +67,12 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
             )
         )
 
-    def test_revision_221_projection_is_byte_exact_and_drift_closed(self) -> None:
+    def test_revision_223_projection_is_byte_exact_and_drift_closed(self) -> None:
         registry = self._registry()
+        historical = nyfed_overnight_rates_registry_profile(registry)
 
-        historical = fmp_treasury_yield_curve_registry_profile(registry)
-        self.assertEqual(historical.revision, "2.21.0")
-        self.assertEqual(historical.source_sha256, PRE_TREASURY_SOURCE_SHA256)
+        self.assertEqual(historical.revision, "2.23.0")
+        self.assertEqual(historical.source_sha256, PRE_NYFED_SOURCE_SHA256)
         self.assertNotIn(COLLECTOR_ID, {item["id"] for item in historical.collectors})
         for dataset in historical.datasets:
             self.assertNotIn(COLLECTOR_ID, dataset.collector_ids)
@@ -125,10 +80,7 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
             json.dumps(historical.raw, ensure_ascii=True, indent=2, sort_keys=True)
             + "\n"
         ).encode("utf-8")
-        self.assertEqual(
-            hashlib.sha256(payload).hexdigest(),
-            PRE_TREASURY_SOURCE_SHA256,
-        )
+        self.assertEqual(hashlib.sha256(payload).hexdigest(), PRE_NYFED_SOURCE_SHA256)
 
         collectors = tuple(
             {
@@ -143,7 +95,7 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
             for item in registry.collectors
         )
         with self.assertRaises(RegistryError):
-            fmp_treasury_yield_curve_registry_profile(
+            nyfed_overnight_rates_registry_profile(
                 replace(registry, collectors=collectors)
             )
 

@@ -5,14 +5,14 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.21.0`, schema `1.8.0`. The former `2.22.0`/`validated` working candidate is
+`2.30.0`, schema `1.8.0`. The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
-candidate never entered the active configuration lineage, restoring exact
-`2.21.0` does not change its declarative content or create a `2.23.0`
-revision. For any operational task, first read the
+candidate never entered the active configuration lineage, it remains absent
+from the later additive `2.23.0` through `2.30.0` revisions. For any
+operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
 The documented lineage preserves the Stage 8 set of 57 tools, four
@@ -107,6 +107,98 @@ surprises use FMP actual and consensus under the documented complementary-row
 repair rule; the retired archive cannot validate, fill, replace, or otherwise
 affect them. The completed `2.16.0` BLS annual-revision snapshots and current
 BLS refresh remain separate accepted declarations.
+
+Registry `2.23.0` adds only the manual-only
+`fmp.macro.treasury_yield_curve_history` collector and reciprocal bindings to
+the existing generic macro evidence/catalog datasets and Treasury-curve
+dataset. Registry `2.24.0` then adds only the credential-free, manual-only
+`nyfed.macro.overnight_rates_history` collector and reciprocal bindings to the
+three existing generic macro datasets. It stores only the EFFR, OBFR, TGCR,
+BGCR, and SOFR headline percentages in existing macro relations;
+distributions, volumes, averages/index values, and facilities remain outside
+revision `2.24.0`.
+
+Registry `2.25.0` adds only the credential-free, manual-only
+`nyfed.macro.repo_facility_usage_history` collector and reciprocal bindings
+to the same three generic macro datasets. It stores daily ON RRP and SRF
+accepted USD amounts in the existing macro evidence, release, snapshot,
+version, and current-observation relations. Explicitly identified small-value
+and operational-readiness exercises are excluded; same-day operations for one
+facility are aggregated. It adds no migration, dataset, job, timer, public
+tool, dashboard, export, credential, or caller-selected path. At revision
+`2.25.0`, the inventory was 38 migrations, 51 datasets, and 40 collectors.
+Exact projection
+removes the repo-facility declaration and bindings to restore byte-exact
+`2.24.0`, then removes the headline-rate declaration and bindings to restore
+byte-exact `2.23.0`, before the Treasury projection restores the established
+pre-Treasury registry.
+
+Registry `2.26.0` adds only the credential-free, manual-only
+`nyfed.macro.soma_summary_history` collector and reciprocal bindings to the
+existing SOMA evidence and summary datasets. One bounded aggregate-summary
+response is normalized into nine declared weekly components in the existing
+`soma_source_artifacts`, `soma_snapshots`, `soma_snapshot_artifacts`, and
+`soma_summary_components` relations. Source-empty values remain explicit
+missingness; security-level identity is rejected. It adds no migration,
+dataset, job, timer, public tool, dashboard, export, credential, or
+caller-selected path. The current inventory is 38 migrations, 51 datasets,
+and 41 collectors. Exact projection removes only the SOMA collector and its
+two reciprocal bindings to restore byte-exact `2.25.0`, after which the
+existing projection chain applies unchanged.
+
+Registry `2.27.0` adds only three credential-free, manual-only collectors
+and reciprocal bindings to the three existing generic macro datasets:
+`federal_reserve.macro.h41_history` for three H.4.1 series delivered in one
+FRED ZIP, `chicagofed.macro.nfci_history` for NFCI and ANFCI in one CSV, and
+`bis.macro.credit_conditions_history` for three U.S. private-sector credit
+series in two CSV responses. It adds no migration, dataset, job, timer, public
+tool, dashboard, export, credential, or caller-selected path. That revision's
+inventory is 38 migrations, 51 datasets, and 44 collectors, and its registry
+source SHA-256 is
+`9be40d07a7984b223303174a079b19a2a57fa7fcb5a56678482533dc53e4f8ff`.
+Exact projection removes only those three collectors and their reciprocal
+bindings to restore byte-exact `2.26.0`.
+
+Registry `2.28.0` adds only the credential-free, manual-only
+`nyfed.macro.cmdi_history` collector and reciprocal bindings to the same
+three existing generic macro datasets. One fixed NY Fed workbook supplies the
+overall-market, investment-grade, and high-yield Corporate Bond Market
+Distress Index series. It adds no migration, dataset, job, timer, public tool,
+dashboard, export, credential, or caller-selected path. The current inventory
+at that revision was 38 migrations, 51 datasets, and 45 collectors, and its
+registry source SHA-256 was
+`131b4f24b2e8d7d9dfa7fedb5de37cf16455aa5a0ee91d0aae69315fd0ac2aef`.
+Exact projection removes only the CMDI collector and its reciprocal bindings
+to restore byte-exact `2.27.0`.
+
+Registry `2.29.0` adds only three manual-only collectors and reciprocal
+bindings to the same three existing generic macro datasets. Treasury Fiscal
+Data supplies the daily Treasury General Account closing balance in one fixed,
+credential-free request. EIA supplies the weekly Lower-48 working natural-gas
+storage series in one fixed request through the existing `EIA_API_KEY`
+resolver. NBER supplies one fixed business-cycle chronology response, which is
+converted at capture time into a monthly 0/1 U.S. recession indicator. It adds
+no migration, dataset, job, timer, public tool, registry dashboard, export,
+credential mechanism, or caller-selected path. The inventory at that revision was 38
+migrations, 51 datasets, and 48 collectors, and its registry source SHA-256 was
+`d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff`.
+Exact projection removes only these three collectors and their reciprocal
+bindings to restore byte-exact `2.28.0`; the earlier projection chain remains
+unchanged.
+
+Registry `2.30.0` adds only the credential-free, manual-only
+`bls.macro.price_wage_productivity_history` collector and reciprocal
+bindings to the same three existing generic macro datasets. One BLS API POST
+requests `WPSFD4` Producer Price Index - Final Demand, seasonally adjusted;
+`CES0500000003` Average Hourly Earnings - Total Private, seasonally adjusted;
+and `PRS85006092` Nonfarm Business Labor Productivity, percent change from
+the previous quarter. It adds no migration, dataset, job, timer, public tool,
+registry dashboard, export, credential, credential mechanism, or
+caller-selected path. The current inventory is 38 migrations, 51 datasets,
+and 49 collectors, and the current registry source SHA-256 is
+`4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6`.
+Exact projection removes only this collector and its reciprocal bindings to
+restore byte-exact `2.29.0`; the earlier projection chain remains unchanged.
 
 The frozen Stage 10 projection remains `2.8.0`/`1.6.0`; the frozen Stage 9
 projection remains `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains

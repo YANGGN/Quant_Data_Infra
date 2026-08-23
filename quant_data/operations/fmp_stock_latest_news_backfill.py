@@ -155,7 +155,8 @@ def _registry_preflight(registry: Registry) -> None:
         raise _ConfigurationFailure from exc
     if (
         registry.schema_version != "1.8.0"
-        or registry.registry_version not in {"2.21.0", "2.23.0"}
+        or registry.registry_version
+        not in {"2.21.0", "2.23.0", "2.24.0", "2.25.0"}
         or len(collector) != 1
         or len(migration) != 1
         or migration[0].store != StoreRole.NEWS.value

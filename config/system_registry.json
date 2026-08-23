@@ -714,6 +714,507 @@
     },
     {
       "configuration_env": [],
+      "handler": "macro.nyfed_overnight_rates_history",
+      "id": "nyfed.macro.overnight_rates_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order",
+          "unknown_provider_fields",
+          "unsupported_rate_types"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_headline_rate_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 20000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.nyfed_repo_facility_usage_history",
+      "id": "nyfed.macro.repo_facility_usage_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "explicit_small_value_exercises",
+          "http_headers",
+          "source_row_order",
+          "unknown_provider_fields"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_daily_facility_batch"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 20000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.nyfed_soma_summary_history",
+      "id": "nyfed.macro.soma_summary_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_summary_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.soma_evidence",
+        "fixture.macro.soma_summary"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_summary_components"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 20000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.federal_reserve_h41_history",
+      "id": "federal_reserve.macro.h41_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 20000,
+        "max_seconds": 120
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.chicagofed_nfci_history",
+      "id": "chicagofed.macro.nfci_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.bis_credit_conditions_history",
+      "id": "bis.macro.credit_conditions_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 2,
+        "max_rows": 5000,
+        "max_seconds": 120
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.nyfed_cmdi_history",
+      "id": "nyfed.macro.cmdi_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.treasury_fiscal_tga_history",
+      "id": "treasury_fiscal_data.macro.tga_closing_balance_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 10000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [
+        "EIA_API_KEY"
+      ],
+      "handler": "macro.eia_natural_gas_storage_history",
+      "id": "eia.macro.natural_gas_storage_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.nber_us_recession_history",
+      "id": "nber.macro.us_recession_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
+      "handler": "macro.bls_price_wage_productivity_history",
+      "id": "bls.macro.price_wage_productivity_history",
+      "input_datasets": [],
+      "mutation_policy": {
+        "mode": "append_versions_and_snapshot_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "fixture.macro.rtdsm_employ_evidence",
+        "fixture.macro.rtdsm_employ",
+        "fixture.macro.stage3_catalog"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "captured_at",
+          "http_headers",
+          "source_row_order"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_observations"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 16777216,
+        "max_requests": 1,
+        "max_rows": 5000,
+        "max_seconds": 60
+      }
+    },
+    {
+      "configuration_env": [],
       "handler": "macro.stage3_fixture",
       "id": "fixture.macro.soma_import",
       "input_datasets": [],
@@ -2927,7 +3428,17 @@
         "fixture.macro.bis_import",
         "fixture.macro.chicago_fed_import",
         "fixture.macro.bea_import",
-        "fmp.macro.treasury_yield_curve_history"
+        "fmp.macro.treasury_yield_curve_history",
+        "nyfed.macro.overnight_rates_history",
+        "nyfed.macro.repo_facility_usage_history",
+        "federal_reserve.macro.h41_history",
+        "chicagofed.macro.nfci_history",
+        "bis.macro.credit_conditions_history",
+        "nyfed.macro.cmdi_history",
+        "treasury_fiscal_data.macro.tga_closing_balance_history",
+        "eia.macro.natural_gas_storage_history",
+        "nber.macro.us_recession_history",
+        "bls.macro.price_wage_productivity_history"
       ],
       "dashboard_ids": [
         "stage1.overview"
@@ -3028,7 +3539,17 @@
         "fixture.macro.bis_import",
         "fixture.macro.chicago_fed_import",
         "fixture.macro.bea_import",
-        "fmp.macro.treasury_yield_curve_history"
+        "fmp.macro.treasury_yield_curve_history",
+        "nyfed.macro.overnight_rates_history",
+        "nyfed.macro.repo_facility_usage_history",
+        "federal_reserve.macro.h41_history",
+        "chicagofed.macro.nfci_history",
+        "bis.macro.credit_conditions_history",
+        "nyfed.macro.cmdi_history",
+        "treasury_fiscal_data.macro.tga_closing_balance_history",
+        "eia.macro.natural_gas_storage_history",
+        "nber.macro.us_recession_history",
+        "bls.macro.price_wage_productivity_history"
       ],
       "dashboard_ids": [
         "stage1.overview",
@@ -3355,7 +3876,17 @@
         "fixture.macro.bis_import",
         "fixture.macro.chicago_fed_import",
         "fixture.macro.bea_import",
-        "fmp.macro.treasury_yield_curve_history"
+        "fmp.macro.treasury_yield_curve_history",
+        "nyfed.macro.overnight_rates_history",
+        "nyfed.macro.repo_facility_usage_history",
+        "federal_reserve.macro.h41_history",
+        "chicagofed.macro.nfci_history",
+        "bis.macro.credit_conditions_history",
+        "nyfed.macro.cmdi_history",
+        "treasury_fiscal_data.macro.tga_closing_balance_history",
+        "eia.macro.natural_gas_storage_history",
+        "nber.macro.us_recession_history",
+        "bls.macro.price_wage_productivity_history"
       ],
       "dashboard_ids": [
         "stage6.agent_tools"
@@ -3679,7 +4210,8 @@
     {
       "active": true,
       "collector_ids": [
-        "fixture.macro.soma_import"
+        "fixture.macro.soma_import",
+        "nyfed.macro.soma_summary_history"
       ],
       "dashboard_ids": [],
       "export_ids": [],
@@ -3756,7 +4288,8 @@
     {
       "active": true,
       "collector_ids": [
-        "fixture.macro.soma_import"
+        "fixture.macro.soma_import",
+        "nyfed.macro.soma_summary_history"
       ],
       "dashboard_ids": [
         "stage6.agent_tools"
@@ -8263,7 +8796,7 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.23.0",
+  "registry_version": "2.30.0",
   "schema_id": "quant_data.system_registry",
   "schema_version": "1.8.0",
   "status": "validated",

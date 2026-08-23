@@ -147,10 +147,51 @@ The following decisions apply to every stage:
   `2.20.0`.
 - On 2026-08-21, [ADR 0011](docs/adr/0011-retire-proposed-bls-cpi-release-archive.md)
   rejected the never-active `2.22.0` BLS CPI original-release archive candidate.
-  The current accepted registry remains exact `2.21.0`; CPI surprises are
-  FMP-only, and no archive source, migration, provider action, or scheduler
-  follows from the retirement. This does not alter the completed `2.16.0` BLS
-  annual-revision backfill or current BLS refresh.
+  It never entered the active lineage; CPI surprises remain FMP-only, and this
+  does not alter the completed `2.16.0` BLS annual-revision work.
+- Registries `2.23.0` through `2.26.0` add only manual collectors for the FMP
+  Treasury curve, New York Fed headline rates and repo facilities, and the
+  aggregate SOMA summary. Their bounded canonical populations are complete and
+  must not be repeated without a new explicit scope.
+- Registry `2.27.0` adds only three credential-free, manual collectors using
+  existing generic macro tables: Federal Reserve H.4.1 total assets, reserve
+  balances, and TGA; Chicago Fed NFCI and ANFCI; and BIS U.S. private-sector
+  credit-to-GDP, credit gap, and debt-service ratio. Their one-, one-, and
+  two-request canonical populations completed on 2026-08-22, passed immutable
+  read-only integrity checks, and are exposed by three fixed Inspector views.
+  No migration, dataset, credential, scheduler, public route, or export was
+  added.
+- Registry `2.28.0` adds only the credential-free, manual NY Fed CMDI
+  collector using the same generic macro tables. Its single-request canonical
+  population completed on 2026-08-22 with 1,125 weekly rows each for the
+  overall, investment-grade, and high-yield indexes, and the fixed
+  `Corporate bond distress` Inspector view is live. No migration, dataset,
+  credential, scheduler, public route, or export was added.
+- Registry `2.29.0` adds only three manual collectors using existing generic
+  macro tables: Treasury Fiscal Data daily TGA closing balance, EIA Lower-48
+  weekly working natural-gas storage, and a monthly 0/1 recession indicator
+  derived at capture time from the fixed NBER business-cycle chronology. The
+  EIA route reuses the existing credential resolver; the other two are
+  credential-free. Their three one-request canonical populations completed on
+  2026-08-22 with 1,089 Treasury rows (`2022-04-18` through `2026-08-20`),
+  868 EIA rows (`2010-01-01` through `2026-08-14`), and 2,061 derived NBER
+  monthly rows (`1854-12` through `2026-08`). Immutable integrity and
+  foreign-key checks passed, and all three fixed local Inspector views return
+  the stored rows. No migration, dataset, scheduler, public route, export, or
+  new credential mechanism was added, and exact projection restores
+  byte-exact `2.28.0`.
+- Registry `2.30.0` adds only one credential-free, manual BLS collector for
+  `WPSFD4` PPI Final Demand, `CES0500000003` Average Hourly Earnings, and
+  `PRS85006092` quarterly Nonfarm Business Labor Productivity. Its initial
+  2017-2026 POST retained 268 observations. Five later authorized,
+  non-overlapping productivity-only requests extended `PRS85006092` through
+  1947-Q2 and added 199 observations, bringing the current checkpoint to 467:
+  115 PPI, 115 earnings, and 237 productivity. The attempted 1997-2006 mixed
+  request was rejected before publication, so the missing 1997-2016 extension
+  remains incomplete and the successful windows must not be repeated.
+  Immutable read-only counts confirmed this checkpoint. No migration, dataset,
+  credential, scheduler, public route, or export was added, and exact
+  projection restores byte-exact `2.29.0`.
 - SQLite remains the authoritative operational store unless benchmarks and an
   accepted decision record justify a change.
 - The four operational boundaries are market, macro, company, and news.

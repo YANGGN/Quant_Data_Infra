@@ -1,0 +1,60 @@
+{
+  "refRates": [
+    {
+      "average30day": 3.64,
+      "effectiveDate": "2026-08-20",
+      "type": "SOFRAI"
+    },
+    {
+      "effectiveDate": "2026-08-20",
+      "percentPercentile1": 3.6,
+      "percentRate": 3.63,
+      "type": "EFFR"
+    },
+    {
+      "effectiveDate": "2026-08-20",
+      "percentRate": 3.62,
+      "type": "OBFR"
+    },
+    {
+      "effectiveDate": "2026-08-20",
+      "percentRate": 3.6,
+      "type": "TGCR"
+    },
+    {
+      "effectiveDate": "2026-08-20",
+      "percentRate": 3.6,
+      "type": "BGCR"
+    },
+    {
+      "effectiveDate": "2026-08-20",
+      "percentRate": null,
+      "type": "SOFR"
+    },
+    {
+      "effectiveDate": "2026-08-21",
+      "percentRate": 3.63,
+      "type": "EFFR"
+    },
+    {
+      "effectiveDate": "2026-08-21",
+      "percentRate": 3.62,
+      "type": "OBFR"
+    },
+    {
+      "effectiveDate": "2026-08-21",
+      "percentRate": 3.6,
+      "type": "TGCR"
+    },
+    {
+      "effectiveDate": "2026-08-21",
+      "percentRate": 3.6,
+      "type": "BGCR"
+    },
+    {
+      "effectiveDate": "2026-08-21",
+      "percentRate": 3.63,
+      "type": "SOFR"
+    }
+  ]
+}

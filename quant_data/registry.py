@@ -255,6 +255,27 @@ _PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256 = (
 _PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256 = (
     "b16724532234c3c1082326bdd2f0957c8518508849bcc5d090728fcfd2e3a8cd"
 )
+_PRE_NYFED_OVERNIGHT_RATES_REGISTRY_SOURCE_SHA256 = (
+    "1c672f602735af44d19abb5d678492c053fac7d001b17e0aba2d6ed398689c08"
+)
+_PRE_NYFED_REPO_FACILITIES_REGISTRY_SOURCE_SHA256 = (
+    "62a8f72f9b565f5b81eefce3bbef6704d5c9c65bd1222c19d49e6b53f54e4779"
+)
+_PRE_NYFED_SOMA_REGISTRY_SOURCE_SHA256 = (
+    "a6fa1cc606182743ddcb8d6b0cc06b236e3dc5ba4891d71627bf5d1454a8c863"
+)
+_PRE_OFFICIAL_CONDITIONS_REGISTRY_SOURCE_SHA256 = (
+    "999ff3ef57e2c858139e2c1122e9d2409d53d66dd6f1cdcd7cb624e08542f969"
+)
+_PRE_NYFED_CMDI_REGISTRY_SOURCE_SHA256 = (
+    "9be40d07a7984b223303174a079b19a2a57fa7fcb5a56678482533dc53e4f8ff"
+)
+_PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256 = (
+    "131b4f24b2e8d7d9dfa7fedb5de37cf16455aa5a0ee91d0aae69315fd0ac2aef"
+)
+_PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256 = (
+    "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
+)
 _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID = (
     "fmp.macro.gdp_cpi_release_calendar_history"
 )
@@ -284,8 +305,49 @@ _FMP_TREASURY_YIELD_CURVE_DATASET_IDS = (
     "fixture.macro.stage3_catalog",
     "fixture.macro.treasury_yield_curves",
 )
+_NYFED_OVERNIGHT_RATES_COLLECTOR_ID = "nyfed.macro.overnight_rates_history"
+_NYFED_OVERNIGHT_RATES_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
+_NYFED_REPO_FACILITIES_COLLECTOR_ID = (
+    "nyfed.macro.repo_facility_usage_history"
+)
+_NYFED_REPO_FACILITIES_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
+_NYFED_SOMA_COLLECTOR_ID = "nyfed.macro.soma_summary_history"
+_NYFED_SOMA_DATASET_IDS = (
+    "fixture.macro.soma_evidence",
+    "fixture.macro.soma_summary",
+)
+_OFFICIAL_CONDITIONS_COLLECTOR_IDS = (
+    "federal_reserve.macro.h41_history",
+    "chicagofed.macro.nfci_history",
+    "bis.macro.credit_conditions_history",
+)
+_OFFICIAL_CONDITIONS_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
 _STAGE12B_COLLECTOR_ID = "market.stage12b.fmp_daily_incremental_fixture"
 _STAGE12C_COLLECTOR_ID = "market.stage12c.fmp_daily_incremental_manual"
+_NYFED_CMDI_COLLECTOR_ID = "nyfed.macro.cmdi_history"
+_NYFED_CMDI_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS = (
+    "treasury_fiscal_data.macro.tga_closing_balance_history",
+    "eia.macro.natural_gas_storage_history",
+    "nber.macro.us_recession_history",
+)
+_OFFICIAL_MACRO_EXTENSION_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID = (
+    "bls.macro.price_wage_productivity_history"
+)
+_BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
 _STAGE12C_OUTPUT_DATASET_IDS = (
     "market.stage10.source_evidence",
     "market.stage10.daily_prices",
@@ -1300,7 +1362,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.8.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.23.0"
+        or raw["registry_version"] != "2.30.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2885,6 +2947,13 @@ def load_registry(
                 == "philadelphia_fed.macro.live_employment_vintages"
                 or stage11_collector
                 or collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+                or collector_id == _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+                or collector_id == _NYFED_REPO_FACILITIES_COLLECTOR_ID
+                or collector_id == _NYFED_SOMA_COLLECTOR_ID
+                or collector_id in _OFFICIAL_CONDITIONS_COLLECTOR_IDS
+                or collector_id == _NYFED_CMDI_COLLECTOR_ID
+                or collector_id in _OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS
+                or collector_id == _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
             )
             else MAX_JSON_BYTES
         )
@@ -2904,7 +2973,17 @@ def load_registry(
             else 30_000
             if collector_id == "fmp.market.stage10_daily_history"
             else 20_000
-            if collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+            if collector_id
+            in {
+                _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID,
+                _NYFED_OVERNIGHT_RATES_COLLECTOR_ID,
+                _NYFED_REPO_FACILITIES_COLLECTOR_ID,
+                _NYFED_SOMA_COLLECTOR_ID,
+                *_OFFICIAL_CONDITIONS_COLLECTOR_IDS,
+                _NYFED_CMDI_COLLECTOR_ID,
+                *_OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS,
+                _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
+            }
             else 10_000
         ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Collector bounds are invalid")
@@ -3103,6 +3182,245 @@ def load_registry(
                     pointer,
                     "fmp_treasury_yield_curve",
                     "FMP Treasury yield-curve collector drifted",
+                )
+        elif collector_id == _NYFED_OVERNIGHT_RATES_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.nyfed_overnight_rates_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _NYFED_OVERNIGHT_RATES_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_headline_rate_batch",
+                )
+                or excludes != (
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                    "unknown_provider_fields",
+                    "unsupported_rate_types",
+                )
+                or mutation_policy != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "nyfed_overnight_rates",
+                    "NY Fed overnight-rate collector drifted",
+                )
+        elif collector_id == _NYFED_REPO_FACILITIES_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "macro.nyfed_repo_facility_usage_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _NYFED_REPO_FACILITIES_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_daily_facility_batch",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "explicit_small_value_exercises",
+                    "http_headers",
+                    "source_row_order",
+                    "unknown_provider_fields",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "nyfed_repo_facilities",
+                    "NY Fed repo-facility collector drifted",
+                )
+        elif collector_id == _NYFED_SOMA_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.nyfed_soma_summary_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _NYFED_SOMA_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_summary_components",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_summary_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "nyfed_soma",
+                    "NY Fed SOMA collector drifted",
+                )
+        elif collector_id in (
+            *_OFFICIAL_CONDITIONS_COLLECTOR_IDS,
+            _NYFED_CMDI_COLLECTOR_ID,
+            *_OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS,
+            _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
+        ):
+            exact = {
+                "federal_reserve.macro.h41_history": (
+                    "macro.federal_reserve_h41_history",
+                    1,
+                    20_000,
+                    120,
+                ),
+                "chicagofed.macro.nfci_history": (
+                    "macro.chicagofed_nfci_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "bis.macro.credit_conditions_history": (
+                    "macro.bis_credit_conditions_history",
+                    2,
+                    5_000,
+                    120,
+                ),
+                "nyfed.macro.cmdi_history": (
+                    "macro.nyfed_cmdi_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "treasury_fiscal_data.macro.tga_closing_balance_history": (
+                    "macro.treasury_fiscal_tga_history",
+                    1,
+                    10_000,
+                    60,
+                ),
+                "eia.macro.natural_gas_storage_history": (
+                    "macro.eia_natural_gas_storage_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "nber.macro.us_recession_history": (
+                    "macro.nber_us_recession_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "bls.macro.price_wage_productivity_history": (
+                    "macro.bls_price_wage_productivity_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+            }[collector_id]
+            expected_configuration_env = (
+                ("EIA_API_KEY",)
+                if collector_id == "eia.macro.natural_gas_storage_history"
+                else ()
+            )
+            expected_excludes = (
+                ("api_key", "captured_at", "http_headers", "source_row_order")
+                if expected_configuration_env
+                else ("captured_at", "http_headers", "source_row_order")
+            )
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != exact[0]
+                or collector["network"] is not True
+                or inputs
+                or outputs != _OFFICIAL_CONDITIONS_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_observations",
+                )
+                or excludes != expected_excludes
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": exact[1],
+                    "max_rows": exact[2],
+                    "max_bytes": 16_777_216,
+                    "max_seconds": exact[3],
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != expected_configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "official_conditions",
+                    "Official conditions collector drifted",
                 )
         elif collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID:
             if (
@@ -3872,10 +4190,1309 @@ def _export_free_dataset_projection(
 
 
 
+def bls_price_wage_productivity_registry_profile(
+    registry: Registry,
+) -> Registry:
+    """Project the BLS price, wage, and productivity collector to exact 2.29."""
+
+    version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError(
+            "BLS price, wage, and productivity dataset declarations drifted"
+        )
+
+    if version == ("1.8.0", "2.29.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 48
+            or _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+                in item.collector_ids
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError(
+                "Historical pre-BLS price, wage, and productivity registry "
+                "profile drifted"
+            )
+        return registry
+
+    expected_collector = {
+        "configuration_env": [],
+        "handler": "macro.bls_price_wage_productivity_history",
+        "id": _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_observations",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 16_777_216,
+            "max_requests": 1,
+            "max_rows": 5_000,
+            "max_seconds": 60,
+        },
+    }
+    collector_by_id = {
+        str(item["id"]): item for item in registry.collectors
+    }
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            not dataset.collector_ids
+            or dataset.collector_ids[-1]
+            != _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+            or dataset.collector_ids.count(
+                _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+            )
+            != 1
+        ):
+            raise RegistryError(
+                "BLS price, wage, and productivity dataset binding drifted"
+            )
+        historical_collectors[dataset_id] = dataset.collector_ids[:-1]
+
+    if (
+        version != ("1.8.0", "2.30.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 49
+        or dict(
+            collector_by_id.get(
+                _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID, {}
+            )
+        )
+        != expected_collector
+        or any(
+            step.collector_id == _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.29")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.29.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if tuple(item.get("collector_ids", ())) != (
+            historical_collectors[dataset_id]
+            + (_BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,)
+        ):
+            raise RegistryError(
+                "Canonical BLS price, wage, and productivity raw binding drifted"
+            )
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS):
+        raise RegistryError(
+            "Canonical BLS price, wage, and productivity dataset inventory "
+            "drifted"
+        )
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError(
+            "Canonical BLS price, wage, and productivity registry projection "
+            "drifted"
+        )
+    return replace(
+        registry,
+        registry_version="2.29.0",
+        datasets=tuple(
+            replace(item, collector_ids=historical_collectors[item.id])
+            if item.id in historical_collectors
+            else item
+            for item in registry.datasets
+        ),
+        collectors=tuple(
+            item
+            for item in registry.collectors
+            if str(item["id"])
+            != _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+        ),
+        raw=raw,
+        source_sha256=_PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def official_macro_extension_registry_profile(registry: Registry) -> Registry:
+    """Project the Treasury, EIA gas, and NBER collectors back to exact 2.28."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.30.0"):
+        registry = bls_price_wage_productivity_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _OFFICIAL_MACRO_EXTENSION_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("Official macro extension dataset declarations drifted")
+
+    if version == ("1.8.0", "2.28.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        collector_ids = {str(item["id"]) for item in registry.collectors}
+        if (
+            registry.source_sha256
+            != _PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 45
+            or collector_ids.intersection(
+                _OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS
+            )
+            or any(
+                set(item.collector_ids).intersection(
+                    _OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS
+                )
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError(
+                "Historical pre-official-macro-extension registry profile drifted"
+            )
+        return registry
+
+    common = {
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_OFFICIAL_MACRO_EXTENSION_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "version": "1.0.0",
+    }
+    variants = {
+        "treasury_fiscal_data.macro.tga_closing_balance_history": (
+            "macro.treasury_fiscal_tga_history",
+            10_000,
+            (),
+            ("captured_at", "http_headers", "source_row_order"),
+        ),
+        "eia.macro.natural_gas_storage_history": (
+            "macro.eia_natural_gas_storage_history",
+            5_000,
+            ("EIA_API_KEY",),
+            ("api_key", "captured_at", "http_headers", "source_row_order"),
+        ),
+        "nber.macro.us_recession_history": (
+            "macro.nber_us_recession_history",
+            5_000,
+            (),
+            ("captured_at", "http_headers", "source_row_order"),
+        ),
+    }
+    expected_collectors = {
+        collector_id: {
+            **common,
+            "configuration_env": list(values[2]),
+            "handler": values[0],
+            "id": collector_id,
+            "semantic_identity": {
+                "excludes": list(values[3]),
+                "includes": [
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_observations",
+                ],
+            },
+            "workload_bounds": {
+                "max_bytes": 16_777_216,
+                "max_requests": 1,
+                "max_rows": values[1],
+                "max_seconds": 60,
+            },
+        }
+        for collector_id, values in variants.items()
+    }
+    collector_by_id = {
+        str(item["id"]): item for item in registry.collectors
+    }
+    suffix = _OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _OFFICIAL_MACRO_EXTENSION_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            dataset.collector_ids[-len(suffix) :] != suffix
+            or any(
+                dataset.collector_ids.count(collector_id) != 1
+                for collector_id in suffix
+            )
+        ):
+            raise RegistryError("Official macro extension dataset binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[
+            : -len(suffix)
+        ]
+
+    if (
+        version != ("1.8.0", "2.29.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 48
+        or any(
+            collector_id not in collector_by_id
+            or dict(collector_by_id[collector_id])
+            != expected_collectors[collector_id]
+            for collector_id in suffix
+        )
+        or any(
+            step.collector_id in suffix
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.28")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.28.0"
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] not in suffix
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id] + suffix
+        ):
+            raise RegistryError(
+                "Canonical official macro extension raw binding drifted"
+            )
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_OFFICIAL_MACRO_EXTENSION_DATASET_IDS):
+        raise RegistryError(
+            "Canonical official macro extension dataset inventory drifted"
+        )
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError(
+            "Canonical official macro extension registry projection drifted"
+        )
+    return replace(
+        registry,
+        registry_version="2.28.0",
+        datasets=tuple(
+            replace(item, collector_ids=historical_collectors[item.id])
+            if item.id in historical_collectors
+            else item
+            for item in registry.datasets
+        ),
+        collectors=tuple(
+            item
+            for item in registry.collectors
+            if str(item["id"]) not in suffix
+        ),
+        raw=raw,
+        source_sha256=_PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def nyfed_cmdi_registry_profile(registry: Registry) -> Registry:
+    """Project the NY Fed CMDI collector back to exact registry 2.27."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+    }:
+        registry = official_macro_extension_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _NYFED_CMDI_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("NY Fed CMDI dataset declarations drifted")
+
+    if version == ("1.8.0", "2.27.0"):
+        payload = (
+            json.dumps(
+                registry.raw,
+                ensure_ascii=True,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_NYFED_CMDI_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_NYFED_CMDI_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 44
+            or _NYFED_CMDI_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _NYFED_CMDI_COLLECTOR_ID in item.collector_ids
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError(
+                "Historical pre-NY-Fed-CMDI registry profile drifted"
+            )
+        return registry
+
+    expected_collector = {
+        "configuration_env": [],
+        "handler": "macro.nyfed_cmdi_history",
+        "id": _NYFED_CMDI_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_NYFED_CMDI_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_observations",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 16_777_216,
+            "max_requests": 1,
+            "max_rows": 5_000,
+            "max_seconds": 60,
+        },
+    }
+    collector_by_id = {
+        str(item["id"]): item for item in registry.collectors
+    }
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _NYFED_CMDI_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            not dataset.collector_ids
+            or dataset.collector_ids[-1] != _NYFED_CMDI_COLLECTOR_ID
+            or dataset.collector_ids.count(_NYFED_CMDI_COLLECTOR_ID)
+            != 1
+        ):
+            raise RegistryError("NY Fed CMDI dataset binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[:-1]
+
+    if (
+        version != ("1.8.0", "2.28.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 45
+        or dict(
+            collector_by_id.get(_NYFED_CMDI_COLLECTOR_ID, {})
+        )
+        != expected_collector
+        or any(
+            step.collector_id == _NYFED_CMDI_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.27")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.27.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _NYFED_CMDI_COLLECTOR_ID
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id]
+            + (_NYFED_CMDI_COLLECTOR_ID,)
+        ):
+            raise RegistryError("Canonical NY Fed CMDI raw binding drifted")
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_NYFED_CMDI_DATASET_IDS):
+        raise RegistryError(
+            "Canonical NY Fed CMDI dataset inventory drifted"
+        )
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_NYFED_CMDI_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical NY Fed CMDI projection drifted")
+    return replace(
+        registry,
+        registry_version="2.27.0",
+        datasets=tuple(
+            replace(item, collector_ids=historical_collectors[item.id])
+            if item.id in historical_collectors
+            else item
+            for item in registry.datasets
+        ),
+        collectors=tuple(
+            item
+            for item in registry.collectors
+            if str(item["id"]) != _NYFED_CMDI_COLLECTOR_ID
+        ),
+        raw=raw,
+        source_sha256=_PRE_NYFED_CMDI_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def official_conditions_registry_profile(registry: Registry) -> Registry:
+    """Project the three official-condition collectors back to exact 2.26."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+    }:
+        registry = nyfed_cmdi_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _OFFICIAL_CONDITIONS_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("Official conditions dataset declarations drifted")
+
+    if version == ("1.8.0", "2.26.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        collector_ids = {str(item["id"]) for item in registry.collectors}
+        if (
+            registry.source_sha256
+            != _PRE_OFFICIAL_CONDITIONS_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_OFFICIAL_CONDITIONS_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 41
+            or collector_ids.intersection(_OFFICIAL_CONDITIONS_COLLECTOR_IDS)
+            or any(
+                set(item.collector_ids).intersection(
+                    _OFFICIAL_CONDITIONS_COLLECTOR_IDS
+                )
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError(
+                "Historical pre-official-conditions registry profile drifted"
+            )
+        return registry
+
+    common = {
+        "configuration_env": [],
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_OFFICIAL_CONDITIONS_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_observations",
+            ],
+        },
+        "version": "1.0.0",
+    }
+    variants = {
+        "federal_reserve.macro.h41_history": (
+            "macro.federal_reserve_h41_history",
+            1,
+            20_000,
+            120,
+        ),
+        "chicagofed.macro.nfci_history": (
+            "macro.chicagofed_nfci_history",
+            1,
+            5_000,
+            60,
+        ),
+        "bis.macro.credit_conditions_history": (
+            "macro.bis_credit_conditions_history",
+            2,
+            5_000,
+            120,
+        ),
+    }
+    expected_collectors = {
+        collector_id: {
+            **common,
+            "handler": values[0],
+            "id": collector_id,
+            "workload_bounds": {
+                "max_bytes": 16_777_216,
+                "max_requests": values[1],
+                "max_rows": values[2],
+                "max_seconds": values[3],
+            },
+        }
+        for collector_id, values in variants.items()
+    }
+    collector_by_id = {
+        str(item["id"]): item for item in registry.collectors
+    }
+    suffix = _OFFICIAL_CONDITIONS_COLLECTOR_IDS
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _OFFICIAL_CONDITIONS_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            dataset.collector_ids[-len(suffix) :] != suffix
+            or any(
+                dataset.collector_ids.count(collector_id) != 1
+                for collector_id in suffix
+            )
+        ):
+            raise RegistryError("Official conditions dataset binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[
+            : -len(suffix)
+        ]
+
+    if (
+        version != ("1.8.0", "2.27.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 44
+        or any(
+            collector_id not in collector_by_id
+            or dict(collector_by_id[collector_id])
+            != expected_collectors[collector_id]
+            for collector_id in suffix
+        )
+        or any(
+            step.collector_id in suffix
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.26")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.26.0"
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] not in suffix
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id] + suffix
+        ):
+            raise RegistryError(
+                "Canonical official conditions raw binding drifted"
+            )
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_OFFICIAL_CONDITIONS_DATASET_IDS):
+        raise RegistryError(
+            "Canonical official conditions dataset inventory drifted"
+        )
+
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_OFFICIAL_CONDITIONS_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError(
+            "Canonical official conditions registry projection drifted"
+        )
+    datasets = tuple(
+        replace(item, collector_ids=historical_collectors[item.id])
+        if item.id in historical_collectors
+        else item
+        for item in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in suffix
+    )
+    return replace(
+        registry,
+        registry_version="2.26.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_OFFICIAL_CONDITIONS_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def nyfed_soma_summary_registry_profile(registry: Registry) -> Registry:
+    """Project the NY Fed SOMA collector back to exact registry 2.25."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+    }:
+        registry = official_conditions_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id) for dataset_id in _NYFED_SOMA_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("NY Fed SOMA dataset declarations drifted")
+
+    if version == ("1.8.0", "2.25.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256 != _PRE_NYFED_SOMA_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_NYFED_SOMA_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 40
+            or _NYFED_SOMA_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _NYFED_SOMA_COLLECTOR_ID in item.collector_ids
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError("Historical pre-NY-Fed-SOMA registry profile drifted")
+        return registry
+
+    expected_collector = {
+        "configuration_env": [],
+        "handler": "macro.nyfed_soma_summary_history",
+        "id": _NYFED_SOMA_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_summary_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_NYFED_SOMA_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_summary_components",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 16_777_216,
+            "max_requests": 1,
+            "max_rows": 20_000,
+            "max_seconds": 60,
+        },
+    }
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _NYFED_SOMA_COLLECTOR_ID
+    )
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _NYFED_SOMA_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            not dataset.collector_ids
+            or dataset.collector_ids[-1] != _NYFED_SOMA_COLLECTOR_ID
+            or dataset.collector_ids.count(_NYFED_SOMA_COLLECTOR_ID) != 1
+        ):
+            raise RegistryError("NY Fed SOMA dataset binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[:-1]
+
+    if (
+        version != ("1.8.0", "2.26.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 41
+        or len(collector_matches) != 1
+        or dict(collector_matches[0]) != expected_collector
+        or any(
+            step.collector_id == _NYFED_SOMA_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.25")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.25.0"
+    raw["collectors"] = [
+        item for item in raw["collectors"] if item["id"] != _NYFED_SOMA_COLLECTOR_ID
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id] + (_NYFED_SOMA_COLLECTOR_ID,)
+        ):
+            raise RegistryError("Canonical NY Fed SOMA raw binding drifted")
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_NYFED_SOMA_DATASET_IDS):
+        raise RegistryError("Canonical NY Fed SOMA dataset inventory drifted")
+
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_NYFED_SOMA_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical NY Fed SOMA registry projection drifted")
+
+    datasets = tuple(
+        replace(item, collector_ids=historical_collectors[item.id])
+        if item.id in historical_collectors
+        else item
+        for item in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _NYFED_SOMA_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.25.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_NYFED_SOMA_REGISTRY_SOURCE_SHA256,
+    )
+
+def nyfed_repo_facilities_registry_profile(registry: Registry) -> Registry:
+    """Project the NY Fed repo-facility collector back to exact registry 2.24."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+    }:
+        registry = nyfed_soma_summary_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _NYFED_REPO_FACILITIES_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("NY Fed repo-facility dataset declarations drifted")
+
+    if version == ("1.8.0", "2.24.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_NYFED_REPO_FACILITIES_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_NYFED_REPO_FACILITIES_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 39
+            or _NYFED_REPO_FACILITIES_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _NYFED_REPO_FACILITIES_COLLECTOR_ID in item.collector_ids
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError(
+                "Historical pre-NY-Fed-repo registry profile drifted"
+            )
+        return registry
+
+    expected_collector = {
+        "configuration_env": [],
+        "handler": "macro.nyfed_repo_facility_usage_history",
+        "id": _NYFED_REPO_FACILITIES_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_NYFED_REPO_FACILITIES_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "explicit_small_value_exercises",
+                "http_headers",
+                "source_row_order",
+                "unknown_provider_fields",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_daily_facility_batch",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 16_777_216,
+            "max_requests": 1,
+            "max_rows": 20_000,
+            "max_seconds": 60,
+        },
+    }
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _NYFED_REPO_FACILITIES_COLLECTOR_ID
+    )
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _NYFED_REPO_FACILITIES_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            not dataset.collector_ids
+            or dataset.collector_ids[-1]
+            != _NYFED_REPO_FACILITIES_COLLECTOR_ID
+            or dataset.collector_ids.count(
+                _NYFED_REPO_FACILITIES_COLLECTOR_ID
+            )
+            != 1
+        ):
+            raise RegistryError("NY Fed repo-facility dataset binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[:-1]
+
+    if (
+        version != ("1.8.0", "2.25.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 40
+        or len(collector_matches) != 1
+        or dict(collector_matches[0]) != expected_collector
+        or any(
+            step.collector_id == _NYFED_REPO_FACILITIES_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.24")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.24.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _NYFED_REPO_FACILITIES_COLLECTOR_ID
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id]
+            + (_NYFED_REPO_FACILITIES_COLLECTOR_ID,)
+        ):
+            raise RegistryError("Canonical NY Fed repo raw binding drifted")
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_NYFED_REPO_FACILITIES_DATASET_IDS):
+        raise RegistryError("Canonical NY Fed repo dataset inventory drifted")
+
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_NYFED_REPO_FACILITIES_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical NY Fed repo registry projection drifted")
+
+    datasets = tuple(
+        replace(item, collector_ids=historical_collectors[item.id])
+        if item.id in historical_collectors
+        else item
+        for item in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _NYFED_REPO_FACILITIES_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.24.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_NYFED_REPO_FACILITIES_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def nyfed_overnight_rates_registry_profile(registry: Registry) -> Registry:
+    """Project the NY Fed collector back to exact registry 2.23."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+    }:
+        registry = nyfed_repo_facilities_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    target_datasets = tuple(
+        dataset_by_id.get(dataset_id)
+        for dataset_id in _NYFED_OVERNIGHT_RATES_DATASET_IDS
+    )
+    if any(item is None for item in target_datasets):
+        raise RegistryError("NY Fed overnight-rate dataset declarations drifted")
+
+    if version == ("1.8.0", "2.23.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_NYFED_OVERNIGHT_RATES_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_NYFED_OVERNIGHT_RATES_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or len(registry.datasets) != 51
+            or len(registry.collectors) != 38
+            or _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+            in {str(item["id"]) for item in registry.collectors}
+            or any(
+                _NYFED_OVERNIGHT_RATES_COLLECTOR_ID in item.collector_ids
+                for item in target_datasets
+                if item is not None
+            )
+        ):
+            raise RegistryError("Historical pre-NY-Fed registry profile drifted")
+        return registry
+
+    expected_collector = {
+        "configuration_env": [],
+        "handler": "macro.nyfed_overnight_rates_history",
+        "id": _NYFED_OVERNIGHT_RATES_COLLECTOR_ID,
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_NYFED_OVERNIGHT_RATES_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+                "unknown_provider_fields",
+                "unsupported_rate_types",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_headline_rate_batch",
+            ],
+        },
+        "version": "1.0.0",
+        "workload_bounds": {
+            "max_bytes": 16_777_216,
+            "max_requests": 1,
+            "max_rows": 20_000,
+            "max_seconds": 60,
+        },
+    }
+    collector_matches = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) == _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+    )
+    historical_collectors: dict[str, tuple[str, ...]] = {}
+    for dataset_id, dataset in zip(
+        _NYFED_OVERNIGHT_RATES_DATASET_IDS,
+        target_datasets,
+        strict=True,
+    ):
+        assert dataset is not None
+        if (
+            not dataset.collector_ids
+            or dataset.collector_ids[-1] != _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+            or dataset.collector_ids.count(_NYFED_OVERNIGHT_RATES_COLLECTOR_ID)
+            != 1
+        ):
+            raise RegistryError("NY Fed overnight-rate dataset binding drifted")
+        historical_collectors[dataset_id] = dataset.collector_ids[:-1]
+
+    if (
+        version != ("1.8.0", "2.24.0")
+        or len(registry.migrations) != 38
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 39
+        or len(collector_matches) != 1
+        or dict(collector_matches[0]) != expected_collector
+        or any(
+            step.collector_id == _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Canonical registry cannot reproduce revision 2.23")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.23.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+    ]
+    raw_target_ids: set[str] = set()
+    for item in raw["datasets"]:
+        dataset_id = item.get("id")
+        if dataset_id not in historical_collectors:
+            continue
+        if (
+            tuple(item.get("collector_ids", ()))
+            != historical_collectors[dataset_id]
+            + (_NYFED_OVERNIGHT_RATES_COLLECTOR_ID,)
+        ):
+            raise RegistryError("Canonical NY Fed raw binding drifted")
+        item["collector_ids"] = list(historical_collectors[dataset_id])
+        raw_target_ids.add(str(dataset_id))
+    if raw_target_ids != set(_NYFED_OVERNIGHT_RATES_DATASET_IDS):
+        raise RegistryError("Canonical NY Fed dataset inventory drifted")
+
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_NYFED_OVERNIGHT_RATES_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical NY Fed registry projection drifted")
+
+    datasets = tuple(
+        replace(item, collector_ids=historical_collectors[item.id])
+        if item.id in historical_collectors
+        else item
+        for item in registry.datasets
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+    )
+    return replace(
+        registry,
+        registry_version="2.23.0",
+        datasets=datasets,
+        collectors=collectors,
+        raw=raw,
+        source_sha256=_PRE_NYFED_OVERNIGHT_RATES_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def fmp_treasury_yield_curve_registry_profile(registry: Registry) -> Registry:
     """Project the FMP Treasury collector back to exact registry 2.21."""
 
     version = (registry.schema_version, registry.registry_version)
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
+    }:
+        registry = nyfed_overnight_rates_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
     dataset_by_id = {item.id: item for item in registry.datasets}
     target_datasets = tuple(
         dataset_by_id.get(dataset_id)
@@ -4052,7 +5669,16 @@ def fmp_wholesale_calendar_registry_profile(registry: Registry) -> Registry:
     """Project wholesale FMP calendar evidence back to the exact 2.20 registry."""
 
     version = (registry.schema_version, registry.registry_version)
-    if version == ("1.8.0", "2.23.0"):
+    if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
+        ("1.8.0", "2.23.0"),
+    }:
         registry = fmp_treasury_yield_curve_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
     if version == ("1.8.0", "2.20.0"):
@@ -4321,6 +5947,13 @@ def fmp_employment_release_calendar_registry_profile(registry: Registry) -> Regi
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.23.0"),
         ("1.8.0", "2.21.0"),
     }:
@@ -4471,6 +6104,13 @@ def fmp_gdp_cpi_release_calendar_registry_profile(registry: Registry) -> Registr
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
         ("1.8.0", "2.23.0"),
@@ -4628,6 +6268,13 @@ def macro_history_extension_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
         ("1.8.0", "2.21.0"),
@@ -4754,6 +6401,13 @@ def employment_vintage_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.18.0"),
         ("1.8.0", "2.19.0"),
         ("1.8.0", "2.20.0"),
@@ -4882,6 +6536,13 @@ def macro_vintage_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.17.0"),
         ("1.8.0", "2.18.0"),
         ("1.8.0", "2.19.0"),
@@ -4992,6 +6653,13 @@ def stage12d_registry_profile(registry: Registry) -> Registry:
     }
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.16.0"),
         ("1.8.0", "2.17.0"),
         ("1.8.0", "2.18.0"),
@@ -5055,6 +6723,13 @@ def stage12c_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.15.0"),
         ("1.8.0", "2.16.0"),
         ("1.8.0", "2.17.0"),
@@ -5214,6 +6889,13 @@ def stage12b_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.17.0"),
         ("1.8.0", "2.16.0"),
         ("1.8.0", "2.15.0"),
@@ -5371,6 +7053,13 @@ def stage12_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.30.0"),
+        ("1.8.0", "2.29.0"),
+        ("1.8.0", "2.28.0"),
+        ("1.8.0", "2.27.0"),
+        ("1.8.0", "2.26.0"),
+        ("1.8.0", "2.25.0"),
+        ("1.8.0", "2.24.0"),
         ("1.8.0", "2.17.0"),
         ("1.8.0", "2.16.0"),
         ("1.8.0", "2.15.0"),
@@ -5432,6 +7121,13 @@ def stage11_registry_profile(registry: Registry) -> Registry:
         registry.schema_version == "1.8.0"
         and registry.registry_version
         in {
+            "2.30.0",
+            "2.29.0",
+            "2.28.0",
+            "2.27.0",
+            "2.26.0",
+            "2.25.0",
+            "2.24.0",
             "2.12.0",
             "2.13.0",
             "2.14.0",
@@ -5598,6 +7294,13 @@ def stage10_registry_profile(registry: Registry) -> Registry:
     if (
         (registry.schema_version, registry.registry_version)
         in {
+            ("1.8.0", "2.30.0"),
+            ("1.8.0", "2.29.0"),
+            ("1.8.0", "2.28.0"),
+            ("1.8.0", "2.27.0"),
+            ("1.8.0", "2.26.0"),
+            ("1.8.0", "2.25.0"),
+            ("1.8.0", "2.24.0"),
             ("1.8.0", "2.14.0"),
             ("1.8.0", "2.15.0"),
             ("1.8.0", "2.16.0"),
@@ -5691,6 +7394,13 @@ def _stage10_input(registry: Registry) -> Registry:
     if (
         (registry.schema_version, registry.registry_version)
         in {
+            ("1.8.0", "2.30.0"),
+            ("1.8.0", "2.29.0"),
+            ("1.8.0", "2.28.0"),
+            ("1.8.0", "2.27.0"),
+            ("1.8.0", "2.26.0"),
+            ("1.8.0", "2.25.0"),
+            ("1.8.0", "2.24.0"),
             ("1.8.0", "2.14.0"),
             ("1.8.0", "2.15.0"),
             ("1.8.0", "2.16.0"),

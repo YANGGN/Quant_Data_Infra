@@ -147,6 +147,196 @@ class CanonicalInspectorTests(unittest.TestCase):
             INSERT INTO macro_live_vintage_observations VALUES
               ('macro.gdp.real_qoq_saar_pct', '2026Q2', 'gdp-v1');
 
+            CREATE TABLE macro_series (
+                series_id TEXT PRIMARY KEY,
+                provider TEXT NOT NULL,
+                provider_series_code TEXT NOT NULL,
+                title TEXT NOT NULL
+            );
+            CREATE TABLE macro_observation_versions (
+                version_id TEXT PRIMARY KEY,
+                series_id TEXT NOT NULL,
+                period_start TEXT NOT NULL,
+                value_text TEXT,
+                missing_reason TEXT,
+                correction_sequence INTEGER NOT NULL,
+                available_at TEXT NOT NULL,
+                captured_at TEXT NOT NULL
+            );
+            CREATE TABLE macro_observations (
+                series_id TEXT NOT NULL,
+                period_start TEXT NOT NULL,
+                current_version_id TEXT NOT NULL
+            );
+            INSERT INTO macro_series VALUES
+              ('macro.nyfed.effr', 'nyfed', 'EFFR', 'Effective Federal Funds Rate'),
+              ('macro.nyfed.sofr', 'nyfed', 'SOFR', 'Secured Overnight Financing Rate'),
+              ('macro.nyfed.on_rrp_accepted_amount', 'nyfed', 'ON_RRP', 'Overnight Reverse Repo Facility Accepted Amount'),
+              ('macro.nyfed.srf_accepted_amount', 'nyfed', 'SRF', 'Standing Repo Facility Accepted Amount');
+            INSERT INTO macro_observation_versions VALUES
+              (
+                'effr-20260820-v1', 'macro.nyfed.effr', '2026-08-20',
+                '3.62', NULL, 1, '2026-08-20T13:00:00Z', '2026-08-20T13:00:00Z'
+              ),
+              (
+                'effr-20260820-v2', 'macro.nyfed.effr', '2026-08-20',
+                '3.63', NULL, 2, '2026-08-21T13:00:00Z', '2026-08-21T13:00:00Z'
+              ),
+              (
+                'sofr-20260820-v1', 'macro.nyfed.sofr', '2026-08-20',
+                '3.64', NULL, 1, '2026-08-20T13:00:00Z', '2026-08-20T13:00:00Z'
+              ),
+              (
+                'on-rrp-20260820-v1', 'macro.nyfed.on_rrp_accepted_amount', '2026-08-20',
+                '25000000000', NULL, 1, '2026-08-21T12:00:00Z', '2026-08-21T12:00:00Z'
+              ),
+              (
+                'srf-20260820-v1', 'macro.nyfed.srf_accepted_amount', '2026-08-20',
+                '5000000', NULL, 1, '2026-08-21T12:00:00Z', '2026-08-21T12:00:00Z'
+              );
+            INSERT INTO macro_observations VALUES
+              ('macro.nyfed.effr', '2026-08-20', 'effr-20260820-v2'),
+              ('macro.nyfed.sofr', '2026-08-20', 'sofr-20260820-v1'),
+              ('macro.nyfed.on_rrp_accepted_amount', '2026-08-20', 'on-rrp-20260820-v1'),
+              ('macro.nyfed.srf_accepted_amount', '2026-08-20', 'srf-20260820-v1');
+
+            ALTER TABLE macro_observation_versions
+              ADD COLUMN period_end TEXT;
+            ALTER TABLE macro_observation_versions
+              ADD COLUMN unit TEXT;
+            UPDATE macro_observation_versions
+              SET period_end=period_start, unit='fixture';
+
+            INSERT INTO macro_series VALUES
+              (
+                'macro.federal_reserve_h41.total_assets_less_eliminations_wednesday',
+                'federal_reserve_h41', 'H41/H41/RESPPMA_N.WW',
+                'Federal Reserve total assets'
+              ),
+              (
+                'macro.chicagofed.nfci', 'chicagofed', 'NFCI',
+                'Chicago Fed National Financial Conditions Index'
+              ),
+              (
+                'macro.bis.us_private_nonfinancial_credit_gap', 'bis',
+                'WS_CREDIT_GAP/Q.US.P.A.C',
+                'U.S. private non-financial sector credit-to-GDP gap'
+              ),
+              (
+                'macro.nyfed.cmdi.market', 'nyfed_cmdi', 'Market CMDI',
+                'NY Fed Corporate Bond Market Distress Index — overall market'
+              ),
+              (
+                'macro.treasury_fiscal.daily.tga_closing_balance',
+                'treasury_fiscal_data',
+                'Treasury General Account (TGA) Closing Balance',
+                'U.S. Treasury General Account closing balance'
+              ),
+              (
+                'macro.eia.weekly.lower_48_working_natural_gas_storage',
+                'eia', 'NG.NW2_EPG0_SWO_R48_BCF.W',
+                'Lower 48 working natural gas in underground storage'
+              ),
+              (
+                'macro.nber.us_recession_indicator', 'nber',
+                'business_cycle_dates', 'U.S. recession indicator'
+              ),
+              (
+                'macro.bls.ppi_final_demand_sa', 'bls', 'WPSFD4',
+                'Producer Price Index - Final Demand, seasonally adjusted'
+              );
+            INSERT INTO macro_observation_versions (
+                version_id, series_id, period_start, value_text,
+                missing_reason, correction_sequence, available_at,
+                captured_at, period_end, unit
+            ) VALUES
+              (
+                'h41-total-20260819-v1',
+                'macro.federal_reserve_h41.total_assets_less_eliminations_wednesday',
+                '2026-08-19', '6600001', NULL, 1,
+                '2026-08-20T20:30:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-19', 'usd_millions'
+              ),
+              (
+                'nfci-20260821-v1', 'macro.chicagofed.nfci',
+                '2026-08-21', '-0.28', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-21', 'index'
+              ),
+              (
+                'bis-gap-2026q2-v1',
+                'macro.bis.us_private_nonfinancial_credit_gap',
+                '2026-04-01', '-2.7', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-06-30', 'percentage_points_of_gdp'
+              ),
+              (
+                'cmdi-market-20260724-v1', 'macro.nyfed.cmdi.market',
+                '2026-07-24', '0.15', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-07-24', 'index'
+              ),
+              (
+                'tga-20260820-v1',
+                'macro.treasury_fiscal.daily.tga_closing_balance',
+                '2026-08-20', '765432', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-20', 'usd_millions'
+              ),
+              (
+                'eia-gas-20260814-v1',
+                'macro.eia.weekly.lower_48_working_natural_gas_storage',
+                '2026-08-14', '3199', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-14', 'bcf'
+              ),
+              (
+                'nber-recession-202007-v1',
+                'macro.nber.us_recession_indicator',
+                '2020-07-01', '1', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2020-07-31', 'indicator'
+              ),
+              (
+                'bls-ppi-202607-v1', 'macro.bls.ppi_final_demand_sa',
+                '2026-07-01', '150.1', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-07-31', 'index_2009_11_100'
+              );
+            INSERT INTO macro_observations VALUES
+              (
+                'macro.federal_reserve_h41.total_assets_less_eliminations_wednesday',
+                '2026-08-19', 'h41-total-20260819-v1'
+              ),
+              (
+                'macro.chicagofed.nfci', '2026-08-21',
+                'nfci-20260821-v1'
+              ),
+              (
+                'macro.bis.us_private_nonfinancial_credit_gap',
+                '2026-04-01', 'bis-gap-2026q2-v1'
+              ),
+              (
+                'macro.nyfed.cmdi.market', '2026-07-24',
+                'cmdi-market-20260724-v1'
+              ),
+              (
+                'macro.treasury_fiscal.daily.tga_closing_balance',
+                '2026-08-20', 'tga-20260820-v1'
+              ),
+              (
+                'macro.eia.weekly.lower_48_working_natural_gas_storage',
+                '2026-08-14', 'eia-gas-20260814-v1'
+              ),
+              (
+                'macro.nber.us_recession_indicator',
+                '2020-07-01', 'nber-recession-202007-v1'
+              ),
+              (
+                'macro.bls.ppi_final_demand_sa',
+                '2026-07-01', 'bls-ppi-202607-v1'
+              );
+
             CREATE TABLE treasury_yield_curve_versions (
                 curve_version_id TEXT PRIMARY KEY,
                 provider TEXT NOT NULL,
@@ -181,6 +371,24 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '1M', 'macro.treasury.par_yield.1m', '4.10', NULL,
                 '2026-08-21T22:00:00Z', '2026-08-21T22:00:00Z', 1
               );
+
+            CREATE TABLE soma_snapshots (
+                snapshot_id TEXT PRIMARY KEY,
+                as_of_date TEXT NOT NULL,
+                completeness TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                run_id TEXT NOT NULL
+            );
+            CREATE TABLE soma_summary_components (
+                snapshot_id TEXT NOT NULL,
+                as_of_date TEXT NOT NULL,
+                category TEXT NOT NULL,
+                measure TEXT NOT NULL,
+                value_text TEXT,
+                missing_reason TEXT,
+                unit TEXT NOT NULL,
+                available_at TEXT NOT NULL
+            );
 
             CREATE TABLE ingestion_runs (
                 run_id TEXT PRIMARY KEY,
@@ -243,6 +451,14 @@ class CanonicalInspectorTests(unittest.TestCase):
               (
                 'raw-run-pending', 'macro.fmp.economic_calendar_evidence',
                 'fmp.macro.us_economic_calendar_wholesale', 'running'
+              ),
+              (
+                'soma-run-1', 'fixture.macro.soma_summary',
+                'nyfed.macro.soma_summary_history', 'succeeded'
+              ),
+              (
+                'soma-run-2', 'fixture.macro.soma_summary',
+                'nyfed.macro.soma_summary_history', 'succeeded'
               );
             INSERT INTO ingestion_artifacts VALUES
               (
@@ -279,6 +495,33 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '3333333333333333333333333333333333333333333333333333333333333333',
                 'complete', 'validated'
               );
+            INSERT INTO soma_snapshots VALUES
+              (
+                'soma-snapshot-1', '2026-08-20', 'complete',
+                '2026-08-21T12:00:00Z', 'soma-run-1'
+              ),
+              (
+                'soma-snapshot-2', '2026-08-20', 'complete',
+                '2026-08-22T12:00:00Z', 'soma-run-2'
+              );
+            INSERT INTO soma_summary_components VALUES
+              (
+                'soma-snapshot-1', '2026-08-20', 'total', 'amount',
+                '6300000', NULL, 'thousands_usd', '2026-08-21T12:00:00Z'
+              ),
+              (
+                'soma-snapshot-1', '2026-08-20', 'agency_mbs', 'amount',
+                '1900000', NULL, 'thousands_usd', '2026-08-21T12:00:00Z'
+              ),
+              (
+                'soma-snapshot-2', '2026-08-20', 'total', 'amount',
+                '6310000', NULL, 'thousands_usd', '2026-08-22T12:00:00Z'
+              ),
+              (
+                'soma-snapshot-2', '2026-08-20', 'agency_mbs', 'amount',
+                '1910000', NULL, 'thousands_usd', '2026-08-22T12:00:00Z'
+              );
+
             INSERT INTO fmp_economic_calendar_captures VALUES
               (
                 'raw-capture-1', '2026-08-01', '2026-08-10',
@@ -370,6 +613,54 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "4.40",
             ),
             (
+                "/api/rows?view=overnight-rates&rate=EFFR"
+                "&start_date=2026-08-20&end_date=2026-08-20",
+                "3.63",
+            ),
+            (
+                "/api/rows?view=repo-facilities&facility=ON_RRP"
+                "&start_date=2026-08-20&end_date=2026-08-20",
+                "25000000000",
+            ),
+            (
+                "/api/rows?view=soma-summary&component=total"
+                "&start_date=2026-08-20&end_date=2026-08-20",
+                "6310000",
+            ),
+            (
+                "/api/rows?view=price-wage-productivity"
+                "&series=macro.bls.ppi_final_demand_sa",
+                "150.1",
+            ),
+            (
+                "/api/rows?view=h41-liquidity"
+                "&series=macro.federal_reserve_h41."
+                "total_assets_less_eliminations_wednesday",
+                "6600001",
+            ),
+            (
+                "/api/rows?view=financial-conditions"
+                "&series=macro.chicagofed.nfci",
+                "-0.28",
+            ),
+            (
+                "/api/rows?view=bis-credit"
+                "&series=macro.bis.us_private_nonfinancial_credit_gap",
+                "-2.7",
+            ),
+            (
+                "/api/rows?view=treasury-cash",
+                "765432",
+            ),
+            (
+                "/api/rows?view=natural-gas-storage",
+                "3199",
+            ),
+            (
+                "/api/rows?view=recession-chronology",
+                "2020-07-01",
+            ),
+            (
                 "/api/rows?view=fmp-economic-calendar&country=US&priority=High"
                 "&event_name=Non%20Farm&keyword=jobs&start_date=2026-08-07"
                 "&end_date=2026-08-07",
@@ -393,6 +684,135 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertEqual(treasury_result["total"], 1)
         self.assertEqual(treasury_result["rows"][0]["yield_percent"], "4.40")
         self.assertEqual(treasury_result["rows"][0]["correction"], 2)
+
+        overnight = self.application.handle(
+            "GET",
+            "/api/rows?view=overnight-rates"
+            "&start_date=2026-08-20&end_date=2026-08-20",
+        )
+        overnight_result = loads_strict(overnight.body)["result"]
+        self.assertEqual(overnight_result["total"], 2)
+        self.assertEqual(
+            {row["rate"] for row in overnight_result["rows"]},
+            {"EFFR", "SOFR"},
+        )
+
+        facilities = self.application.handle(
+            "GET",
+            "/api/rows?view=repo-facilities"
+            "&start_date=2026-08-20&end_date=2026-08-20",
+        )
+        facilities_result = loads_strict(facilities.body)["result"]
+        self.assertEqual(facilities_result["total"], 2)
+        self.assertEqual(
+            {row["facility"] for row in facilities_result["rows"]},
+            {"ON_RRP", "SRF"},
+        )
+
+        soma = self.application.handle(
+            "GET",
+            "/api/rows?view=soma-summary"
+            "&start_date=2026-08-20&end_date=2026-08-20",
+        )
+        soma_result = loads_strict(soma.body)["result"]
+        self.assertEqual(soma_result["total"], 2)
+        self.assertEqual(
+            {row["amount_thousands_usd"] for row in soma_result["rows"]},
+            {"1910000", "6310000"},
+        )
+
+        soma_page = self.application.handle(
+            "GET",
+            "/?view=soma-summary&component=total"
+            "&start_date=2026-08-20&end_date=2026-08-20",
+        )
+        soma_html = soma_page.body.decode("utf-8")
+        self.assertEqual(soma_page.status, 200)
+        self.assertIn("SOMA summary", soma_html)
+        self.assertIn("6310000", soma_html)
+        self.assertIn('name="component"', soma_html)
+
+        official_views = {
+            "price-wage-productivity": (
+                "macro.bls.ppi_final_demand_sa",
+                "150.1",
+            ),
+            "h41-liquidity": (
+                "macro.federal_reserve_h41."
+                "total_assets_less_eliminations_wednesday",
+                "6600001",
+            ),
+            "financial-conditions": (
+                "macro.chicagofed.nfci",
+                "-0.28",
+            ),
+            "bis-credit": (
+                "macro.bis.us_private_nonfinancial_credit_gap",
+                "-2.7",
+            ),
+            "credit-market-distress": (
+                "macro.nyfed.cmdi.market",
+                "0.15",
+            ),
+            "treasury-cash": (
+                "macro.treasury_fiscal.daily.tga_closing_balance",
+                "765432",
+            ),
+            "natural-gas-storage": (
+                "macro.eia.weekly.lower_48_working_natural_gas_storage",
+                "3199",
+            ),
+            "recession-chronology": (
+                "macro.nber.us_recession_indicator",
+                "1",
+            ),
+        }
+        for view, (series_id, value) in official_views.items():
+            with self.subTest(view=view):
+                response = self.application.handle(
+                    "GET",
+                    f"/api/rows?view={view}&series={series_id}",
+                )
+                result = loads_strict(response.body)["result"]
+                self.assertEqual(response.status, 200)
+                self.assertEqual(result["total"], 1)
+                self.assertEqual(result["rows"][0]["value"], value)
+
+        bls_page = self.application.handle(
+            "GET",
+            "/?view=price-wage-productivity"
+            "&series=macro.bls.ppi_final_demand_sa",
+        )
+        bls_html = bls_page.body.decode("utf-8")
+        self.assertEqual(bls_page.status, 200)
+        self.assertIn("Prices, wages &amp; productivity", bls_html)
+        self.assertIn(
+            "Producer Price Index - Final Demand, seasonally adjusted",
+            bls_html,
+        )
+
+        conditions_page = self.application.handle(
+            "GET",
+            "/?view=financial-conditions&series=macro.chicagofed.nfci",
+        )
+        conditions_html = conditions_page.body.decode("utf-8")
+        self.assertEqual(conditions_page.status, 200)
+        self.assertIn("Financial conditions", conditions_html)
+        self.assertIn('name="series"', conditions_html)
+        self.assertIn("Chicago Fed National Financial Conditions Index", conditions_html)
+
+        cmdi_page = self.application.handle(
+            "GET",
+            "/?view=credit-market-distress"
+            "&series=macro.nyfed.cmdi.market",
+        )
+        cmdi_html = cmdi_page.body.decode("utf-8")
+        self.assertEqual(cmdi_page.status, 200)
+        self.assertIn("Corporate bond distress", cmdi_html)
+        self.assertIn('name="series"', cmdi_html)
+        self.assertIn(
+            "NY Fed Corporate Bond Market Distress Index", cmdi_html
+        )
 
         surprise = SimpleNamespace(
             event_at="2026-07-30T12:30:00Z",
@@ -644,10 +1064,20 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn("Canonical Data Inspector", document)
         self.assertIn("Apple Inc.", document)
         self.assertIn("Treasury curve", document)
+        self.assertIn("Repo facilities", document)
+        self.assertIn("Fed H.4.1 liquidity", document)
+        self.assertIn("Treasury cash balance", document)
+        self.assertIn("Financial conditions", document)
+        self.assertIn("BIS credit conditions", document)
+        self.assertIn("Corporate bond distress", document)
+        self.assertIn("Natural gas storage", document)
+        self.assertIn("Recession chronology", document)
         self.assertIn("Raw FMP calendar", document)
         self.assertIn("Database paths, SQL, writes, and provider calls are not available", document)
         self.assertNotIn(str(self.market), document)
-        self.assertEqual(self.application.handle("GET", "/assets/dashboard.css").status, 200)
+        css = self.application.handle("GET", "/assets/dashboard.css")
+        self.assertEqual(css.status, 200)
+        self.assertIn(b"flex-wrap: wrap", css.body)
         self.assertEqual(self.application.handle("GET", "/assets/inter-variable.woff2").status, 200)
 
         server = create_server(self.application, host="127.0.0.1", port=0)
@@ -680,6 +1110,8 @@ class CanonicalInspectorTests(unittest.TestCase):
             ("/api/rows?view=macro-current&series=unknown", 400),
             ("/api/rows?view=macro-surprises&stage=revised", 400),
             ("/api/rows?view=treasury-curve&tenor=overnight", 400),
+            ("/api/rows?view=repo-facilities&facility=SRP", 400),
+            ("/api/rows?view=soma-summary&component=cusip", 400),
             (
                 f"/api/rows?view=macro-surprises&kind={NONFARM_PAYROLLS_KIND}"
                 "&stage=second",
