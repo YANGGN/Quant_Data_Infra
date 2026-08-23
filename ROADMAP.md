@@ -192,6 +192,13 @@ The following decisions apply to every stage:
   Immutable read-only counts confirmed this checkpoint. No migration, dataset,
   credential, scheduler, public route, or export was added, and exact
   projection restores byte-exact `2.29.0`.
+- On 2026-08-23 the user separately authorized a fourth host-level recurring
+  exception, `quant-data-macro-current-refresh.timer`, for the twelve
+  established current macro operations at 18:30 America/New_York on weekdays.
+  It has a fixed total request cap of 13 per invocation, no retry, the fixed
+  `data/macro.sqlite` target, and semantic no-write behavior for unchanged
+  content. It does not change registry `2.30.0`, migrations, datasets,
+  providers, credentials, public routes, or the three existing timer cadences.
 - SQLite remains the authoritative operational store unless benchmarks and an
   accepted decision record justify a change.
 - The four operational boundaries are market, macro, company, and news.

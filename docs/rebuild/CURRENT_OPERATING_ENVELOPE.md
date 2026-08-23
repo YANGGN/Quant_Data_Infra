@@ -1,7 +1,7 @@
 # Current Operating Envelope
 
 Status: Current operational routing snapshot; non-authorizing
-Reconciled: 2026-08-22
+Reconciled: 2026-08-23
 
 ## Purpose
 
@@ -119,7 +119,7 @@ scheduler, store, or historical-population action follows from the retirement.
 
 ## Active recurring exceptions
 
-Exactly three recurring scheduler exceptions are recorded as installed and
+Exactly four recurring scheduler exceptions are recorded as installed and
 active. Their normal clock-driven execution is the boundary; agents must not
 manually trigger, change, retry, broaden, reinstall, disable, or repurpose
 them.
@@ -129,11 +129,14 @@ them.
 | `quant-data-macro-vintages.timer` | 09:05 America/New_York on weekdays. One current BEA GDP workbook request and one current BLS GDP/CPI request; no retry, migration, credential, or historical-archive fetch. |
 | `quant-data-employment-vintages.timer` | First Friday of each month at 10:05 America/New_York. One credential-free BLS request for the fixed payroll and unemployment series; no retry, migration, or Philadelphia Fed historical-workbook fetch. |
 | `quant-data-fmp-macro-calendar.timer` | 08:15 and 08:45 America/New_York on weekdays. One bounded current-window FMP calendar request with no retry. The response is retained as wholesale raw evidence before independent GDP/CPI and employment normalization. |
+| `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twelve established macro collector operations run sequentially with a total provider-request cap of 13, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; NY Fed overnight rates, repo facilities, and SOMA; H.4.1; NFCI/ANFCI; BIS credit conditions; CMDI; Treasury cash; EIA gas storage; NBER recession chronology; and BLS PPI, earnings, and productivity. |
 
 These exceptions do not enable any recovered Stage 7 job, market-close timer,
 new provider, new series, different cadence, catch-up run, or historical
-backfill. See [scheduling and locking](SCHEDULING_AND_LOCKING.md) and the
-read-only [unit inspection guide](../../deploy/systemd/README.md).
+backfill. The aggregate current refresh leaves the underlying registry
+collectors manual-only and is a separate fixed host-level exception. See
+[scheduling and locking](SCHEDULING_AND_LOCKING.md) and the read-only
+[unit inspection guide](../../deploy/systemd/README.md).
 
 ## Completed work that must not be repeated
 
@@ -228,18 +231,24 @@ The following are completed, retained operations, not standing permissions:
   The initial request and five successful historical windows must not be
   repeated; any revised remaining scope requires new finite authorization.
 
+The weekday aggregate current-refresh exception above may revalidate its fixed
+current or source-native full-response scopes after these initial populations.
+That narrow recurring no-retry path does not authorize a manual repeat,
+historical extension, catch-up run, different range, provider change, or
+additional series.
+
 The rebuild [index](README.md), root [project record](../../README.md), and
 stage evidence own the exact scope, receipt, waiver, hash, count, and historical
 projection details. None of the completed work authorizes a repeat, new target,
 new date range, provider change, retry, promotion, retirement, public exposure,
-or scheduler.
+or scheduler beyond the four fixed exceptions above.
 
 ## Closed operations
 
 Outside a current bounded operational authorization or an applicable accepted
 heavier gate:
 
-- do not make a live provider request outside the three clock-driven
+- do not make a live provider request outside the four clock-driven
   exceptions above;
 - do not read an existing credential or introduce a credential mechanism for
   an unapproved operation;

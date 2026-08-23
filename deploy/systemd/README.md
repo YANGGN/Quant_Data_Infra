@@ -6,7 +6,7 @@ triggering a service or timer. Before scheduler or provider work, read the
 [current operating envelope](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
 and [scheduling contract](../../docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
-Exactly three recurring timers are recorded as approved and active. Agents may
+Exactly four recurring timers are recorded as approved and active. Agents may
 inspect their status read-only, but may not change or manually trigger them.
 
 ## Closed: market-close timer
@@ -69,3 +69,22 @@ These inspection commands are read-only:
 
 Do not manually start the service, change the timer, import a credential for a
 different operation, or install another recurring unit.
+
+## Active aggregate macro-current timer
+
+The aggregate macro-current timer runs at 18:30 America/New_York on weekdays.
+It sequentially refreshes the twelve established Treasury-curve, rates,
+liquidity, financial-conditions, credit, Treasury-cash, gas-storage,
+recession-chronology, and BLS price/wage/productivity operations. Its total
+provider-request cap is 13 per invocation, it does not retry, and unchanged
+content causes no canonical write. It is non-persistent, so missed windows are
+not replayed automatically. The existing GDP/CPI, employment, and FMP-calendar
+timers retain their separate cadences.
+
+These inspection commands are read-only:
+
+    systemctl --user status quant-data-macro-current-refresh.service
+    systemctl --user status quant-data-macro-current-refresh.timer
+    systemctl --user list-timers quant-data-macro-current-refresh.timer --all
+
+Do not manually start the service or change the timer.

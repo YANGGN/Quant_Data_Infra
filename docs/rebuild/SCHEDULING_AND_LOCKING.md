@@ -46,14 +46,16 @@ provider, scheduler, or public-consumer capability. A later explicit user
 decision separately authorized the fixed GDP/CPI vintage timer described
 below. A subsequent explicit decision authorized the separate fixed
 employment-vintage timer. A further explicit decision authorized the fixed FMP
-macro-calendar timer described below. These are the only three recurring
-exceptions; none broadens the disabled recovered job catalog or Stage 12E.
+macro-calendar timer described below. On 2026-08-23 the user separately
+authorized the fixed weekday aggregate macro-current timer described below.
+These are the only four recurring exceptions; none broadens the disabled
+recovered job catalog or Stage 12E.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
 
 ## Active GDP/CPI vintage refresh
 
-`quant-data-macro-vintages.timer` is one of three recurring scheduling
+`quant-data-macro-vintages.timer` is one of four recurring scheduling
 exceptions in this document. It runs the fixed zero-argument refresh wrapper at
 09:05 America/New_York, Monday through Friday, with `Persistent=false`.
 Each invocation makes exactly one BEA workbook request and one BLS current API
@@ -105,6 +107,41 @@ selected path.
 The completed macro-history extension and retained Stage 11 weekly adoption
 are one-time manual operations. They have no timer and do not broaden either
 historical vintage collector above or the FMP calendar exception.
+
+## Active aggregate macro-current refresh
+
+`quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
+exception. It runs at 18:30 America/New_York, Monday through Friday, with
+`Persistent=false`. Its zero-argument wrapper invokes twelve established macro
+collector operations sequentially, without retry, and returns a nonzero
+aggregate exit when any operation fails. One invocation has a fixed provider-
+request cap of 13 because the BIS operation makes two requests and each other
+operation makes one.
+
+The recurring scope is fixed as follows:
+
+- a stable current-quarter envelope, beginning 44 days before quarter start
+  and ending on quarter end, for FMP Treasury curve, NY Fed overnight rates,
+  NY Fed repo facilities, NY Fed SOMA, Federal Reserve H.4.1, and Treasury
+  Fiscal Data cash balance;
+- the source-native full response through that same quarter end for Chicago Fed
+  NFCI/ANFCI from `1971-01-08` and NY Fed CMDI from `2005-01-07`; BIS U.S.
+  credit conditions from `1961-Q1` through the current quarter; and the fixed
+  full-source EIA Lower-48 working gas-storage and NBER recession-chronology
+  requests; and
+- the existing current ten-year BLS request for PPI Final Demand, average
+  hourly earnings, and labor productivity.
+
+The wrapper targets only `data/macro.sqlite`, reuses the existing FMP and EIA
+credential resolver, and introduces no schema, migration, provider, series, or
+credential mechanism. Each collector completes its network parsing before its
+short physical-store publication lock, and unchanged normalized content causes
+zero writes. Stable quarter bounds preserve that semantic identity between
+daily polls while retaining a 44-day overlap at each quarter boundary. This
+timer does not call the GDP/CPI vintage, employment-vintage, or FMP macro-
+calendar wrappers and therefore does not duplicate the other three
+recurring exceptions. The underlying registry collector declarations remain
+manual-only; this exact hardened host unit is the recurring exception.
 
 ## Safety principles
 

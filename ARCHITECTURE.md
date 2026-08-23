@@ -56,7 +56,10 @@ and seven narrowly authorized HTTP 402 outcomes. Stage 12D then completed the
 immutable, query-only canonical proofs produced distinct receipts with the
 same semantic result and left the main database, WAL, SHM, and rollback-journal
 stamps unchanged. It made no copy, migration, or registry change. Stage 12E
-remains closed; no scheduler or public exposure is authorized.
+remains closed; it authorizes no market scheduler or public exposure. The four
+separately authorized macro recurring exceptions remain governed by the
+[current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md) and
+[scheduling specification](docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
 The principal decisions are recorded in:
 
