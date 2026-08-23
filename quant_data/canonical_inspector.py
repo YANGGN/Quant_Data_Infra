@@ -61,7 +61,7 @@ from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map
 
 
-_CURRENT_REGISTRY = "2.30.0"
+_CURRENT_REGISTRY = "2.31.0"
 _CURRENT_SCHEMA = "1.8.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
@@ -81,6 +81,7 @@ _VIEWS = (
     "bis-credit",
     "credit-market-distress",
     "natural-gas-storage",
+    "electricity-retail",
     "recession-chronology",
     "fmp-economic-calendar",
 )
@@ -101,11 +102,19 @@ _VIEW_LABELS = {
     "bis-credit": "BIS credit conditions",
     "credit-market-distress": "Corporate bond distress",
     "natural-gas-storage": "Natural gas storage",
+    "electricity-retail": "Electricity retail",
     "recession-chronology": "Recession chronology",
     "fmp-economic-calendar": "Raw FMP calendar",
 }
 _TREASURY_TENORS = tuple(item.tenor for item in TENOR_MANIFEST)
 _OVERNIGHT_RATE_CODES = tuple(item.code for item in RATE_MANIFEST)
+_EIA_RETAIL_SERIES = (
+    ("macro.eia.electricity.retail_sales", "Electricity retail sales"),
+    ("macro.eia.electricity.retail_revenue", "Electricity retail revenue"),
+    ("macro.eia.electricity.retail_price", "Electricity retail price"),
+    ("macro.eia.electricity.retail_customers", "Electricity retail customers"),
+)
+_EIA_RETAIL_SERIES_IDS = tuple(item[0] for item in _EIA_RETAIL_SERIES)
 _REPO_FACILITY_CODES = tuple(item.code for item in FACILITY_MANIFEST)
 _SOMA_COMPONENTS = tuple(item.category for item in SOMA_COMPONENT_MANIFEST)
 _OFFICIAL_VIEW_MANIFESTS = {
@@ -124,6 +133,8 @@ _OFFICIAL_VIEW_MANIFESTS = {
 _MACRO_SERIES = (
     "macro.gdp.real_qoq_saar_pct",
     "macro.gdp.nominal_billions",
+    "macro.gdi.real_qoq_saar_pct",
+    "macro.gdi.nominal_billions",
     "macro.bls.cpi_u_all_items_sa",
     "macro.bls.cpi_u_core_sa",
     "macro.bls.total_nonfarm_payrolls_sa",
@@ -204,6 +215,10 @@ class CanonicalInspectorReadService:
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
             },
+            "electricity-retail": {
+                "view", "series", "start_period", "end_period",
+                "direction", "page", "limit",
+            },
             "recession-chronology": {
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
@@ -242,6 +257,10 @@ class CanonicalInspectorReadService:
             result = self._repo_facilities(query, direction, page, limit)
         elif view == "soma-summary":
             result = self._soma_summary(query, direction, page, limit)
+        elif view == "electricity-retail":
+            result = self._eia_electricity_retail(
+                query, direction, page, limit
+            )
         elif view in _OFFICIAL_VIEW_MANIFESTS:
             result = self._official_series(
                 view, query, direction, page, limit
@@ -597,7 +616,8 @@ class CanonicalInspectorReadService:
             "effective_date",
             "rate",
             "title",
-            "rate_percent",
+            "value",
+            "unit",
             "missing_reason",
             "correction",
             "available_at",
@@ -608,7 +628,8 @@ class CanonicalInspectorReadService:
             SELECT version.period_start AS effective_date,
                    series.provider_series_code AS rate,
                    series.title,
-                   version.value_text AS rate_percent,
+                   version.value_text AS value,
+                   version.unit,
                    version.missing_reason,
                    version.correction_sequence AS correction,
                    version.available_at,
@@ -732,6 +753,114 @@ class CanonicalInspectorReadService:
             page,
             limit,
             {"facility": facility, "start_date": start, "end_date": end},
+        )
+
+    def _eia_electricity_retail(
+        self,
+        query: Mapping[str, str],
+        direction: str,
+        page: int,
+        limit: int,
+    ) -> dict[str, Any]:
+        series_id = query.get("series", "")
+        if series_id and series_id not in _EIA_RETAIL_SERIES_IDS:
+            raise ValidationError("EIA electricity-retail series is invalid")
+        start = query.get("start_period", "")
+        end = query.get("end_period", "")
+        monthly = re.compile(r"^[0-9]{4}-(0[1-9]|1[0-2])$")
+        if start and monthly.fullmatch(start) is None:
+            raise ValidationError("EIA electricity-retail start period is invalid")
+        if end and monthly.fullmatch(end) is None:
+            raise ValidationError("EIA electricity-retail end period is invalid")
+        if start and end and start > end:
+            raise ValidationError("EIA electricity-retail period range is invalid")
+
+        placeholders = ", ".join("?" for _ in _EIA_RETAIL_SERIES_IDS)
+        where = [
+            f"version.canonical_series_id IN ({placeholders})",
+            "version.state_id='US'",
+            "version.sector_id='ALL'",
+        ]
+        parameters: list[object] = list(_EIA_RETAIL_SERIES_IDS)
+        if series_id:
+            where.append("version.canonical_series_id=?")
+            parameters.append(series_id)
+        if start:
+            where.append("version.period>=?")
+            parameters.append(start)
+        if end:
+            where.append("version.period<=?")
+            parameters.append(end)
+        predicate = " AND ".join(where)
+        base = f"""
+            FROM stage11_eia_retail_observations AS observation
+            JOIN stage11_eia_retail_observation_versions AS version
+              ON version.version_id=observation.current_version_id
+            WHERE {predicate}
+        """
+        series_order = "CASE version.canonical_series_id " + " ".join(
+            f"WHEN '{item}' THEN {ordinal}"
+            for ordinal, item in enumerate(
+                _EIA_RETAIL_SERIES_IDS, start=1
+            )
+        ) + " ELSE 99 END"
+        columns = (
+            "period",
+            "series",
+            "metric",
+            "value",
+            "unit",
+            "state_id",
+            "sector_id",
+            "correction",
+            "available_at",
+            "captured_at",
+        )
+        sql = (
+            """
+            SELECT version.period,
+                   version.canonical_series_id AS series,
+                   version.metric,
+                   version.value_text AS value,
+                   version.unit,
+                   version.state_id,
+                   version.sector_id,
+                   version.correction_sequence AS correction,
+                   version.available_at,
+                   version.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY version.period {direction.upper()},
+                     {series_order} ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    "SELECT COUNT(*) " + base, tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {
+                "series": series_id,
+                "start_period": start,
+                "end_period": end,
+            },
         )
 
     def _official_series(
@@ -1409,13 +1538,13 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
     elif view == "overnight-rates":
         selected = str(query.get("rate", ""))
-        options = '<option value="">All rates</option>' + "".join(
-            f'<option value="{html.escape(item, quote=True)}"'
-            + (" selected" if item == selected else "")
-            + f">{html.escape(item)}</option>"
-            for item in _OVERNIGHT_RATE_CODES
+        options = '<option value="">All series</option>' + "".join(
+            f'<option value="{html.escape(item.code, quote=True)}"'
+            + (" selected" if item.code == selected else "")
+            + f">{html.escape(item.title)}</option>"
+            for item in RATE_MANIFEST
         )
-        fields.append(f'<label>Rate<select name="rate">{options}</select></label>')
+        fields.append(f'<label>Series<select name="rate">{options}</select></label>')
         fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
         fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
     elif view == "repo-facilities":
@@ -1456,6 +1585,33 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
                 "End date",
                 query.get("end_date"),
                 input_type="date",
+            )
+        )
+    elif view == "electricity-retail":
+        selected = str(query.get("series", ""))
+        options = '<option value="">All series</option>' + "".join(
+            f'<option value="{html.escape(series_id, quote=True)}"'
+            + (" selected" if series_id == selected else "")
+            + f">{html.escape(title)}</option>"
+            for series_id, title in _EIA_RETAIL_SERIES
+        )
+        fields.append(
+            f'<label>Series<select name="series">{options}</select></label>'
+        )
+        fields.append(
+            _input(
+                "start_period",
+                "Start month",
+                query.get("start_period"),
+                placeholder="2020-01",
+            )
+        )
+        fields.append(
+            _input(
+                "end_period",
+                "End month",
+                query.get("end_period"),
+                placeholder="2026-06",
             )
         )
     elif view in _OFFICIAL_VIEW_MANIFESTS:

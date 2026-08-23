@@ -276,6 +276,19 @@ _PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256 = (
 _PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256 = (
     "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
 )
+_PRE_GDI_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6"
+)
+_GDI_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0"
+)
+_GDI_VINTAGE_MIGRATION_ID = "macro:0017_live_gdi_vintages"
+_GDI_VINTAGE_MIGRATION_RESOURCE = (
+    "quant_data/migrations/macro/0017_live_gdi_vintages.sql"
+)
+_GDI_VINTAGE_MIGRATION_SHA256 = (
+    "e92da1620b2da10e15d76ee9a3817fc081d0363f6cd7b87653f2340a8f756e71"
+)
 _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID = (
     "fmp.macro.gdp_cpi_release_calendar_history"
 )
@@ -1362,7 +1375,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.8.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.30.0"
+        or raw["registry_version"] != "2.31.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -4190,12 +4203,125 @@ def _export_free_dataset_projection(
 
 
 
+def gdi_vintage_registry_profile(registry: Registry) -> Registry:
+    """Project the additive GDI migration back to exact registry 2.30."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.30.0"):
+        payload = (
+            json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        if (
+            registry.source_sha256
+            != _PRE_GDI_VINTAGE_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _PRE_GDI_VINTAGE_REGISTRY_SOURCE_SHA256
+            or len(registry.migrations) != 38
+            or any(
+                item.id == _GDI_VINTAGE_MIGRATION_ID
+                for item in registry.migrations
+            )
+        ):
+            raise RegistryError(
+                "Historical pre-GDI registry profile drifted"
+            )
+        return registry
+
+    migration = next(
+        (
+            item
+            for item in registry.migrations
+            if item.id == _GDI_VINTAGE_MIGRATION_ID
+        ),
+        None,
+    )
+    macro = next(
+        (item for item in registry.stores if item.id == "macro"),
+        None,
+    )
+    if (
+        version != ("1.8.0", "2.31.0")
+        or registry.source_sha256 != _GDI_VINTAGE_REGISTRY_SOURCE_SHA256
+        or len(registry.migrations) != 39
+        or len(registry.datasets) != 51
+        or len(registry.collectors) != 49
+        or migration is None
+        or migration.store != "macro"
+        or migration.ordinal != 17
+        or migration.resource != _GDI_VINTAGE_MIGRATION_RESOURCE
+        or migration.sha256 != _GDI_VINTAGE_MIGRATION_SHA256
+        or migration.dependencies
+        != ("macro:0016_fmp_calendar_wholesale_evidence",)
+        or migration.reconstruction_state != "fixture_validated"
+        or macro is None
+        or not macro.migration_order
+        or macro.migration_order[-1] != _GDI_VINTAGE_MIGRATION_ID
+    ):
+        raise RegistryError(
+            "Canonical registry cannot reproduce revision 2.30"
+        )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.30.0"
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] != _GDI_VINTAGE_MIGRATION_ID
+    ]
+    raw_macro = next(
+        (
+            item
+            for item in raw["stores"]
+            if item.get("id") == "macro"
+        ),
+        None,
+    )
+    if (
+        raw_macro is None
+        or not raw_macro.get("migration_order")
+        or raw_macro["migration_order"][-1] != _GDI_VINTAGE_MIGRATION_ID
+    ):
+        raise RegistryError("Canonical GDI raw store order drifted")
+    raw_macro["migration_order"] = raw_macro["migration_order"][:-1]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _PRE_GDI_VINTAGE_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError(
+            "Canonical GDI registry projection drifted"
+        )
+    return replace(
+        registry,
+        registry_version="2.30.0",
+        stores=tuple(
+            replace(item, migration_order=item.migration_order[:-1])
+            if item.id == "macro"
+            else item
+            for item in registry.stores
+        ),
+        migrations=tuple(
+            item
+            for item in registry.migrations
+            if item.id != _GDI_VINTAGE_MIGRATION_ID
+        ),
+        raw=raw,
+        source_sha256=_PRE_GDI_VINTAGE_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def bls_price_wage_productivity_registry_profile(
     registry: Registry,
 ) -> Registry:
     """Project the BLS price, wage, and productivity collector to exact 2.29."""
 
     version = (registry.schema_version, registry.registry_version)
+    if version == ("1.8.0", "2.31.0"):
+        registry = gdi_vintage_registry_profile(registry)
+        version = (registry.schema_version, registry.registry_version)
     dataset_by_id = {item.id: item for item in registry.datasets}
     target_datasets = tuple(
         dataset_by_id.get(dataset_id)
@@ -4377,7 +4503,10 @@ def official_macro_extension_registry_profile(registry: Registry) -> Registry:
     """Project the Treasury, EIA gas, and NBER collectors back to exact 2.28."""
 
     version = (registry.schema_version, registry.registry_version)
-    if version == ("1.8.0", "2.30.0"):
+    if version in {
+        ("1.8.0", "2.31.0"),
+        ("1.8.0", "2.30.0"),
+    }:
         registry = bls_price_wage_productivity_registry_profile(registry)
         version = (registry.schema_version, registry.registry_version)
     dataset_by_id = {item.id: item for item in registry.datasets}
@@ -4578,6 +4707,7 @@ def nyfed_cmdi_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
     }:
@@ -4753,6 +4883,7 @@ def official_conditions_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -4962,6 +5093,7 @@ def nyfed_soma_summary_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -5127,6 +5259,7 @@ def nyfed_repo_facilities_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -5307,6 +5440,7 @@ def nyfed_overnight_rates_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -5483,6 +5617,7 @@ def fmp_treasury_yield_curve_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -5670,6 +5805,7 @@ def fmp_wholesale_calendar_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -5947,6 +6083,7 @@ def fmp_employment_release_calendar_registry_profile(registry: Registry) -> Regi
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6104,6 +6241,7 @@ def fmp_gdp_cpi_release_calendar_registry_profile(registry: Registry) -> Registr
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6268,6 +6406,7 @@ def macro_history_extension_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6401,6 +6540,7 @@ def employment_vintage_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6536,6 +6676,7 @@ def macro_vintage_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6653,6 +6794,7 @@ def stage12d_registry_profile(registry: Registry) -> Registry:
     }
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6723,6 +6865,7 @@ def stage12c_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -6889,6 +7032,7 @@ def stage12b_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -7053,6 +7197,7 @@ def stage12_registry_profile(registry: Registry) -> Registry:
 
     version = (registry.schema_version, registry.registry_version)
     if version in {
+        ("1.8.0", "2.31.0"),
         ("1.8.0", "2.30.0"),
         ("1.8.0", "2.29.0"),
         ("1.8.0", "2.28.0"),
@@ -7121,6 +7266,7 @@ def stage11_registry_profile(registry: Registry) -> Registry:
         registry.schema_version == "1.8.0"
         and registry.registry_version
         in {
+            "2.31.0",
             "2.30.0",
             "2.29.0",
             "2.28.0",
@@ -7294,6 +7440,7 @@ def stage10_registry_profile(registry: Registry) -> Registry:
     if (
         (registry.schema_version, registry.registry_version)
         in {
+            ("1.8.0", "2.31.0"),
             ("1.8.0", "2.30.0"),
             ("1.8.0", "2.29.0"),
             ("1.8.0", "2.28.0"),
@@ -7394,6 +7541,7 @@ def _stage10_input(registry: Registry) -> Registry:
     if (
         (registry.schema_version, registry.registry_version)
         in {
+            ("1.8.0", "2.31.0"),
             ("1.8.0", "2.30.0"),
             ("1.8.0", "2.29.0"),
             ("1.8.0", "2.28.0"),

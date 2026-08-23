@@ -5,13 +5,13 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.30.0`, schema `1.8.0`. The former `2.22.0`/`validated` working candidate is
+`2.31.0`, schema `1.8.0`. The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.30.0` revisions. For any
+from the later additive `2.23.0` through `2.31.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -195,10 +195,28 @@ and `PRS85006092` Nonfarm Business Labor Productivity, percent change from
 the previous quarter. It adds no migration, dataset, job, timer, public tool,
 registry dashboard, export, credential, credential mechanism, or
 caller-selected path. The current inventory is 38 migrations, 51 datasets,
-and 49 collectors, and the current registry source SHA-256 is
+and 49 collectors, and that revision's registry source SHA-256 is
 `4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6`.
 Exact projection removes only this collector and its reciprocal bindings to
 restore byte-exact `2.29.0`; the earlier projection chain remains unchanged.
+
+Registry `2.31.0` adds only macro migration
+`macro:0017_live_gdi_vintages`. The additive successor widens the existing
+official BEA vintage relations and provenance checks to admit real GDI
+quarter-over-quarter annualized growth (`A261RL`) and nominal GDI
+(`A261RC`) alongside GDP. The existing BEA collector reads both from its
+single GDP/GDI workbook response, so no provider request, credential,
+dataset, collector, job, export, public route, or caller-selected path is
+added. In the same implementation increment, the existing one-response NY
+Fed overnight-rate collector retains SOFR distribution percentiles, volume,
+index, and 30/90/180-day averages; the existing one-response Chicago Fed
+collector retains NFCI risk, credit, and leverage components; and the
+established Stage 11 EIA electricity-retail publisher is made available to
+the fixed aggregate refresh. The current inventory is 39 migrations, 51
+datasets, and 49 collectors, and the current registry source SHA-256 is
+`d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0`.
+Exact projection removes only migration 0017 and restores byte-exact
+`2.30.0`; the earlier projection chain remains unchanged.
 
 The frozen Stage 10 projection remains `2.8.0`/`1.6.0`; the frozen Stage 9
 projection remains `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains

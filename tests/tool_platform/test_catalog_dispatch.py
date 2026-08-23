@@ -67,7 +67,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
         self.assertEqual(self.registry.schema_version, "1.8.0")
-        self.assertEqual(self.registry.registry_version, "2.29.0")
+        self.assertEqual(self.registry.registry_version, "2.31.0")
         stage5 = stage5_registry_profile(self.registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
         self.assertEqual(stage5.registry_version, "2.3.0")

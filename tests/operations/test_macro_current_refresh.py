@@ -24,6 +24,7 @@ EXPECTED_SOURCES = (
     "nyfed_cmdi",
     "treasury_tga",
     "eia_natural_gas_storage",
+    "eia_electricity_retail",
     "nber_us_recession",
     "bls_price_wage_productivity",
 )
@@ -80,18 +81,19 @@ class MacroCurrentRefreshTests(unittest.TestCase):
                 ("nyfed_cmdi", {"start_date": "2005-01-07", "end_date": "2026-09-30"}),
                 ("treasury_tga", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
                 ("eia_natural_gas_storage", {}),
+                ("eia_electricity_retail", {}),
                 ("nber_us_recession", {}),
                 ("bls_price_wage_productivity", {}),
             ],
         )
         self.assertEqual(report.local_date, "2026-08-19")
-        self.assertEqual(len(report.steps), 12)
-        self.assertEqual(sum(step.request_cap for step in report.steps), 13)
+        self.assertEqual(len(report.steps), 13)
+        self.assertEqual(sum(step.request_cap for step in report.steps), 21)
         self.assertEqual(
             [step.request_cap for step in report.steps],
-            [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 8, 1, 1],
         )
-        self.assertEqual(operation.REQUEST_CAP, 13)
+        self.assertEqual(operation.REQUEST_CAP, 21)
         self.assertEqual(report.exit_code, 0)
         self.assertEqual(report.steps[3].outcome, "published")
         self.assertEqual(report.mapping()["outcome"], "succeeded")

@@ -172,7 +172,7 @@ class OfficialConditionsParserTests(unittest.TestCase):
         self.assertIsNone(missing.value_text)
         self.assertEqual(missing.missing_reason, "source_missing")
 
-    def test_chicago_keeps_only_nfci_and_anfci(self) -> None:
+    def test_chicago_keeps_headlines_and_components(self) -> None:
         capture = parse_chicagofed_financial_conditions(
             _chicago_body(),
             captured_at=CAPTURED_AT,
@@ -182,13 +182,13 @@ class OfficialConditionsParserTests(unittest.TestCase):
 
         self.assertEqual(
             tuple(item.provider_code for item in CHICAGO_MANIFEST),
-            ("NFCI", "ANFCI"),
+            ("NFCI", "ANFCI", "Risk", "Credit", "Leverage"),
         )
         self.assertEqual(len(capture.parts), 1)
-        self.assertEqual(len(capture.observations), 4)
+        self.assertEqual(len(capture.observations), 10)
         self.assertEqual(
             {item.provider_code for item in capture.observations},
-            {"NFCI", "ANFCI"},
+            {"NFCI", "ANFCI", "Risk", "Credit", "Leverage"},
         )
 
     def test_bis_three_quarterly_series_and_period_bounds(self) -> None:
@@ -418,7 +418,7 @@ class OfficialConditionsPublicationTests(unittest.TestCase):
                 original.written_series,
                 original.written_observation_versions,
             ),
-            (2, 4),
+            (5, 10),
         )
         before = self._counts()
         replay = self.publisher.publish(

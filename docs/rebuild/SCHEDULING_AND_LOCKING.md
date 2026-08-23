@@ -112,23 +112,26 @@ historical vintage collector above or the FMP calendar exception.
 
 `quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
 exception. It runs at 18:30 America/New_York, Monday through Friday, with
-`Persistent=false`. Its zero-argument wrapper invokes twelve established macro
-collector operations sequentially, without retry, and returns a nonzero
+`Persistent=false`. Its zero-argument wrapper invokes thirteen established
+macro collector operations sequentially, without retry, and returns a nonzero
 aggregate exit when any operation fails. One invocation has a fixed provider-
-request cap of 13 because the BIS operation makes two requests and each other
-operation makes one.
+request cap of 21: the electricity-retail operation is bounded at eight EIA
+pages, the BIS operation makes two requests, and each other operation makes
+one.
 
 The recurring scope is fixed as follows:
 
 - a stable current-quarter envelope, beginning 44 days before quarter start
-  and ending on quarter end, for FMP Treasury curve, NY Fed overnight rates,
-  NY Fed repo facilities, NY Fed SOMA, Federal Reserve H.4.1, and Treasury
+  and ending on quarter end, for FMP Treasury curve, NY Fed overnight rates
+  including SOFR distribution, volume, index, and compounded averages, NY Fed
+  repo facilities, NY Fed SOMA, Federal Reserve H.4.1, and Treasury
   Fiscal Data cash balance;
 - the source-native full response through that same quarter end for Chicago Fed
-  NFCI/ANFCI from `1971-01-08` and NY Fed CMDI from `2005-01-07`; BIS U.S.
-  credit conditions from `1961-Q1` through the current quarter; and the fixed
-  full-source EIA Lower-48 working gas-storage and NBER recession-chronology
-  requests; and
+  NFCI/ANFCI and the NFCI risk, credit, and leverage components from
+  `1971-01-08`, and NY Fed CMDI from `2005-01-07`; BIS U.S. credit
+  conditions from `1961-Q1` through the current quarter; and the fixed
+  full-source EIA Lower-48 working gas-storage, EIA U.S. all-sector monthly
+  electricity-retail, and NBER recession-chronology requests; and
 - the existing current ten-year BLS request for PPI Final Demand, average
   hourly earnings, and labor productivity.
 

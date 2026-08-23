@@ -70,7 +70,6 @@ class NyFedOvernightRatesWindow:
         return {
             "startDate": self.start_date.isoformat(),
             "endDate": self.end_date.isoformat(),
-            "type": "rate",
         }
 
 

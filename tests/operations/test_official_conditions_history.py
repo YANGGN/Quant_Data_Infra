@@ -41,6 +41,11 @@ _BLS_BODY = (
     b'{"seriesID":"PRS85006092","data":['
     b'{"year":"2026","period":"Q02","value":"2.7"}]}]}}'
 )
+_CHICAGO_BODY = (
+    b"Friday_of_Week,NFCI,ANFCI,Risk,Credit,Leverage,"
+    b"Nonfinancial_Leverage\n"
+    b"08/21/2026,-0.28,-0.14,0.02,-0.03,0.01,0\n"
+)
 
 
 class _Transport:
@@ -70,6 +75,9 @@ class _Transport:
             for item in payload["Results"]["series"]:
                 item["data"][0]["year"] = request_payload["startyear"]
             body = dumps_strict(payload).encode("utf-8")
+        elif url == operation.CHICAGO_NFCI_URL:
+            body = _CHICAGO_BODY
+            return operation.CsvResponse(200, "text/csv", body, False)
         else:
             raise AssertionError("unexpected fixed source URL")
         return operation.CsvResponse(200, "application/json", body, False)
@@ -140,6 +148,23 @@ class OfficialConditionsHistoryOperationTests(unittest.TestCase):
         self.assertEqual(urlsplit(str(self.transport.calls[1]["url"])).query, "")
         self.assertNotIn(
             SECRET.encode("utf-8"), self.publisher.captures[2].parts[0].body
+        )
+
+    def test_chicago_route_uses_one_existing_csv_request_for_components(self) -> None:
+        runner = self._runner()
+        runner.run_chicago(
+            start_date="2026-08-21", end_date="2026-08-21"
+        )
+
+        self.assertEqual(len(self.transport.calls), 1)
+        self.assertEqual(
+            self.transport.calls[0]["url"], operation.CHICAGO_NFCI_URL
+        )
+        capture = self.publisher.captures[0]
+        self.assertEqual(capture.source_key, "chicago")
+        self.assertEqual(
+            [item.provider_code for item in capture.observations],
+            ["NFCI", "ANFCI", "Risk", "Credit", "Leverage"],
         )
 
     def test_bls_route_uses_one_credential_free_post_for_ten_years(self) -> None:

@@ -126,6 +126,30 @@ CHICAGO_MANIFEST: Final = (
         "index",
         "level",
     ),
+    OfficialSeriesSpec(
+        "macro.chicagofed.nfci.risk",
+        "Risk",
+        "Chicago Fed National Financial Conditions Index risk component",
+        "weekly",
+        "index",
+        "level",
+    ),
+    OfficialSeriesSpec(
+        "macro.chicagofed.nfci.credit",
+        "Credit",
+        "Chicago Fed National Financial Conditions Index credit component",
+        "weekly",
+        "index",
+        "level",
+    ),
+    OfficialSeriesSpec(
+        "macro.chicagofed.nfci.leverage",
+        "Leverage",
+        "Chicago Fed National Financial Conditions Index leverage component",
+        "weekly",
+        "index",
+        "level",
+    ),
 )
 
 BIS_MANIFEST: Final = (
@@ -281,7 +305,7 @@ _DEFINITIONS: Final = {
         "chicagofed",
         CHICAGO_COLLECTOR_ID,
         CHICAGO_HANDLER,
-        "chicagofed_nfci_v1",
+        "chicagofed_nfci_v2",
         "chicagofed/NFCI/nfci-data-series-csv.csv",
         "text/csv",
         CHICAGO_MANIFEST,
@@ -739,7 +763,7 @@ def parse_chicagofed_financial_conditions(
     start_date: str,
     end_date: str,
 ) -> OfficialConditionsCapture:
-    """Parse only NFCI and ANFCI from the fixed Chicago Fed history CSV."""
+    """Parse the fixed Chicago Fed NFCI headline and component CSV columns."""
 
     start, end = _bounded_dates(
         start_date, end_date, source="Chicago Fed NFCI"
@@ -769,7 +793,7 @@ def parse_chicagofed_financial_conditions(
                 "Chicago Fed week ending date is outside the requested window"
             )
         period = observed.isoformat()
-        for code in ("NFCI", "ANFCI"):
+        for code in by_code:
             identity = (code, period)
             if identity in seen:
                 raise _fail("Chicago Fed index observations must be unique")
@@ -801,7 +825,7 @@ def parse_chicagofed_financial_conditions(
         scope={
             "from": start.isoformat(),
             "to": end.isoformat(),
-            "series": ["NFCI", "ANFCI"],
+            "series": list(by_code),
             "completeness": "complete",
         },
         observations=observations,

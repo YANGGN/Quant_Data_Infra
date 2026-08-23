@@ -3,7 +3,10 @@
     {
       "average30day": 3.64,
       "effectiveDate": "2026-08-20",
-      "type": "SOFRAI"
+      "type": "SOFRAI",
+      "index": 1.082927,
+      "average90day": 3.62,
+      "average180day": 3.59
     },
     {
       "effectiveDate": "2026-08-20",
@@ -29,7 +32,12 @@
     {
       "effectiveDate": "2026-08-20",
       "percentRate": null,
-      "type": "SOFR"
+      "type": "SOFR",
+      "percentPercentile1": 3.6,
+      "percentPercentile25": 3.61,
+      "percentPercentile75": 3.65,
+      "percentPercentile99": 3.7,
+      "volumeInBillions": 1850
     },
     {
       "effectiveDate": "2026-08-21",
@@ -54,7 +62,12 @@
     {
       "effectiveDate": "2026-08-21",
       "percentRate": 3.63,
-      "type": "SOFR"
+      "type": "SOFR",
+      "percentPercentile1": 3.6,
+      "percentPercentile25": 3.62,
+      "percentPercentile75": 3.64,
+      "percentPercentile99": 3.69,
+      "volumeInBillions": 1842
     }
   ]
 }

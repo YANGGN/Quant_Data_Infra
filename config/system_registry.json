@@ -8589,6 +8589,18 @@
       "store": "macro"
     },
     {
+      "dependencies": [
+        "macro:0016_fmp_calendar_wholesale_evidence"
+      ],
+      "id": "macro:0017_live_gdi_vintages",
+      "ordinal": 17,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/macro/0017_live_gdi_vintages.sql",
+      "semantic_scope": "Additive BEA GDP/GDI workbook extension for nominal and real GDI release vintages in the existing immutable live-vintage model.",
+      "sha256": "e92da1620b2da10e15d76ee9a3817fc081d0363f6cd7b87653f2340a8f756e71",
+      "store": "macro"
+    },
+    {
       "dependencies": [],
       "id": "company:0001_foundation",
       "ordinal": 1,
@@ -8796,7 +8808,7 @@
       "research.liquidity_credit_state"
     ]
   },
-  "registry_version": "2.30.0",
+  "registry_version": "2.31.0",
   "schema_id": "quant_data.system_registry",
   "schema_version": "1.8.0",
   "status": "validated",
@@ -8889,7 +8901,8 @@
         "macro:0013_live_gdp_cpi_vintages",
         "macro:0014_live_employment_vintages",
         "macro:0015_live_macro_history_extension",
-        "macro:0016_fmp_calendar_wholesale_evidence"
+        "macro:0016_fmp_calendar_wholesale_evidence",
+        "macro:0017_live_gdi_vintages"
       ],
       "path_env": "QUANT_MACRO_DB_PATH",
       "write_coordination": {

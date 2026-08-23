@@ -585,6 +585,38 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '2026-08-15 12:30:00', 'US', 'Hidden Pending Event', 'USD', NULL,
                 NULL, NULL, NULL, NULL, '"High"', NULL
               );
+
+            CREATE TABLE stage11_eia_retail_observation_versions (
+                version_id TEXT PRIMARY KEY,
+                canonical_series_id TEXT NOT NULL,
+                metric TEXT NOT NULL,
+                period TEXT NOT NULL,
+                state_id TEXT NOT NULL,
+                sector_id TEXT NOT NULL,
+                value_text TEXT,
+                unit TEXT NOT NULL,
+                correction_sequence INTEGER NOT NULL,
+                available_at TEXT NOT NULL,
+                captured_at TEXT NOT NULL
+            );
+            CREATE TABLE stage11_eia_retail_observations (
+                canonical_series_id TEXT NOT NULL,
+                period TEXT NOT NULL,
+                state_id TEXT NOT NULL,
+                sector_id TEXT NOT NULL,
+                current_version_id TEXT NOT NULL
+            );
+            INSERT INTO stage11_eia_retail_observation_versions VALUES (
+                'eia-retail-sales-202606-v1',
+                'macro.eia.electricity.retail_sales',
+                'sales', '2026-06', 'US', 'ALL', '350.1',
+                'million kilowatthours', 1,
+                '2026-08-23T12:00:00Z', '2026-08-23T12:00:00Z'
+            );
+            INSERT INTO stage11_eia_retail_observations VALUES (
+                'macro.eia.electricity.retail_sales',
+                '2026-06', 'US', 'ALL', 'eia-retail-sales-202606-v1'
+            );
             """
         )
         connection.commit()
@@ -847,6 +879,62 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertEqual(surprise_row["release_stage"], "advance")
         self.assertFalse(surprise_row["is_fallback"])
         self.assertEqual(before, (self._sha256(self.market), self._sha256(self.macro)))
+
+    def test_new_macro_series_are_visible_in_fixed_ui_views(self) -> None:
+        before = (self._sha256(self.market), self._sha256(self.macro))
+
+        electricity = self.application.handle(
+            "GET",
+            "/api/rows?view=electricity-retail"
+            "&series=macro.eia.electricity.retail_sales"
+            "&start_period=2026-01&end_period=2026-12",
+        )
+        result = loads_strict(electricity.body)["result"]
+        self.assertEqual(electricity.status, 200)
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["rows"][0]["value"], "350.1")
+        self.assertEqual(
+            result["rows"][0]["unit"],
+            "million kilowatthours",
+        )
+
+        rates = loads_strict(
+            self.application.handle(
+                "GET", "/api/rows?view=overnight-rates"
+            ).body
+        )["result"]
+        self.assertIn("value", rates["columns"])
+        self.assertIn("unit", rates["columns"])
+        self.assertNotIn("rate_percent", rates["columns"])
+
+        rates_html = self.application.handle(
+            "GET", "/?view=overnight-rates"
+        ).body.decode("utf-8")
+        self.assertIn("SOFR Transaction Volume", rates_html)
+        self.assertIn("SOFR 180-Day Compounded Average", rates_html)
+
+        vintage_html = self.application.handle(
+            "GET", "/?view=macro-vintages"
+        ).body.decode("utf-8")
+        self.assertIn("macro.gdi.real_qoq_saar_pct", vintage_html)
+        self.assertIn("macro.gdi.nominal_billions", vintage_html)
+
+        conditions_html = self.application.handle(
+            "GET", "/?view=financial-conditions"
+        ).body.decode("utf-8")
+        self.assertIn("National Financial Conditions Index risk component", conditions_html)
+        self.assertIn("National Financial Conditions Index credit component", conditions_html)
+        self.assertIn("National Financial Conditions Index leverage component", conditions_html)
+
+        electricity_html = self.application.handle(
+            "GET", "/?view=electricity-retail"
+        ).body.decode("utf-8")
+        self.assertIn("Electricity retail", electricity_html)
+        self.assertIn("Electricity retail customers", electricity_html)
+        self.assertEqual(
+            before,
+            (self._sha256(self.market), self._sha256(self.macro)),
+        )
 
     def test_raw_fmp_calendar_filters_lineage_and_literal_search(self) -> None:
         before = (self._sha256(self.market), self._sha256(self.macro))

@@ -64,8 +64,8 @@ class _Publisher:
         unchanged = self.outcome == "unchanged"
         return _Publication(
             self.outcome,
-            0 if unchanged else 5,
-            0 if unchanged else 10,
+            0 if unchanged else 14,
+            0 if unchanged else 24,
         )
 
 
@@ -140,8 +140,8 @@ class NyFedOvernightRatesHistoryTests(unittest.TestCase):
                 "requested": 1,
                 "published": 1,
                 "unchanged": 0,
-                "written_series": 5,
-                "written_observation_versions": 10,
+                "written_series": 14,
+                "written_observation_versions": 24,
                 "start_date": "2016-03-01",
                 "end_date": "2026-08-21",
             },
@@ -159,7 +159,6 @@ class NyFedOvernightRatesHistoryTests(unittest.TestCase):
             {
                 "startDate": "2016-03-01",
                 "endDate": "2026-08-21",
-                "type": "rate",
             },
         )
         self.assertEqual(

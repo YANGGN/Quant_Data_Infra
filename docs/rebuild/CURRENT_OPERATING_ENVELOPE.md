@@ -28,8 +28,8 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.30.0`, schema `1.8.0`, with
-source SHA-256 `4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6`.
+The current accepted registry is revision `2.31.0`, schema `1.8.0`, with
+source SHA-256 `d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0`.
 The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
@@ -37,10 +37,12 @@ authority. Because it never entered the active configuration lineage, it
 remains absent from the later additive Treasury `2.23.0`, NY Fed headline
 rate `2.24.0`, NY Fed repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
 official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
-macro extension `2.29.0`, and BLS price/wage/productivity `2.30.0`
-revisions. None adds a scheduler, public surface, dataset ownership, migration,
-or credential mechanism; `2.29.0` reuses the existing EIA credential
-resolver for its single EIA request, while `2.30.0` is credential-free.
+macro extension `2.29.0`, BLS price/wage/productivity `2.30.0`, and
+GDI-vintage `2.31.0` revisions. Revision `2.31.0` adds only additive macro
+migration 0017; it adds no scheduler, public surface, dataset ownership,
+collector, or credential mechanism. Revision `2.29.0` and the fixed
+electricity-retail refresh reuse the existing EIA credential resolver, while
+`2.30.0` remains credential-free.
 
 An explicitly authorized 2026-08-21 immutable read-only proof, performed while
 registry `2.21.0` was current, confirmed that the canonical macro store
@@ -126,10 +128,10 @@ them.
 
 | Timer | Fixed scope |
 | --- | --- |
-| `quant-data-macro-vintages.timer` | 09:05 America/New_York on weekdays. One current BEA GDP workbook request and one current BLS GDP/CPI request; no retry, migration, credential, or historical-archive fetch. |
+| `quant-data-macro-vintages.timer` | 09:05 America/New_York on weekdays. One current BEA GDP/GDI workbook request and one current BLS GDP/CPI request; no retry, migration, credential, or historical-archive fetch. |
 | `quant-data-employment-vintages.timer` | First Friday of each month at 10:05 America/New_York. One credential-free BLS request for the fixed payroll and unemployment series; no retry, migration, or Philadelphia Fed historical-workbook fetch. |
 | `quant-data-fmp-macro-calendar.timer` | 08:15 and 08:45 America/New_York on weekdays. One bounded current-window FMP calendar request with no retry. The response is retained as wholesale raw evidence before independent GDP/CPI and employment normalization. |
-| `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twelve established macro collector operations run sequentially with a total provider-request cap of 13, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; NY Fed overnight rates, repo facilities, and SOMA; H.4.1; NFCI/ANFCI; BIS credit conditions; CMDI; Treasury cash; EIA gas storage; NBER recession chronology; and BLS PPI, earnings, and productivity. |
+| `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Thirteen established macro collector operations run sequentially with a total provider-request cap of 21, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; NY Fed overnight rates including SOFR distribution, volume, index, and compounded averages; repo facilities and SOMA; H.4.1; NFCI/ANFCI including risk, credit, and leverage; BIS credit conditions; CMDI; Treasury cash; EIA gas storage and monthly electricity retail; NBER recession chronology; and BLS PPI, earnings, and productivity. |
 
 These exceptions do not enable any recovered Stage 7 job, market-close timer,
 new provider, new series, different cadence, catch-up run, or historical
@@ -163,7 +165,11 @@ The following are completed, retained operations, not standing permissions:
   2,632 EFFR, 2,632 OBFR, and 2,095 each for TGCR, BGCR, and SOFR. The provider
   returned observations through `2026-08-20`; integrity and foreign-key checks
   passed, and the fixed local Inspector read returned EFFR `3.63` for that
-  date;
+  date. On 2026-08-23, two separately authorized no-retry requests over the
+  same fixed window added four SOFR percentiles and SOFR volume with 2,095
+  observations each from `2018-04-02` through `2026-08-20`, plus the SOFR
+  index and 30/90/180-day compounded averages with 1,618 observations each
+  from `2020-03-02` through `2026-08-21`;
 - the one-request New York Fed repo-facility population for the inclusive
   requested window `2016-03-01` through `2026-08-21`, published to
   `data/macro.sqlite` on 2026-08-22. It retained 3,882 current observations:
@@ -189,7 +195,10 @@ The following are completed, retained operations, not standing permissions:
 - the one-request Chicago Fed population for the requested window
   `1971-01-08` through `2026-08-22`, published on 2026-08-22. It retained
   2,902 weekly observations each for NFCI and ANFCI through `2026-08-14`
-  (5,804 total); and
+  (5,804 total). One later authorized same-response refresh on 2026-08-23
+  added 2,902 observations each for the NFCI risk, credit, and leverage
+  components over the same coverage, bringing the five-series checkpoint to
+  14,510 observations; and
 - the two-request BIS U.S. private non-financial credit population for the
   requested window `1961-Q1` through `2026-Q2`, published on 2026-08-22.
   Credit-to-GDP and its gap each retained 260 quarters from `1961-Q1` through
@@ -223,13 +232,24 @@ The following are completed, retained operations, not standing permissions:
   monthly PPI, 115 monthly average-hourly-earnings, and 38 quarterly
   labor-productivity observations. Five later authorized, non-overlapping
   productivity-only requests for 1947-1956 through 1987-1996 added 199 rows.
-  The immutable read-only checkpoint is therefore 115 PPI observations from
-  `2017-01` through `2026-07`, 115 earnings observations over the same
-  range, and 237 productivity observations from `1947-Q2` through
-  `2026-Q2` (467 total). The attempted 1997-2006 mixed request was rejected
-  before publication, and the missing 1997-2016 extension remains incomplete.
-  The initial request and five successful historical windows must not be
-  repeated; any revised remaining scope requires new finite authorization.
+  An earlier mixed 1997-2006 request was rejected before publication. On
+  2026-08-23 a bounded three-attempt, no-retry extension first rejected a
+  PPI-only 2007-2016 request before publication, then published 182 PPI and
+  earnings versions from one 2009-2016 request and 34 earnings versions from
+  one 2006-2008 request. The immutable checkpoint is now 201 PPI observations
+  from source-native `2009-11` through `2026-07`, 245 earnings observations
+  from source-native `2006-03` through `2026-07`, and 237 productivity
+  observations from `1947-Q2` through `2026-Q2` (683 total). Integrity,
+  foreign-key, sidecar, and fixed Inspector checks passed. The source provides no PPI observation before 2009-11 and no earnings
+  observation before 2006-03. The successful
+  initial and historical windows must not be repeated; any different scope
+  requires new finite authorization; and
+- the one-request current BEA GDP/GDI workbook refresh published on
+  2026-08-23. It added 97 current real and 97 current nominal GDI quarters
+  from `2002Q1` through `2026Q1`, with 916 real and 933 nominal retained
+  vintage versions. The paired BLS response was replayed without adding an
+  observation version. Integrity and foreign-key checks passed, and the fixed
+  Inspector returns both GDI series at registry `2.31.0`.
 
 The weekday aggregate current-refresh exception above may revalidate its fixed
 current or source-native full-response scopes after these initial populations.

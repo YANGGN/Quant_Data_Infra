@@ -55,7 +55,22 @@ class NyFedOvernightRatesParseTests(unittest.TestCase):
 
         self.assertEqual(
             tuple(item.code for item in RATE_MANIFEST),
-            ("EFFR", "OBFR", "TGCR", "BGCR", "SOFR"),
+            (
+                "EFFR",
+                "OBFR",
+                "TGCR",
+                "BGCR",
+                "SOFR",
+                "SOFR_PERCENTILE_1",
+                "SOFR_PERCENTILE_25",
+                "SOFR_PERCENTILE_75",
+                "SOFR_PERCENTILE_99",
+                "SOFR_VOLUME",
+                "SOFR_INDEX",
+                "SOFR_AVERAGE_30D",
+                "SOFR_AVERAGE_90D",
+                "SOFR_AVERAGE_180D",
+            ),
         )
         self.assertEqual(
             tuple(item.series_id for item in RATE_MANIFEST),
@@ -65,10 +80,23 @@ class NyFedOvernightRatesParseTests(unittest.TestCase):
                 "macro.nyfed.tgcr",
                 "macro.nyfed.bgcr",
                 "macro.nyfed.sofr",
+                "macro.nyfed.sofr_percentile_1",
+                "macro.nyfed.sofr_percentile_25",
+                "macro.nyfed.sofr_percentile_75",
+                "macro.nyfed.sofr_percentile_99",
+                "macro.nyfed.sofr_volume",
+                "macro.nyfed.sofr_index",
+                "macro.nyfed.sofr_average_30d",
+                "macro.nyfed.sofr_average_90d",
+                "macro.nyfed.sofr_average_180d",
             ),
         )
-        self.assertEqual(len(capture.observations), 10)
-        self.assertNotIn("SOFRAI", {item.rate_code for item in capture.observations})
+        self.assertEqual(len(capture.observations), 24)
+        observations = {item.rate_code: item for item in capture.observations}
+        self.assertEqual(observations["SOFR_PERCENTILE_1"].value_text, "3.6")
+        self.assertEqual(observations["SOFR_VOLUME"].value_text, "1842")
+        self.assertEqual(observations["SOFR_INDEX"].value_text, "1.082927")
+        self.assertEqual(observations["SOFR_AVERAGE_180D"].value_text, "3.59")
         missing = next(
             item
             for item in capture.observations
@@ -77,7 +105,7 @@ class NyFedOvernightRatesParseTests(unittest.TestCase):
         self.assertIsNone(missing.value_text)
         self.assertEqual(missing.missing_reason, "source_null")
         self.assertEqual(capture.observations[0].rate_code, "EFFR")
-        self.assertEqual(capture.observations[-1].rate_code, "SOFR")
+        self.assertEqual(capture.observations[-1].rate_code, "SOFR_VOLUME")
         self.assertEqual(capture.captured_at, "2026-08-21T14:00:00.000000Z")
 
     def test_order_format_capture_time_and_unknown_fields_are_nonsemantic(self) -> None:
@@ -131,6 +159,60 @@ class NyFedOvernightRatesParseTests(unittest.TestCase):
             _parse(_body({"refRates": [{**row, "effectiveDate": "2026-08-19"}]}))
         with self.assertRaisesRegex(ValidationError, "finite decimal"):
             _parse(_body({"refRates": [{**row, "percentRate": True}]}))
+        with self.assertRaisesRegex(ValidationError, "finite decimal"):
+            _parse(_body({"refRates": [{**row, "percentRate": "NA"}]}))
+        supplemental_absent = _parse(
+            _body(
+                {
+                    "refRates": [
+                        {
+                            "effectiveDate": "2026-08-20",
+                            "type": "SOFR",
+                            "percentRate": 3.63,
+                        }
+                    ]
+                }
+            )
+        )
+        self.assertEqual(
+            tuple(item.rate_code for item in supplemental_absent.observations),
+            ("SOFR",),
+        )
+        for marker in ("NA", "N/A"):
+            with self.subTest(marker=marker):
+                supplemental_missing = _parse(
+                    _body(
+                        {
+                            "refRates": [
+                                {
+                                    "effectiveDate": "2026-08-20",
+                                    "type": "SOFR",
+                                    "percentRate": 3.63,
+                                    "percentPercentile1": marker,
+                                }
+                            ]
+                        }
+                    )
+                )
+                missing = supplemental_missing.observations[1]
+                self.assertEqual(
+                    (missing.rate_code, missing.value_text, missing.missing_reason),
+                    ("SOFR_PERCENTILE_1", None, "source_missing"),
+                )
+        documented_headline = _parse(
+            _body(
+                {
+                    "refRates": [
+                        {
+                            "effectiveDate": "2026-08-20",
+                            "type": "EFFR",
+                            "percent": 3.63,
+                        }
+                    ]
+                }
+            )
+        )
+        self.assertEqual(documented_headline.observations[0].value_text, "3.63")
         with self.assertRaisesRegex(ValidationError, "contain refRates"):
             _parse(b"[]")
         excessive = {"refRates": [{"type": "UNKNOWN"}] * (MAX_RESPONSE_ROWS + 1)}
@@ -189,15 +271,29 @@ class NyFedOvernightRatesPublicationTests(unittest.TestCase):
         report = self.publisher.publish(original)
 
         self.assertEqual(report.outcome, "published")
-        self.assertEqual(report.written_series, 5)
-        self.assertEqual(report.written_observation_versions, 10)
+        self.assertEqual(report.written_series, 14)
+        self.assertEqual(report.written_observation_versions, 24)
         with read_connection(self.stores, StoreRole.MACRO) as connection:
             self.assertEqual(
                 connection.execute(
                     "SELECT count(*) FROM macro_series WHERE provider='nyfed'"
                 ).fetchone()[0],
-                5,
+                14,
             )
+            metadata = connection.execute(
+                """
+                SELECT unit, value_representation
+                FROM macro_series
+                WHERE series_id='macro.nyfed.sofr_volume'
+                """
+            ).fetchone()
+            index_metadata = connection.execute(
+                """
+                SELECT unit, value_representation
+                FROM macro_series
+                WHERE series_id='macro.nyfed.sofr_index'
+                """
+            ).fetchone()
             missing = connection.execute(
                 """
                 SELECT version.value_text, version.missing_reason,
@@ -216,6 +312,8 @@ class NyFedOvernightRatesPublicationTests(unittest.TestCase):
             self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
             self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone()[0], "ok")
         self.assertEqual(tuple(missing), (None, "source_null", "datetime", "datetime"))
+        self.assertEqual(tuple(metadata), ("billions_usd", "amount"))
+        self.assertEqual(tuple(index_metadata), ("index", "level"))
         self.assertEqual(outputs, len(OUTPUT_DATASET_IDS))
 
         before = self._counts()

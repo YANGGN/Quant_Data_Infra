@@ -1,8 +1,9 @@
 """Bounded New York Fed overnight reference-rate parsing and publication.
 
 The provider boundary lives in the operations package. This module accepts one
-complete, already-captured response, keeps only the five headline rates, and
-publishes them through the existing generic macro lineage tables.
+complete, already-captured response and publishes its headline rates, SOFR
+distribution/volume fields, and SOFR index/compounded-average fields through
+the existing generic macro lineage tables.
 """
 
 from __future__ import annotations
@@ -40,7 +41,7 @@ OUTPUT_DATASET_IDS: Final = (
 )
 EVIDENCE_DATASET_ID: Final = OUTPUT_DATASET_IDS[0]
 CANONICAL_DATASET_ID: Final = OUTPUT_DATASET_IDS[1]
-NORMALIZATION_VERSION: Final = "nyfed_overnight_rates_v1"
+NORMALIZATION_VERSION: Final = "nyfed_overnight_rates_v2"
 MAX_RESPONSE_BYTES: Final = 16 * 1024 * 1024
 MAX_RESPONSE_ROWS: Final = 20_000
 MAX_WINDOW_DAYS: Final = 5_000
@@ -53,6 +54,10 @@ class NyFedRateSpec:
     code: str
     slug: str
     title: str
+    source_type: str
+    source_field: str
+    unit: str
+    value_representation: str
 
     @property
     def series_id(self) -> str:
@@ -60,16 +65,146 @@ class NyFedRateSpec:
 
 
 RATE_MANIFEST: Final = (
-    NyFedRateSpec("EFFR", "effr", "Effective Federal Funds Rate"),
-    NyFedRateSpec("OBFR", "obfr", "Overnight Bank Funding Rate"),
-    NyFedRateSpec("TGCR", "tgcr", "Tri-Party General Collateral Rate"),
-    NyFedRateSpec("BGCR", "bgcr", "Broad General Collateral Rate"),
-    NyFedRateSpec("SOFR", "sofr", "Secured Overnight Financing Rate"),
+    NyFedRateSpec(
+        "EFFR",
+        "effr",
+        "Effective Federal Funds Rate",
+        "EFFR",
+        "percentRate",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "OBFR",
+        "obfr",
+        "Overnight Bank Funding Rate",
+        "OBFR",
+        "percentRate",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "TGCR",
+        "tgcr",
+        "Tri-Party General Collateral Rate",
+        "TGCR",
+        "percentRate",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "BGCR",
+        "bgcr",
+        "Broad General Collateral Rate",
+        "BGCR",
+        "percentRate",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR",
+        "sofr",
+        "Secured Overnight Financing Rate",
+        "SOFR",
+        "percentRate",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_PERCENTILE_1",
+        "sofr_percentile_1",
+        "SOFR 1st Percentile",
+        "SOFR",
+        "percentPercentile1",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_PERCENTILE_25",
+        "sofr_percentile_25",
+        "SOFR 25th Percentile",
+        "SOFR",
+        "percentPercentile25",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_PERCENTILE_75",
+        "sofr_percentile_75",
+        "SOFR 75th Percentile",
+        "SOFR",
+        "percentPercentile75",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_PERCENTILE_99",
+        "sofr_percentile_99",
+        "SOFR 99th Percentile",
+        "SOFR",
+        "percentPercentile99",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_VOLUME",
+        "sofr_volume",
+        "SOFR Transaction Volume",
+        "SOFR",
+        "volumeInBillions",
+        "billions_usd",
+        "amount",
+    ),
+    NyFedRateSpec(
+        "SOFR_INDEX",
+        "sofr_index",
+        "SOFR Index",
+        "SOFRAI",
+        "index",
+        "index",
+        "level",
+    ),
+    NyFedRateSpec(
+        "SOFR_AVERAGE_30D",
+        "sofr_average_30d",
+        "SOFR 30-Day Compounded Average",
+        "SOFRAI",
+        "average30day",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_AVERAGE_90D",
+        "sofr_average_90d",
+        "SOFR 90-Day Compounded Average",
+        "SOFRAI",
+        "average90day",
+        "percent",
+        "rate",
+    ),
+    NyFedRateSpec(
+        "SOFR_AVERAGE_180D",
+        "sofr_average_180d",
+        "SOFR 180-Day Compounded Average",
+        "SOFRAI",
+        "average180day",
+        "percent",
+        "rate",
+    ),
 )
 _RATE_BY_CODE: Final = {item.code: item for item in RATE_MANIFEST}
+_RATE_BY_SOURCE_TYPE: Final = {
+    source_type: tuple(
+        item for item in RATE_MANIFEST if item.source_type == source_type
+    )
+    for source_type in {item.source_type for item in RATE_MANIFEST}
+}
 _RATE_ORDINAL: Final = {
     item.code: ordinal for ordinal, item in enumerate(RATE_MANIFEST)
 }
+_HEADLINE_RATE_CODES: Final = frozenset(
+    {"EFFR", "OBFR", "TGCR", "BGCR", "SOFR"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,24 +260,30 @@ def _normalized_decimal(value: Decimal) -> str:
     return format(normalized, "f")
 
 
-def _rate_value(value: object) -> tuple[str | None, str | None]:
+def _rate_value(
+    value: object,
+    *,
+    allow_source_missing: bool = False,
+) -> tuple[str | None, str | None]:
     if value is None:
         return None, "source_null"
+    if allow_source_missing and value in {"NA", "N/A"}:
+        return None, "source_missing"
     if isinstance(value, bool):
-        raise _fail("NY Fed percentRate must be a finite decimal or null")
+        raise _fail("NY Fed overnight-rate value must be a finite decimal or null")
     if isinstance(value, str):
         if not value or value != value.strip():
-            raise _fail("NY Fed percentRate must be a finite decimal or null")
+            raise _fail("NY Fed overnight-rate value must be a finite decimal or null")
         try:
             parsed = Decimal(value)
         except (InvalidOperation, ValueError) as exc:
-            raise _fail("NY Fed percentRate must be a finite decimal or null") from exc
+            raise _fail("NY Fed overnight-rate value must be a finite decimal or null") from exc
     elif isinstance(value, (int, Decimal)):
         parsed = Decimal(value)
     else:
-        raise _fail("NY Fed percentRate must be a finite decimal or null")
+        raise _fail("NY Fed overnight-rate value must be a finite decimal or null")
     if not parsed.is_finite():
-        raise _fail("NY Fed percentRate must be a finite decimal or null")
+        raise _fail("NY Fed overnight-rate value must be a finite decimal or null")
     return _normalized_decimal(parsed), None
 
 
@@ -198,10 +339,10 @@ def parse_nyfed_overnight_rates(
         raw_code = raw_row.get("type")
         if not isinstance(raw_code, str):
             raise _fail("NY Fed overnight-rate row type must be text")
-        spec = _RATE_BY_CODE.get(raw_code)
-        if spec is None:
+        specs = _RATE_BY_SOURCE_TYPE.get(raw_code)
+        if specs is None:
             continue
-        if "effectiveDate" not in raw_row or "percentRate" not in raw_row:
+        if "effectiveDate" not in raw_row:
             raise _fail("NY Fed overnight-rate row is missing a declared field")
         raw_date = raw_row["effectiveDate"]
         if not isinstance(raw_date, str):
@@ -210,14 +351,39 @@ def parse_nyfed_overnight_rates(
         effective_date_text = effective_date.isoformat()
         if effective_date < start or effective_date > end:
             raise _fail("NY Fed overnight-rate row is outside the requested window")
-        identity = (effective_date_text, spec.code)
-        if identity in seen:
-            raise _fail("NY Fed overnight-rate date and type pairs must be unique")
-        seen.add(identity)
-        value_text, missing_reason = _rate_value(raw_row["percentRate"])
-        normalized.append(
-            (effective_date_text, spec.code, value_text, missing_reason)
-        )
+        for spec in specs:
+            source_fields = (spec.source_field,)
+            if spec.code in _HEADLINE_RATE_CODES:
+                source_fields += ("percent",)
+            source_field = next(
+                (field for field in source_fields if field in raw_row),
+                None,
+            )
+            if source_field is None:
+                if spec.code in _HEADLINE_RATE_CODES:
+                    raise _fail(
+                        "NY Fed overnight-rate row is missing a declared field"
+                    )
+                continue
+            identity = (effective_date_text, spec.code)
+            if identity in seen:
+                raise _fail("NY Fed overnight-rate date and type pairs must be unique")
+            seen.add(identity)
+            raw_value = raw_row[source_field]
+            try:
+                value_text, missing_reason = _rate_value(
+                    raw_value,
+                    allow_source_missing=spec.code not in _HEADLINE_RATE_CODES,
+                )
+            except ValidationError as exc:
+                raise _fail(
+                    "NY Fed "
+                    f"{source_field} on {effective_date_text} must be a finite "
+                    f"decimal or null; got {raw_value!r}"
+                ) from exc
+            normalized.append(
+                (effective_date_text, spec.code, value_text, missing_reason)
+            )
 
     normalized.sort(key=lambda item: (item[0], _RATE_ORDINAL[item[1]]))
     observations = tuple(
@@ -584,8 +750,8 @@ def _series_metadata(spec: NyFedRateSpec) -> tuple[object, ...]:
         spec.code,
         spec.title,
         "daily",
-        "percent",
-        "rate",
+        spec.unit,
+        spec.value_representation,
         "1",
         dumps_strict({}),
         dumps_strict(["latest", "as_of"]),
@@ -711,6 +877,7 @@ def _append_or_reuse_observation(
     captured_at: str,
     run_id: str,
 ) -> tuple[str, bool]:
+    spec = _RATE_BY_CODE[observation.rate_code]
     dimensions_json = dumps_strict({})
     dimensions_digest = _sha256_text(dimensions_json)
     source_vintage_identity = _source_vintage_identity(observation)
@@ -771,7 +938,7 @@ def _append_or_reuse_observation(
             captured_at, captured_precision, supersedes_version_id, artifact_id,
             snapshot_id, run_id, source_row, state, is_preliminary,
             quality_flags_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'percent', 'rate', '1',
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '1',
                   ?, 'datetime', ?, 'datetime', ?, ?, ?, ?, ?, 'active', 0, '[]')
         """,
         (
@@ -786,6 +953,8 @@ def _append_or_reuse_observation(
             correction_sequence,
             observation.value_text,
             observation.missing_reason,
+            spec.unit,
+            spec.value_representation,
             captured_at,
             captured_at,
             supersedes,

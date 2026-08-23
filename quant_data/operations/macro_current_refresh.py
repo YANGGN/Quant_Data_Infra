@@ -30,7 +30,7 @@ from ..json_codec import dumps_strict
 _VERSION: Final = "1.0.0"
 _NEW_YORK: Final = ZoneInfo("America/New_York")
 _ROLLING_WINDOW_DAYS: Final = 45
-REQUEST_CAP: Final = 13
+REQUEST_CAP: Final = 21
 _CHICAGO_START_DATE: Final = "1971-01-08"
 _CMDI_START_DATE: Final = "2005-01-07"
 _BIS_START_PERIOD: Final = "1961-Q1"
@@ -45,6 +45,7 @@ _SOURCE_IDS: Final = (
     "nyfed_cmdi",
     "treasury_tga",
     "eia_natural_gas_storage",
+    "eia_electricity_retail",
     "nber_us_recession",
     "bls_price_wage_productivity",
 )
@@ -101,6 +102,9 @@ class MacroCurrentRefreshReport:
 def _live_collectors() -> dict[str, Collector]:
     """Load canonical collector entrypoints only for a live invocation."""
 
+    from .eia_electricity_retail_history import (
+        populate_eia_electricity_retail_live,
+    )
     from .fmp_treasury_curve_history import (
         populate_fmp_treasury_curve_history_live,
     )
@@ -129,6 +133,7 @@ def _live_collectors() -> dict[str, Collector]:
         "nyfed_cmdi": populate_nyfed_cmdi_live,
         "treasury_tga": populate_treasury_tga_live,
         "eia_natural_gas_storage": populate_eia_natural_gas_storage_live,
+        "eia_electricity_retail": populate_eia_electricity_retail_live,
         "nber_us_recession": populate_nber_us_recession_live,
         "bls_price_wage_productivity": populate_bls_price_wage_productivity_live,
     }
@@ -184,6 +189,7 @@ def _planned_calls(
         ("nyfed_cmdi", 1, {"start_date": _CMDI_START_DATE, "end_date": end_date}),
         ("treasury_tga", 1, {"start_date": start_date, "end_date": end_date}),
         ("eia_natural_gas_storage", 1, {}),
+        ("eia_electricity_retail", 8, {}),
         ("nber_us_recession", 1, {}),
         ("bls_price_wage_productivity", 1, {}),
     )

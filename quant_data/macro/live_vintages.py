@@ -38,7 +38,7 @@ from ..stores import StoreWriteLock, stable_id
 from ..temporal import TemporalPrecision, TemporalValue
 
 
-NORMALIZATION_VERSION = "macro.live_vintage.v1"
+NORMALIZATION_VERSION = "macro.live_vintage.v2"
 BEA_GDP_VINTAGE_HISTORY_RESOURCE = (
     "https://apps.bea.gov/national/xls/gdp-gdi-vintage-history.xlsx"
 )
@@ -70,6 +70,8 @@ PHILADELPHIA_FED_CPI_CORE_RTDSM_RESOURCE = (
 
 GDP_REAL_SERIES_ID = "macro.gdp.real_qoq_saar_pct"
 GDP_NOMINAL_SERIES_ID = "macro.gdp.nominal_billions"
+GDI_REAL_SERIES_ID = "macro.gdi.real_qoq_saar_pct"
+GDI_NOMINAL_SERIES_ID = "macro.gdi.nominal_billions"
 CPI_ALL_ITEMS_SERIES_ID = "macro.bls.cpi_u_all_items_sa"
 CPI_CORE_SERIES_ID = "macro.bls.cpi_u_core_sa"
 TOTAL_NONFARM_PAYROLLS_SERIES_ID = "macro.bls.total_nonfarm_payrolls_sa"
@@ -105,6 +107,24 @@ _SERIES_SPECS: dict[str, dict[str, str]] = {
         "provider": "bea",
         "provider_series_code": "A191RC",
         "title": "Gross domestic product",
+        "frequency": "quarterly",
+        "unit": "billions_usd",
+        "value_representation": "level",
+        "availability_basis": "source_release",
+    },
+    GDI_REAL_SERIES_ID: {
+        "provider": "bea",
+        "provider_series_code": "A261RL",
+        "title": "Real gross domestic income, percent change from preceding period",
+        "frequency": "quarterly",
+        "unit": "percent",
+        "value_representation": "rate",
+        "availability_basis": "source_release",
+    },
+    GDI_NOMINAL_SERIES_ID: {
+        "provider": "bea",
+        "provider_series_code": "A261RC",
+        "title": "Gross domestic income",
         "frequency": "quarterly",
         "unit": "billions_usd",
         "value_representation": "level",
@@ -180,12 +200,16 @@ _EMPLOYMENT_BLS_SERIES_BY_CODE = {
     if series_id in _EMPLOYMENT_SERIES_IDS
 }
 _GDP_SERIES_IDS = frozenset({GDP_REAL_SERIES_ID, GDP_NOMINAL_SERIES_ID})
+_GDI_SERIES_IDS = frozenset({GDI_REAL_SERIES_ID, GDI_NOMINAL_SERIES_ID})
+_BEA_GDP_GDI_SERIES_IDS = _GDP_SERIES_IDS | _GDI_SERIES_IDS
 _RTDSM_OUTPUT_SERIES_IDS = frozenset(
     {RTDSM_NOMINAL_OUTPUT_SERIES_ID, RTDSM_REAL_OUTPUT_SERIES_ID}
 )
 _CAPTURE_PROVIDERS_BY_SERIES = {
     GDP_REAL_SERIES_ID: frozenset({"bea"}),
     GDP_NOMINAL_SERIES_ID: frozenset({"bea"}),
+    GDI_REAL_SERIES_ID: frozenset({"bea"}),
+    GDI_NOMINAL_SERIES_ID: frozenset({"bea"}),
     CPI_ALL_ITEMS_SERIES_ID: frozenset({"bls", "philadelphia_fed"}),
     CPI_CORE_SERIES_ID: frozenset({"bls", "philadelphia_fed"}),
     TOTAL_NONFARM_PAYROLLS_SERIES_ID: frozenset({"bls", "philadelphia_fed"}),
@@ -194,7 +218,7 @@ _CAPTURE_PROVIDERS_BY_SERIES = {
     RTDSM_REAL_OUTPUT_SERIES_ID: frozenset({"philadelphia_fed"}),
 }
 _CAPTURE_SERIES_BY_PROVIDER_FAMILY = {
-    ("bea", "gdp"): _GDP_SERIES_IDS,
+    ("bea", "gdp"): _BEA_GDP_GDI_SERIES_IDS,
     ("bls", "cpi"): _CPI_SERIES_IDS,
     ("bls", "employment"): _EMPLOYMENT_SERIES_IDS,
     ("philadelphia_fed", "employment"): _EMPLOYMENT_SERIES_IDS,
@@ -401,6 +425,30 @@ def _decimal_text(value: object, field_name: str) -> str:
     if parsed.is_zero():
         return "0"
     return format(parsed.normalize(), "f")
+
+
+def _optional_bea_gdi_value(value: object, field_name: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return _decimal_text(value, field_name)
+    normalized = value.strip()
+    if not normalized or normalized.casefold() in {
+        "...",
+        ".....",
+        "…",
+        "--",
+        "n/a",
+        "na",
+        "n.a.",
+    }:
+        return None
+    try:
+        return _decimal_text(normalized, field_name)
+    except ValidationError as exc:
+        raise _fail(
+            f"Live vintage {field_name} has unsupported source value {normalized!r}"
+        ) from exc
 
 
 def _bls_xlsx_index_text(value: object) -> str:
@@ -797,7 +845,7 @@ def parse_bea_gdp_vintage_xlsx(
     if not zipfile.is_zipfile(io.BytesIO(raw)):
         raise _fail("BEA GDP body is not an XLSX workbook")
 
-    parsed_rows: list[tuple[int, str, str, str, str, str]] = []
+    parsed_rows: list[tuple[int, str, str, str, str, str | None, str | None, str]] = []
     current_period: str | None = None
     for source_row, cells in _xlsx_rows(raw):
         raw_period = cells.get("A")
@@ -813,43 +861,89 @@ def parse_bea_gdp_vintage_xlsx(
         if raw_stage is None or raw_stage.strip().casefold() == "vintage":
             continue
         if current_period is None:
-            raise _fail("BEA GDP workbook vintage row precedes its reference period")
+            raise _fail("BEA GDP/GDI workbook vintage row precedes its reference period")
         stage = _normalize_stage(raw_stage)
         required = (cells.get("B"), cells.get("C"), cells.get("E"), cells.get("G"))
         if any(value is None for value in required):
-            raise _fail("BEA GDP workbook data row is incomplete")
+            raise _fail("BEA GDP/GDI workbook data row is incomplete")
         nominal = _decimal_text(cells["C"], "BEA nominal GDP value")
         real = _decimal_text(cells["E"], "BEA real GDP value")
+        raw_nominal_gdi = cells.get("D")
+        raw_real_gdi = cells.get("F")
+        nominal_gdi = _optional_bea_gdi_value(
+            raw_nominal_gdi,
+            "BEA nominal GDI value",
+        )
+        real_gdi = _optional_bea_gdi_value(
+            raw_real_gdi,
+            "BEA real GDI value",
+        )
         release_date = _parse_bea_release_date(cells["G"])
         parsed_rows.append(
-            (source_row, current_period, stage, nominal, real, release_date)
+            (
+                source_row,
+                current_period,
+                stage,
+                nominal,
+                real,
+                nominal_gdi,
+                real_gdi,
+                release_date,
+            )
         )
     if not parsed_rows:
-        raise _fail("BEA GDP workbook has no Vintage History data rows")
+        raise _fail("BEA GDP/GDI workbook has no Vintage History data rows")
 
-    earliest_by_period: dict[str, str] = {}
-    for _, period, _, _, _, release_date in parsed_rows:
-        earliest_by_period[period] = min(earliest_by_period.get(period, release_date), release_date)
+    earliest_by_series_period: dict[tuple[str, str], str] = {}
+    for _, period, _, nominal, real, nominal_gdi, real_gdi, release_date in parsed_rows:
+        for series_id, value_text in (
+            (GDP_REAL_SERIES_ID, real),
+            (GDP_NOMINAL_SERIES_ID, nominal),
+            (GDI_REAL_SERIES_ID, real_gdi),
+            (GDI_NOMINAL_SERIES_ID, nominal_gdi),
+        ):
+            if value_text is None:
+                continue
+            key = (series_id, period)
+            earliest_by_series_period[key] = min(
+                earliest_by_series_period.get(key, release_date), release_date
+            )
 
     observations: list[VintageObservation] = []
     seen: set[tuple[str, str, str]] = set()
-    for source_row, period, stage, nominal, real, release_date in parsed_rows:
+    for (
+        source_row,
+        period,
+        stage,
+        nominal,
+        real,
+        nominal_gdi,
+        real_gdi,
+        release_date,
+    ) in parsed_rows:
+        # Preserve the existing GDP release identity so adding the GDI columns
+        # does not rewrite historical GDP release declarations.
         identity = f"bea-gdp:{period}:{release_date}:{stage}"
-        first = release_date == earliest_by_period[period]
-        first_evidence = (
-            f"bea_gdp_vintage_history:{period}:earliest_release_date:{release_date}"
-            if first
-            else None
-        )
         release_order = f"{release_date}:{_STAGE_ORDER[stage]:03d}:{period}"
         for series_id, value_text in (
             (GDP_REAL_SERIES_ID, real),
             (GDP_NOMINAL_SERIES_ID, nominal),
+            (GDI_REAL_SERIES_ID, real_gdi),
+            (GDI_NOMINAL_SERIES_ID, nominal_gdi),
         ):
+            if value_text is None:
+                continue
             key = (series_id, period, identity)
             if key in seen:
-                raise _fail("BEA GDP workbook has duplicate vintage observations")
+                raise _fail("BEA GDP/GDI workbook has duplicate vintage observations")
             seen.add(key)
+            first = release_date == earliest_by_series_period[(series_id, period)]
+            source_name = "gdp" if series_id in _GDP_SERIES_IDS else "gdi"
+            first_evidence = (
+                f"bea_{source_name}_vintage_history:{period}:earliest_release_date:{release_date}"
+                if first
+                else None
+            )
             spec = _SERIES_SPECS[series_id]
             observations.append(
                 VintageObservation(
@@ -1916,7 +2010,7 @@ def _validate_observation(observation: object, capture: VintageCapture) -> Vinta
         raise _fail("Live vintage observation series identity is invalid")
     if observation.unit != spec["unit"]:
         raise _fail("Live vintage observation unit is invalid")
-    if observation.series_id in _GDP_SERIES_IDS | _RTDSM_OUTPUT_SERIES_IDS:
+    if observation.series_id in _BEA_GDP_GDI_SERIES_IDS | _RTDSM_OUTPUT_SERIES_IDS:
         _normalize_quarter(observation.period)
     else:
         if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", observation.period):
@@ -2007,8 +2101,8 @@ def _validate_capture(capture: object) -> VintageCapture:
     selected_series = {item.series_id for item in checked}
     if not selected_series.issubset(allowed_series):
         raise _fail("Live vintage capture contains a series outside its reviewed family")
-    if capture.family == "gdp" and selected_series != _GDP_SERIES_IDS:
-        raise _fail("Live GDP capture must contain both reviewed GDP series")
+    if capture.family == "gdp" and not _GDP_SERIES_IDS.issubset(selected_series):
+        raise _fail("Live GDP/GDI capture must contain both reviewed GDP series")
     if capture.family == "cpi" and selected_series != _CPI_SERIES_IDS:
         raise _fail("Live CPI capture must contain both reviewed CPI series")
     if capture.provider == "bls" and capture.family == "cpi_history":
@@ -2271,7 +2365,7 @@ class MacroLiveVintagePublisher:
             release_id, inserted_release = self._ensure_release(
                 connection, observation, capture_id, counts
             )
-            if inserted_release and observation.series_id in _GDP_SERIES_IDS:
+            if inserted_release and observation.series_id in _BEA_GDP_GDI_SERIES_IDS:
                 self._insert_gdp_provenance(connection, observation, capture_id, release_id)
             version_id, inserted_version = self._ensure_version(
                 connection, observation, capture_id, release_id, counts
@@ -2388,7 +2482,14 @@ class MacroLiveVintagePublisher:
         expected_without_capture = self._release_fields(observation, capture_id)[:-1]
         if existing is not None:
             actual = tuple(existing[name] for name in tuple(existing.keys())[1:])
-            if actual != expected_without_capture:
+            local_capture_replay = (
+                observation.availability_basis == "local_capture"
+                and actual[7] == "local_capture"
+                and actual[:5] == expected_without_capture[:5]
+                and actual[6:] == expected_without_capture[6:]
+                and str(actual[5]) <= str(expected_without_capture[5])
+            )
+            if actual != expected_without_capture and not local_capture_replay:
                 raise _fail("Live vintage persisted release declaration is inconsistent")
             return str(existing["release_id"]), False
         connection.execute(

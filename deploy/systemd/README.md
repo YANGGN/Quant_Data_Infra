@@ -73,10 +73,11 @@ different operation, or install another recurring unit.
 ## Active aggregate macro-current timer
 
 The aggregate macro-current timer runs at 18:30 America/New_York on weekdays.
-It sequentially refreshes the twelve established Treasury-curve, rates,
+It sequentially refreshes the thirteen established Treasury-curve, rates,
 liquidity, financial-conditions, credit, Treasury-cash, gas-storage,
-recession-chronology, and BLS price/wage/productivity operations. Its total
-provider-request cap is 13 per invocation, it does not retry, and unchanged
+electricity-retail, recession-chronology, and BLS price/wage/productivity
+operations. Its total provider-request cap is 21 per invocation, it does not
+retry, and unchanged
 content causes no canonical write. It is non-persistent, so missed windows are
 not replayed automatically. The existing GDP/CPI, employment, and FMP-calendar
 timers retain their separate cadences.

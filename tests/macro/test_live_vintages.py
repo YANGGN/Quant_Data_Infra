@@ -9,15 +9,19 @@ import unittest
 import zipfile
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 from xml.sax.saxutils import escape
 
 from quant_data.errors import ValidationError
+from quant_data.migrations import initialize_all, migrate_and_register_store
 from quant_data.macro import live_vintages
 from quant_data.macro.live_vintages import (
     CPI_ALL_ITEMS_SERIES_ID,
     CPI_CORE_SERIES_ID,
     GDP_NOMINAL_SERIES_ID,
     GDP_REAL_SERIES_ID,
+    GDI_NOMINAL_SERIES_ID,
+    GDI_REAL_SERIES_ID,
     MacroLiveVintagePublisher,
     TOTAL_NONFARM_PAYROLLS_SERIES_ID,
     RTDSM_NOMINAL_OUTPUT_SERIES_ID,
@@ -35,6 +39,13 @@ from quant_data.macro.live_vintages import (
     parse_rtdsm_cpi_core_vintage_xlsx,
     parse_rtdsm_unemployment_vintage_xlsx,
 )
+from quant_data.registry import (
+    CANONICAL_REGISTRY_PATH,
+    gdi_vintage_registry_profile,
+    load_registry,
+)
+from quant_data.stage1 import explicit_store_map
+from quant_data.stores import StoreRole
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -44,6 +55,9 @@ EMPLOYMENT_RESOURCE = (
 )
 HISTORY_RESOURCE = (
     PROJECT_ROOT / "quant_data/migrations/macro/0015_live_macro_history_extension.sql"
+)
+GDI_RESOURCE = (
+    PROJECT_ROOT / "quant_data/migrations/macro/0017_live_gdi_vintages.sql"
 )
 
 
@@ -131,20 +145,29 @@ def _rtdsm_workbook(
     return stream.getvalue()
 
 
-def _workbook() -> bytes:
+def _workbook(
+    *,
+    include_gdi: bool = True,
+    gdi_missing: bool = False,
+    gdi_missing_marker: str = "...",
+) -> bytes:
     rows = {
         1: [
             ("A", "Reference period", False),
             ("B", "Vintage", False),
             ("C", "GDP", False),
+            ("D", "GDI", False),
             ("E", "Real GDP", False),
+            ("F", "Real GDI", False),
             ("G", "Release date", False),
         ],
         2: [("A", "2024:Q1", False)],
         3: [
             ("B", "Vintage", False),
             ("C", "GDP", False),
+            ("D", "GDI", False),
             ("E", "Real GDP", False),
+            ("F", "Real GDI", False),
             ("G", "Release date", False),
         ],
         4: [
@@ -156,7 +179,29 @@ def _workbook() -> bytes:
         5: [
             ("B", "Second", False),
             ("C", "28300.0", True),
+            *(
+                [
+                    (
+                        "D",
+                        gdi_missing_marker if gdi_missing else "28298.0",
+                        not gdi_missing,
+                    )
+                ]
+                if include_gdi
+                else []
+            ),
             ("E", "1.5", True),
+            *(
+                [
+                    (
+                        "F",
+                        gdi_missing_marker if gdi_missing else "1.4",
+                        not gdi_missing,
+                    )
+                ]
+                if include_gdi
+                else []
+            ),
             ("G", "May 30, 2024", False),
         ],
     }
@@ -330,7 +375,7 @@ class LiveVintageParserTests(unittest.TestCase):
         )
         self.assertEqual(capture.provider, "bea")
         self.assertEqual(capture.source_published_precision, "datetime")
-        self.assertEqual(len(capture.observations), 4)
+        self.assertEqual(len(capture.observations), 6)
         first = next(
             item
             for item in capture.observations
@@ -346,6 +391,42 @@ class LiveVintageParserTests(unittest.TestCase):
         self.assertEqual(first.available_precision, "date")
         self.assertTrue(first.is_first_release)
         self.assertFalse(second.is_first_release)
+        gdi_real = next(
+            item
+            for item in capture.observations
+            if item.series_id == GDI_REAL_SERIES_ID and item.release_stage == "second"
+        )
+        gdi_nominal = next(
+            item
+            for item in capture.observations
+            if item.series_id == GDI_NOMINAL_SERIES_ID and item.release_stage == "second"
+        )
+        self.assertEqual((gdi_real.value_text, gdi_nominal.value_text), ("1.4", "28298"))
+        self.assertTrue(gdi_real.is_first_release)
+        self.assertEqual(
+            gdi_real.first_release_evidence,
+            "bea_gdi_vintage_history:2024Q1:earliest_release_date:2024-05-30",
+        )
+        self.assertFalse(
+            any(
+                item.series_id in {GDI_REAL_SERIES_ID, GDI_NOMINAL_SERIES_ID}
+                and item.release_stage == "advance"
+                for item in capture.observations
+            )
+        )
+
+    def test_bea_source_missing_gdi_marker_is_not_invented(self) -> None:
+        for marker in ("...", ".....", "n.a.", "…"):
+            with self.subTest(marker=marker):
+                capture = parse_bea_gdp_vintage_xlsx(
+                    _workbook(gdi_missing=True, gdi_missing_marker=marker),
+                    captured_at="2026-08-17T12:00:00Z",
+                )
+
+                self.assertEqual(
+                    {item.series_id for item in capture.observations},
+                    {GDP_REAL_SERIES_ID, GDP_NOMINAL_SERIES_ID},
+                )
 
     def test_bls_workbook_uses_embedded_vintage_and_display_precision(self) -> None:
         capture = parse_bls_cpi_revision(
@@ -702,6 +783,7 @@ class LiveVintagePublisherTests(unittest.TestCase):
             connection.executescript(RESOURCE.read_text(encoding="utf-8"))
             connection.executescript(EMPLOYMENT_RESOURCE.read_text(encoding="utf-8"))
             connection.executescript(HISTORY_RESOURCE.read_text(encoding="utf-8"))
+            connection.executescript(GDI_RESOURCE.read_text(encoding="utf-8"))
             connection.commit()
         finally:
             connection.close()
@@ -710,6 +792,179 @@ class LiveVintagePublisherTests(unittest.TestCase):
             project_root=root,
             registry=object(),
         )
+
+    def test_bea_gdi_publishes_through_additive_migration(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            publisher = self._publisher(root)
+            capture = parse_bea_gdp_vintage_xlsx(
+                _workbook(),
+                captured_at="2026-08-23T12:00:00Z",
+            )
+
+            report = publisher.publish(capture)
+
+            self.assertEqual(report.outcome, "published")
+            self.assertEqual(report.written_versions, 6)
+            connection = sqlite3.connect(root / "macro.sqlite")
+            try:
+                self.assertEqual(
+                    set(
+                        connection.execute(
+                            """
+                            SELECT series_id, provider_series_code
+                            FROM macro_live_vintage_series
+                            WHERE provider='bea'
+                            """
+                        )
+                    ),
+                    {
+                        (GDP_REAL_SERIES_ID, "A191RL"),
+                        (GDP_NOMINAL_SERIES_ID, "A191RC"),
+                        (GDI_REAL_SERIES_ID, "A261RL"),
+                        (GDI_NOMINAL_SERIES_ID, "A261RC"),
+                    },
+                )
+                self.assertEqual(
+                    connection.execute(
+                        "SELECT count(*) FROM macro_live_vintage_gdp_provenance"
+                    ).fetchone()[0],
+                    6,
+                )
+                self.assertEqual(
+                    list(connection.execute("PRAGMA foreign_key_check")),
+                    [],
+                )
+            finally:
+                connection.close()
+
+    def test_0017_upgrades_populated_v1_store_before_v2_gdi_publish(self) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as directory:
+            root = Path(directory)
+            current = load_registry(
+                PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
+                project_root=PROJECT_ROOT,
+                environment={},
+            )
+            previous = gdi_vintage_registry_profile(current)
+            stores = explicit_store_map(root)
+            initialize_all(
+                stores,
+                previous,
+                applied_at="2026-08-22T12:00:00Z",
+            )
+            publisher = MacroLiveVintagePublisher(
+                market_store=stores.path("macro"),
+                project_root=root,
+                registry=previous,
+            )
+            bls_body = (
+                b'{"status":"REQUEST_SUCCEEDED","Results":{"series":['
+                b'{"seriesID":"CUSR0000SA0","data":'
+                b'[{"year":"2026","period":"M07","value":"323.0"}]},'
+                b'{"seriesID":"CUSR0000SA0L1E","data":'
+                b'[{"year":"2026","period":"M07","value":"330.0"}]}]}}'
+            )
+            with patch.object(
+                live_vintages,
+                "NORMALIZATION_VERSION",
+                "macro.live_vintage.v1",
+            ):
+                old_capture = parse_bea_gdp_vintage_xlsx(
+                    _workbook(include_gdi=False),
+                    captured_at="2026-08-22T12:00:00Z",
+                )
+                self.assertEqual(publisher.publish(old_capture).written_versions, 4)
+                old_bls = parse_bls_current_json(
+                    bls_body,
+                    captured_at="2026-08-22T12:00:00Z",
+                )
+                self.assertEqual(publisher.publish(old_bls).written_versions, 2)
+
+            tables = (
+                "macro_live_vintage_captures",
+                "macro_live_vintage_series",
+                "macro_live_vintage_releases",
+                "macro_live_vintage_observation_versions",
+                "macro_live_vintage_capture_membership",
+                "macro_live_vintage_gdp_provenance",
+            )
+            connection = sqlite3.connect(stores.path("macro"))
+            try:
+                before = tuple(
+                    connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                    for table in tables
+                )
+            finally:
+                connection.close()
+
+            migrate_and_register_store(
+                stores,
+                current,
+                StoreRole.MACRO,
+                applied_at="2026-08-23T12:00:00Z",
+            )
+
+            connection = sqlite3.connect(stores.path("macro"))
+            try:
+                after_upgrade = tuple(
+                    connection.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                    for table in tables
+                )
+                self.assertEqual(after_upgrade, before)
+                self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
+            finally:
+                connection.close()
+
+            current_publisher = MacroLiveVintagePublisher(
+                market_store=stores.path("macro"),
+                project_root=root,
+                registry=current,
+            )
+            report = current_publisher.publish(
+                parse_bea_gdp_vintage_xlsx(
+                    _workbook(),
+                    captured_at="2026-08-23T12:00:00Z",
+                )
+            )
+            self.assertEqual(report.outcome, "published")
+            bls_report = current_publisher.publish(
+                parse_bls_current_json(
+                    bls_body,
+                    captured_at="2026-08-23T12:00:00Z",
+                )
+            )
+            self.assertEqual(bls_report.outcome, "published")
+            self.assertEqual(bls_report.written_versions, 0)
+
+            connection = sqlite3.connect(stores.path("macro"))
+            try:
+                self.assertEqual(
+                    {
+                        row[0]
+                        for row in connection.execute(
+                            "SELECT normalization_version FROM macro_live_vintage_captures"
+                        )
+                    },
+                    {"macro.live_vintage.v1", "macro.live_vintage.v2"},
+                )
+                self.assertEqual(
+                    {
+                        row[0]
+                        for row in connection.execute(
+                            "SELECT series_id FROM macro_live_vintage_series WHERE provider='bea'"
+                        )
+                    },
+                    {
+                        GDP_REAL_SERIES_ID,
+                        GDP_NOMINAL_SERIES_ID,
+                        GDI_REAL_SERIES_ID,
+                        GDI_NOMINAL_SERIES_ID,
+                    },
+                )
+                self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
+            finally:
+                connection.close()
 
     def test_replay_corrections_and_out_of_order_backfill(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

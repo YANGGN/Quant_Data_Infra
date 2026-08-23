@@ -185,20 +185,34 @@ The following decisions apply to every stage:
   `PRS85006092` quarterly Nonfarm Business Labor Productivity. Its initial
   2017-2026 POST retained 268 observations. Five later authorized,
   non-overlapping productivity-only requests extended `PRS85006092` through
-  1947-Q2 and added 199 observations, bringing the current checkpoint to 467:
-  115 PPI, 115 earnings, and 237 productivity. The attempted 1997-2006 mixed
-  request was rejected before publication, so the missing 1997-2016 extension
-  remains incomplete and the successful windows must not be repeated.
-  Immutable read-only counts confirmed this checkpoint. No migration, dataset,
+  1947-Q2 and added 199 observations. An earlier mixed 1997-2006 request was
+  rejected before publication. A later authorized three-attempt,
+  no-retry extension rejected PPI-only 2007-2016 before publication, then
+  added 182 PPI/earnings observations from 2009-2016 and 34 earnings
+  observations from 2006-2008. The current source-native checkpoint is 683:
+  201 PPI from `2009-11`, 245 earnings from `2006-03`, and 237 productivity
+  from `1947-Q2`, all through their previously recorded current endpoints.
+  Immutable integrity, foreign-key, sidecar, and Inspector checks passed, and
+  the successful windows must not be repeated. No migration, dataset,
   credential, scheduler, public route, or export was added, and exact
   projection restores byte-exact `2.29.0`.
+- Registry `2.31.0` adds additive macro migration 0017 for real and nominal
+  GDI in the existing BEA vintage relations. The same implementation increment
+  expands the existing one-response NY Fed and Chicago Fed collectors with
+  SOFR distribution/volume/index/averages and NFCI risk/credit/leverage, and
+  exposes the established EIA monthly electricity-retail relations in the
+  fixed local Inspector. No new provider family, credential mechanism,
+  dataset, collector, public route, or export is introduced.
 - On 2026-08-23 the user separately authorized a fourth host-level recurring
-  exception, `quant-data-macro-current-refresh.timer`, for the twelve
+  exception, `quant-data-macro-current-refresh.timer`, for the thirteen
   established current macro operations at 18:30 America/New_York on weekdays.
-  It has a fixed total request cap of 13 per invocation, no retry, the fixed
+  It has a fixed total request cap of 21 per invocation, no retry, the fixed
   `data/macro.sqlite` target, and semantic no-write behavior for unchanged
-  content. It does not change registry `2.30.0`, migrations, datasets,
-  providers, credentials, public routes, or the three existing timer cadences.
+  content. Its established NY Fed and Chicago requests carry the added series,
+  the existing BEA-vintage timer carries GDI in the same workbook request, and
+  the aggregate adds the bounded EIA electricity-retail operation. It does not
+  add a provider, credential, dataset, collector, public route, or change the
+  three existing timer cadences.
 - SQLite remains the authoritative operational store unless benchmarks and an
   accepted decision record justify a change.
 - The four operational boundaries are market, macro, company, and news.
