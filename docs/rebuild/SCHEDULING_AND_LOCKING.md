@@ -48,14 +48,15 @@ below. A subsequent explicit decision authorized the separate fixed
 employment-vintage timer. A further explicit decision authorized the fixed FMP
 macro-calendar timer described below. On 2026-08-23 the user separately
 authorized the fixed weekday aggregate macro-current timer described below.
-These are the only four recurring exceptions; none broadens the disabled
+On 2026-08-25 the user separately authorized the fixed Alpaca SPY option-
+surface timer. All five exceptions are active. None broadens the disabled
 recovered job catalog or Stage 12E.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
 
 ## Active GDP/CPI vintage refresh
 
-`quant-data-macro-vintages.timer` is one of four recurring scheduling
+`quant-data-macro-vintages.timer` is one of five authorized recurring scheduling
 exceptions in this document. It runs the fixed zero-argument refresh wrapper at
 09:05 America/New_York, Monday through Friday, with `Persistent=false`.
 Each invocation makes exactly one BEA workbook request and one BLS current API
@@ -97,6 +98,17 @@ calendar request with no retry. The exact response is retained as private
 wholesale raw evidence before independent GDP/CPI and employment
 normalization.
 
+The user explicitly authorized canonical migration 0018 on 2026-08-24; it was
+applied at `2026-08-25T01:31:39.017401Z`. ADR 0012 therefore governs future
+poll persistence: a material response adds one receipt and only new/changed
+raw event versions, then replaces one singleton latest-response cache. Legacy
+migration-0016 bodies and rows remain immutable and readable. Equivalent
+replay writes nothing. The canonical publisher's exact ledger/relation gate
+passes before credential resolution or network work. The timer's two weekday
+times, one-request cap, no-retry rule, credential resolver, physical-store
+locking, and definition are unchanged. No provider request was manually
+triggered as part of migration activation.
+
 Network fetch and parsing finish before the publisher obtains the fixed
 physical macro-store lock. The two publishers retain independent semantic
 replay and lineage, and unchanged normalized content causes zero writes. The
@@ -112,31 +124,41 @@ historical vintage collector above or the FMP calendar exception.
 
 `quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
 exception. It runs at 18:30 America/New_York, Monday through Friday, with
-`Persistent=false`. Its zero-argument wrapper invokes thirteen established
-macro collector operations sequentially, without retry, and returns a nonzero
-aggregate exit when any operation fails. One invocation has a fixed provider-
-request cap of 21: the electricity-retail operation is bounded at eight EIA
-pages, the BIS operation makes two requests, and each other operation makes
-one.
+`Persistent=false`. Its zero-argument wrapper invokes twenty-three
+established macro collector operations sequentially, without retry, and
+returns a nonzero aggregate exit when any operation fails. One invocation has
+a fixed provider-request cap of 31: the electricity-retail operation is bounded at eight EIA
+pages, the BIS operation makes two requests, and each other operation,
+including Treasury Debt to the Penny, Monthly Treasury Statement fiscal
+balance, weekly crude-oil stocks, total-motor-gasoline stocks, distillate-
+fuel-oil stocks, and finished-motor-gasoline product supplied, makes one.
 
 The recurring scope is fixed as follows:
 
 - a stable current-quarter envelope, beginning 44 days before quarter start
   and ending on quarter end, for FMP Treasury curve, NY Fed overnight rates
   including SOFR distribution, volume, index, and compounded averages, NY Fed
-  repo facilities, NY Fed SOMA, Federal Reserve H.4.1, and Treasury
-  Fiscal Data cash balance;
+  repo facilities, NY Fed SOMA, Federal Reserve IORB and target bounds,
+  Federal Reserve H.4.1, and Treasury Fiscal Data cash balance, Debt to the
+  Penny, and Monthly Treasury Statement receipts, outlays, and
+  deficit/surplus;
 - the source-native full response through that same quarter end for Chicago Fed
   NFCI/ANFCI and the NFCI risk, credit, and leverage components from
-  `1971-01-08`, and NY Fed CMDI from `2005-01-07`; BIS U.S. credit
+  `1971-01-08`, headline CFNAI from `1967-03-01`, FRED INDPRO from
+  `1919-01-01`, and NY Fed CMDI from `2005-01-07`; BIS U.S. credit
   conditions from `1961-Q1` through the current quarter; and the fixed
-  full-source EIA Lower-48 working gas-storage, EIA U.S. all-sector monthly
-  electricity-retail, and NBER recession-chronology requests; and
+  full-source EIA Lower-48 working gas-storage, EIA weekly U.S. crude-oil,
+  total-motor-gasoline, and distillate-fuel-oil stocks, EIA weekly finished-
+  motor-gasoline product supplied, EIA U.S. all-sector monthly electricity-
+  retail, and NBER recession-chronology requests; and
 - the existing current ten-year BLS request for PPI Final Demand, average
-  hourly earnings, and labor productivity.
+  hourly earnings, labor productivity, and Employment Cost Index; and
+- one fixed BEA NIPA `T20600`, `Year=ALL` request retaining personal income,
+  disposable personal income, and personal consumption expenditures.
 
-The wrapper targets only `data/macro.sqlite`, reuses the existing FMP and EIA
-credential resolver, and introduces no schema, migration, provider, series, or
+The wrapper targets only `data/macro.sqlite` and reuses the existing FMP,
+EIA, and BEA credential resolvers. CFNAI and INDPRO are credential-free; their
+addition changes no schema, migration, dataset ownership, provider family, or
 credential mechanism. Each collector completes its network parsing before its
 short physical-store publication lock, and unchanged normalized content causes
 zero writes. Stable quarter bounds preserve that semantic identity between
@@ -145,6 +167,32 @@ timer does not call the GDP/CPI vintage, employment-vintage, or FMP macro-
 calendar wrappers and therefore does not duplicate the other three
 recurring exceptions. The underlying registry collector declarations remain
 manual-only; this exact hardened host unit is the recurring exception.
+
+## Active Alpaca SPY option-surface refresh
+
+On 2026-08-25 the user explicitly authorized the fixed
+`quant-data-alpaca-spy-options.timer`. It was linked and enabled after the
+focused offline tests, independent verification, and host timer status check
+passed. Its first scheduled trigger is 2026-08-25 at 15:55 EDT.
+
+The timer is fixed at 15:55 America/New_York, Monday through Friday, with
+`Persistent=false`. An in-process OPRA calendar request gates actual trading
+days; a holiday stops after that one request. The operation has no retry or
+automatic catch-up.
+
+The wrapper fixes the project root, `data/market.sqlite`, SPY, the paper
+account, the indicative option feed, and the existing
+`ALPACA_API_KEY`/`ALPACA_API_SECRET` credential resolver. One invocation
+makes at most four requests: OPRA calendar, IEX SPY snapshot, bounded paper
+option contracts, and one exact-expiry indicative option chain.
+
+The collector enforces 10,000 rows, 8 MiB total response bytes, and 120
+seconds. All network work and parsing complete before the physical market-
+store write lock. Exact semantic replay writes nothing. It reuses the existing
+option tables and Stage 10 SPY identity, adds no migration, and does not enable
+the recovered `options-close` or market-close jobs. Alpaca's indicative
+quotes and delayed/derived trades are inspection evidence, not an executable
+price, trading signal, or valuation input.
 
 ## Safety principles
 

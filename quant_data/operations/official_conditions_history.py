@@ -30,13 +30,22 @@ from ..macro.official_conditions import (
     MAX_RESPONSE_BYTES,
     OfficialConditionsPublisher,
     OfficialConditionsPublishReport,
+    parse_bea_personal_income,
     parse_bls_price_wage_productivity,
     parse_bis_credit_conditions,
     parse_chicagofed_financial_conditions,
+    parse_chicagofed_national_activity,
     parse_federal_reserve_h41,
+    parse_federal_reserve_industrial_production,
+    parse_federal_reserve_policy_rates,
     parse_nyfed_cmdi,
     parse_eia_natural_gas_storage,
+    parse_eia_total_motor_gasoline_stocks,
+    parse_eia_distillate_fuel_oil_stocks,
+    parse_eia_finished_motor_gasoline_product_supplied,
     parse_nber_us_recession,
+    parse_treasury_debt,
+    parse_treasury_fiscal_balance,
     parse_treasury_tga,
 )
 from ..registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
@@ -44,8 +53,14 @@ from .fmp_macro_calendar_history import MACRO_STORE, PROJECT_ROOT
 
 
 FRED_H41_URL: Final = "https://fred.stlouisfed.org/graph/fredgraph.csv"
+FRED_POLICY_RATES_URL: Final = FRED_H41_URL
+FRED_INDUSTRIAL_PRODUCTION_URL: Final = FRED_H41_URL
 CHICAGO_NFCI_URL: Final = (
     "https://api.data.chicagofed.org/NFCI/nfci-data-series-csv.csv"
+)
+CHICAGO_CFNAI_URL: Final = (
+    "https://www.chicagofed.org/~/media/publications/cfnai/"
+    "cfnai-data-series-xlsx.xlsx?la=en"
 )
 BIS_CREDIT_GAP_URL: Final = (
     "https://stats.bis.org/api/v2/data/dataflow/BIS/"
@@ -63,8 +78,26 @@ TREASURY_TGA_URL: Final = (
     "https://api.fiscaldata.treasury.gov/services/api/"
     "fiscal_service/v1/accounting/dts/operating_cash_balance"
 )
+TREASURY_DEBT_URL: Final = (
+    "https://api.fiscaldata.treasury.gov/services/api/"
+    "fiscal_service/v2/accounting/od/debt_to_penny"
+)
+TREASURY_FISCAL_BALANCE_URL: Final = (
+    "https://api.fiscaldata.treasury.gov/services/api/"
+    "fiscal_service/v1/accounting/mts/"
+    "mts_receipts_outlays_deficit_surplus"
+)
 EIA_NATURAL_GAS_STORAGE_URL: Final = (
     "https://api.eia.gov/v2/seriesid/NG.NW2_EPG0_SWO_R48_BCF.W"
+)
+EIA_TOTAL_MOTOR_GASOLINE_STOCKS_URL: Final = (
+    "https://api.eia.gov/v2/seriesid/PET.WGTSTUS1.W"
+)
+EIA_DISTILLATE_FUEL_OIL_STOCKS_URL: Final = (
+    "https://api.eia.gov/v2/seriesid/PET.WDISTUS1.W"
+)
+EIA_FINISHED_MOTOR_GASOLINE_PRODUCT_SUPPLIED_URL: Final = (
+    "https://api.eia.gov/v2/seriesid/PET.WGFUPUS2.W"
 )
 NBER_BUSINESS_CYCLE_DATES_URL: Final = (
     "https://data.nber.org/cycles/business_cycle_dates.json"
@@ -72,6 +105,7 @@ NBER_BUSINESS_CYCLE_DATES_URL: Final = (
 BLS_PRICE_WAGE_PRODUCTIVITY_URL: Final = (
     "https://api.bls.gov/publicAPI/v2/timeseries/data/"
 )
+BEA_PERSONAL_INCOME_URL: Final = "https://apps.bea.gov/api/data/"
 _TIMEOUT_SECONDS: Final = 60
 _USER_AGENT: Final = "QuantDataInfra/1.0"
 _ACCEPTED_MEDIA_TYPES: Final = frozenset(
@@ -261,6 +295,28 @@ def _h41_url(start_date: str, end_date: str) -> str:
     return f"{FRED_H41_URL}?{query}"
 
 
+def _policy_rates_url(start_date: str, end_date: str) -> str:
+    query = urlencode(
+        {
+            "id": "IORB,DFEDTARL,DFEDTARU",
+            "cosd": start_date,
+            "coed": end_date,
+        }
+    )
+    return f"{FRED_POLICY_RATES_URL}?{query}"
+
+
+def _industrial_production_url(start_date: str, end_date: str) -> str:
+    query = urlencode(
+        {
+            "id": "INDPRO",
+            "cosd": start_date,
+            "coed": end_date,
+        }
+    )
+    return f"{FRED_INDUSTRIAL_PRODUCTION_URL}?{query}"
+
+
 def _bis_url(base: str, start_period: str, end_period: str) -> str:
     return (
         f"{base}?"
@@ -294,9 +350,76 @@ def _treasury_tga_url(start_date: str, end_date: str) -> str:
     return f"{TREASURY_TGA_URL}?{query}"
 
 
+def _treasury_debt_url(start_date: str, end_date: str) -> str:
+    query = urlencode(
+        {
+            "filter": (
+                f"record_date:gte:{start_date},record_date:lte:{end_date}"
+            ),
+            "fields": (
+                "record_date,tot_pub_debt_out_amt,"
+                "debt_held_public_amt,intragov_hold_amt"
+            ),
+            "sort": "record_date",
+            "page[size]": "10000",
+        }
+    )
+    return f"{TREASURY_DEBT_URL}?{query}"
+
+
+def _treasury_fiscal_balance_url(
+    start_date: str, end_date: str
+) -> str:
+    query = urlencode(
+        {
+            "filter": (
+                f"record_date:gte:{start_date},record_date:lte:{end_date}"
+            ),
+            "fields": "record_date,amt_category,mil_amt",
+            "sort": "record_date",
+            "page[size]": "10000",
+        }
+    )
+    return f"{TREASURY_FISCAL_BALANCE_URL}?{query}"
+
+
+def _bea_personal_income_url(api_key: str) -> str:
+    query = urlencode(
+        {
+            "method": "GetData",
+            "datasetname": "NIPA",
+            "TableName": "T20600",
+            "Frequency": "M",
+            "Year": "ALL",
+            "ResultFormat": "JSON",
+            "UserID": api_key,
+        }
+    )
+    return f"{BEA_PERSONAL_INCOME_URL}?{query}"
+
+
 def _eia_natural_gas_storage_url(api_key: str) -> str:
     query = urlencode({"api_key": api_key})
     return f"{EIA_NATURAL_GAS_STORAGE_URL}?{query}"
+
+
+def _eia_total_motor_gasoline_stocks_url(api_key: str) -> str:
+    query = urlencode({"api_key": api_key})
+    return f"{EIA_TOTAL_MOTOR_GASOLINE_STOCKS_URL}?{query}"
+
+
+def _eia_distillate_fuel_oil_stocks_url(api_key: str) -> str:
+    query = urlencode({"api_key": api_key})
+    return f"{EIA_DISTILLATE_FUEL_OIL_STOCKS_URL}?{query}"
+
+
+def _eia_finished_motor_gasoline_product_supplied_url(
+    api_key: str,
+) -> str:
+    query = urlencode({"api_key": api_key})
+    return (
+        f"{EIA_FINISHED_MOTOR_GASOLINE_PRODUCT_SUPPLIED_URL}?{query}"
+    )
 
 
 class OfficialConditionsHistoryRunner:
@@ -384,6 +507,31 @@ class OfficialConditionsHistoryRunner:
         return value
 
 
+    def _read_bea_api_key_once(self) -> str:
+        try:
+            value = read_project_credential(
+                project_root=self._project_root,
+                name="BEA_API_KEY",
+                environment=os.environ,
+            )
+        except ValidationError:
+            raise
+        except Exception as exc:
+            raise ValidationError("BEA credential is missing or invalid") from exc
+        if (
+            not isinstance(value, str)
+            or not value
+            or len(value) > 4096
+            or any(
+                character.isspace()
+                or ord(character) < 32
+                or ord(character) == 127
+                for character in value
+            )
+        ):
+            raise ValidationError("BEA credential is missing or invalid")
+        return value
+
     def _publisher(self, source_key: str) -> OfficialConditionsPublisher:
         publisher = self._publisher_factory(source_key)
         if not callable(getattr(publisher, "publish", None)):
@@ -408,6 +556,40 @@ class OfficialConditionsHistoryRunner:
         )
         return self._publisher("h41").publish(capture)
 
+    def run_policy_rates(
+        self, *, start_date: str, end_date: str
+    ) -> OfficialConditionsPublishReport:
+        start = _date_text(start_date, name="start_date")
+        end = _date_text(end_date, name="end_date")
+        if start > end:
+            raise ValidationError("Policy-rate request window is invalid")
+        body = self._request(_policy_rates_url(start, end))
+        capture = parse_federal_reserve_policy_rates(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            start_date=start,
+            end_date=end,
+        )
+        return self._publisher("policy_rates").publish(capture)
+
+    def run_industrial_production(
+        self, *, start_date: str, end_date: str
+    ) -> OfficialConditionsPublishReport:
+        start = _date_text(start_date, name="start_date")
+        end = _date_text(end_date, name="end_date")
+        if start > end:
+            raise ValidationError(
+                "Industrial-production request window is invalid"
+            )
+        body = self._request(_industrial_production_url(start, end))
+        capture = parse_federal_reserve_industrial_production(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            start_date=start,
+            end_date=end,
+        )
+        return self._publisher("industrial_production").publish(capture)
+
     def run_chicago(
         self, *, start_date: str, end_date: str
     ) -> OfficialConditionsPublishReport:
@@ -425,6 +607,28 @@ class OfficialConditionsHistoryRunner:
             end_date=end,
         )
         return self._publisher("chicago").publish(capture)
+
+    def run_cfnai(
+        self, *, start_date: str, end_date: str
+    ) -> OfficialConditionsPublishReport:
+        start = _date_text(start_date, name="start_date")
+        end = _date_text(end_date, name="end_date")
+        if start > end:
+            raise ValidationError("CFNAI request window is invalid")
+        body = self._request(
+            CHICAGO_CFNAI_URL,
+            accept=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
+        )
+        capture = parse_chicagofed_national_activity(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            start_date=start,
+            end_date=end,
+        )
+        return self._publisher("cfnai").publish(capture)
 
     def run_bis(
         self, *, start_period: str, end_period: str
@@ -495,6 +699,51 @@ class OfficialConditionsHistoryRunner:
         return self._publisher("treasury_tga").publish(capture)
 
 
+    def run_treasury_debt(
+        self, *, start_date: str, end_date: str
+    ) -> OfficialConditionsPublishReport:
+        """Fetch one complete bounded Treasury Debt to the Penny page."""
+
+        start = _date_text(start_date, name="start_date")
+        end = _date_text(end_date, name="end_date")
+        if start > end:
+            raise ValidationError("Treasury debt request window is invalid")
+        body = self._request(
+            _treasury_debt_url(start, end), accept="application/json"
+        )
+        capture = parse_treasury_debt(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            start_date=start,
+            end_date=end,
+        )
+        return self._publisher("treasury_debt").publish(capture)
+
+
+    def run_treasury_fiscal_balance(
+        self, *, start_date: str, end_date: str
+    ) -> OfficialConditionsPublishReport:
+        """Fetch one complete bounded Monthly Treasury Statement page."""
+
+        start = _date_text(start_date, name="start_date")
+        end = _date_text(end_date, name="end_date")
+        if start > end:
+            raise ValidationError(
+                "Monthly Treasury Statement request window is invalid"
+            )
+        body = self._request(
+            _treasury_fiscal_balance_url(start, end),
+            accept="application/json",
+        )
+        capture = parse_treasury_fiscal_balance(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            start_date=start,
+            end_date=end,
+        )
+        return self._publisher("treasury_fiscal_balance").publish(capture)
+
+
     def run_eia_natural_gas_storage(
         self,
     ) -> OfficialConditionsPublishReport:
@@ -513,6 +762,60 @@ class OfficialConditionsHistoryRunner:
         return self._publisher("eia_gas").publish(capture)
 
 
+    def run_eia_total_motor_gasoline_stocks(
+        self,
+    ) -> OfficialConditionsPublishReport:
+        api_key = self._read_eia_api_key_once()
+        body = self._request(
+            _eia_total_motor_gasoline_stocks_url(api_key),
+            accept="application/json",
+        )
+        capture = parse_eia_total_motor_gasoline_stocks(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            credential=api_key,
+        )
+        return self._publisher(
+            "eia_total_motor_gasoline_stocks"
+        ).publish(capture)
+
+
+    def run_eia_distillate_fuel_oil_stocks(
+        self,
+    ) -> OfficialConditionsPublishReport:
+        api_key = self._read_eia_api_key_once()
+        body = self._request(
+            _eia_distillate_fuel_oil_stocks_url(api_key),
+            accept="application/json",
+        )
+        capture = parse_eia_distillate_fuel_oil_stocks(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            credential=api_key,
+        )
+        return self._publisher(
+            "eia_distillate_fuel_oil_stocks"
+        ).publish(capture)
+
+
+    def run_eia_finished_motor_gasoline_product_supplied(
+        self,
+    ) -> OfficialConditionsPublishReport:
+        api_key = self._read_eia_api_key_once()
+        body = self._request(
+            _eia_finished_motor_gasoline_product_supplied_url(api_key),
+            accept="application/json",
+        )
+        capture = parse_eia_finished_motor_gasoline_product_supplied(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            credential=api_key,
+        )
+        return self._publisher(
+            "eia_finished_motor_gasoline_product_supplied"
+        ).publish(capture)
+
+
     def run_nber_us_recession(
         self,
     ) -> OfficialConditionsPublishReport:
@@ -525,6 +828,23 @@ class OfficialConditionsHistoryRunner:
             body, captured_at=_utc_text(self._utcnow())
         )
         return self._publisher("nber_recession").publish(capture)
+
+    def run_bea_personal_income(
+        self,
+    ) -> OfficialConditionsPublishReport:
+        """Fetch all three fixed monthly BEA series in one request."""
+
+        api_key = self._read_bea_api_key_once()
+        body = self._request(
+            _bea_personal_income_url(api_key),
+            accept="application/json",
+        )
+        capture = parse_bea_personal_income(
+            body,
+            captured_at=_utc_text(self._utcnow()),
+            credential=api_key,
+        )
+        return self._publisher("bea_personal_income").publish(capture)
 
     def run_bls_price_wage_productivity(
         self,
@@ -626,10 +946,34 @@ def populate_federal_reserve_h41_live(
     )
 
 
+def populate_federal_reserve_policy_rates_live(
+    *, start_date: str, end_date: str
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_policy_rates(
+        start_date=start_date, end_date=end_date
+    )
+
+
+def populate_federal_reserve_industrial_production_live(
+    *, start_date: str, end_date: str
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_industrial_production(
+        start_date=start_date, end_date=end_date
+    )
+
+
 def populate_chicagofed_financial_conditions_live(
     *, start_date: str, end_date: str
 ) -> OfficialConditionsPublishReport:
     return _live_runner().run_chicago(
+        start_date=start_date, end_date=end_date
+    )
+
+
+def populate_chicagofed_national_activity_live(
+    *, start_date: str, end_date: str
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_cfnai(
         start_date=start_date, end_date=end_date
     )
 
@@ -658,14 +1002,50 @@ def populate_treasury_tga_live(
     )
 
 
+def populate_treasury_debt_live(
+    *, start_date: str, end_date: str
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_treasury_debt(
+        start_date=start_date, end_date=end_date
+    )
+
+
+def populate_treasury_fiscal_balance_live(
+    *, start_date: str, end_date: str
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_treasury_fiscal_balance(
+        start_date=start_date, end_date=end_date
+    )
+
+
 def populate_eia_natural_gas_storage_live(
 ) -> OfficialConditionsPublishReport:
     return _live_runner().run_eia_natural_gas_storage()
 
 
+def populate_eia_total_motor_gasoline_stocks_live(
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_eia_total_motor_gasoline_stocks()
+
+
+def populate_eia_distillate_fuel_oil_stocks_live(
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_eia_distillate_fuel_oil_stocks()
+
+
+def populate_eia_finished_motor_gasoline_product_supplied_live(
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_eia_finished_motor_gasoline_product_supplied()
+
+
 def populate_nber_us_recession_live(
 ) -> OfficialConditionsPublishReport:
     return _live_runner().run_nber_us_recession()
+
+
+def populate_bea_personal_income_live(
+) -> OfficialConditionsPublishReport:
+    return _live_runner().run_bea_personal_income()
 
 
 def populate_bls_price_wage_productivity_live(
@@ -695,8 +1075,14 @@ def _parser() -> argparse.ArgumentParser:
     parser = _SafeArgumentParser(add_help=False)
     parser.add_argument(
         "source",
-        choices=("h41", "chicago", "bis", "cmdi", "treasury_tga", "eia_gas",
-                 "nber_recession", "bls_price_wage_productivity"),
+        choices=("h41", "policy_rates", "industrial_production",
+                 "chicago", "cfnai", "bis", "cmdi",
+                 "treasury_tga", "treasury_debt", "treasury_fiscal_balance",
+                 "eia_gas", "eia_total_motor_gasoline_stocks",
+                 "eia_distillate_fuel_oil_stocks",
+                 "eia_finished_motor_gasoline_product_supplied",
+                 "nber_recession", "bls_price_wage_productivity",
+                 "bea_personal_income"),
     )
     parser.add_argument("--from", dest="start")
     parser.add_argument("--to", dest="end")
@@ -733,10 +1119,31 @@ def main(argv: list[str] | None = None) -> int:
             if arguments.start is not None or arguments.end is not None:
                 raise _ArgumentFailure
             report = populate_eia_natural_gas_storage_live()
+        elif arguments.source == "eia_total_motor_gasoline_stocks":
+            if arguments.start is not None or arguments.end is not None:
+                raise _ArgumentFailure
+            report = populate_eia_total_motor_gasoline_stocks_live()
+        elif arguments.source == "eia_distillate_fuel_oil_stocks":
+            if arguments.start is not None or arguments.end is not None:
+                raise _ArgumentFailure
+            report = populate_eia_distillate_fuel_oil_stocks_live()
+        elif (
+            arguments.source
+            == "eia_finished_motor_gasoline_product_supplied"
+        ):
+            if arguments.start is not None or arguments.end is not None:
+                raise _ArgumentFailure
+            report = (
+                populate_eia_finished_motor_gasoline_product_supplied_live()
+            )
         elif arguments.source == "nber_recession":
             if arguments.start is not None or arguments.end is not None:
                 raise _ArgumentFailure
             report = populate_nber_us_recession_live()
+        elif arguments.source == "bea_personal_income":
+            if arguments.start is not None or arguments.end is not None:
+                raise _ArgumentFailure
+            report = populate_bea_personal_income_live()
         elif arguments.source == "bls_price_wage_productivity":
             if (
                 arguments.start is None
@@ -764,8 +1171,23 @@ def main(argv: list[str] | None = None) -> int:
                     start_date=arguments.start,
                     end_date=arguments.end,
                 )
+            elif arguments.source == "policy_rates":
+                report = populate_federal_reserve_policy_rates_live(
+                    start_date=arguments.start,
+                    end_date=arguments.end,
+                )
+            elif arguments.source == "industrial_production":
+                report = populate_federal_reserve_industrial_production_live(
+                    start_date=arguments.start,
+                    end_date=arguments.end,
+                )
             elif arguments.source == "chicago":
                 report = populate_chicagofed_financial_conditions_live(
+                    start_date=arguments.start,
+                    end_date=arguments.end,
+                )
+            elif arguments.source == "cfnai":
+                report = populate_chicagofed_national_activity_live(
                     start_date=arguments.start,
                     end_date=arguments.end,
                 )
@@ -781,6 +1203,16 @@ def main(argv: list[str] | None = None) -> int:
                 )
             elif arguments.source == "treasury_tga":
                 report = populate_treasury_tga_live(
+                    start_date=arguments.start,
+                    end_date=arguments.end,
+                )
+            elif arguments.source == "treasury_debt":
+                report = populate_treasury_debt_live(
+                    start_date=arguments.start,
+                    end_date=arguments.end,
+                )
+            elif arguments.source == "treasury_fiscal_balance":
+                report = populate_treasury_fiscal_balance_live(
                     start_date=arguments.start,
                     end_date=arguments.end,
                 )
@@ -820,21 +1252,39 @@ if __name__ == "__main__":  # pragma: no cover
 
 
 __all__ = (
+    "BEA_PERSONAL_INCOME_URL",
     "BIS_CREDIT_GAP_URL",
     "BIS_DSR_URL",
     "BLS_PRICE_WAGE_PRODUCTIVITY_URL",
+    "CHICAGO_CFNAI_URL",
     "CHICAGO_NFCI_URL",
     "NYFED_CMDI_URL",
+    "TREASURY_DEBT_URL",
+    "TREASURY_FISCAL_BALANCE_URL",
+    "EIA_TOTAL_MOTOR_GASOLINE_STOCKS_URL",
+    "EIA_DISTILLATE_FUEL_OIL_STOCKS_URL",
+    "EIA_FINISHED_MOTOR_GASOLINE_PRODUCT_SUPPLIED_URL",
     "CsvResponse",
     "CsvTransport",
     "FRED_H41_URL",
+    "FRED_INDUSTRIAL_PRODUCTION_URL",
+    "FRED_POLICY_RATES_URL",
     "OfficialConditionsHistoryRunner",
     "StdlibCsvTransport",
+    "populate_bea_personal_income_live",
     "populate_bis_credit_conditions_live",
     "populate_chicagofed_financial_conditions_live",
+    "populate_chicagofed_national_activity_live",
     "populate_federal_reserve_h41_live",
+    "populate_federal_reserve_industrial_production_live",
+    "populate_federal_reserve_policy_rates_live",
+    "populate_treasury_debt_live",
+    "populate_treasury_fiscal_balance_live",
     "populate_nyfed_cmdi_live",
     "populate_bls_price_wage_productivity_live",
     "populate_eia_natural_gas_storage_live",
+    "populate_eia_total_motor_gasoline_stocks_live",
+    "populate_eia_distillate_fuel_oil_stocks_live",
+    "populate_eia_finished_motor_gasoline_product_supplied_live",
     "populate_nber_us_recession_live",
 )

@@ -55,8 +55,8 @@ HISTORICAL_RETRY = {
 class Stage11RegistryTests(unittest.TestCase):
     def test_canonical_stage11_and_frozen_stage10_projection(self) -> None:
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
-        self.assertEqual((registry.schema_version, registry.registry_version), ("1.8.0", "2.29.0"))
-        self.assertEqual((len(registry.migrations), len(registry.datasets), len(registry.collectors)), (38, 51, 48))
+        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.43.0"))
+        self.assertEqual((len(registry.migrations), len(registry.datasets), len(registry.collectors)), (40, 53, 50))
         self.assertEqual(registry.store("market").default_path, "data/market.sqlite")
         self.assertEqual(registry.store("macro").default_path, "data/macro.sqlite")
         self.assertEqual(registry.store("company").default_path, "data/company.sqlite")

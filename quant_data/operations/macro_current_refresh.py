@@ -30,8 +30,10 @@ from ..json_codec import dumps_strict
 _VERSION: Final = "1.0.0"
 _NEW_YORK: Final = ZoneInfo("America/New_York")
 _ROLLING_WINDOW_DAYS: Final = 45
-REQUEST_CAP: Final = 21
+REQUEST_CAP: Final = 31
+_INDUSTRIAL_PRODUCTION_START_DATE: Final = "1919-01-01"
 _CHICAGO_START_DATE: Final = "1971-01-08"
+_CFNAI_START_DATE: Final = "1967-03-01"
 _CMDI_START_DATE: Final = "2005-01-07"
 _BIS_START_PERIOD: Final = "1961-Q1"
 _SOURCE_IDS: Final = (
@@ -40,14 +42,24 @@ _SOURCE_IDS: Final = (
     "nyfed_repo_facilities",
     "nyfed_soma",
     "federal_reserve_h41",
+    "federal_reserve_policy_rates",
+    "industrial_production",
     "chicagofed_financial_conditions",
+    "cfnai",
     "bis_credit_conditions",
     "nyfed_cmdi",
     "treasury_tga",
+    "treasury_debt",
+    "treasury_fiscal_balance",
     "eia_natural_gas_storage",
+    "eia_petroleum_weekly_stock",
+    "eia_total_motor_gasoline_stocks",
+    "eia_distillate_fuel_oil_stocks",
+    "eia_finished_motor_gasoline_product_supplied",
     "eia_electricity_retail",
     "nber_us_recession",
     "bls_price_wage_productivity",
+    "bea_personal_income",
 )
 _FAILURE_PRECEDENCE: Final = (64, 69, 74, 75, 70)
 
@@ -105,6 +117,9 @@ def _live_collectors() -> dict[str, Collector]:
     from .eia_electricity_retail_history import (
         populate_eia_electricity_retail_live,
     )
+    from .eia_petroleum_weekly_history import (
+        populate_eia_petroleum_weekly_stock_live,
+    )
     from .fmp_treasury_curve_history import (
         populate_fmp_treasury_curve_history_live,
     )
@@ -112,13 +127,22 @@ def _live_collectors() -> dict[str, Collector]:
     from .nyfed_repo_facilities_history import populate_nyfed_repo_facilities_live
     from .nyfed_soma_history import populate_nyfed_soma_live
     from .official_conditions_history import (
+        populate_bea_personal_income_live,
         populate_bis_credit_conditions_live,
         populate_bls_price_wage_productivity_live,
         populate_chicagofed_financial_conditions_live,
+        populate_chicagofed_national_activity_live,
         populate_eia_natural_gas_storage_live,
+        populate_eia_total_motor_gasoline_stocks_live,
+        populate_eia_distillate_fuel_oil_stocks_live,
+        populate_eia_finished_motor_gasoline_product_supplied_live,
         populate_federal_reserve_h41_live,
+        populate_federal_reserve_industrial_production_live,
+        populate_federal_reserve_policy_rates_live,
         populate_nber_us_recession_live,
         populate_nyfed_cmdi_live,
+        populate_treasury_debt_live,
+        populate_treasury_fiscal_balance_live,
         populate_treasury_tga_live,
     )
 
@@ -128,14 +152,34 @@ def _live_collectors() -> dict[str, Collector]:
         "nyfed_repo_facilities": populate_nyfed_repo_facilities_live,
         "nyfed_soma": populate_nyfed_soma_live,
         "federal_reserve_h41": populate_federal_reserve_h41_live,
+        "federal_reserve_policy_rates": populate_federal_reserve_policy_rates_live,
+        "industrial_production": (
+            populate_federal_reserve_industrial_production_live
+        ),
         "chicagofed_financial_conditions": populate_chicagofed_financial_conditions_live,
+        "cfnai": (
+            populate_chicagofed_national_activity_live
+        ),
         "bis_credit_conditions": populate_bis_credit_conditions_live,
         "nyfed_cmdi": populate_nyfed_cmdi_live,
         "treasury_tga": populate_treasury_tga_live,
+        "treasury_debt": populate_treasury_debt_live,
+        "treasury_fiscal_balance": populate_treasury_fiscal_balance_live,
         "eia_natural_gas_storage": populate_eia_natural_gas_storage_live,
+        "eia_petroleum_weekly_stock": populate_eia_petroleum_weekly_stock_live,
+        "eia_total_motor_gasoline_stocks": (
+            populate_eia_total_motor_gasoline_stocks_live
+        ),
+        "eia_distillate_fuel_oil_stocks": (
+            populate_eia_distillate_fuel_oil_stocks_live
+        ),
+        "eia_finished_motor_gasoline_product_supplied": (
+            populate_eia_finished_motor_gasoline_product_supplied_live
+        ),
         "eia_electricity_retail": populate_eia_electricity_retail_live,
         "nber_us_recession": populate_nber_us_recession_live,
         "bls_price_wage_productivity": populate_bls_price_wage_productivity_live,
+        "bea_personal_income": populate_bea_personal_income_live,
     }
 
 
@@ -176,10 +220,24 @@ def _planned_calls(
         ("nyfed_repo_facilities", 1, {"start_date": start_date, "end_date": end_date}),
         ("nyfed_soma", 1, {"start_date": start_date, "end_date": end_date}),
         ("federal_reserve_h41", 1, {"start_date": start_date, "end_date": end_date}),
+        ("federal_reserve_policy_rates", 1, {"start_date": start_date, "end_date": end_date}),
+        (
+            "industrial_production",
+            1,
+            {
+                "start_date": _INDUSTRIAL_PRODUCTION_START_DATE,
+                "end_date": end_date,
+            },
+        ),
         (
             "chicagofed_financial_conditions",
             1,
             {"start_date": _CHICAGO_START_DATE, "end_date": end_date},
+        ),
+        (
+            "cfnai",
+            1,
+            {"start_date": _CFNAI_START_DATE, "end_date": end_date},
         ),
         (
             "bis_credit_conditions",
@@ -188,10 +246,17 @@ def _planned_calls(
         ),
         ("nyfed_cmdi", 1, {"start_date": _CMDI_START_DATE, "end_date": end_date}),
         ("treasury_tga", 1, {"start_date": start_date, "end_date": end_date}),
+        ("treasury_debt", 1, {"start_date": start_date, "end_date": end_date}),
+        ("treasury_fiscal_balance", 1, {"start_date": start_date, "end_date": end_date}),
         ("eia_natural_gas_storage", 1, {}),
+        ("eia_petroleum_weekly_stock", 1, {}),
+        ("eia_total_motor_gasoline_stocks", 1, {}),
+        ("eia_distillate_fuel_oil_stocks", 1, {}),
+        ("eia_finished_motor_gasoline_product_supplied", 1, {}),
         ("eia_electricity_retail", 8, {}),
         ("nber_us_recession", 1, {}),
         ("bls_price_wage_productivity", 1, {}),
+        ("bea_personal_income", 1, {}),
     )
 
 

@@ -158,6 +158,35 @@ accepted revision changes, discarding the unaccepted candidate does not create
 a `2.23.0` successor. This narrow retirement does not alter the completed
 `2.16.0` BLS annual-revision snapshots or its authorized current BLS refresh.
 
+
+On 2026-08-24 the user accepted
+[ADR 0012: compact future FMP calendar retention](../adr/0012-compact-fmp-calendar-retention.md).
+Registry `2.40.0` keeps every migration-0016 response and row immutable and
+readable, while future material polls append one small receipt and only changed
+raw event versions, then replace one singleton latest-response cache. Exact
+semantic replay remains a total no-write. The established request bound,
+credential resolver, lock, and timer cadence do not change; this implementation
+does not itself authorize or perform a provider request or canonical-store
+migration.
+
+On 2026-08-24 the user explicitly requested the first raw market-data tool.
+Registry `2.41.0` adds `market.get_price_series` as a local read-only
+adapter over the verified Stage 10 reader. It returns open, high, low, and
+close typed series for one ticker, with independently optional inclusive start
+and end dates. The active manifest has 58 names; the frozen recovered
+compatibility target remains 57. No provider, credential, write, scheduler,
+export, hosting, or deployment scope was added.
+
+On 2026-08-24 the user requested a local interface for agents in other
+projects on the same computer plus ticker discovery. Registry `2.42.0` adds
+`market.get_available_ticker` over the current retrievable Stage 10 price
+universe and advances the active manifest to 59 names while preserving the
+frozen 57-name compatibility target. The fixed
+[local-agent guide](../LOCAL_AGENT_TOOLS.md) documents a no-URL strict-JSON
+subprocess with host-owned registry and store routing. This adds no direct
+SQLite access, provider request, credential, write, migration, scheduler,
+export, hosting, or deployment scope.
+
 For any provider, credential, scheduler, canonical-store, migration,
 promotion, retirement, deployment, public-exposure, or destructive task, read
 the [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) before the

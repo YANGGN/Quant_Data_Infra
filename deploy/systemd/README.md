@@ -6,16 +6,17 @@ triggering a service or timer. Before scheduler or provider work, read the
 [current operating envelope](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
 and [scheduling contract](../../docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
-Exactly four recurring timers are recorded as approved and active. Agents may
-inspect their status read-only, but may not change or manually trigger them.
+Five recurring timers are approved and active. Agents may inspect active
+status read-only, but may not change or manually trigger any timer.
 
 ## Closed: market-close timer
 
 Stage 12E remains closed. The project-local
 `quant-data-market-close.service` and `quant-data-market-close.timer` files
 are retained artifacts only. Do not link, start, enable, test, or supply a
-credential to them. Stage 12C remains the sole reviewed write to
-`data/market.sqlite`.
+credential to them. The completed Stage 12C provider write remains no-repeat.
+This closure does not include the separately approved fixed Alpaca timer
+below.
 
 ## Active GDP/CPI vintage timer
 
@@ -73,10 +74,15 @@ different operation, or install another recurring unit.
 ## Active aggregate macro-current timer
 
 The aggregate macro-current timer runs at 18:30 America/New_York on weekdays.
-It sequentially refreshes the thirteen established Treasury-curve, rates,
-liquidity, financial-conditions, credit, Treasury-cash, gas-storage,
-electricity-retail, recession-chronology, and BLS price/wage/productivity
-operations. Its total provider-request cap is 21 per invocation, it does not
+It sequentially refreshes the twenty-three established Treasury-curve,
+rates, liquidity, industrial-production, financial-conditions,
+national-activity, credit, Treasury-cash, Treasury-debt,
+federal-fiscal-balance, gas-storage, weekly crude-oil, gasoline, and distillate
+stocks, finished-gasoline product supplied, electricity-retail, recession-
+chronology, BLS price/wage/productivity, and BEA personal-income/outlays
+operations. ECI rides the existing BLS request; CFNAI and INDPRO add one
+request each. Its total provider-request cap is 31 per
+invocation, it does not
 retry, and unchanged
 content causes no canonical write. It is non-persistent, so missed windows are
 not replayed automatically. The existing GDP/CPI, employment, and FMP-calendar
@@ -89,3 +95,22 @@ These inspection commands are read-only:
     systemctl --user list-timers quant-data-macro-current-refresh.timer --all
 
 Do not manually start the service or change the timer.
+
+## Active Alpaca SPY option-surface timer
+
+The fixed Alpaca timer is enabled for 15:55 America/New_York on weekdays. Its
+first scheduled trigger is 2026-08-25 at 15:55 EDT.
+
+It is non-persistent, has an in-process OPRA trading-calendar gate, makes at
+most four single-attempt requests, and writes only to the existing option
+tables in `data/market.sqlite`. It does not enable either recovered market
+job.
+
+These inspection commands are read-only:
+
+    systemctl --user status quant-data-alpaca-spy-options.service
+    systemctl --user status quant-data-alpaca-spy-options.timer
+    systemctl --user list-timers quant-data-alpaca-spy-options.timer --all
+
+Do not manually start the service, change the timer, expose credentials, or
+repurpose it for another symbol, feed, environment, time, or store.

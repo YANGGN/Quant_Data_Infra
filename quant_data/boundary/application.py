@@ -243,10 +243,15 @@ class Stage1Application:
                 issues=(Issue("/", "type", "Expected an object"),),
             )
         candidate_name = envelope.get("tool")
+        has_tool_version = "tool_version" in envelope
+        candidate_tool_version = envelope.get("tool_version")
         raw_arguments = envelope.get("arguments")
         receipt_arguments = raw_arguments if isinstance(raw_arguments, Mapping) else {}
         try:
-            _require_exact_keys(envelope, {"api_version", "tool", "arguments"}, "/")
+            expected_fields = {"api_version", "tool", "arguments"}
+            if has_tool_version:
+                expected_fields.add("tool_version")
+            _require_exact_keys(envelope, expected_fields, "/")
             if envelope["api_version"] != self.api_version:
                 raise ValidationError(
                     "Unsupported API version",
@@ -269,40 +274,81 @@ class Stage1Application:
                         ),
                     ),
                 )
+            if has_tool_version and (
+                not isinstance(candidate_tool_version, str)
+                or not candidate_tool_version
+            ):
+                raise ValidationError(
+                    "Tool version must be a nonempty string",
+                    issues=(
+                        Issue(
+                            "/tool_version",
+                            "type",
+                            "Expected an advertised semantic version",
+                        ),
+                    ),
+                )
             if not isinstance(raw_arguments, dict):
                 raise ValidationError(
                     "Tool arguments must be an object",
                     issues=(Issue("/arguments", "type", "Expected an object"),),
                 )
             name = candidate_name
-            result = self._dispatcher.call(name, raw_arguments)
+            result = self._dispatcher.call(
+                name,
+                raw_arguments,
+                tool_version=(
+                    candidate_tool_version if has_tool_version else None
+                ),
+            )
         except QuantDataError as exc:
             if not isinstance(candidate_name, str):
                 raise
-            try:
-                receipt = self._dispatcher.receipt_for(
-                    candidate_name,
-                    receipt_arguments,
-                    error_code=exc.code,
-                ).to_primitive()
-            except QuantDataError:
+            if has_tool_version and not isinstance(candidate_tool_version, str):
                 receipt = {"registry_revision": self._registry.revision}
+            else:
+                try:
+                    receipt = self._dispatcher.receipt_for(
+                        candidate_name,
+                        receipt_arguments,
+                        error_code=exc.code,
+                        tool_version=(
+                            candidate_tool_version
+                            if has_tool_version
+                            else None
+                        ),
+                    ).to_primitive()
+                except QuantDataError:
+                    receipt = {"registry_revision": self._registry.revision}
             return self.error_response(exc, receipt=receipt)
         except Exception:
             if not isinstance(candidate_name, str):
                 raise
             error = InternalServerError("Internal server error")
-            try:
-                receipt = self._dispatcher.receipt_for(
-                    candidate_name,
-                    receipt_arguments,
-                    error_code=error.code,
-                ).to_primitive()
-            except QuantDataError:
+            if has_tool_version and not isinstance(candidate_tool_version, str):
                 receipt = {"registry_revision": self._registry.revision}
+            else:
+                try:
+                    receipt = self._dispatcher.receipt_for(
+                        candidate_name,
+                        receipt_arguments,
+                        error_code=error.code,
+                        tool_version=(
+                            candidate_tool_version
+                            if has_tool_version
+                            else None
+                        ),
+                    ).to_primitive()
+                except QuantDataError:
+                    receipt = {"registry_revision": self._registry.revision}
             return self.error_response(error, receipt=receipt)
         receipt = self._dispatcher.receipt_for(
-            name, raw_arguments, result
+            name,
+            raw_arguments,
+            result,
+            tool_version=(
+                candidate_tool_version if has_tool_version else None
+            ),
         ).to_primitive()
         return self._json_response(
             HTTPStatus.OK,

@@ -19,14 +19,24 @@ EXPECTED_SOURCES = (
     "nyfed_repo_facilities",
     "nyfed_soma",
     "federal_reserve_h41",
+    "federal_reserve_policy_rates",
+    "industrial_production",
     "chicagofed_financial_conditions",
+    "cfnai",
     "bis_credit_conditions",
     "nyfed_cmdi",
     "treasury_tga",
+    "treasury_debt",
+    "treasury_fiscal_balance",
     "eia_natural_gas_storage",
+    "eia_petroleum_weekly_stock",
+    "eia_total_motor_gasoline_stocks",
+    "eia_distillate_fuel_oil_stocks",
+    "eia_finished_motor_gasoline_product_supplied",
     "eia_electricity_retail",
     "nber_us_recession",
     "bls_price_wage_productivity",
+    "bea_personal_income",
 )
 
 
@@ -76,30 +86,47 @@ class MacroCurrentRefreshTests(unittest.TestCase):
                 ("nyfed_repo_facilities", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
                 ("nyfed_soma", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
                 ("federal_reserve_h41", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
+                ("federal_reserve_policy_rates", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
+                ("industrial_production", {"start_date": "1919-01-01", "end_date": "2026-09-30"}),
                 ("chicagofed_financial_conditions", {"start_date": "1971-01-08", "end_date": "2026-09-30"}),
+                ("cfnai", {"start_date": "1967-03-01", "end_date": "2026-09-30"}),
                 ("bis_credit_conditions", {"start_period": "1961-Q1", "end_period": "2026-Q3"}),
                 ("nyfed_cmdi", {"start_date": "2005-01-07", "end_date": "2026-09-30"}),
                 ("treasury_tga", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
+                ("treasury_debt", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
+                ("treasury_fiscal_balance", {"start_date": "2026-05-18", "end_date": "2026-09-30"}),
                 ("eia_natural_gas_storage", {}),
+                ("eia_petroleum_weekly_stock", {}),
+                ("eia_total_motor_gasoline_stocks", {}),
+                ("eia_distillate_fuel_oil_stocks", {}),
+                ("eia_finished_motor_gasoline_product_supplied", {}),
                 ("eia_electricity_retail", {}),
                 ("nber_us_recession", {}),
                 ("bls_price_wage_productivity", {}),
+                ("bea_personal_income", {}),
             ],
         )
         self.assertEqual(report.local_date, "2026-08-19")
-        self.assertEqual(len(report.steps), 13)
-        self.assertEqual(sum(step.request_cap for step in report.steps), 21)
+        self.assertEqual(len(report.steps), 23)
+        self.assertEqual(sum(step.request_cap for step in report.steps), 31)
         self.assertEqual(
             [step.request_cap for step in report.steps],
-            [1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 8, 1, 1],
+            [
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 2,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 8,
+                1, 1, 1,
+            ],
         )
-        self.assertEqual(operation.REQUEST_CAP, 21)
+        self.assertEqual(operation.REQUEST_CAP, 31)
         self.assertEqual(report.exit_code, 0)
         self.assertEqual(report.steps[3].outcome, "published")
         self.assertEqual(report.mapping()["outcome"], "succeeded")
         self.assertEqual(
             loads_strict(dumps_strict(report.mapping())), report.mapping()
         )
+
+    def test_live_collector_map_matches_the_fixed_source_order(self) -> None:
+        self.assertEqual(tuple(operation._live_collectors()), EXPECTED_SOURCES)
 
     def test_planned_scopes_are_stable_on_consecutive_local_dates(self) -> None:
         first_collectors, first_calls = self._collectors()
@@ -135,7 +162,7 @@ class MacroCurrentRefreshTests(unittest.TestCase):
         )
         rendered = dumps_strict(report.mapping())
         self.assertNotIn("fixture credential", rendered)
-        self.assertEqual(report.steps[-1].source, "bls_price_wage_productivity")
+        self.assertEqual(report.steps[-1].source, "bea_personal_income")
         self.assertEqual(report.steps[-1].outcome, "unchanged")
 
     def test_cli_prints_strict_summary_and_rejects_arguments(self) -> None:

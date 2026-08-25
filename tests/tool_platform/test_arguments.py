@@ -13,8 +13,13 @@ from quant_data.tool_platform.arguments import (
     ArgumentParameter,
     MultiSeriesArguments,
     QueryArguments,
+    Stage10AvailableTickerArgumentsV1,
     SearchArguments,
     SingleSeriesArguments,
+    Stage10MarketRegressionArgumentsV21,
+    Stage10MarketRegressionModelSuiteArgumentsV3,
+    Stage10MarketRollingRegressionArgumentsV21,
+    Stage10MarketStructuralBreakArgumentsV2,
     input_schema,
     parse_arguments,
     preflight_dimensions,
@@ -85,6 +90,41 @@ class ArgumentContractTests(unittest.TestCase):
             ]["properties"]["observations"]["maxItems"],
             10_000,
         )
+
+    def test_available_ticker_optional_limit_defaults_and_remains_strict(
+        self,
+    ) -> None:
+        input_kind = "stage10_available_ticker_v1"
+        schema = input_schema(input_kind, SERIES_SCHEMA)
+        self.assertEqual(schema["required"], [])
+        self.assertEqual(schema["properties"]["limit"]["maximum"], 10_000)
+        validate_schema({}, schema)
+
+        decoded = parse_arguments(input_kind, {}, lambda _: series())
+        self.assertIsInstance(decoded, Stage10AvailableTickerArgumentsV1)
+        self.assertEqual(decoded.limit, 10_000)
+        self.assertEqual(
+            preflight_dimensions({}, input_kind=input_kind),
+            {"rows": 10_000, "series": 0, "operations": 10_000},
+        )
+        limited = parse_arguments(
+            input_kind, {"limit": 25}, lambda _: series()
+        )
+        self.assertEqual(limited.limit, 25)
+        with self.assertRaises(ValidationError):
+            validate_schema({"limit": 10_001}, schema)
+        with self.assertRaises(ValidationError):
+            parse_arguments(
+                input_kind,
+                {"limit": 10_001},
+                lambda _: series(),
+            )
+        with self.assertRaises(ValidationError):
+            parse_arguments(
+                input_kind,
+                {"database_path": "/tmp/forbidden.sqlite"},
+                lambda _: series(),
+            )
 
     def test_typed_argument_values_are_frozen_mappings(self) -> None:
         source_parameters = [{"name": "window", "value": 5}]
@@ -200,6 +240,109 @@ class ArgumentContractTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             immutable.metadata["nested"]["state"] = "changed"  # type: ignore[index]
 
+    def test_v21_econometrics_arguments_have_bounded_preflight_costs(self) -> None:
+        regression_public = {
+            "series": [raw_series(12), raw_series(10)],
+            "intercept": True,
+            "covariance": "newey_west_hac_bartlett",
+            "hac_lag": 2,
+            "diagnostic_lag": 3,
+            "confidence_level": "0.95",
+            "limit": 10,
+        }
+        regression = parse_arguments(
+            "stage10_market_regression_v2_1",
+            regression_public,
+            lambda _: series(),
+        )
+        self.assertIsInstance(
+            regression, Stage10MarketRegressionArgumentsV21
+        )
+        self.assertEqual(
+            preflight_dimensions(
+                regression_public,
+                input_kind="stage10_market_regression_v2_1",
+            ),
+            {"rows": 12, "series": 2, "operations": 192},
+        )
+
+        rolling_public = {
+            **regression_public,
+            "window": 8,
+            "diagnostic_lag": 1,
+        }
+        rolling = parse_arguments(
+            "stage10_market_rolling_regression_v2_1",
+            rolling_public,
+            lambda _: series(),
+        )
+        self.assertIsInstance(
+            rolling, Stage10MarketRollingRegressionArgumentsV21
+        )
+        self.assertEqual(
+            preflight_dimensions(
+                rolling_public,
+                input_kind="stage10_market_rolling_regression_v2_1",
+            ),
+            {"rows": 12, "series": 2, "operations": 1152},
+        )
+
+    def test_structural_break_arguments_are_strict_and_budget_three_fits(self) -> None:
+        input_kind = "stage10_market_structural_breaks_v2"
+        public = {
+            "series": [raw_series(12), raw_series(10)],
+            "intercept": True,
+            "break_index": 6,
+            "significance": "0.05",
+            "limit": 12,
+        }
+        schema = input_schema(input_kind, SERIES_SCHEMA)
+        self.assertEqual(
+            schema["properties"]["break_index"],
+            {"type": "integer", "minimum": 1, "maximum": 4999},
+        )
+        self.assertEqual(schema["properties"]["series"]["minItems"], 2)
+        self.assertEqual(schema["properties"]["series"]["maxItems"], 20)
+        validate_schema(public, schema)
+
+        decoded = parse_arguments(
+            input_kind,
+            public,
+            lambda _: series(),
+        )
+        self.assertIsInstance(
+            decoded,
+            Stage10MarketStructuralBreakArgumentsV2,
+        )
+        self.assertEqual(decoded.break_index, 6)
+        self.assertEqual(
+            preflight_dimensions(public, input_kind=input_kind),
+            {"rows": 12, "series": 2, "operations": 144},
+        )
+        self.assertEqual(
+            preflight_dimensions(public),
+            {"rows": 12, "series": 2, "operations": 144},
+        )
+
+        with self.assertRaises(ValidationError):
+            parse_arguments(
+                input_kind,
+                {**public, "break_index": 12},
+                lambda _: series(),
+            )
+        with self.assertRaises(ValidationError):
+            parse_arguments(
+                input_kind,
+                {**public, "significance": "0.025"},
+                lambda _: series(),
+            )
+        with self.assertRaises(ValidationError):
+            validate_schema(
+                {**public, "break_index": True},
+                schema,
+            )
+
+
     def test_public_conversion_and_preflight_are_json_safe_and_decoder_free(self) -> None:
         first = series("first")
         second = series("second")
@@ -306,6 +449,99 @@ class ArgumentContractTests(unittest.TestCase):
                 },
                 multi_schema,
             )
+
+    def test_v3_model_suite_schema_cross_fields_and_preflight_are_bounded(
+        self,
+    ) -> None:
+        input_kind = "stage10_market_regression_model_suite_v3"
+        schema = input_schema(input_kind, SERIES_SCHEMA)
+        base = {
+            "series": [raw_series(30), raw_series(30)],
+            "analysis": "engle_granger_cointegration",
+            "deterministic": "constant",
+            "lag_order": 1,
+            "significance": "0.05",
+            "source_index": -1,
+            "target_index": -1,
+            "limit": 30,
+        }
+
+        self.assertEqual(schema["properties"]["series"]["minItems"], 2)
+        self.assertEqual(schema["properties"]["series"]["maxItems"], 5)
+        self.assertEqual(
+            schema["properties"]["analysis"]["enum"],
+            [
+                "engle_granger_cointegration",
+                "vector_autoregression",
+                "granger_causality",
+            ],
+        )
+        validate_schema(base, schema)
+        decoded = parse_arguments(input_kind, base, lambda _: series())
+        self.assertIsInstance(
+            decoded,
+            Stage10MarketRegressionModelSuiteArgumentsV3,
+        )
+        self.assertEqual(decoded.analysis, "engle_granger_cointegration")
+        self.assertEqual(
+            preflight_dimensions(base, input_kind=input_kind),
+            {"rows": 30, "series": 2, "operations": 270},
+        )
+
+        var = {
+            **base,
+            "analysis": "vector_autoregression",
+            "source_index": -1,
+            "target_index": -1,
+        }
+        self.assertEqual(
+            preflight_dimensions(var, input_kind=input_kind),
+            {"rows": 30, "series": 2, "operations": 468},
+        )
+        granger = {
+            **base,
+            "analysis": "granger_causality",
+            "source_index": 0,
+            "target_index": 1,
+        }
+        self.assertEqual(
+            preflight_dimensions(granger, input_kind=input_kind),
+            {"rows": 30, "series": 2, "operations": 588},
+        )
+
+        worst_case = {
+            **granger,
+            "series": [raw_series(5_000) for _ in range(5)],
+            "lag_order": 4,
+            "source_index": 0,
+            "target_index": 4,
+            "limit": 5_000,
+        }
+        dimensions = preflight_dimensions(
+            worst_case,
+            input_kind=input_kind,
+        )
+        self.assertEqual(dimensions["operations"], 4_177_205)
+        self.assertLess(dimensions["operations"], 5_000_000)
+
+        invalid_cases = (
+            {**base, "series": [raw_series(30) for _ in range(3)]},
+            {**base, "limit": 20},
+            {**var, "lag_order": 0},
+            {**var, "source_index": 0},
+            {**granger, "source_index": 1, "target_index": 1},
+            {**granger, "target_index": 2},
+        )
+        for invalid in invalid_cases:
+            with self.subTest(invalid=invalid):
+                with self.assertRaises(ValidationError):
+                    parse_arguments(
+                        input_kind,
+                        invalid,
+                        lambda _: self.fail(
+                            "cross-field failures must precede series decoding"
+                        ),
+                    )
 
 
 

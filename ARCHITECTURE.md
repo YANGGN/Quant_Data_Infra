@@ -216,8 +216,11 @@ Every Stage 2 store carries the same ten control-plane relations:
   published work.
 
 The system registry is declarative source configuration. The current accepted
-revision is `2.21.0` with schema version `1.8.0`. It preserves the bounded Stage 8
-declaration: 57 reviewed public tool names, four local-private dashboard
+revision is `2.43.0` with schema version `1.9.0`. It preserves the bounded
+Stage 8 declaration and its 57-name recovered compatibility target, while the
+active manifest contains two additive native tools for 59 total names.
+Revision `2.43.0` also adds one private Alpaca collector with no public tool.
+It preserves four local-private dashboard
 exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
 manual JSON Atlas export. It adds isolated private declarations for the Stage 9
 slice, Stage 10 market history, Stage 11 BEA/EIA history, and the bounded
@@ -262,8 +265,96 @@ surprise table. Under ADR 0011, the never-active `2.22.0` BLS CPI
 original-release archive candidate is rejected: CPI surprise actual and
 consensus remain FMP-only, and no archive source may alter output or lineage.
 This narrow retirement does not change the completed `2.16.0` BLS
-annual-revision snapshots or its current BLS refresh. The frozen Stage 10
-projection remains
+annual-revision snapshots or its current BLS refresh. The later accepted
+`2.23.0` through `2.31.0` additive macro lineage is described in the system
+registry specification.
+Revision `2.32.0` adds explicit v2 selection for the two Stage 10 return tools;
+revision `2.33.0` adds store-free v2 description, alignment, and correlation
+over those typed return series; and revision `2.34.0` adds store-free OLS,
+rolling OLS, and fixed-lag constant-only stationarity over compatible trailing
+return series. Revision `2.35.0` adds only the private BEA NIPA `T20600`
+personal-income/outlays collector and reciprocal bindings to the existing
+macro datasets, with no migration or public exposure. Revision `2.36.0`
+adds explicitly selected `2.1.0` regression and rolling-regression variants
+with HC1, HC3, and fixed-lag Bartlett Newey-West covariance plus Ljung-Box,
+Koenker-Breusch-Pagan, and Jarque-Bera residual diagnostics. The prior
+`2.0.0` econometrics contracts remain unchanged.
+Revision `2.37.0` adds only an explicit `2.1.0`
+`econometrics.stationarity` variant. It preserves the fixed-lag ADF result,
+adds a fixed-lag level-KPSS test with published 1992 critical values, and
+publishes a four-state joint interpretation at one declared significance
+level. Revision `2.38.0` adds only the store-free `2.0.0`
+`econometrics.structural_breaks` policy: a Chow F test at one caller-declared,
+zero-based first post-break row, with no automatic search or multiple-break
+claim. Revision `2.39.0` adds only an explicit `3.0.0` variant of
+`econometrics.regression` with three mutually exclusive, caller-fixed modes:
+directional Engle-Granger cointegration over two horizon-one return series, a
+constant reduced-form VAR over two through five series, and conditional
+directional Granger-causality inference over the same fixed-order VAR. The
+model graphs consume only supplied typed series, reject interior missingness,
+make no automatic lag/model search, and open no store. Catalog `2.6.0` has
+26 schemas; each revision has an exact predecessor projection and the frozen
+v1 catalog remains unchanged. Registry `2.41.0` advances the current catalog
+to `2.7.0` with 28 schemas by adding only the input and output contracts for
+`market.get_price_series`.
+Registry `2.42.0` advances the current catalog to `2.8.0` with 30 schemas by
+adding only the input and output contracts for
+`market.get_available_ticker`.
+
+Registry `2.40.0` implements
+[ADR 0012](docs/adr/0012-compact-fmp-calendar-retention.md) as a forward-only
+macro storage change. Migration 0016 remains immutable legacy evidence.
+Migration 0018 separates append-only changed-batch receipts and event
+corrections from one replaceable latest-response cache. The live collector no
+longer writes the legacy full-batch dataset; current Inspector membership comes
+from the singleton cache and explicit history combines legacy changes with the
+new event-version stream. No provider, credential, lock, cadence, public tool,
+or deployment contract changes.
+The user separately authorized canonical application on 2026-08-24.
+Migration 0018 was applied to `data/macro.sqlite` at
+`2026-08-25T01:31:39.017401Z`; the operation made no provider request,
+credential read, historical population, or scheduler change.
+
+Registry `2.41.0` adds one local read-only adapter over the existing Stage 10
+price reader. A request resolves one ticker on the server, performs one
+point-in-time row selection, and emits four coherent typed series in
+open/high/low/close order. Start and end dates are independently optional and
+inclusive. The adapter accepts no path, SQL, provider, or write capability;
+it adds no migration, collector, provider request, credential, timer, export,
+hosting, or deployment. Its exact projection removes only the new declaration
+and dataset bindings and restores byte-exact registry `2.40.0`.
+
+Registry `2.42.0` adds a second local read-only adapter,
+`market.get_available_ticker`. The fixed query lists deterministically ordered
+FMP/provider-native instruments only when a current Stage 10 daily-price
+pointer, immutable version, and capture are retrievable. Empty `{}` arguments
+select the full 10,000-record-bounded list; optional `limit` can lower it.
+This is current retained-data discovery, not a live or historical point-in-time
+universe. The local subprocess bridge exposes dynamic `list`, `describe`,
+`manifest`, and strict-JSON `call` commands to sibling projects while fixing
+the project root, registry, and store routes host-side. It starts no service
+and exposes no database path or SQL. Exact projection removes only the new tool
+and reciprocal bindings and restores byte-exact registry `2.41.0`.
+
+Registry `2.43.0` adds the private Alpaca SPY option-surface collector. It
+uses the existing Stage 10 SPY identity and applied option tables, chooses the
+listed expiration nearest 30 DTE within fixed DTE and strike bounds, and stores
+paper-account contract metadata plus indicative option snapshots for local
+inspection. The fixed runner has four single-attempt requests, bounded rows
+and bytes, and an enforced 120-second deadline. Network parsing completes
+before the physical market-store lock; exact semantic replay produces no
+canonical change. The registry declaration remains `manual_only`; the current
+user's separately authorized 15:55 host timer is the only recurring exception.
+This increment adds no migration, public tool, export, deployment, or authority
+for either recovered market job.
+
+The Chow test's exact finite-sample F reference requires Gaussian,
+homoskedastic, independent errors and the standard exogenous fixed-design
+linear-model
+conditions.
+
+All eight revisions keep the 57 logical names and omitted-v1 behavior unchanged, introduce no new storage
+ownership, and have exact predecessor projections. The frozen Stage 10 projection remains
 `2.8.0`/`1.6.0`; the frozen Stage 9 projection remains
 `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains
 `2.5.0`/`1.3.0` with zero exports; the frozen Stage 6

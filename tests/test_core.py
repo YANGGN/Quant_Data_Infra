@@ -23,6 +23,7 @@ from quant_data.fixtures import FixtureManifest
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.migrations import initialize_all, migrate_store
 from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage2_registry_profile
+from quant_data.tool_platform.catalog import CURRENT_PUBLIC_TOOL_NAMES
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap, StoreRole, read_connection
 from quant_data.temporal import (
@@ -60,13 +61,14 @@ def copy_registry_project_resources(project: Path) -> None:
 
 
 class RegistryAndFixtureTests(unittest.TestCase):
-    def test_registry_is_validated_57_tool_stage5_with_legacy_milestone(self) -> None:
+    def test_registry_has_active_59_tools_and_frozen_57_name_compatibility(self) -> None:
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
         self.assertEqual(registry.status, "validated")
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 59)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
-            list(PUBLIC_TOOL_NAMES),
+            list(CURRENT_PUBLIC_TOOL_NAMES),
         )
         self.assertEqual({store.id for store in registry.stores}, {"market", "macro", "company", "news"})
         self.assertEqual(

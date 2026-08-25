@@ -14,7 +14,8 @@ from unittest.mock import patch
 from quant_data.boundary import create_server
 from quant_data.canonical_inspector import CanonicalInspectorApplication
 from quant_data.errors import ValidationError
-from quant_data.json_codec import loads_strict
+from quant_data.json_codec import dumps_strict, loads_strict
+from quant_data.macro.fmp_calendar_wholesale import parse_fmp_us_calendar_wholesale
 from quant_data.macro.fmp_release_surprises import (
     CPI_HEADLINE_MOM_KIND,
     NONFARM_PAYROLLS_KIND,
@@ -35,6 +36,7 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.market = root / "market.sqlite"
         self.macro = root / "macro.sqlite"
         self._seed_market(self.market)
+        self._seed_spy_options(self.market)
         self._seed_macro(self.macro)
         self.registry = load_registry(
             CANONICAL_REGISTRY_PATH,
@@ -101,6 +103,122 @@ class CanonicalInspectorTests(unittest.TestCase):
         connection.commit()
         connection.close()
         Path(str(path) + chr(45) + chr(119) + chr(97) + chr(108)).touch()
+
+    @staticmethod
+    def _seed_spy_options(path: Path) -> None:
+        connection = sqlite3.connect(path)
+        connection.executescript(
+            """
+            CREATE TABLE option_surface_captures (
+                capture_id TEXT PRIMARY KEY,
+                underlying_instrument_id TEXT NOT NULL,
+                requested_feed TEXT NOT NULL,
+                resolved_feed TEXT NOT NULL,
+                environment TEXT NOT NULL,
+                completed_at TEXT NOT NULL,
+                available_at TEXT NOT NULL,
+                completeness TEXT NOT NULL
+            );
+            CREATE TABLE option_contracts (
+                contract_id TEXT PRIMARY KEY,
+                underlying_instrument_id TEXT NOT NULL,
+                contract_symbol TEXT NOT NULL,
+                expiration_date TEXT NOT NULL,
+                strike_price TEXT NOT NULL,
+                option_type TEXT NOT NULL,
+                deliverable_kind TEXT NOT NULL,
+                contract_multiplier INTEGER NOT NULL,
+                contract_status TEXT NOT NULL
+            );
+            CREATE TABLE option_surface_snapshots (
+                surface_snapshot_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                contract_id TEXT NOT NULL,
+                surface_state TEXT NOT NULL,
+                missing_reason TEXT,
+                exclusion_reason TEXT,
+                bid_price REAL,
+                ask_price REAL,
+                last_price REAL,
+                implied_volatility REAL,
+                delta REAL,
+                gamma REAL,
+                theta REAL,
+                vega REAL,
+                rho REAL,
+                quote_at TEXT,
+                trade_at TEXT
+            );
+            CREATE TABLE option_open_interest (
+                open_interest_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                contract_id TEXT NOT NULL,
+                as_of_date TEXT NOT NULL,
+                open_interest INTEGER,
+                observation_state TEXT NOT NULL,
+                missing_reason TEXT,
+                source_row INTEGER NOT NULL
+            );
+            CREATE TABLE option_close_prices (
+                close_price_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                contract_id TEXT NOT NULL,
+                trade_date TEXT NOT NULL,
+                close_price REAL,
+                observation_state TEXT NOT NULL,
+                missing_reason TEXT,
+                source_row INTEGER NOT NULL
+            );
+            CREATE TABLE option_capture_underlying_quotes (
+                underlying_quote_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                input_state TEXT NOT NULL,
+                bid_price REAL,
+                ask_price REAL,
+                last_price REAL,
+                trade_price REAL,
+                quote_at TEXT
+            );
+            INSERT INTO option_surface_captures VALUES
+              ('capture-old', 'i-spy', 'indicative', 'alpaca_indicative', 'paper',
+               '2026-08-22T19:55:00Z', '2026-08-22T19:55:00Z', 'complete'),
+              ('capture-current', 'i-spy', 'indicative', 'alpaca_indicative', 'paper',
+               '2026-08-25T19:55:00Z', '2026-08-25T19:55:00Z', 'complete');
+            INSERT INTO option_contracts VALUES
+              ('contract-old', 'i-spy', 'SPY260919C00640000', '2026-09-19', '640',
+               'call', 'standard', 100, 'active'),
+              ('contract-call', 'i-spy', 'SPY260925C00650000', '2026-09-25', '650',
+               'call', 'standard', 100, 'active'),
+              ('contract-put', 'i-spy', 'SPY260925P00640000', '2026-09-25', '640',
+               'put', 'standard', 100, 'active'),
+              ('contract-missing', 'i-spy', 'SPY260925C00655000', '2026-09-25', '655',
+               'call', 'standard', 100, 'active');
+            INSERT INTO option_surface_snapshots VALUES
+              ('surface-old', 'capture-old', 'contract-old', 'present', NULL, NULL,
+               5.0, 5.1, 5.05, 0.20, 0.50, 0.01, -0.04, 0.10, 0.02,
+               '2026-08-22T19:54:00Z', '2026-08-22T19:54:00Z'),
+              ('surface-call', 'capture-current', 'contract-call', 'present', NULL, NULL,
+               4.1, 4.2, 4.15, 0.205, 0.51, 0.012, -0.045, 0.11, 0.02,
+               '2026-08-25T19:54:00.123456789Z', '2026-08-25T19:54:00.123456788Z'),
+              ('surface-put', 'capture-current', 'contract-put', 'excluded', NULL,
+               'provider_excluded', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+               NULL, NULL, NULL, NULL),
+              ('surface-missing', 'capture-current', 'contract-missing', 'missing',
+               'quote_unavailable', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+               NULL, NULL, NULL, NULL, NULL);
+            INSERT INTO option_open_interest VALUES
+              ('oi-call', 'capture-current', 'contract-call', '2026-08-25', 12345,
+               'present', NULL, 1);
+            INSERT INTO option_close_prices VALUES
+              ('close-call', 'capture-current', 'contract-call', '2026-08-25', 4.05,
+               'present', NULL, 1);
+            INSERT INTO option_capture_underlying_quotes VALUES
+              ('underlying-current', 'capture-current', 'present', 644.9, 645.1,
+               645.0, 645.0, '2026-08-25T19:54:00.123456700Z');
+            """
+        )
+        connection.commit()
+        connection.close()
 
     @staticmethod
     def _seed_macro(path: Path) -> None:
@@ -214,8 +332,22 @@ class CanonicalInspectorTests(unittest.TestCase):
                 'Federal Reserve total assets'
               ),
               (
+                'macro.federal_reserve_policy.iorb',
+                'federal_reserve_policy', 'IORB',
+                'Interest rate on reserve balances'
+              ),
+              (
                 'macro.chicagofed.nfci', 'chicagofed', 'NFCI',
                 'Chicago Fed National Financial Conditions Index'
+              ),
+              (
+                'macro.chicagofed.cfnai', 'chicagofed', 'CFNAI',
+                'Chicago Fed National Activity Index'
+              ),
+              (
+                'macro.federal_reserve.industrial_production_total_sa',
+                'federal_reserve_industrial_production', 'INDPRO',
+                'Industrial Production: Total Index, seasonally adjusted'
               ),
               (
                 'macro.bis.us_private_nonfinancial_credit_gap', 'bis',
@@ -233,9 +365,34 @@ class CanonicalInspectorTests(unittest.TestCase):
                 'U.S. Treasury General Account closing balance'
               ),
               (
+                'macro.treasury_fiscal.daily.total_public_debt_outstanding',
+                'treasury_fiscal_data', 'tot_pub_debt_out_amt',
+                'Total public debt outstanding'
+              ),
+              (
+                'macro.treasury_fiscal.monthly.receipts',
+                'treasury_fiscal_data', 'Receipts',
+                'Federal receipts'
+              ),
+              (
                 'macro.eia.weekly.lower_48_working_natural_gas_storage',
                 'eia', 'NG.NW2_EPG0_SWO_R48_BCF.W',
                 'Lower 48 working natural gas in underground storage'
+              ),
+              (
+                'macro.eia.petroleum.weekly.us_total_motor_gasoline_ending_stocks',
+                'eia', 'WGTSTUS1',
+                'U.S. ending stocks of total motor gasoline'
+              ),
+              (
+                'macro.eia.petroleum.weekly.us_distillate_fuel_oil_ending_stocks',
+                'eia', 'WDISTUS1',
+                'U.S. ending stocks of distillate fuel oil'
+              ),
+              (
+                'macro.eia.petroleum.weekly.us_finished_motor_gasoline_product_supplied',
+                'eia', 'WGFUPUS2',
+                'U.S. product supplied of finished motor gasoline'
               ),
               (
                 'macro.nber.us_recession_indicator', 'nber',
@@ -244,6 +401,23 @@ class CanonicalInspectorTests(unittest.TestCase):
               (
                 'macro.bls.ppi_final_demand_sa', 'bls', 'WPSFD4',
                 'Producer Price Index - Final Demand, seasonally adjusted'
+              ),
+              (
+                'macro.bls.employment_cost_index_total_compensation_civilian_sa',
+                'bls', 'CIS1010000000000I',
+                'Employment Cost Index - total compensation, civilian workers, seasonally adjusted'
+              ),
+              (
+                'macro.bea.personal_income', 'bea', 'A065RC',
+                'Personal income'
+              ),
+              (
+                'macro.bea.disposable_personal_income', 'bea', 'A067RC',
+                'Disposable personal income'
+              ),
+              (
+                'macro.bea.personal_consumption_expenditures', 'bea',
+                'DPCERC', 'Personal consumption expenditures'
               );
             INSERT INTO macro_observation_versions (
                 version_id, series_id, period_start, value_text,
@@ -258,10 +432,30 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '2026-08-19', 'usd_millions'
               ),
               (
+                'iorb-20260820-v1',
+                'macro.federal_reserve_policy.iorb',
+                '2026-08-20', '3.65', NULL, 1,
+                '2026-08-20T20:30:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-20', 'percent'
+              ),
+              (
                 'nfci-20260821-v1', 'macro.chicagofed.nfci',
                 '2026-08-21', '-0.28', NULL, 1,
                 '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
                 '2026-08-21', 'index'
+              ),
+              (
+                'cfnai-202607-v1', 'macro.chicagofed.cfnai',
+                '2026-07-01', '0.14', NULL, 1,
+                '2026-08-24T12:30:00Z', '2026-08-24T12:30:00Z',
+                '2026-07-31', 'index'
+              ),
+              (
+                'indpro-202607-v1',
+                'macro.federal_reserve.industrial_production_total_sa',
+                '2026-07-01', '102.9939', NULL, 1,
+                '2026-08-18T13:20:00Z', '2026-08-24T12:30:00Z',
+                '2026-07-31', 'index_2017_100'
               ),
               (
                 'bis-gap-2026q2-v1',
@@ -284,11 +478,46 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '2026-08-20', 'usd_millions'
               ),
               (
+                'debt-total-20260820-v1',
+                'macro.treasury_fiscal.daily.total_public_debt_outstanding',
+                '2026-08-20', '37000123456789.01', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-20', 'usd'
+              ),
+              (
+                'fiscal-receipts-202607-v1',
+                'macro.treasury_fiscal.monthly.receipts',
+                '2026-07-01', '334010', NULL, 1,
+                '2026-08-12T18:00:00Z', '2026-08-23T12:00:00Z',
+                '2026-07-31', 'usd_millions'
+              ),
+              (
                 'eia-gas-20260814-v1',
                 'macro.eia.weekly.lower_48_working_natural_gas_storage',
                 '2026-08-14', '3199', NULL, 1,
                 '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
                 '2026-08-14', 'bcf'
+              ),
+              (
+                'eia-gasoline-stocks-20260814-v1',
+                'macro.eia.petroleum.weekly.us_total_motor_gasoline_ending_stocks',
+                '2026-08-14', '235000', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-14', 'thousand_barrels'
+              ),
+              (
+                'eia-distillate-stocks-20260814-v1',
+                'macro.eia.petroleum.weekly.us_distillate_fuel_oil_ending_stocks',
+                '2026-08-14', '120000', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-14', 'thousand_barrels'
+              ),
+              (
+                'eia-gasoline-supplied-20260814-v1',
+                'macro.eia.petroleum.weekly.us_finished_motor_gasoline_product_supplied',
+                '2026-08-14', '9100', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-08-14', 'thousand_barrels_per_day'
               ),
               (
                 'nber-recession-202007-v1',
@@ -302,6 +531,33 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '2026-07-01', '150.1', NULL, 1,
                 '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
                 '2026-07-31', 'index_2009_11_100'
+              ),
+              (
+                'bls-eci-2026q2-v1',
+                'macro.bls.employment_cost_index_total_compensation_civilian_sa',
+                '2026-04-01', '168.1', NULL, 1,
+                '2026-08-22T12:00:00Z', '2026-08-22T12:00:00Z',
+                '2026-06-30', 'index_2005_12_100'
+              ),
+              (
+                'bea-pi-202606-v1', 'macro.bea.personal_income',
+                '2026-06-01', '26500.1', NULL, 1,
+                '2026-08-23T12:00:00Z', '2026-08-23T12:00:00Z',
+                '2026-06-30', 'usd_millions_saar'
+              ),
+              (
+                'bea-dpi-202606-v1',
+                'macro.bea.disposable_personal_income',
+                '2026-06-01', '22300.2', NULL, 1,
+                '2026-08-23T12:00:00Z', '2026-08-23T12:00:00Z',
+                '2026-06-30', 'usd_millions_saar'
+              ),
+              (
+                'bea-pce-202606-v1',
+                'macro.bea.personal_consumption_expenditures',
+                '2026-06-01', '20900.3', NULL, 1,
+                '2026-08-23T12:00:00Z', '2026-08-23T12:00:00Z',
+                '2026-06-30', 'usd_millions_saar'
               );
             INSERT INTO macro_observations VALUES
               (
@@ -309,8 +565,20 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '2026-08-19', 'h41-total-20260819-v1'
               ),
               (
+                'macro.federal_reserve_policy.iorb',
+                '2026-08-20', 'iorb-20260820-v1'
+              ),
+              (
                 'macro.chicagofed.nfci', '2026-08-21',
                 'nfci-20260821-v1'
+              ),
+              (
+                'macro.chicagofed.cfnai', '2026-07-01',
+                'cfnai-202607-v1'
+              ),
+              (
+                'macro.federal_reserve.industrial_production_total_sa',
+                '2026-07-01', 'indpro-202607-v1'
               ),
               (
                 'macro.bis.us_private_nonfinancial_credit_gap',
@@ -325,8 +593,28 @@ class CanonicalInspectorTests(unittest.TestCase):
                 '2026-08-20', 'tga-20260820-v1'
               ),
               (
+                'macro.treasury_fiscal.daily.total_public_debt_outstanding',
+                '2026-08-20', 'debt-total-20260820-v1'
+              ),
+              (
+                'macro.treasury_fiscal.monthly.receipts',
+                '2026-07-01', 'fiscal-receipts-202607-v1'
+              ),
+              (
                 'macro.eia.weekly.lower_48_working_natural_gas_storage',
                 '2026-08-14', 'eia-gas-20260814-v1'
+              ),
+              (
+                'macro.eia.petroleum.weekly.us_total_motor_gasoline_ending_stocks',
+                '2026-08-14', 'eia-gasoline-stocks-20260814-v1'
+              ),
+              (
+                'macro.eia.petroleum.weekly.us_distillate_fuel_oil_ending_stocks',
+                '2026-08-14', 'eia-distillate-stocks-20260814-v1'
+              ),
+              (
+                'macro.eia.petroleum.weekly.us_finished_motor_gasoline_product_supplied',
+                '2026-08-14', 'eia-gasoline-supplied-20260814-v1'
               ),
               (
                 'macro.nber.us_recession_indicator',
@@ -335,6 +623,22 @@ class CanonicalInspectorTests(unittest.TestCase):
               (
                 'macro.bls.ppi_final_demand_sa',
                 '2026-07-01', 'bls-ppi-202607-v1'
+              ),
+              (
+                'macro.bls.employment_cost_index_total_compensation_civilian_sa',
+                '2026-04-01', 'bls-eci-2026q2-v1'
+              ),
+              (
+                'macro.bea.personal_income',
+                '2026-06-01', 'bea-pi-202606-v1'
+              ),
+              (
+                'macro.bea.disposable_personal_income',
+                '2026-06-01', 'bea-dpi-202606-v1'
+              ),
+              (
+                'macro.bea.personal_consumption_expenditures',
+                '2026-06-01', 'bea-pce-202606-v1'
               );
 
             CREATE TABLE treasury_yield_curve_versions (
@@ -438,6 +742,57 @@ class CanonicalInspectorTests(unittest.TestCase):
                 impact_json TEXT,
                 change_percentage_json TEXT
             );
+            CREATE TABLE fmp_economic_calendar_fetch_receipts (
+                receipt_id TEXT PRIMARY KEY,
+                request_start_date TEXT NOT NULL,
+                request_end_date TEXT NOT NULL,
+                response_sha256 TEXT NOT NULL,
+                semantic_identity TEXT NOT NULL,
+                source_semantic_identity TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                row_count INTEGER NOT NULL,
+                run_id TEXT NOT NULL
+            );
+            CREATE TABLE fmp_economic_calendar_latest_response_cache (
+                feed_id TEXT PRIMARY KEY,
+                response_bytes BLOB NOT NULL,
+                response_sha256 TEXT NOT NULL,
+                semantic_identity TEXT NOT NULL,
+                source_semantic_identity TEXT NOT NULL,
+                captured_at TEXT NOT NULL,
+                captured_precision TEXT NOT NULL,
+                request_start_date TEXT NOT NULL,
+                request_end_date TEXT NOT NULL,
+                normalization_version TEXT NOT NULL,
+                persistence_version TEXT NOT NULL,
+                row_count INTEGER NOT NULL,
+                receipt_id TEXT NOT NULL
+            );
+            CREATE TABLE fmp_economic_calendar_raw_events (
+                event_id TEXT PRIMARY KEY,
+                event_at TEXT NOT NULL,
+                country TEXT NOT NULL,
+                event_name TEXT NOT NULL
+            );
+            CREATE TABLE fmp_economic_calendar_raw_event_versions (
+                event_version_id TEXT PRIMARY KEY,
+                event_id TEXT NOT NULL,
+                receipt_id TEXT NOT NULL,
+                source_row INTEGER NOT NULL,
+                row_sha256 TEXT NOT NULL,
+                raw_row_json TEXT NOT NULL,
+                currency TEXT,
+                unit TEXT,
+                previous_json TEXT,
+                estimate_json TEXT,
+                actual_json TEXT,
+                change_json TEXT,
+                impact_json TEXT,
+                change_percentage_json TEXT,
+                captured_at TEXT NOT NULL,
+                correction_sequence INTEGER NOT NULL
+            );
+
 
             INSERT INTO ingestion_runs VALUES
               (
@@ -617,7 +972,173 @@ class CanonicalInspectorTests(unittest.TestCase):
                 'macro.eia.electricity.retail_sales',
                 '2026-06', 'US', 'ALL', 'eia-retail-sales-202606-v1'
             );
+
+            CREATE TABLE stage11_eia_weekly_observation_versions (
+                version_id TEXT PRIMARY KEY,
+                canonical_series_id TEXT NOT NULL,
+                provider_series_id TEXT NOT NULL,
+                period TEXT NOT NULL,
+                value_text TEXT NOT NULL,
+                unit TEXT NOT NULL,
+                correction_sequence INTEGER NOT NULL,
+                available_at TEXT NOT NULL,
+                captured_at TEXT NOT NULL
+            );
+            CREATE TABLE stage11_eia_weekly_observations (
+                canonical_series_id TEXT NOT NULL,
+                period TEXT NOT NULL,
+                current_version_id TEXT NOT NULL
+            );
+            INSERT INTO stage11_eia_weekly_observation_versions VALUES (
+                'eia-weekly-stock-20260814-v1',
+                'macro.eia.weekly.petroleum_stock',
+                'PET.WCESTUS1.W', '2026-08-14', '425000',
+                'Thousand Barrels', 1,
+                '2026-08-23T12:00:00Z', '2026-08-23T12:00:00Z'
+            );
+            INSERT INTO stage11_eia_weekly_observations VALUES (
+                'macro.eia.weekly.petroleum_stock',
+                '2026-08-14', 'eia-weekly-stock-20260814-v1'
+            );
             """
+        )
+        cache_body = dumps_strict(
+            [
+                {
+                    "date": "2026-08-07 12:30:00",
+                    "country": "US",
+                    "event": "Non Farm Payrolls (Jul)",
+                    "currency": "USD",
+                    "unit": "K",
+                    "previous": 14,
+                    "estimate": 80,
+                    "actual": -22,
+                    "change": -36,
+                    "impact": "High",
+                    "note": "<b>jobs revision</b>",
+                },
+                {
+                    "date": "2026-08-07 12:30:00",
+                    "country": "US",
+                    "event": "Unemployment Rate (Jul)",
+                    "currency": "USD",
+                    "unit": "%",
+                    "previous": 4.1,
+                    "estimate": 4.2,
+                    "actual": 4.1,
+                    "change": -0.1,
+                    "impact": "High",
+                },
+                {
+                    "date": "2026-08-13 12:30:00",
+                    "country": "US",
+                    "event": "CPI MoM (Jul)",
+                    "currency": "USD",
+                    "unit": "%",
+                    "previous": 0.3,
+                    "estimate": 0.2,
+                    "actual": 0.2,
+                    "change": -0.1,
+                    "impact": "Medium",
+                },
+                {
+                    "date": "2026-08-14 12:30:00",
+                    "country": "CA",
+                    "event": "Employment Change",
+                    "currency": "CAD",
+                    "unit": "K",
+                    "previous": 8,
+                    "estimate": 10,
+                    "actual": 12,
+                    "change": 4,
+                    "impact": "Low",
+                },
+            ]
+        ).encode("utf-8")
+        cache_capture = parse_fmp_us_calendar_wholesale(
+            cache_body,
+            captured_at="2026-08-19T12:00:00Z",
+            start_date="2026-08-01",
+            end_date="2026-08-17",
+        )
+        transition_identity = "4" * 64
+        connection.execute(
+            """
+            INSERT INTO ingestion_runs VALUES (
+                'incremental-run-1',
+                'macro.fmp.economic_calendar_incremental_evidence',
+                'fmp.macro.us_economic_calendar_wholesale',
+                'succeeded'
+            )
+            """
+        )
+        connection.execute(
+            """
+            INSERT INTO fmp_economic_calendar_fetch_receipts VALUES (
+                'incremental-receipt-1', ?, ?, ?, ?, ?, ?, ?, 'incremental-run-1'
+            )
+            """,
+            (
+                cache_capture.request_start_date,
+                cache_capture.request_end_date,
+                cache_capture.response_sha256,
+                transition_identity,
+                cache_capture.semantic_identity,
+                cache_capture.captured_at,
+                len(cache_capture.rows),
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO fmp_economic_calendar_latest_response_cache VALUES (
+                'fmp_us', ?, ?, ?, ?, ?, 'datetime', ?, ?,
+                'fmp_us_calendar_wholesale_evidence_v1',
+                'fmp_us_calendar_incremental_events_v2', ?,
+                'incremental-receipt-1'
+            )
+            """,
+            (
+                cache_capture.response_bytes,
+                cache_capture.response_sha256,
+                transition_identity,
+                cache_capture.semantic_identity,
+                cache_capture.captured_at,
+                cache_capture.request_start_date,
+                cache_capture.request_end_date,
+                len(cache_capture.rows),
+            ),
+        )
+        first = cache_capture.rows[0]
+        connection.execute(
+            """
+            INSERT INTO fmp_economic_calendar_raw_events VALUES (
+                'incremental-event-nfp', ?, ?, ?
+            )
+            """,
+            (first.event_at, first.country, first.event_name),
+        )
+        connection.execute(
+            """
+            INSERT INTO fmp_economic_calendar_raw_event_versions VALUES (
+                'incremental-version-nfp-1', 'incremental-event-nfp',
+                'incremental-receipt-1', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                1
+            )
+            """,
+            (
+                first.source_row,
+                first.row_sha256,
+                first.raw_row_json,
+                first.currency,
+                first.unit,
+                first.previous_json,
+                first.estimate_json,
+                first.actual_json,
+                first.change_json,
+                first.impact_json,
+                first.change_percentage_json,
+                cache_capture.captured_at,
+            ),
         )
         connection.commit()
         connection.close()
@@ -665,15 +1186,42 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "150.1",
             ),
             (
+                "/api/rows?view=price-wage-productivity"
+                "&series=macro.bls."
+                "employment_cost_index_total_compensation_civilian_sa",
+                "168.1",
+            ),
+            (
+                "/api/rows?view=personal-income-outlays"
+                "&series=macro.bea.personal_income",
+                "26500.1",
+            ),
+            (
                 "/api/rows?view=h41-liquidity"
                 "&series=macro.federal_reserve_h41."
                 "total_assets_less_eliminations_wednesday",
                 "6600001",
             ),
             (
+                "/api/rows?view=policy-rates"
+                "&series=macro.federal_reserve_policy.iorb",
+                "3.65",
+            ),
+            (
                 "/api/rows?view=financial-conditions"
                 "&series=macro.chicagofed.nfci",
                 "-0.28",
+            ),
+            (
+                "/api/rows?view=national-activity"
+                "&series=macro.chicagofed.cfnai",
+                "0.14",
+            ),
+            (
+                "/api/rows?view=industrial-production"
+                "&series=macro.federal_reserve."
+                "industrial_production_total_sa",
+                "102.9939",
             ),
             (
                 "/api/rows?view=bis-credit"
@@ -685,8 +1233,27 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "765432",
             ),
             (
+                "/api/rows?view=treasury-debt",
+                "37000123456789.01",
+            ),
+            (
+                "/api/rows?view=fiscal-balance",
+                "334010",
+            ),
+            (
                 "/api/rows?view=natural-gas-storage",
                 "3199",
+            ),
+            (
+                "/api/rows?view=crude-oil-stocks"
+                "&start_date=2026-08-14&end_date=2026-08-14",
+                "425000",
+            ),
+            (
+                "/api/rows?view=petroleum-fundamentals"
+                "&series=macro.eia.petroleum.weekly."
+                "us_total_motor_gasoline_ending_stocks",
+                "235000",
             ),
             (
                 "/api/rows?view=recession-chronology",
@@ -765,18 +1332,35 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn('name="component"', soma_html)
 
         official_views = {
+            "personal-income-outlays": (
+                "macro.bea.personal_consumption_expenditures",
+                "20900.3",
+            ),
             "price-wage-productivity": (
-                "macro.bls.ppi_final_demand_sa",
-                "150.1",
+                "macro.bls."
+                "employment_cost_index_total_compensation_civilian_sa",
+                "168.1",
             ),
             "h41-liquidity": (
                 "macro.federal_reserve_h41."
                 "total_assets_less_eliminations_wednesday",
                 "6600001",
             ),
+            "policy-rates": (
+                "macro.federal_reserve_policy.iorb",
+                "3.65",
+            ),
             "financial-conditions": (
                 "macro.chicagofed.nfci",
                 "-0.28",
+            ),
+            "national-activity": (
+                "macro.chicagofed.cfnai",
+                "0.14",
+            ),
+            "industrial-production": (
+                "macro.federal_reserve.industrial_production_total_sa",
+                "102.9939",
             ),
             "bis-credit": (
                 "macro.bis.us_private_nonfinancial_credit_gap",
@@ -790,9 +1374,22 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "macro.treasury_fiscal.daily.tga_closing_balance",
                 "765432",
             ),
+            "treasury-debt": (
+                "macro.treasury_fiscal.daily.total_public_debt_outstanding",
+                "37000123456789.01",
+            ),
+            "fiscal-balance": (
+                "macro.treasury_fiscal.monthly.receipts",
+                "334010",
+            ),
             "natural-gas-storage": (
                 "macro.eia.weekly.lower_48_working_natural_gas_storage",
                 "3199",
+            ),
+            "petroleum-fundamentals": (
+                "macro.eia.petroleum.weekly."
+                "us_finished_motor_gasoline_product_supplied",
+                "9100",
             ),
             "recession-chronology": (
                 "macro.nber.us_recession_indicator",
@@ -810,6 +1407,52 @@ class CanonicalInspectorTests(unittest.TestCase):
                 self.assertEqual(result["total"], 1)
                 self.assertEqual(result["rows"][0]["value"], value)
 
+        bea = self.application.handle(
+            "GET", "/api/rows?view=personal-income-outlays"
+        )
+        bea_result = loads_strict(bea.body)["result"]
+        self.assertEqual(bea.status, 200)
+        self.assertEqual(bea_result["total"], 3)
+        self.assertEqual(
+            {row["series"] for row in bea_result["rows"]},
+            {
+                "macro.bea.personal_income",
+                "macro.bea.disposable_personal_income",
+                "macro.bea.personal_consumption_expenditures",
+            },
+        )
+        bea_page = self.application.handle(
+            "GET", "/?view=personal-income-outlays"
+        )
+        bea_html = bea_page.body.decode("utf-8")
+        self.assertEqual(bea_page.status, 200)
+        self.assertIn("Personal income &amp; outlays", bea_html)
+        self.assertIn("Personal consumption expenditures", bea_html)
+        self.assertIn('name="series"', bea_html)
+
+        debt_page = self.application.handle(
+            "GET",
+            "/?view=treasury-debt"
+            "&series=macro.treasury_fiscal.daily."
+            "total_public_debt_outstanding",
+        )
+        debt_html = debt_page.body.decode("utf-8")
+        self.assertEqual(debt_page.status, 200)
+        self.assertIn("Treasury debt", debt_html)
+        self.assertIn("37000123456789.01", debt_html)
+        self.assertIn('name="series"', debt_html)
+
+        fiscal_page = self.application.handle(
+            "GET",
+            "/?view=fiscal-balance"
+            "&series=macro.treasury_fiscal.monthly.receipts",
+        )
+        fiscal_html = fiscal_page.body.decode("utf-8")
+        self.assertEqual(fiscal_page.status, 200)
+        self.assertIn("Federal fiscal balance", fiscal_html)
+        self.assertIn("334010", fiscal_html)
+        self.assertIn('name="series"', fiscal_html)
+
         bls_page = self.application.handle(
             "GET",
             "/?view=price-wage-productivity"
@@ -823,6 +1466,17 @@ class CanonicalInspectorTests(unittest.TestCase):
             bls_html,
         )
 
+        eci_page = self.application.handle(
+            "GET",
+            "/?view=price-wage-productivity"
+            "&series=macro.bls."
+            "employment_cost_index_total_compensation_civilian_sa",
+        )
+        eci_html = eci_page.body.decode("utf-8")
+        self.assertEqual(eci_page.status, 200)
+        self.assertIn("Employment Cost Index", eci_html)
+        self.assertIn("168.1", eci_html)
+
         conditions_page = self.application.handle(
             "GET",
             "/?view=financial-conditions&series=macro.chicagofed.nfci",
@@ -832,6 +1486,27 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn("Financial conditions", conditions_html)
         self.assertIn('name="series"', conditions_html)
         self.assertIn("Chicago Fed National Financial Conditions Index", conditions_html)
+
+        activity_page = self.application.handle(
+            "GET",
+            "/?view=national-activity&series=macro.chicagofed.cfnai",
+        )
+        activity_html = activity_page.body.decode("utf-8")
+        self.assertEqual(activity_page.status, 200)
+        self.assertIn("National activity", activity_html)
+        self.assertIn("Chicago Fed National Activity Index", activity_html)
+        self.assertIn("0.14", activity_html)
+
+        production_page = self.application.handle(
+            "GET",
+            "/?view=industrial-production"
+            "&series=macro.federal_reserve."
+            "industrial_production_total_sa",
+        )
+        production_html = production_page.body.decode("utf-8")
+        self.assertEqual(production_page.status, 200)
+        self.assertIn("Industrial production", production_html)
+        self.assertIn("102.9939", production_html)
 
         cmdi_page = self.application.handle(
             "GET",
@@ -898,6 +1573,20 @@ class CanonicalInspectorTests(unittest.TestCase):
             "million kilowatthours",
         )
 
+        petroleum = self.application.handle(
+            "GET",
+            "/api/rows?view=crude-oil-stocks"
+            "&start_date=2026-08-14&end_date=2026-08-14",
+        )
+        petroleum_result = loads_strict(petroleum.body)["result"]
+        self.assertEqual(petroleum.status, 200)
+        self.assertEqual(petroleum_result["total"], 1)
+        self.assertEqual(petroleum_result["rows"][0]["value"], "425000")
+        self.assertEqual(
+            petroleum_result["rows"][0]["unit"],
+            "Thousand Barrels",
+        )
+
         rates = loads_strict(
             self.application.handle(
                 "GET", "/api/rows?view=overnight-rates"
@@ -931,6 +1620,72 @@ class CanonicalInspectorTests(unittest.TestCase):
         ).body.decode("utf-8")
         self.assertIn("Electricity retail", electricity_html)
         self.assertIn("Electricity retail customers", electricity_html)
+
+        petroleum_html = self.application.handle(
+            "GET", "/?view=crude-oil-stocks"
+        ).body.decode("utf-8")
+        self.assertIn("Crude oil stocks", petroleum_html)
+        self.assertIn("425000", petroleum_html)
+
+        fundamentals_html = self.application.handle(
+            "GET", "/?view=petroleum-fundamentals"
+        ).body.decode("utf-8")
+        self.assertIn("Petroleum fundamentals", fundamentals_html)
+        self.assertIn("U.S. ending stocks of total motor gasoline", fundamentals_html)
+        self.assertIn("U.S. ending stocks of distillate fuel oil", fundamentals_html)
+        self.assertIn(
+            "U.S. product supplied of finished motor gasoline",
+            fundamentals_html,
+        )
+        self.assertEqual(
+            before,
+            (self._sha256(self.market), self._sha256(self.macro)),
+        )
+
+    def test_spy_options_view_is_fixed_filterable_and_read_only(self) -> None:
+        before = (self._sha256(self.market), self._sha256(self.macro))
+        target = (
+            "/api/rows?view=spy-options&option_type=call&state=present"
+            "&expiration=2026-09-25"
+        )
+        response = self.application.handle("GET", target)
+        self.assertEqual(response.status, 200)
+        payload = loads_strict(response.body)
+        self.assertEqual(payload["execution"], "read_only")
+        result = payload["result"]
+        self.assertEqual(result["total"], 1)
+        row = result["rows"][0]
+        self.assertEqual(row["capture_id"], "capture-current")
+        self.assertEqual(row["feed"], "alpaca_indicative")
+        self.assertEqual(row["contract_symbol"], "SPY260925C00650000")
+        self.assertEqual(row["bid_price"], Decimal("4.1"))
+        self.assertEqual(row["implied_volatility"], Decimal("0.205"))
+        self.assertEqual(row["open_interest"], 12345)
+        self.assertEqual(row["close_price"], Decimal("4.05"))
+        self.assertEqual(row["underlying_last_price"], Decimal("645.0"))
+        self.assertNotIn("SPY260919C00640000", str(result["rows"]))
+        self.assertEqual(row["quote_at"], "2026-08-25T19:54:00.123456789Z")
+        self.assertEqual(row["trade_at"], "2026-08-25T19:54:00.123456788Z")
+        self.assertEqual(row["underlying_quote_at"], "2026-08-25T19:54:00.123456700Z")
+
+        document = self.application.handle(
+            "GET", "/?view=spy-options"
+        ).body.decode("utf-8")
+        self.assertIn("SPY options", document)
+        self.assertIn('name="option_type"', document)
+        self.assertIn('name="state"', document)
+        self.assertIn('name="expiration"', document)
+
+        for invalid in (
+            "/api/rows?view=spy-options&option_type=spread",
+            "/api/rows?view=spy-options&state=stale",
+            "/api/rows?view=spy-options&expiration=2026-13-40",
+            "/api/rows?view=spy-options&relation=sqlite_master",
+        ):
+            with self.subTest(invalid=invalid):
+                invalid_response = self.application.handle("GET", invalid)
+                self.assertEqual(invalid_response.status, 400)
+
         self.assertEqual(
             before,
             (self._sha256(self.market), self._sha256(self.macro)),
@@ -946,16 +1701,33 @@ class CanonicalInspectorTests(unittest.TestCase):
         response = self.application.handle("GET", target)
         self.assertEqual(response.status, 200)
         result = loads_strict(response.body)["result"]
-        self.assertEqual(result["total"], 2)
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["query"]["mode"], "current")
         self.assertEqual(
-            [row["capture_id"] for row in result["rows"]],
-            ["raw-capture-1", "raw-capture-2"],
+            result["rows"][0]["capture_id"], "incremental-receipt-1"
         )
         self.assertEqual(result["rows"][0]["priority"], "High")
         self.assertEqual(result["rows"][0]["estimate"], 80)
-        self.assertEqual(result["rows"][0]["actual"], -23)
-        self.assertIn("<b>jobs</b>", result["rows"][0]["raw_row_json"])
+        self.assertEqual(result["rows"][0]["actual"], -22)
+        self.assertIn("<b>jobs revision</b>", result["rows"][0]["raw_row_json"])
         self.assertNotIn("response_bytes", result["rows"][0])
+
+        response = self.application.handle("GET", target + "&mode=history")
+        self.assertEqual(response.status, 200)
+        history = loads_strict(response.body)["result"]
+        self.assertEqual(history["total"], 3)
+        self.assertEqual(history["query"]["mode"], "history")
+        self.assertEqual(
+            [row["capture_id"] for row in history["rows"]],
+            [
+                "raw-capture-1",
+                "raw-capture-2",
+                "incremental-receipt-1",
+            ],
+        )
+        self.assertEqual(
+            [row["actual"] for row in history["rows"]], [-23, -22, -22]
+        )
 
         response = self.application.handle(
             "GET",
@@ -1001,9 +1773,17 @@ class CanonicalInspectorTests(unittest.TestCase):
             "/api/rows?view=fmp-economic-calendar&direction=asc&limit=1&page=2",
         )
         result = loads_strict(response.body)["result"]
-        self.assertEqual(result["total"], 5)
-        self.assertEqual(result["rows"][0]["capture_id"], "raw-capture-1")
+        self.assertEqual(result["total"], 4)
+        self.assertEqual(
+            result["rows"][0]["capture_id"], "incremental-receipt-1"
+        )
         self.assertEqual(result["rows"][0]["event_name"], "Unemployment Rate (Jul)")
+
+        response = self.application.handle(
+            "GET",
+            "/api/rows?view=fmp-economic-calendar&mode=all",
+        )
+        self.assertEqual(response.status, 400)
 
         document = self.application.handle(
             "GET",
@@ -1011,13 +1791,17 @@ class CanonicalInspectorTests(unittest.TestCase):
             "&event_name=Non%20Farm&keyword=jobs&direction=asc",
         ).body.decode("utf-8")
         self.assertIn("Raw FMP calendar", document)
+        self.assertIn('name="mode"', document)
+        self.assertIn(">Current</option>", document)
+        self.assertIn(">History</option>", document)
         self.assertIn('name="country"', document)
         self.assertIn('name="priority"', document)
         self.assertIn('name="event_name"', document)
         self.assertIn('name="keyword"', document)
-        self.assertIn("&lt;b&gt;jobs&lt;/b&gt;", document)
-        self.assertNotIn("<b>jobs</b>", document)
+        self.assertIn("&lt;b&gt;jobs revision&lt;/b&gt;", document)
+        self.assertNotIn("<b>jobs revision</b>", document)
         self.assertEqual(before, (self._sha256(self.market), self._sha256(self.macro)))
+
 
     def test_macro_surprises_accept_employment_kinds_and_project_lineage_ids(
         self,

@@ -156,8 +156,8 @@ class ToolExecutionContext:
         ):
             if not isinstance(value, str) or not value:
                 raise ValidationError("Tool execution context identity is incomplete")
-        if self.execution != "offline_fixture":
-            raise ValidationError("Stage 5 execution must remain offline_fixture")
+        if self.execution not in {"offline_fixture", "read_only"}:
+            raise ValidationError("Tool execution mode is unsupported")
 
     def checkpoint(self) -> None:
         self.cancellation.check()

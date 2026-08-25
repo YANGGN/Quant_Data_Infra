@@ -25,11 +25,11 @@ class MacroVintageRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             (registry.schema_version, registry.registry_version),
-            ("1.8.0", "2.29.0"),
+            ("1.9.0", "2.43.0"),
         )
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (38, 51, 48),
+            (40, 53, 50),
         )
 
         migration = next(item for item in registry.migrations if item.id == MIGRATION_ID)
@@ -40,7 +40,7 @@ class MacroVintageRegistryTests(unittest.TestCase):
             hashlib.sha256((PROJECT_ROOT / migration.resource).read_bytes()).hexdigest(),
             MIGRATION_SHA256,
         )
-        self.assertEqual(registry.store("macro").migration_order[-4], MIGRATION_ID)
+        self.assertEqual(registry.store("macro").migration_order[-6], MIGRATION_ID)
 
         datasets = {item.id: item for item in registry.datasets}
         self.assertEqual(

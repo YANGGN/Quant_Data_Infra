@@ -5,13 +5,13 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.31.0`, schema `1.8.0`. The former `2.22.0`/`validated` working candidate is
+`2.43.0`, schema `1.9.0`. The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.31.0` revisions. For any
+from the later additive `2.23.0` through `2.43.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -159,6 +159,13 @@ source SHA-256 is
 Exact projection removes only those three collectors and their reciprocal
 bindings to restore byte-exact `2.26.0`.
 
+The later Federal Reserve policy-rate fast-path extension reuses the existing
+credential-free `federal_reserve.macro.h41_history` collector binding and its
+generic macro publisher for a separate one-response FRED source containing
+IORB and the federal-funds target bounds. It does not change registry
+declarative content, schema, datasets, locks, credential handling, or the
+historical H.4.1 request.
+
 Registry `2.28.0` adds only the credential-free, manual-only
 `nyfed.macro.cmdi_history` collector and reciprocal bindings to the same
 three existing generic macro datasets. One fixed NY Fed workbook supplies the
@@ -186,6 +193,30 @@ Exact projection removes only these three collectors and their reciprocal
 bindings to restore byte-exact `2.28.0`; the earlier projection chain remains
 unchanged.
 
+The later Treasury Debt to the Penny fast-path extension reuses the existing
+credential-free `treasury_fiscal_data.macro.tga_closing_balance_history`
+collector binding and generic macro publisher for a separate one-response
+Treasury Fiscal Data source containing total public debt, debt held by the
+public, and intragovernmental holdings. It does not change registry declarative
+content, schema, datasets, locks, credential handling, or the historical TGA
+request.
+
+The later Monthly Treasury Statement fast-path extension likewise reuses that
+same Treasury collector binding and generic macro publisher for a separate
+one-response summary source containing monthly federal receipts, outlays, and
+deficit/surplus in millions of USD. It does not change registry declarative
+content, schema, datasets, locks, credential handling, or either earlier
+Treasury request.
+
+The later EIA petroleum fast-path extension reuses the existing
+`eia.macro.natural_gas_storage_history` collector binding, `EIA_API_KEY`
+resolver, and generic macro publisher for three separate one-response sources:
+weekly U.S. total-motor-gasoline ending stocks (`PET.WGTSTUS1.W`), distillate-
+fuel-oil ending stocks (`PET.WDISTUS1.W`), and finished-motor-gasoline product
+supplied (`PET.WGFUPUS2.W`). It does not change registry declarative content,
+schema, datasets, locks, credential handling, or the existing natural-gas and
+Stage 11 crude-oil requests.
+
 Registry `2.30.0` adds only the credential-free, manual-only
 `bls.macro.price_wage_productivity_history` collector and reciprocal
 bindings to the same three existing generic macro datasets. One BLS API POST
@@ -212,11 +243,236 @@ Fed overnight-rate collector retains SOFR distribution percentiles, volume,
 index, and 30/90/180-day averages; the existing one-response Chicago Fed
 collector retains NFCI risk, credit, and leverage components; and the
 established Stage 11 EIA electricity-retail publisher is made available to
-the fixed aggregate refresh. The current inventory is 39 migrations, 51
-datasets, and 49 collectors, and the current registry source SHA-256 is
+the fixed aggregate refresh. At revision `2.31.0`, the inventory is 39 migrations, 51
+datasets, and 49 collectors, and the registry source SHA-256 is
 `d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0`.
 Exact projection removes only migration 0017 and restores byte-exact
 `2.30.0`; the earlier projection chain remains unchanged.
+
+Registry `2.32.0`, schema `1.9.0`, adds version-policy syntax for public tools
+without expanding or rebinding the 57 logical names. The top-level v1
+declarations remain the default for omitted `tool_version` selectors and the
+frozen 114-contract v1 catalog remains byte-identical at SHA-256
+`a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87`.
+Only `market.get_returns` and `market.get_forward_returns` gain explicit
+`2.0.0` variants, backed by the three existing private Stage 10 datasets and a
+separate four-contract v2 schema catalog. Their legacy `1.0.0` variants remain
+selectable and discoverable as deprecated, with deterministic replacement
+metadata and no scheduled removal milestone. The revision adds no migration,
+dataset, collector, provider, credential mechanism, job, timer, export, or
+deployment. Its registry source SHA-256 is
+`4b57a6bfb311001eee852f19ca45ad500095c7f997d804860cdd24a5ef24565d`.
+Exact projection removes only the version-policy/catalog declarations and the
+three reciprocal Stage 10 tool bindings, restoring byte-exact `2.31.0` at
+SHA-256 `d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0`.
+
+Registry `2.33.0` adds `2.0.0` variants of `timeseries.describe`,
+`timeseries.align`, and `timeseries.correlation` without changing the schema
+version or the 57-name inventory. These variants accept the exact public
+Stage 10 return-series composition schema, declare no store or dataset binding,
+and operate only on caller-supplied typed values. The stricter composition
+schema leaves the frozen `2.32.0` return-output contracts byte-identical. Their
+typed contracts require explicit limits and alignment policy, reapply `as_of`
+cutoffs to instrument and observation availability, preserve missing reasons
+and indexed input lineage, reject contradictory return/temporal contracts, and
+reject truncated correlation samples. The v2
+catalog grows from four to ten contracts, advances to catalog version `2.1.0`,
+and has SHA-256
+`3ae30774d87c31217204da2240a56124c2e732a14f9fb6e38a57e3d6d7341b79`.
+The frozen v1 catalog remains byte-identical. The revision adds no migration,
+dataset, collector, provider, credential mechanism, job, timer, export, or
+deployment. Its registry source SHA-256 is
+`eae80b10840afa2b724215aa431e1b8feab303486bbc87a60a8591e5812536cb`.
+Exact projection removes only the three composable policies and restores
+byte-exact registry `2.32.0` at SHA-256
+`4b57a6bfb311001eee852f19ca45ad500095c7f997d804860cdd24a5ef24565d`.
+
+Registry `2.34.0` adds `2.0.0` variants of `econometrics.regression`,
+`econometrics.rolling_regression`, and `econometrics.stationarity` without
+changing schema version or the 57-name inventory. They accept compatible,
+non-truncated trailing Stage 10 v2 return series and declare no store or
+dataset binding. OLS publishes classical homoskedastic covariance, Student-t
+inference, fixed 95% confidence intervals, fit diagnostics, and numerical
+backend metadata. Rolling OLS reuses that exact kernel over fixed contiguous
+complete windows. Stationarity is limited to a constant-only, explicit
+fixed-lag augmented Dickey-Fuller regression with MacKinnon 2010 finite-sample
+critical values, three explicit rejection decisions, and no approximate
+p-value. The v2 catalog grows from ten to sixteen contracts, advances to
+catalog version `2.2.0`, and has SHA-256
+`5250c18b70066de734cb2a4715ec20825f4a587892ba70728065dde82a4a239c`.
+The frozen v1 catalog remains byte-identical. The revision adds no migration,
+dataset, collector, provider, credential mechanism, job, timer, export, or
+deployment. Its registry source SHA-256 is
+`9ed2affcaa84c6420c7650c10a02361fad2bd892b33a5df2797e033e300ef86d`.
+Exact projection removes only the three econometrics policies and restores
+byte-exact registry `2.33.0` at SHA-256
+`eae80b10840afa2b724215aa431e1b8feab303486bbc87a60a8591e5812536cb`.
+
+Registry `2.35.0` adds one private, manual-only collector,
+`bea.macro.personal_income_history`, bound reciprocally to the three existing
+generic macro evidence/canonical/catalog datasets. Its fixed handler makes one
+BEA NIPA `T20600`, monthly, `Year=ALL` request and retains only `A065RC`,
+`A067RC`, and `DPCERC` as current-dollar USD millions at seasonally adjusted
+annual rates. It uses `BEA_API_KEY` through the existing project credential
+resolver, has a one-attempt/no-retry policy, a 16 MiB response bound, and a
+5,000 selected-row bound. It adds no migration, dataset, provider family,
+credential mechanism, registry job, tool, dashboard, export, or deployment.
+Its source SHA-256 is
+`a5e5b11bd9578428430c96f9eec59214e39f8cbb85f5b74fffc37aebaabdc27e`.
+Exact projection removes only this collector and its reciprocal bindings,
+restoring byte-exact registry `2.34.0` at SHA-256
+`9ed2affcaa84c6420c7650c10a02361fad2bd892b33a5df2797e033e300ef86d`.
+
+Registry `2.36.0` adds `2.1.0` variants of
+`econometrics.regression` and `econometrics.rolling_regression` without
+changing schema version, the 57-name inventory, datasets, collectors, or
+migrations. The variants declare no store binding. They add HC1, HC3, and
+fixed-lag Bartlett Newey-West covariance with asymptotic-normal inference and
+fixed-lag Ljung-Box, Koenker-Breusch-Pagan, and Jarque-Bera residual
+diagnostics; existing `2.0.0` variants remain unchanged. The v2 catalog grows
+from sixteen to twenty contracts, advances to catalog version `2.3.0`, and
+has SHA-256
+`7de5126d50c438d0bb35cb82a9a0dd282251de3acceeb850d69ca20f894ef7b9`.
+The frozen v1 catalog remains byte-identical. The operational inventory is 39
+migrations, 51 datasets, and 50 collectors. The registry source SHA-256 is
+`5c9702d8ca4c2f896083471cc60adecfd3a43c72d45694d04688ab07e6330035`.
+Exact projection removes only the two `2.1.0` variants and restores
+byte-exact registry `2.35.0` at SHA-256
+`a5e5b11bd9578428430c96f9eec59214e39f8cbb85f5b74fffc37aebaabdc27e`.
+
+Registry `2.37.0` adds only a `2.1.0` variant of
+`econometrics.stationarity`. The ADF-only `2.0.0` variant is unchanged. The
+new variant adds caller-fixed-lag level KPSS, the published 1992 asymptotic
+critical values without an interpolated p-value, and a four-state joint
+ADF/KPSS interpretation at one declared significance level. Catalog `2.4.0`
+has 22 contracts at SHA-256
+`529d904d46003c53785926730279dc4c37bf09b7d15f99c366122c416c4af26e`;
+the registry source SHA-256 is
+`2a2b611ac6f752e6d83a81369155454b1484b8caebf4d1aaa3be60c41f0e866b`.
+Exact projection removes only that variant and restores byte-exact registry
+`2.36.0`.
+
+Registry `2.38.0` adds only the `2.0.0`
+`econometrics.structural_breaks` policy. It declares one caller-supplied,
+zero-based first post-break row and compares pooled, pre-break, and post-break
+classical OLS with the Chow F statistic. It does not perform automatic break
+search, multiple-testing adjustment, or multiple-break inference. Exact
+finite-sample F inference requires Gaussian, homoskedastic, independent
+errors and the standard exogenous fixed-design linear-model conditions.
+Catalog `2.5.0` has 24 contracts at SHA-256
+`e0650e5b76ec9a851220c2395c34f9172f1380b5a5c9b2bc681056c655bdeb5b`;
+the registry source SHA-256 is
+`3d6c0f31f2c72c20e5459c4e7f2358ea273437d59af99ef017b1f3ad47b1b547`.
+At revision `2.38.0`, the inventory is 39 migrations, 51 datasets,
+50 collectors, 9 versioned policies, and 12 variants. Exact projection removes only the new
+policy and restores byte-exact registry `2.37.0`. Both revisions are
+store-free and add no dataset, collector, credential, migration, job, timer,
+export, or deployment; the frozen v1 catalog remains byte-identical.
+
+Registry `2.39.0` adds only an explicit `3.0.0` variant of
+`econometrics.regression` and operation graph
+`tool_platform.econometrics.regression.v3`. One mode is selected per request:
+directional two-step Engle-Granger cointegration for exactly two horizon-one
+return series, a fixed-order constant reduced-form VAR for two through five
+series, or a conditional directional Granger-causality F test over the same VAR
+system. Lag order is caller-fixed from zero through four for Engle-Granger and
+one through four for VAR/Granger; no automatic lag, direction, break, or model
+search occurs. Engle-Granger reconstructs normalized log levels from compatible
+simple or log returns, uses a constant first-stage regression and a no-constant
+residual ADF, reports MacKinnon 2010 `tau_c` N=2 finite-sample critical values,
+and intentionally provides no approximate p-value. VAR reports every equation,
+lag matrix, and residual covariance. Granger reports a conditional exact F-tail
+under the classical fixed-design assumptions and explicitly does not claim
+structural causality.
+
+Catalog `2.6.0` has 26 contracts at SHA-256
+`2c9424a0ff9cda9130d559c2dacb6cef55ff9ff8537191285219d608411b7f24`;
+the registry source SHA-256 is
+`f7f445a3dbc991ca7b309ce306e5bc439403d929b96fb9931a22c036cb0eea85`.
+At revision `2.39.0`, the inventory is 39 migrations, 51 datasets, 50 collectors,
+9 versioned policies, and 13 variants. Exact projection removes only regression
+`3.0.0` and restores byte-exact registry `2.38.0`. The new variant is
+caller-supplied and store-free and adds no dataset, collector, credential,
+migration, job, timer, export, public route, or deployment. The 57 public names,
+omitted-v1 behavior, prior selected versions, and frozen v1 catalog are
+unchanged.
+
+Registry `2.40.0` retains that tool surface and adds the existing private FMP
+incremental-calendar migration plus its evidence and canonical-event dataset
+declarations. Its inventory is 40 migrations, 53 datasets, 50 collectors,
+9 versioned policies, and 13 variants. Its registry source SHA-256 is
+`72516749f56f962bea2a265ef4a917558ef6e757444ae5d679bc50d2d64e6ed7`.
+Exact projection removes only the incremental-calendar declarations and
+restores byte-exact registry `2.39.0` at SHA-256
+`f7f445a3dbc991ca7b309ce306e5bc439403d929b96fb9931a22c036cb0eea85`.
+These declarations do not authorize a provider request, credential use,
+canonical-store operation, scheduler, deployment, or public exposure.
+
+Registry `2.41.0` adds only the native read-only
+`market.get_price_series` declaration and reciprocal bindings to the three
+existing Stage 10 market datasets. The active inventory is 58 names: the
+frozen recovered compatibility target remains 57, and the new name has
+`additive_native_v1` status. It returns exactly four coherent typed series
+(`open`, `high`, `low`, and `close`) for a server-resolved ticker;
+inclusive `start_date` and `end_date` are independently optional. The v2
+catalog advances to `2.7.0` with 28 contracts at SHA-256
+`0f89da921b37d210c596646b3c4f47e4dbe27c2fe2579d8772c6db2bed312398`.
+The current registry source SHA-256 is
+`835fe846c0d0bf0ce630cda0dd23588983c83f6fad663cbe51202fe00deee2a3`.
+Exact projection removes only the additive declaration and reciprocal tool
+bindings and restores byte-exact registry `2.40.0` and catalog `2.6.0`.
+This revision adds no migration, dataset, collector, provider request,
+credential access, write path, scheduler, export, hosting, or deployment.
+
+Registry `2.42.0` adds only the native read-only
+`market.get_available_ticker` declaration and reciprocal bindings to
+`market.stage10.instruments` and `market.stage10.daily_prices`. The active
+inventory is 59 names while the recovered compatibility target remains 57.
+Empty `{}` arguments request the full deterministically ordered bounded set;
+optional `limit` is 1 through 10,000. A returned instrument must have a
+current FMP/provider-native price pointer whose immutable version and capture
+are retrievable. The result is current retained-data discovery, not a live or
+historical point-in-time universe. Catalog `2.8.0` has 30 contracts at
+SHA-256
+`554873c79f58abbee6f4fbf83e4a6767153c9ff920651825d8cac3bd6075905f`;
+the registry source SHA-256 is
+`1ab956e8338b864873f25e6e41cc6a18ba9a271a1951bec0bdccf32a07b8fd2b`.
+Exact projection removes only this declaration and its reciprocal dataset
+bindings and restores byte-exact registry `2.41.0` and catalog `2.7.0`.
+The fixed local subprocess bridge derives the project root, canonical registry,
+and store routing host-side and exposes strict JSON only; it adds no URL,
+caller-selected path, SQL, provider, credential, write path, migration,
+scheduler, export, hosting, or deployment.
+
+Registry `2.43.0` adds only the private
+`alpaca.market.spy_option_surface` collector and reciprocal bindings to the
+existing instrument, option-capture-evidence, and options datasets. It consumes
+the existing Stage 10 instrument dataset, resolves the fixed FMP SPY identity,
+and reuses the applied options schema without a migration. The declaration
+names only `ALPACA_API_KEY` and `ALPACA_API_SECRET`; it stores no credential.
+At most four single-attempt requests, 10,000 rows, 8 MiB, and 120 seconds are
+allowed. Its exact semantic replay policy is zero persistent writes.
+The registry collector remains `manual_only`; the separately authorized fixed
+host timer is the only recurring exception. Exact projection removes only this
+collector and its reciprocal bindings and restores byte-exact registry
+`2.42.0` at SHA-256
+`1ab956e8338b864873f25e6e41cc6a18ba9a271a1951bec0bdccf32a07b8fd2b`.
+The current source SHA-256 is
+`841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff`.
+No public tool, catalog schema, migration, export, hosting, or deployment is added.
+
+ADR 0012 defines the exact `2.40.0` topology. The legacy
+`macro.fmp.economic_calendar_evidence` dataset remains active and readable
+but has no live collector binding. The existing wholesale collector instead
+outputs `macro.fmp.economic_calendar_incremental_evidence`, which owns the
+receipt and singleton cache, and
+`macro.fmp.economic_calendar_incremental_events`, which owns stable raw
+events and append-only versions. Its persistence semantic identity includes
+the predecessor receipt for a material transition in addition to the complete
+source-batch identity, so exact replay is a no-write and A to B to A remains a
+three-version history. The exact `2.40.0` to `2.39.0` projection restores the
+legacy collector binding and full-capture mutation policy and removes only
+migration 0018 and the two successor datasets.
 
 The frozen Stage 10 projection remains `2.8.0`/`1.6.0`; the frozen Stage 9
 projection remains `2.7.0`/`1.5.0`; the frozen Stage 7 projection remains
@@ -819,6 +1075,18 @@ Executable handler code, migration SQL, provider parsers, and domain validation 
 9. **Retire:** remove only after no active references remain and historical artifacts retain enough version metadata to be interpreted.
 
 A schema-version change governs registry syntax and validation. A registry-version change governs one configuration revision. Dataset, collector, tool, job, and export versions govern their individual public or operational contracts.
+
+Schema `1.9.0` retains `tools` as the ordered default-version inventory
+and adds `tool_versions` plus `tool_version_schema_catalog`. Revisions
+`2.32.0` through `2.40.0` contain the 57 recovered names; revision
+`2.41.0` adds one native default-version declaration without changing that
+frozen compatibility target. Each policy names
+one existing logical tool, a default version, the fixed selector field, full
+additional variant declarations, and deterministic deprecation records. A
+variant is resolved by `(tool, version)`; duplicate pairs, undeclared schema or
+operation versions, invalid replacements, non-reciprocal dataset bindings, and
+unknown selectors fail validation. Historical projections strip this syntax
+before applying earlier registry transforms.
 
 ## Illustrative YAML — non-executable
 

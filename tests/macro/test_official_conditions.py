@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from io import BytesIO
 from pathlib import Path
 import tempfile
@@ -9,25 +10,41 @@ import unittest
 from zipfile import ZipFile
 
 from quant_data.errors import ValidationError
-from quant_data.json_codec import loads_strict
+from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.macro.official_conditions import (
+    BEA_PERSONAL_INCOME_MANIFEST,
     BIS_MANIFEST,
     BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST,
+    CFNAI_MANIFEST,
     CMDI_MANIFEST,
     CHICAGO_MANIFEST,
     H41_MANIFEST,
+    FED_POLICY_RATE_MANIFEST,
+    INDUSTRIAL_PRODUCTION_MANIFEST,
     OUTPUT_DATASET_IDS,
     OfficialConditionsPublisher,
+    parse_bea_personal_income,
     parse_bis_credit_conditions,
     parse_bls_price_wage_productivity,
     parse_chicagofed_financial_conditions,
+    parse_chicagofed_national_activity,
     parse_federal_reserve_h41,
+    parse_federal_reserve_industrial_production,
+    parse_federal_reserve_policy_rates,
     parse_nyfed_cmdi,
     EIA_GAS_MANIFEST,
+    EIA_PETROLEUM_FUNDAMENTALS_MANIFEST,
     NBER_RECESSION_MANIFEST,
+    TREASURY_DEBT_MANIFEST,
+    TREASURY_FISCAL_BALANCE_MANIFEST,
     TREASURY_TGA_MANIFEST,
     parse_eia_natural_gas_storage,
+    parse_eia_total_motor_gasoline_stocks,
+    parse_eia_distillate_fuel_oil_stocks,
+    parse_eia_finished_motor_gasoline_product_supplied,
     parse_nber_us_recession,
+    parse_treasury_debt,
+    parse_treasury_fiscal_balance,
     parse_treasury_tga,
 )
 from quant_data.migrations import migrate_and_register_store
@@ -59,6 +76,22 @@ def _h41_body() -> bytes:
     return output.getvalue()
 
 
+def _policy_rates_body() -> bytes:
+    return (
+        "observation_date,IORB,DFEDTARL,DFEDTARU\n"
+        "2021-07-28,.,0.00,0.25\n"
+        "2021-07-29,0.15,0.00,0.25\n"
+    ).encode("utf-8")
+
+
+def _industrial_production_body() -> bytes:
+    return (
+        "observation_date,INDPRO\n"
+        "2026-06-01,102.7\n"
+        "2026-07-01,.\n"
+    ).encode("utf-8")
+
+
 def _chicago_body(*, corrected: bool = False, reverse: bool = False) -> bytes:
     rows = [
         "08/14/2026,-0.30,-0.15,0,0,0,0",
@@ -72,6 +105,46 @@ def _chicago_body(*, corrected: bool = False, reverse: bool = False) -> bytes:
         + "\n".join(rows)
         + "\n"
     ).encode("utf-8")
+
+
+def _cfnai_body(*, header: str = "Date", duplicate: bool = False) -> bytes:
+    headers = (
+        header,
+        "P_I",
+        "EU_H",
+        "C_H",
+        "SO_I",
+        "CFNAI",
+        "CFNAI_MA3",
+        "DIFFUSION",
+    )
+    periods = ("2026:06", "2026:06" if duplicate else "2026:07")
+    shared_values = headers + periods
+    shared = (
+        '<sst xmlns="http://schemas.openxmlformats.org/'
+        'spreadsheetml/2006/main">'
+        + "".join(f"<si><t>{item}</t></si>" for item in shared_values)
+        + "</sst>"
+    )
+    header_cells = "".join(
+        f'<c r="{chr(ord("A") + index)}1" t="s"><v>{index}</v></c>'
+        for index in range(len(headers))
+    )
+    sheet = (
+        '<worksheet xmlns="http://schemas.openxmlformats.org/'
+        'spreadsheetml/2006/main"><sheetData>'
+        f'<row r="1">{header_cells}</row>'
+        '<row r="2"><c r="A2" t="s"><v>8</v></c>'
+        '<c r="F2"><v>-0.10</v></c></row>'
+        '<row r="3"><c r="A3" t="s"><v>9</v></c>'
+        '<c r="F3"><v>0.14</v></c></row>'
+        "</sheetData></worksheet>"
+    )
+    output = BytesIO()
+    with ZipFile(output, "w") as archive:
+        archive.writestr("xl/sharedStrings.xml", shared)
+        archive.writestr("xl/worksheets/sheet1.xml", sheet)
+    return output.getvalue()
 
 
 def _bis_bodies() -> tuple[bytes, bytes]:
@@ -99,7 +172,9 @@ def _bls_body() -> bytes:
         b'{"seriesID":"CES0500000003","data":['
         b'{"year":"2026","period":"M02","value":"37.62"}]},'
         b'{"seriesID":"PRS85006092","data":['
-        b'{"year":"2026","period":"Q01","value":"2.4"}]}]}}'
+        b'{"year":"2026","period":"Q01","value":"2.4"}]},'
+        b'{"seriesID":"CIS1010000000000I","data":['
+        b'{"year":"2026","period":"Q01","value":"167.8"}]}]}}'
     )
 
 
@@ -172,6 +247,60 @@ class OfficialConditionsParserTests(unittest.TestCase):
         self.assertIsNone(missing.value_text)
         self.assertEqual(missing.missing_reason, "source_missing")
 
+    def test_federal_reserve_policy_rates_and_source_missingness(self) -> None:
+        capture = parse_federal_reserve_policy_rates(
+            _policy_rates_body(),
+            captured_at=CAPTURED_AT,
+            start_date="2021-07-28",
+            end_date="2021-07-29",
+        )
+
+        self.assertEqual(
+            tuple(item.provider_code for item in FED_POLICY_RATE_MANIFEST),
+            ("IORB", "DFEDTARL", "DFEDTARU"),
+        )
+        self.assertEqual(capture.source_key, "policy_rates")
+        self.assertEqual(len(capture.parts), 1)
+        self.assertEqual(len(capture.observations), 6)
+        iorb_before_start = next(
+            item
+            for item in capture.observations
+            if item.provider_code == "IORB"
+            and item.period_start == "2021-07-28"
+        )
+        self.assertIsNone(iorb_before_start.value_text)
+        self.assertEqual(iorb_before_start.missing_reason, "source_missing")
+
+    def test_industrial_production_month_bounds_and_missingness(self) -> None:
+        capture = parse_federal_reserve_industrial_production(
+            _industrial_production_body(),
+            captured_at=CAPTURED_AT,
+            start_date="1919-01-01",
+            end_date="2026-08-22",
+        )
+
+        self.assertEqual(
+            tuple(
+                item.provider_code
+                for item in INDUSTRIAL_PRODUCTION_MANIFEST
+            ),
+            ("INDPRO",),
+        )
+        self.assertEqual(capture.source_key, "industrial_production")
+        self.assertEqual(len(capture.observations), 2)
+        self.assertEqual(
+            (
+                capture.observations[0].source_period,
+                capture.observations[0].period_start,
+                capture.observations[0].period_end,
+            ),
+            ("2026-06", "2026-06-01", "2026-06-30"),
+        )
+        self.assertIsNone(capture.observations[1].value_text)
+        self.assertEqual(
+            capture.observations[1].missing_reason, "source_missing"
+        )
+
     def test_chicago_keeps_headlines_and_components(self) -> None:
         capture = parse_chicagofed_financial_conditions(
             _chicago_body(),
@@ -189,6 +318,31 @@ class OfficialConditionsParserTests(unittest.TestCase):
         self.assertEqual(
             {item.provider_code for item in capture.observations},
             {"NFCI", "ANFCI", "Risk", "Credit", "Leverage"},
+        )
+
+    def test_cfnai_uses_month_bounds_and_headline_only(self) -> None:
+        capture = parse_chicagofed_national_activity(
+            _cfnai_body(),
+            captured_at=CAPTURED_AT,
+            start_date="1967-03-01",
+            end_date="2026-08-22",
+        )
+
+        self.assertEqual(
+            tuple(item.provider_code for item in CFNAI_MANIFEST),
+            ("CFNAI",),
+        )
+        self.assertEqual(capture.source_key, "cfnai")
+        self.assertEqual(len(capture.parts), 1)
+        self.assertEqual(len(capture.observations), 2)
+        self.assertEqual(
+            (
+                capture.observations[1].source_period,
+                capture.observations[1].period_start,
+                capture.observations[1].period_end,
+                capture.observations[1].value_text,
+            ),
+            ("2026-07", "2026-07-01", "2026-07-31", "0.14"),
         )
 
     def test_bis_three_quarterly_series_and_period_bounds(self) -> None:
@@ -229,10 +383,15 @@ class OfficialConditionsParserTests(unittest.TestCase):
                 item.provider_code
                 for item in BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST
             ),
-            ("WPSFD4", "CES0500000003", "PRS85006092"),
+            (
+                "WPSFD4",
+                "CES0500000003",
+                "PRS85006092",
+                "CIS1010000000000I",
+            ),
         )
         self.assertEqual(len(capture.parts), 1)
-        self.assertEqual(len(capture.observations), 3)
+        self.assertEqual(len(capture.observations), 4)
         monthly = next(
             item
             for item in capture.observations
@@ -242,6 +401,11 @@ class OfficialConditionsParserTests(unittest.TestCase):
             item
             for item in capture.observations
             if item.provider_code == "PRS85006092"
+        )
+        eci = next(
+            item
+            for item in capture.observations
+            if item.provider_code == "CIS1010000000000I"
         )
         self.assertEqual(
             (monthly.source_period, monthly.period_start, monthly.period_end),
@@ -255,6 +419,7 @@ class OfficialConditionsParserTests(unittest.TestCase):
             ),
             ("2026-Q1", "2026-01-01", "2026-03-31"),
         )
+        self.assertEqual(eci.value_text, "167.8")
 
     def test_bls_parser_accepts_fixed_historical_subset(self) -> None:
         body = (
@@ -316,6 +481,22 @@ class OfficialConditionsParserTests(unittest.TestCase):
                 _chicago_body().replace(b"Friday_of_Week", b"Date", 1),
                 captured_at=CAPTURED_AT,
                 start_date="1971-01-08",
+                end_date="2026-08-22",
+            )
+        with self.assertRaisesRegex(ValidationError, "shape"):
+            parse_federal_reserve_industrial_production(
+                _industrial_production_body().replace(
+                    b"observation_date", b"date", 1
+                ),
+                captured_at=CAPTURED_AT,
+                start_date="1919-01-01",
+                end_date="2026-08-22",
+            )
+        with self.assertRaisesRegex(ValidationError, "unique"):
+            parse_chicagofed_national_activity(
+                _cfnai_body(duplicate=True),
+                captured_at=CAPTURED_AT,
+                start_date="1967-03-01",
                 end_date="2026-08-22",
             )
         credit, dsr = _bis_bodies()
@@ -486,6 +667,36 @@ class OfficialConditionsPublicationTests(unittest.TestCase):
         )
         self.assertEqual(outputs, len(OUTPUT_DATASET_IDS))
 
+    def test_new_source_keys_reuse_existing_registry_bindings(self) -> None:
+        captures = (
+            (
+                "industrial_production",
+                parse_federal_reserve_industrial_production(
+                    _industrial_production_body(),
+                    captured_at=CAPTURED_AT,
+                    start_date="1919-01-01",
+                    end_date="2026-08-22",
+                ),
+            ),
+            (
+                "cfnai",
+                parse_chicagofed_national_activity(
+                    _cfnai_body(),
+                    captured_at=CAPTURED_AT,
+                    start_date="1967-03-01",
+                    end_date="2026-08-22",
+                ),
+            ),
+        )
+        for source_key, capture in captures:
+            publisher = OfficialConditionsPublisher(
+                source_key=source_key,
+                macro_store=self.stores.macro,
+                project_root=self.root,
+                registry=self.registry,
+            )
+            self.assertEqual(publisher.publish(capture).outcome, "published")
+
 
 class OfficialConditionsAdditionalParserTests(unittest.TestCase):
     def test_treasury_eia_and_nber_fixed_semantics(self) -> None:
@@ -506,6 +717,90 @@ class OfficialConditionsAdditionalParserTests(unittest.TestCase):
         self.assertEqual(
             [item.value_text for item in treasury.observations],
             ["700000.5", "700100"],
+        )
+
+        debt = parse_treasury_debt(
+            (
+                b'{"data":[{"record_date":"2026-08-20",'
+                b'"tot_pub_debt_out_amt":"37000123456789.01",'
+                b'"debt_held_public_amt":"null",'
+                b'"intragov_hold_amt":"null"},'
+                b'{"record_date":"2026-08-21",'
+                b'"tot_pub_debt_out_amt":"37001123456789.01",'
+                b'"debt_held_public_amt":"29501123456789.01",'
+                b'"intragov_hold_amt":"7500000000000.00"}],'
+                b'"meta":{"total-pages":"1","total-count":"2"}}'
+            ),
+            captured_at=CAPTURED_AT,
+            start_date="2026-08-20",
+            end_date="2026-08-21",
+        )
+        self.assertEqual(len(TREASURY_DEBT_MANIFEST), 3)
+        self.assertEqual(len(debt.observations), 6)
+        self.assertEqual(
+            [item.provider_code for item in debt.observations[:3]],
+            [
+                "tot_pub_debt_out_amt",
+                "debt_held_public_amt",
+                "intragov_hold_amt",
+            ],
+        )
+        self.assertEqual(
+            [item.value_text for item in debt.observations[:3]],
+            ["37000123456789.01", None, None],
+        )
+        self.assertEqual(
+            [item.missing_reason for item in debt.observations[:3]],
+            [None, "source_missing", "source_missing"],
+        )
+
+        fiscal = parse_treasury_fiscal_balance(
+            (
+                b'{"data":['
+                b'{"record_date":"2026-06-30","amt_category":"Receipts",'
+                b'"mil_amt":"526000"},'
+                b'{"record_date":"2026-06-30","amt_category":"Outlays",'
+                b'"mil_amt":"499000"},'
+                b'{"record_date":"2026-06-30",'
+                b'"amt_category":"Deficit/Surplus (-)","mil_amt":"-27000"},'
+                b'{"record_date":"2026-06-30",'
+                b'"amt_category":"Borrowing from the Public","mil_amt":"100"},'
+                b'{"record_date":"2026-07-31","amt_category":"Receipts",'
+                b'"mil_amt":"334010"},'
+                b'{"record_date":"2026-07-31","amt_category":"Outlays",'
+                b'"mil_amt":"766318"},'
+                b'{"record_date":"2026-07-31",'
+                b'"amt_category":"Deficit/Surplus (-)","mil_amt":"432308"},'
+                b'{"record_date":"2026-07-31",'
+                b'"amt_category":"Borrowing from the Public","mil_amt":"100"}],'
+                b'"meta":{"total-pages":"1","total-count":"8"}}'
+            ),
+            captured_at=CAPTURED_AT,
+            start_date="2026-06-01",
+            end_date="2026-07-31",
+        )
+        self.assertEqual(len(TREASURY_FISCAL_BALANCE_MANIFEST), 3)
+        self.assertEqual(len(fiscal.observations), 6)
+        june_deficit = next(
+            item
+            for item in fiscal.observations
+            if item.provider_code == "Deficit/Surplus (-)"
+            and item.source_period == "2026-06"
+        )
+        july_receipts = next(
+            item
+            for item in fiscal.observations
+            if item.provider_code == "Receipts"
+            and item.source_period == "2026-07"
+        )
+        self.assertEqual(june_deficit.value_text, "-27000")
+        self.assertEqual(
+            (
+                july_receipts.period_start,
+                july_receipts.period_end,
+                july_receipts.value_text,
+            ),
+            ("2026-07-01", "2026-07-31", "334010"),
         )
 
         secret = "fixture-eia-key-not-retained"
@@ -541,6 +836,207 @@ class OfficialConditionsAdditionalParserTests(unittest.TestCase):
             [item.value_text for item in nber.observations],
             ["0", "0", "0", "1", "1", "0", "0"],
         )
+
+    def test_bea_personal_income_table_selects_three_series_and_redacts_key(
+        self,
+    ) -> None:
+        secret = "fixture-bea-key-not-retained"
+        payload = {
+            "BEAAPI": {
+                "Request": {
+                    "RequestParam": [
+                        {
+                            "ParameterName": "UserID",
+                            "ParameterValue": secret,
+                        }
+                    ]
+                },
+                "Results": {
+                    "Data": [
+                        {
+                            "TableName": "T20600",
+                            "SeriesCode": "A065RC",
+                            "LineNumber": "1",
+                            "LineDescription": "Personal income",
+                            "TimePeriod": "2026M06",
+                            "METRIC_NAME": "Current Dollars",
+                            "CL_UNIT": "Level",
+                            "UNIT_MULT": "6",
+                            "DataValue": "26,500.1",
+                        },
+                        {
+                            "TableName": "T20600",
+                            "SeriesCode": "A067RC",
+                            "LineNumber": "27",
+                            "LineDescription": (
+                                "Equals: Disposable personal income"
+                            ),
+                            "TimePeriod": "2026M06",
+                            "METRIC_NAME": "Current Dollars",
+                            "CL_UNIT": "Level",
+                            "UNIT_MULT": "6",
+                            "DataValue": "22,300.2",
+                        },
+                        {
+                            "TableName": "T20600",
+                            "SeriesCode": "DPCERC",
+                            "LineNumber": "29",
+                            "LineDescription": (
+                                "Personal consumption expenditures"
+                            ),
+                            "TimePeriod": "2026M06",
+                            "METRIC_NAME": "Current Dollars",
+                            "CL_UNIT": "Level",
+                            "UNIT_MULT": "6",
+                            "DataValue": "20,900.3",
+                        },
+                    ]
+                },
+            }
+        }
+        capture = parse_bea_personal_income(
+            dumps_strict(payload).encode("utf-8"),
+            captured_at=CAPTURED_AT,
+            credential=secret,
+        )
+
+        self.assertEqual(len(BEA_PERSONAL_INCOME_MANIFEST), 3)
+        self.assertEqual(capture.source_key, "bea_personal_income")
+        self.assertEqual(
+            [item.provider_code for item in capture.observations],
+            ["A065RC", "A067RC", "DPCERC"],
+        )
+        self.assertEqual(
+            [item.value_text for item in capture.observations],
+            ["26500.1", "22300.2", "20900.3"],
+        )
+        self.assertEqual(
+            {
+                (item.period_start, item.period_end)
+                for item in capture.observations
+            },
+            {("2026-06-01", "2026-06-30")},
+        )
+        self.assertEqual(
+            {item.unit for item in BEA_PERSONAL_INCOME_MANIFEST},
+            {"usd_millions_saar"},
+        )
+        self.assertNotIn(secret.encode("utf-8"), capture.parts[0].body)
+
+        payload["BEAAPI"]["Results"]["Data"][0]["LineNumber"] = "2"
+        with self.assertRaises(ValidationError):
+            parse_bea_personal_income(
+                dumps_strict(payload).encode("utf-8"),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            )
+
+        payload["BEAAPI"]["Results"]["Data"][0]["LineNumber"] = "1"
+        payload["BEAAPI"]["Results"]["Data"].append(
+            {
+                "TableName": "T20600",
+                "SeriesCode": "A065RC",
+                "LineNumber": "1",
+                "LineDescription": "Personal income",
+                "TimePeriod": "2026M07",
+                "METRIC_NAME": "Current Dollars",
+                "CL_UNIT": "Level",
+                "UNIT_MULT": "6",
+                "DataValue": "26,600.4",
+            }
+        )
+        with self.assertRaises(ValidationError):
+            parse_bea_personal_income(
+                dumps_strict(payload).encode("utf-8"),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            )
+
+    def test_eia_weekly_petroleum_fundamentals_are_fixed_and_redacted(
+        self,
+    ) -> None:
+        secret = "fixture-eia-key-not-retained"
+
+        def body(series: str, units: str, value: str) -> bytes:
+            return (
+                f'{{"response":{{"frequency":"weekly","total":"1","api_key":'
+                f'"{secret}","data":[{{"period":"2026-08-14",'
+                f'"series":"{series}","units":"{units}",'
+                f'"value":"{value}"}}]}}}}'
+            ).encode("utf-8")
+
+        captures = (
+            parse_eia_total_motor_gasoline_stocks(
+                body("WGTSTUS1", "Thousand Barrels", "235000"),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            ),
+            parse_eia_distillate_fuel_oil_stocks(
+                body("WDISTUS1", "Thousand Barrels", "120000"),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            ),
+            parse_eia_finished_motor_gasoline_product_supplied(
+                body(
+                    "WGFUPUS2",
+                    "Thousand Barrels per Day",
+                    "9100",
+                ),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            ),
+        )
+
+        self.assertEqual(len(EIA_PETROLEUM_FUNDAMENTALS_MANIFEST), 3)
+        self.assertEqual(
+            [capture.source_key for capture in captures],
+            [
+                "eia_total_motor_gasoline_stocks",
+                "eia_distillate_fuel_oil_stocks",
+                "eia_finished_motor_gasoline_product_supplied",
+            ],
+        )
+        self.assertEqual(
+            [capture.observations[0].provider_code for capture in captures],
+            ["WGTSTUS1", "WDISTUS1", "WGFUPUS2"],
+        )
+        self.assertEqual(
+            [capture.observations[0].value_text for capture in captures],
+            ["235000", "120000", "9100"],
+        )
+        self.assertEqual(
+            [item.unit for item in EIA_PETROLEUM_FUNDAMENTALS_MANIFEST],
+            [
+                "thousand_barrels",
+                "thousand_barrels",
+                "thousand_barrels_per_day",
+            ],
+        )
+        for capture in captures:
+            self.assertNotIn(secret.encode("utf-8"), capture.parts[0].body)
+
+        for series, units in (
+            ("WRONG_SERIES", "Thousand Barrels"),
+            ("WGTSTUS1", "Wrong Units"),
+        ):
+            with self.subTest(series=series, units=units):
+                with self.assertRaises(ValidationError):
+                    parse_eia_total_motor_gasoline_stocks(
+                        body(series, units, "235000"),
+                        captured_at=CAPTURED_AT,
+                        credential=secret,
+                    )
+
+        with self.assertRaises(ValidationError):
+            parse_eia_distillate_fuel_oil_stocks(
+                b'{"response":{"frequency":"weekly","total":"2","data":['
+                b'{"period":"2026-08-14","series":"WDISTUS1",'
+                b'"units":"Thousand Barrels","value":"120000"},'
+                b'{"period":"2026-08-14","series":"WDISTUS1",'
+                b'"units":"Thousand Barrels","value":"120001"}]}}',
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            )
 
 
 if __name__ == "__main__":

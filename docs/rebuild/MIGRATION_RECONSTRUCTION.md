@@ -240,6 +240,30 @@ adding only raw FMP calendar capture and row evidence. It does not add a BLS
 original-release archive, surprise table, public consumer, scheduler, or
 authority to repeat completed history.
 
+
+## Forward macro allocations after wholesale history
+
+The accepted GDI extension occupies ordinal 17. ADR 0012 then allocates
+ordinal 18 for future compact FMP calendar persistence; it does not alter the
+bytes, checksum, relations, or completed evidence of ordinal 16.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0017_live_gdi_vintages` | macro | 17 | `quant_data/migrations/macro/0017_live_gdi_vintages.sql` | `e92da1620b2da10e15d76ee9a3817fc081d0363f6cd7b87653f2340a8f756e71` | `fixture_validated` | Current BEA GDP/GDI refresh population is complete under its retained evidence |
+| `macro:0018_fmp_calendar_incremental_events` | macro | 18 | `quant_data/migrations/macro/0018_fmp_calendar_incremental_events.sql` | `078cfd62e7cd7a314e6b828b19414023f60fa81c760c89a31b3398f1b7e41a3e` | `fixture_validated` | Canonically applied at `2026-08-25T01:31:39.017401Z`; new relations empty and no provider operation |
+
+Migration 0018 adds immutable changed-batch receipts, stable raw event
+identities, append-only event corrections, and one replaceable
+non-authoritative latest-response cache. It neither copies legacy rows into
+the new relations nor authorizes deletion or compaction of migration 0016.
+
+The user explicitly authorized the canonical application on 2026-08-24. The
+reviewed one-store runner applied only the pending macro migration and
+registered the two successor datasets. The bounded post-check confirmed the
+exact ordinal/resource/checksum, four empty new tables, three indexes, twelve
+triggers, clean integrity and foreign keys, and unchanged legacy counts of 62
+captures and 47,754 rows. It made no provider, credential, history-repeat,
+scheduler, or cleanup action.
 ## Rejected BLS CPI original-release archive candidate
 
 The working `2.22.0` candidate declared

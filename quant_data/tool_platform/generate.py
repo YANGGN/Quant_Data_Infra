@@ -11,15 +11,48 @@ from typing import Any
 from quant_data.tool_platform.catalog import (
     CATALOG_ID,
     CATALOG_VERSION,
+    CURRENT_PUBLIC_TOOL_NAMES,
     LEGACY_TOOL_NAMES,
     PUBLIC_TOOL_NAMES,
+    VERSIONED_CATALOG_ID,
+    VERSIONED_CATALOG_VERSION,
+    build_additive_tool_entries,
+    build_current_tool_entries,
     build_tool_entries,
+    build_tool_version_policies,
     schema_catalog,
+    versioned_schema_catalog,
 )
 
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
+_REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.37.0"): (
+        "2a2b611ac6f752e6d83a81369155454b1484b8caebf4d1aaa3be60c41f0e866b"
+    ),
+    ("1.9.0", "2.38.0"): (
+        "3d6c0f31f2c72c20e5459c4e7f2358ea273437d59af99ef017b1f3ad47b1b547"
+    ),
+    ("1.9.0", "2.39.0"): (
+        "f7f445a3dbc991ca7b309ce306e5bc439403d929b96fb9931a22c036cb0eea85"
+    ),
+    ("1.9.0", "2.40.0"): (
+        "72516749f56f962bea2a265ef4a917558ef6e757444ae5d679bc50d2d64e6ed7"
+    ),
+    ("1.9.0", "2.41.0"): (
+        "835fe846c0d0bf0ce630cda0dd23588983c83f6fad663cbe51202fe00deee2a3"
+    ),
+    ("1.9.0", "2.42.0"): (
+        "1ab956e8338b864873f25e6e41cc6a18ba9a271a1951bec0bdccf32a07b8fd2b"
+    ),
+    ("1.9.0", "2.43.0"): (
+        "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
+    ),
+}
 CATALOG_RESOURCE = Path("quant_data/generated/tool_contract_schemas_v1.json")
+VERSIONED_CATALOG_RESOURCE = Path(
+    "quant_data/generated/tool_contract_schemas_v2.json"
+)
 
 
 def _render(value: Any) -> bytes:
@@ -28,47 +61,97 @@ def _render(value: Any) -> bytes:
     )
 
 
-def generated_bytes(project_root: Path) -> tuple[bytes, bytes]:
+def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     registry_path = project_root / REGISTRY_RESOURCE
-    raw = json.loads(registry_path.read_text(encoding="utf-8"))
+    source_bytes = registry_path.read_bytes()
+    raw = json.loads(source_bytes)
+    source_version = (
+        raw.get("schema_version"),
+        raw.get("registry_version"),
+    )
+    expected_source_sha256 = _REVIEWED_REGISTRY_SOURCE_SHA256.get(
+        source_version
+    )
+    if (
+        expected_source_sha256 is None
+        or hashlib.sha256(source_bytes).hexdigest() != expected_source_sha256
+    ):
+        raise ValueError("Tool generation requires an exact reviewed registry source")
     existing = {item["id"]: item for item in raw["tools"]}
     try:
         legacy = {name: existing[name] for name in LEGACY_TOOL_NAMES}
     except KeyError as exc:
         raise ValueError("Canonical registry lost a Stage 1 contract") from exc
 
-    entries = build_tool_entries(legacy)
-    catalog_payload = schema_catalog(entries)
+    recovered_entries = build_tool_entries(legacy)
+    entries = build_current_tool_entries(legacy)
+    additive_entries = build_additive_tool_entries()
+    catalog_payload = schema_catalog(recovered_entries)
     catalog_bytes = _render(catalog_payload)
     catalog_sha = hashlib.sha256(catalog_bytes).hexdigest()
+    version_policies = build_tool_version_policies()
+    versioned_catalog_bytes = _render(
+        versioned_schema_catalog(version_policies, additive_entries)
+    )
+    versioned_catalog_sha = hashlib.sha256(versioned_catalog_bytes).hexdigest()
 
-    if raw.get("schema_version") != "1.8.0" or raw.get("registry_version") != "2.31.0":
-        raise ValueError("Tool generation requires the reviewed canonical registry revision")
+    raw["schema_version"] = "1.9.0"
+    raw["registry_version"] = (
+        "2.43.0"
+        if source_version == ("1.9.0", "2.43.0")
+        else (
+            "2.42.0"
+            if source_version
+            in {
+                ("1.9.0", "2.40.0"),
+                ("1.9.0", "2.41.0"),
+                ("1.9.0", "2.42.0"),
+            }
+            else "2.39.0"
+        )
+    )
     raw["tool_schema_catalog"] = {
         "schema_id": CATALOG_ID,
         "schema_version": CATALOG_VERSION,
         "resource": CATALOG_RESOURCE.as_posix(),
         "sha256": catalog_sha,
     }
+    raw["tool_version_schema_catalog"] = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": VERSIONED_CATALOG_VERSION,
+        "resource": VERSIONED_CATALOG_RESOURCE.as_posix(),
+        "sha256": versioned_catalog_sha,
+    }
     raw["tools"] = list(entries)
+    raw["tool_versions"] = list(version_policies)
     by_dataset: dict[str, list[str]] = {item["id"]: [] for item in raw["datasets"]}
     for entry in entries:
         for dataset_id in entry["datasets"]:
             if dataset_id not in by_dataset:
                 raise ValueError(f"Tool {entry['id']} references unknown dataset {dataset_id}")
             by_dataset[dataset_id].append(entry["id"])
+    for policy in version_policies:
+        for variant in policy["variants"]:
+            for dataset_id in variant["datasets"]:
+                if dataset_id not in by_dataset:
+                    raise ValueError(
+                        f"Tool {variant['id']} references unknown dataset {dataset_id}"
+                    )
+                if variant["id"] not in by_dataset[dataset_id]:
+                    by_dataset[dataset_id].append(variant["id"])
     for dataset in raw["datasets"]:
         dataset["tool_ids"] = by_dataset[dataset["id"]]
-    raw["presentation_order"]["tools"] = list(PUBLIC_TOOL_NAMES)
-    return _render(raw), catalog_bytes
+    raw["presentation_order"]["tools"] = list(CURRENT_PUBLIC_TOOL_NAMES)
+    return _render(raw), catalog_bytes, versioned_catalog_bytes
 
 
 def generate(project_root: Path, *, check: bool = False) -> None:
     root = project_root.resolve(strict=True)
-    registry_bytes, catalog_bytes = generated_bytes(root)
+    registry_bytes, catalog_bytes, versioned_catalog_bytes = generated_bytes(root)
     expected = {
         root / REGISTRY_RESOURCE: registry_bytes,
         root / CATALOG_RESOURCE: catalog_bytes,
+        root / VERSIONED_CATALOG_RESOURCE: versioned_catalog_bytes,
     }
     stale = [
         path.relative_to(root).as_posix()

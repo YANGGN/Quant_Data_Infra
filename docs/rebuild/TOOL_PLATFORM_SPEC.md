@@ -27,7 +27,7 @@ Related documents:
 
 This document specifies:
 
-- the accepted 57-name compatibility surface;
+- the accepted 57-name compatibility surface and additive native tools;
 - the internal typed primitive boundary;
 - registry, schema generation, and validation requirements;
 - host-controlled read-only store routing;
@@ -56,7 +56,14 @@ contract fixtures and the versioning rules below. Stage 1 validates only
 milestone subset and MUST NOT claim full 57-tool restoration or reuse any
 reserved name with different semantics.
 
-The accepted public names are:
+Registry `2.41.0` adds `market.get_price_series` as one native, additive
+API `1.0` tool outside that recovered compatibility set. Registry `2.42.0`
+adds `market.get_available_ticker` as a second native additive tool. The
+reserved compatibility inventory remains exactly 57 names; the current active
+manifest therefore has 59 names. Neither additive tool claims recovered
+behavior.
+
+The recovered compatibility names are:
 
 | Family | Count | Public names |
 | --- | ---: | --- |
@@ -69,6 +76,30 @@ The accepted public names are:
 | Rates | 3 | `rates.get_funding_conditions`, `rates.get_repo_facility_usage`, `rates.curve_analytics` |
 | Options | 6 | `options.search_captures`, `options.search_contracts`, `options.get_surface_snapshot`, `options.surface_diagnostics`, `options.screen_contracts`, `options.strategy_scenario` |
 | Research, diagnostics, forecast, and news | 10 | `research.point_in_time_panel`, `data.quality_audit`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate`, `news.search`, `research.liquidity_credit_state` |
+
+The additive `market.get_price_series` contract accepts a server-resolved
+ticker plus explicit mode, cutoff policy, and limit. `start_date` and
+`end_date` are independently optional inclusive trade-date bounds. Its
+successful result contains exactly four typed `TimeSeries` values in
+`open`, `high`, `low`, `close` order from one coherent Stage 10 row
+selection. Prices remain raw provider-native values; adjustment and session-
+calendar semantics are explicitly not established. Callers cannot provide a
+database path, SQL, provider choice, or writable connection.
+
+The additive `market.get_available_ticker` contract accepts an optional
+`limit` only; omission defaults to the 10,000-record hard bound, so `{}` is
+the normal full-list request. It returns deterministic typed records for
+FMP/provider-native Stage 10 instruments only when a current price pointer,
+immutable version, and capture are retrievable through the latest read model.
+It is current retained-data discovery, not a live or historical point-in-time
+universe. Callers cannot provide dates, an as-of cutoff, a provider, path, SQL,
+or writable connection.
+
+The supported cross-project boundary is the fixed
+`bin/quant-data-tools` subprocess documented in
+[Local Agent Tools](../LOCAL_AGENT_TOOLS.md). It exposes `list`, `describe`,
+`manifest`, and strict-JSON stdin/stdout `call`; it derives the project root,
+registry, and store routes host-side and starts no URL or service.
 
 The manifest endpoint and call endpoint are `GET /api/agent-tools`
 and `POST /api/agent-tools/call`. Route restoration remains subject to route
@@ -439,10 +470,173 @@ For the accepted 57-name compatibility surface:
 - deprecation warnings MUST be machine-readable and deterministic; and
 - a public name MUST NOT be silently rebound to a different primitive meaning.
 
+Registry `2.32.0` applies this rule to the two market-return names. The HTTP
+call envelope accepts the legacy three fields or one additional controlled
+`tool_version` string. Omitted selection and explicit `1.0.0` resolve the
+unchanged legacy result; explicit `2.0.0` resolves the typed Stage 10 contract.
+An unknown version fails before argument decoding or store access. Discovery
+keeps exactly 57 top-level names and publishes ordered variants, replacement
+metadata, and the currently unscheduled removal state. Deprecation warnings
+are receipt/manifest metadata and do not mutate the frozen v1 result schema.
+
+Registry `2.33.0` applies the same selection rule to `timeseries.describe`,
+`timeseries.align`, and `timeseries.correlation`. Their explicit `2.0.0`
+variants consume the series element from a Stage 10 return v2 result, perform
+no store access, and require compatible return, point-in-time, unit, frequency,
+and registry-revision contracts. A composition-only schema tightens capture
+timing and date fields without changing the frozen market-return v2 output
+schema. Typed validation independently checks the fixed Stage 10 dimensions,
+reapplies every `as_of` cutoff to instrument and observation availability, and
+rejects contradictory timing even when a caller recomputes its lineage digest.
+Diagnostics retain the complete cutoff policy and indexed input series/lineage
+mapping. Alignment preserves explicit missing cells; correlation uses complete
+pairs after outer alignment and refuses truncated inputs. Omitted or explicit
+`1.0.0` selection remains byte-compatible with the legacy behavior.
+
+Registry `2.34.0` applies the same explicit-selection rule to
+`econometrics.regression`, `econometrics.rolling_regression`, and
+`econometrics.stationarity`. Their `2.0.0` variants accept only compatible,
+non-truncated trailing Stage 10 v2 return series and never open a store. OLS
+uses an intercept by explicit request and publishes classical homoskedastic
+covariance, Student-t inference, 95% confidence intervals, fit diagnostics,
+and the numerical inference backend. Rolling OLS reuses the same kernel over
+every fixed contiguous complete window and does not shrink or fill a window.
+Stationarity is a constant-only augmented Dickey-Fuller regression with an
+explicit fixed lag, MacKinnon 2010 finite-sample critical values, decisions at
+1%, 5%, and 10%, and an explicit unavailable p-value. Forward-return, truncated,
+rank-deficient, undersized, and incomplete-window inputs fail closed or return
+a typed not-established result. Omitted or explicit `1.0.0` selection remains
+byte-compatible with legacy behavior. Exact projection restores registry
+`2.33.0`; the frozen v1 catalog remains byte-identical.
+
+Registry `2.36.0` adds explicit `2.1.0` selection only for
+`econometrics.regression` and `econometrics.rolling_regression`; their
+existing `2.0.0` contracts and all omitted-v1 behavior remain unchanged.
+The `2.1.0` request requires a 95% confidence level, covariance selection,
+`hac_lag` from 0 through 18, and `diagnostic_lag` from 1 through 18. HC1
+uses the `n/(n-k)` finite-sample correction; HC3 divides each score by
+`1-h_i`; fixed-lag Newey-West uses Bartlett weights and the same
+`n/(n-k)` correction. Robust coefficient tests and intervals use the fixed
+asymptotic-normal reference and label the standardized statistic `z`, not
+`t`.
+
+Residual diagnostics are ordered Ljung-Box, Koenker-Breusch-Pagan, and
+Jarque-Bera. Ljung-Box uses centered residuals, a caller-fixed lag,
+model degrees-of-freedom zero, and requires a contiguous sample of at least
+`max(8, 2*lag+1)`. Koenker-Breusch-Pagan uses `n*R-squared` from a
+forced-intercept auxiliary regression on nonconstant original predictors.
+Jarque-Bera uses population skewness and excess kurtosis. Each test has a
+chi-square asymptotic reference, a fixed 5% decision, and its own explicit
+not-established status; an unavailable diagnostic does not silently change
+the coefficient fit. HAC inference is not established across a missing-data
+gap or when its lag is not below the complete sample. HC3 inference is not
+established at unit leverage.
+
+Rolling `2.1.0` reuses the exact standalone kernel in every fixed contiguous
+window. A rolling window is at least 8, at least `2*diagnostic_lag+1`, and
+strictly greater than `hac_lag`; no incomplete window is shrunk or filled.
+The research contract records model version `2.1.0`, covariance, lag,
+inference distribution, diagnostic reference, exclusions, and lineage. The v2
+catalog is version `2.3.0` with 20 contracts at SHA-256
+`7de5126d50c438d0bb35cb82a9a0dd282251de3acceeb850d69ca20f894ef7b9`.
+The variants consume only caller-supplied typed values and add no store,
+provider, credential, migration, scheduler, export, hosting, or deployment.
+Exact projection restores byte-exact registry `2.35.0`; the frozen v1
+catalog remains byte-identical.
+
+Registry `2.37.0` adds explicit `2.1.0` selection for
+`econometrics.stationarity` while preserving its ADF-only `2.0.0` bytes.
+The request declares separate `adf_lag` and `kpss_lag` values from 0 through
+18, a constant deterministic term, and one significance level. Level KPSS
+demeans the complete contiguous sample, forms residual partial sums, and uses
+a caller-fixed Bartlett long-run variance. Decisions use the published 1992
+level critical values at 1%, 2.5%, 5%, and 10%; p-values remain explicitly
+unavailable. The joint record distinguishes evidence consistent with level
+stationarity, evidence consistent with nonstationarity, inconclusive evidence,
+and conflicting evidence. Missing values, zero demeaned variance, invalid
+bandwidth, or nonpositive long-run variance produce typed not-established
+results rather than implicit row deletion or bandwidth selection. Catalog
+`2.4.0` has 22 contracts and projects exactly to registry `2.36.0`.
+
+Registry `2.38.0` adds explicit `2.0.0` selection for
+`econometrics.structural_breaks`. The request provides 2 through 20 compatible
+trailing return series, an intercept flag, significance, limit, and
+`break_index`; the index is zero-based and names the first post-break aligned
+row. Outer alignment is preserved and every row must be complete. The kernel
+fits the exact classical OLS implementation to the pooled, pre-break, and
+post-break samples. Each segment must have more rows than fitted parameters and
+must be full rank. With `k` fitted parameters and `n` complete rows, the
+reported statistic is
+`((RSS_pooled - RSS_split) / k) / (RSS_split / (n - 2*k))` and its tail uses
+an F distribution with `k` and `n - 2*k` degrees of freedom.
+The F reference is exact in finite samples only under Gaussian,
+homoskedastic, independent errors and the standard exogenous fixed-design
+linear-model conditions. Zero split RSS, materially negative RSS reduction,
+missingness, invalid segment degrees of
+freedom, and rank deficiency fail closed. The result includes one test summary,
+three fit summaries, and a pooled/pre/post coefficient matrix. This is one
+caller-declared break only: there is no automatic search, sup-Wald procedure,
+multiple-testing adjustment, or multiple-break claim. Catalog `2.5.0` has 24
+contracts and projects exactly to registry `2.37.0`.
+
+Registry `2.39.0` adds an explicit `3.0.0` variant of
+`econometrics.regression` without changing its v1, `2.0.0`, or `2.1.0`
+contracts. The strict request contains two through five compatible Stage 10
+horizon-one trailing return series, one `analysis` enum, constant
+deterministic specification, fixed `lag_order` from zero through four, a
+declared significance, explicit source/target index sentinels, and a limit no
+greater than 5,000. The three mutually exclusive analyses are:
+
+- `engle_granger_cointegration`: exactly two ordered series. Compatible log
+  returns are cumulatively summed and compatible simple returns use
+  `ln(1+r)`; nonpositive factors fail closed. The first stage is
+  `level_0 = intercept + slope * level_1 + residual`. Its residual ADF has
+  no deterministic term and a caller-fixed augmentation lag. The decision uses
+  MacKinnon 2010 `tau_c`, N=2, finite-sample polynomial critical values at
+  1%, 5%, and 10%. No p-value is reported, and I(1) integration order remains
+  an explicit unverified assumption.
+- `vector_autoregression`: two through five ordered return series and a
+  caller-fixed lag from one through four. Each equation has a constant and all
+  lagged system values. Results expose equation OLS summaries, intercepts,
+  coefficient names, one target-by-source matrix per lag, and the
+  degrees-of-freedom-adjusted residual covariance. No automatic lag selection,
+  impulse response, stability claim, or forecasting claim is made.
+- `granger_causality`: the same fixed VAR plus distinct source and target
+  indices. It compares the unrestricted target equation with a restricted
+  equation that removes every lag of the selected source. The reported exact
+  finite-sample F tail requires the classical Gaussian, homoskedastic,
+  independent-error, exogenous fixed-design conditions. The result describes
+  conditional predictive precedence, never structural causality.
+
+Common incomplete leading and trailing rows may be trimmed and reported;
+interior incomplete rows are retained and force a typed not-established result.
+Rows are aligned observations, not asserted calendar adjacency. Catalog
+`2.6.0` has 26 contracts and projects exactly to registry `2.38.0`.
+The registry keeps the 57 logical names, 9 versioned policies, and 13 variants.
+
+These additions consume only caller-supplied typed values and add no store,
+provider, credential, migration, scheduler, export, hosting, or deployment.
+Their frozen independent vectors, hostile-boundary checks, direct/HTTP parity,
+and legacy-version isolation are executable acceptance evidence. The frozen v1
+catalog remains byte-identical.
+
+
 Retirement requires roadmap approval, contract-fixture updates, a migration
 guide, and evidence that the local portal and other registered consumers have
 moved. No deprecation process authorizes removal of stored data.
 
+
+## Fixed local Calendar Inspector
+
+The loopback-only Canonical Data Inspector is not a public composable tool and
+does not broaden the tool manifest. Its fixed FMP economic-calendar view
+accepts only bounded filters plus `mode=current|history`. Current is the
+default: it validates and parses the singleton latest-response cache and, before
+that cache exists, falls back to the newest validated legacy row per
+conservative event identity. History combines consecutive material legacy
+changes with append-only migration-0018 event versions. Both modes retain the
+existing bounded pagination and columns, expose no response body or writable
+connection, and use the fixed macro-store read path.
 ## Security requirements
 
 - The service SHOULD bind to loopback by default.

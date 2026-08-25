@@ -203,16 +203,183 @@ The following decisions apply to every stage:
   exposes the established EIA monthly electricity-retail relations in the
   fixed local Inspector. No new provider family, credential mechanism,
   dataset, collector, public route, or export is introduced.
+- A later EIA petroleum fast-path extension reuses the existing EIA
+  credential resolver, collector binding, generic macro publisher, canonical
+  store, and fixed local Inspector. Three separate one-request sources retain
+  weekly U.S. total-motor-gasoline stocks, distillate-fuel-oil stocks, and
+  finished-motor-gasoline product supplied. Their complete historical
+  populations contain 1,911, 2,290, and 1,854 current observations
+  respectively through `2026-08-14`, with no schema, migration, registry,
+  dataset, provider-family, credential-mechanism, or public-route change.
+- A later official-conditions fast-path extension adds BLS Employment Cost
+  Index (`CIS1010000000000I`), headline Chicago Fed CFNAI, and FRED
+  `INDPRO` through existing credential-free provider paths and the generic
+  macro publisher. Their authorized canonical historical populations retain
+  102 quarterly ECI observations from `2001-Q1` through `2026-Q2`, 710
+  monthly CFNAI observations from `1967-03` through `2026-04`, and 1,291
+  monthly industrial-production observations from `1919-01` through
+  `2026-07`. The fixed Inspector returns all three. The same user decision
+  expands the established weekday aggregate to twenty-three operations and a
+  request cap of 31: ECI rides its existing BLS request, while CFNAI and
+  `INDPRO` add one request each. No migration, registry revision, credential
+  mechanism, new unit, cadence change, public route, or export is introduced.
+- Registry `2.32.0`, schema `1.9.0`, adds explicit semantic-version selection
+  under the existing `market.get_returns` and `market.get_forward_returns`
+  names. Omitted or explicit v1 remains the frozen `not_established` contract;
+  explicit v2 uses the existing Stage 10 read-only price model for typed
+  close-to-close trailing or forward returns. The v1 catalog remains
+  byte-identical, the v2 contracts live in a separate generated catalog, and
+  exact projection restores registry `2.31.0`. This is a local tool-platform
+  change only: no provider operation, credential, canonical-store write,
+  scheduler, export, hosting, or deployment is added.
+- Registry `2.33.0` adds explicit `2.0.0` variants of
+  `timeseries.describe`, `timeseries.align`, and `timeseries.correlation`.
+  They consume already-extracted Stage 10 v2 return-series contracts and do
+  not open a store. The shared layer validates return, point-in-time, unit,
+  frequency, and registry-revision compatibility; reapplies the cutoff to each
+  local-capture observation; preserves explicit missingness and indexed input
+  lineage; rejects truncated correlation samples; and fails rather than
+  silently truncating an over-limit result. The stricter composition input
+  schema does not alter the frozen return-v2 output contract. Omitted or
+  explicit v1 selection remains unchanged. Exact projection restores
+  byte-exact registry `2.32.0`.
+  This is an offline composability increment only: no database read or write,
+  provider, credential, scheduler, export, hosting, or deployment is added.
+- Registry `2.34.0` adds explicit `2.0.0` variants of
+  `econometrics.regression`, `econometrics.rolling_regression`, and
+  `econometrics.stationarity`. They accept compatible, non-truncated trailing
+  Stage 10 v2 return series and perform no store access. OLS and rolling OLS
+  expose classical homoskedastic inference with explicit 95% confidence and
+  numerical-backend metadata; rolling windows are fixed and contiguous.
+  Stationarity is a constant-only, caller-selected fixed-lag ADF test with
+  MacKinnon 2010 finite-sample critical values, explicit decisions at 1%, 5%,
+  and 10%, and no approximate p-value. Frozen independent reference vectors
+  and hostile-input tests cover each kernel. Omitted or explicit v1 selection
+  remains unchanged; exact projection restores byte-exact registry `2.33.0`.
+  This adds no database read or write, provider, credential, scheduler, export,
+  hosting, or deployment. Phillips-Perron, autolag, robust covariance, and
+  predictive or causal claims remain outside this increment.
+- Registry `2.35.0` adds one private BEA NIPA `T20600` collector for personal
+  income, disposable personal income, and personal consumption expenditures.
+  One fixed `Year=ALL` request supplies all three monthly series through the
+  existing BEA credential resolver and generic macro publisher. It adds no
+  migration, dataset, provider family, credential mechanism, or public
+  consumer, and exact projection restores byte-exact registry `2.34.0`.
+- Registry `2.36.0` adds explicit `2.1.0` variants of
+  `econometrics.regression` and `econometrics.rolling_regression`. The
+  variants add HC1, HC3, and fixed-lag Bartlett Newey-West inference with
+  asymptotic-normal coefficient tests, plus fixed-lag Ljung-Box,
+  Koenker-Breusch-Pagan, and Jarque-Bera residual diagnostics. Frozen
+  independent NumPy/SciPy vectors, hostile-boundary tests, rolling-versus-
+  standalone equivalence, and direct/HTTP parity validate the new semantics.
+  Existing `2.0.0`, omitted-v1, and frozen-v1 behavior remains unchanged;
+  exact projection restores byte-exact registry `2.35.0`. This is an offline,
+  caller-supplied, store-free increment with no provider, credential,
+  canonical-store access, migration, scheduler, export, hosting, or deployment.
+- Registry `2.37.0` adds an explicit `2.1.0`
+  `econometrics.stationarity` variant alongside unchanged ADF-only `2.0.0`.
+  It uses a caller-fixed Bartlett lag for level KPSS, the published 1992
+  critical-value table without an approximate p-value, and an explicit joint
+  ADF/KPSS interpretation. Frozen independent vectors, hostile boundaries,
+  direct/HTTP parity, and exact projection to `2.36.0` validate the increment.
+- Registry `2.38.0` adds the `2.0.0`
+  `econometrics.structural_breaks` policy. It runs pooled, pre-break, and
+  post-break classical OLS at one caller-declared zero-based first post-break
+  row and reports the Chow F statistic, F-tail probability, three fit
+  summaries, and coefficient comparison matrix. It performs no break search,
+  multiple-testing adjustment, or multiple-break inference. Independent
+  break/no-break vectors, failure boundaries, direct/HTTP parity, and exact
+  projection to `2.37.0` validate the increment. Exact finite-sample F
+  inference requires Gaussian, homoskedastic, independent errors and the
+  standard exogenous fixed-design linear-model conditions. Catalog `2.5.0`
+  contains
+  24 contracts; the frozen v1 catalog is unchanged. Both revisions are
+  caller-supplied, store-free increments with no provider, credential,
+  migration, scheduler, export, hosting, or deployment.
+- Registry `2.39.0` adds an explicit `3.0.0` variant of
+  `econometrics.regression` with three selected modes: directional
+  Engle-Granger cointegration, fixed-order constant VAR, and conditional
+  directional Granger-causality inference. Inputs are compatible caller-
+  supplied horizon-one trailing Stage 10 returns; no database, provider, or
+  credential is opened. Engle-Granger uses normalized log levels and MacKinnon
+  2010 N=2 finite-sample critical values without an approximate p-value. VAR
+  exposes equation coefficients, lag matrices, and residual covariance.
+  Granger compares restricted and unrestricted target equations with an exact
+  F tail under the declared classical assumptions and makes no structural-
+  causality claim. Frozen independent NumPy/SciPy vectors, missing/short/rank
+  boundaries, direct/HTTP parity, no-store checks, and exact projection to
+  byte-identical `2.38.0` validate the increment. Catalog `2.6.0` contains
+  26 contracts; all 57 public names and prior variants remain unchanged.
+
+- Registry `2.40.0` implements
+  [ADR 0012](docs/adr/0012-compact-fmp-calendar-retention.md). Forward-only
+  macro migration 0018 leaves all migration-0016 evidence intact, appends one
+  receipt per material poll and only new/changed raw event versions, and keeps
+  one replaceable latest-response cache. Exact replay writes nothing; A to B
+  to A appends three corrections. The fixed Inspector exposes Current and
+  History modes. The implementation itself did not run the provider, migrate
+  the canonical store, repeat history, or alter either macro timer. On
+  2026-08-24 the user separately authorized only canonical application;
+  migration 0018 was applied at `2026-08-25T01:31:39.017401Z` with empty new
+  relations, unchanged migration-0016 row counts, and no provider, credential,
+  or scheduler action.
+
+- Registry `2.41.0` adds the native local read-only
+  `market.get_price_series` tool over the existing Stage 10 point-in-time
+  reader. It resolves a ticker server-side and returns exactly four coherent
+  typed series in open/high/low/close order; inclusive `start_date` and
+  `end_date` are independently optional. The active inventory is 58 names,
+  while the recovered compatibility target remains 57 and the frozen v1
+  catalog stays byte-identical. Catalog `2.7.0` has 28 contracts. Exact
+  projection restores byte-identical registry `2.40.0`; the increment adds
+  no provider request, credential, migration, write path, scheduler, export,
+  hosting, or deployment.
+
+- Registry `2.42.0` adds the native local read-only
+  `market.get_available_ticker` tool and a fixed no-URL subprocess interface
+  for agents in other projects on this computer. Empty `{}` arguments return
+  the deterministically ordered, 10,000-record-bounded current set of Stage 10
+  FMP/provider-native instruments with a retrievable current price version and
+  capture; optional `limit` can lower the bound. The result explicitly is not
+  a live or historical point-in-time universe. The active inventory is 59
+  names, catalog `2.8.0` has 30 contracts, and the frozen 57-name/v1 surface
+  remains byte-identical. Exact projection restores registry `2.41.0` and
+  catalog `2.7.0`. The bridge exposes dynamic `list`, `describe`,
+  `manifest`, and strict-JSON stdin/stdout `call` commands with host-owned
+  project, registry, and store routing. This increment adds no direct SQLite
+  access, URL, provider request, credential, write, migration, scheduler,
+  export, hosting, or deployment.
+
+- Registry `2.43.0` adds one private Alpaca SPY option-surface collector over
+  the existing Stage 10 identity and options schema. Its fixed four-request
+  plan selects the listed expiration nearest 30 DTE inside 23-37 DTE, filters
+  strikes to 80%-120% of an IEX SPY reference, and retains paper-account
+  contracts with indicative option snapshots for inspection. It enforces one
+  attempt, 10,000 rows, 8 MiB, and 120 seconds; network work completes before
+  the market-store lock and exact semantic replay writes nothing. It adds no
+  migration, public tool, export, deployment, or recovered market-job authority.
+  The current user separately authorized a 15:55 America/New_York weekday host
+  timer with an OPRA trading-calendar gate. It was linked and enabled on
+  2026-08-25 after the focused offline gate and host status check passed; its
+  first scheduled trigger is 15:55 EDT that day.
+
 - On 2026-08-23 the user separately authorized a fourth host-level recurring
-  exception, `quant-data-macro-current-refresh.timer`, for the thirteen
-  established current macro operations at 18:30 America/New_York on weekdays.
-  It has a fixed total request cap of 21 per invocation, no retry, the fixed
-  `data/macro.sqlite` target, and semantic no-write behavior for unchanged
-  content. Its established NY Fed and Chicago requests carry the added series,
+  exception, `quant-data-macro-current-refresh.timer`, at 18:30
+  America/New_York on weekdays. On 2026-08-24 the user expanded it to
+  twenty-three operations and a fixed request cap of 31 by adding the
+  credential-free CFNAI and INDPRO requests; ECI rides the existing BLS
+  request. It has no retry, uses the fixed `data/macro.sqlite` target, and
+  preserves semantic no-write behavior for unchanged content. Its established
+  NY Fed and Chicago requests carry the added series,
   the existing BEA-vintage timer carries GDI in the same workbook request, and
-  the aggregate adds the bounded EIA electricity-retail operation. It does not
-  add a provider, credential, dataset, collector, public route, or change the
-  three existing timer cadences.
+  the aggregate adds the bounded EIA electricity-retail, weekly crude-oil-
+  stock, weekly total-motor-gasoline-stock, distillate-fuel-oil-stock,
+  finished-motor-gasoline-product-supplied, Federal Reserve IORB/target-bound,
+  Treasury Debt to the Penny, Monthly Treasury Statement fiscal-balance,
+  and fixed BEA personal-income/outlays operations. The BEA extension adds one
+  private collector while reusing the existing provider family, credential
+  resolver, datasets, publisher, and timer cadence; it adds no migration or
+  public route and does not change the three other timer cadences.
 - SQLite remains the authoritative operational store unless benchmarks and an
   accepted decision record justify a change.
 - The four operational boundaries are market, macro, company, and news.

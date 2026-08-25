@@ -13,7 +13,14 @@ from typing import Any, Mapping
 from quant_data.contracts import TruncationV1, WarningV1
 from quant_data.registry import Registry
 
-from .catalog import LEGACY_TOOL_NAMES, PUBLIC_TOOL_NAMES
+from .catalog import (
+    ADDITIVE_PUBLIC_TOOL_NAMES,
+    CURRENT_PUBLIC_TOOL_NAMES,
+    LEGACY_TOOL_NAMES,
+    PUBLIC_TOOL_NAMES,
+    VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+)
 from .context import ToolExecutionContext
 from .results import (
     DiagnosticV1,
@@ -25,9 +32,9 @@ from .results import (
 
 
 _RESEARCH_PREFIXES = ("research.", "data.", "alpha.", "stats.", "forecast.")
-REGISTERED_STAGE5_OPERATIONS = frozenset(PUBLIC_TOOL_NAMES) - frozenset(
-    LEGACY_TOOL_NAMES
-)
+REGISTERED_STAGE5_OPERATIONS = frozenset(
+    CURRENT_PUBLIC_TOOL_NAMES
+) - frozenset(LEGACY_TOOL_NAMES)
 
 
 def _limit(arguments: Mapping[str, Any]) -> int:
@@ -80,7 +87,29 @@ def invoke_operation(
 ) -> QueryResult:
     """Invoke one closed read-only graph and return an immutable typed result."""
 
-    if name not in REGISTERED_STAGE5_OPERATIONS:
+    versioned_timeseries = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_TIMESERIES_ANALYSIS_TOOLS
+    )
+    versioned_econometrics = (
+        (
+            context.tool_version == "2.0.0"
+            and name in VERSIONED_ECONOMETRICS_TOOLS
+        )
+        or (
+            context.tool_version == "2.1.0"
+            and name in {
+                "econometrics.regression",
+                "econometrics.rolling_regression",
+                "econometrics.stationarity",
+            }
+        )
+        or (
+            context.tool_version == "3.0.0"
+            and name == "econometrics.regression"
+        )
+    )
+    if name not in REGISTERED_STAGE5_OPERATIONS and not (versioned_timeseries or versioned_econometrics):
         raise LookupError("Operation graph is not registered")
     context.checkpoint()
     context.budget.require(
@@ -88,6 +117,55 @@ def invoke_operation(
         series=_series_count(arguments),
         operations=min(_limit(arguments) * max(_series_count(arguments), 1), 5_000_000),
     )
+    if name in ADDITIVE_PUBLIC_TOOL_NAMES:
+        expected_graph = f"tool_platform.{name}.v1"
+        if (
+            context.tool_version != "1.0.0"
+            or context.operation_graph_id != expected_graph
+        ):
+            raise LookupError("Selected additive market operation graph is invalid")
+        if name == "market.get_available_ticker":
+            from .market_tickers import invoke_stage10_available_tickers
+
+            return invoke_stage10_available_tickers(
+                name, arguments, context, registry
+            )
+        if name == "market.get_price_series":
+            from .market_prices import invoke_stage10_market_price
+
+            return invoke_stage10_market_price(
+                name, arguments, context, registry
+            )
+        raise LookupError("Selected additive market operation is invalid")
+    if context.tool_version == "2.0.0" and name in {
+        "market.get_returns",
+        "market.get_forward_returns",
+    }:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected market-return operation graph is invalid")
+        from .market_returns import invoke_stage10_market_return
+
+        return invoke_stage10_market_return(name, arguments, context, registry)
+    if versioned_timeseries:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected Stage 10 statistic operation graph is invalid")
+        from .market_statistics import invoke_stage10_market_statistic
+
+        return invoke_stage10_market_statistic(name, arguments, context)
+    if versioned_econometrics:
+        graph_suffix = {
+            "2.0.0": "v2",
+            "2.1.0": "v2_1",
+            "3.0.0": "v3",
+        }[context.tool_version]
+        expected_graph = f"tool_platform.{name}.{graph_suffix}"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected Stage 10 econometrics graph is invalid")
+        from .market_econometrics import invoke_stage10_market_econometric
+
+        return invoke_stage10_market_econometric(name, arguments, context)
     if name == "macro.get_intraday_releases":
         context.capabilities.require("macro_intraday_live")
 

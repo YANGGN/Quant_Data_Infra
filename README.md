@@ -580,10 +580,14 @@ projection; the frozen Stage 6 rebuild uses `2.4.0`/`1.2.0`, jobs-empty
 projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
 deterministic evidence remains reproducible.
 
-The platform still exposes all 57 reviewed public tool names through generated
-schemas and closed read-only routing. The original `macro.get_series` and
-`timeseries.describe` contracts retain their Stage 1 projection; the other 55
-are explicit forward reconstructions. Unsupported fixture semantics return
+The frozen compatibility inventory remains all 57 reviewed public tool names.
+The active registry exposes 59 read-only tools: that frozen surface plus
+`market.get_available_ticker` and `market.get_price_series`. The original
+`macro.get_series` and `timeseries.describe` contracts retain their Stage 1
+projection; the other 55 frozen tools are explicit forward reconstructions.
+Agents in another local project should use the fixed subprocess interface in
+[Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md), not direct SQLite access.
+Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all
 four paths. Public callers cannot select a database path, submit SQL, or

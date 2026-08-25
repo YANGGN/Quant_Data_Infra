@@ -9,7 +9,11 @@ from quant_data.errors import ConflictError
 from quant_data.fingerprint import mutation_fingerprint
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.migrations import initialize_all
-from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry
+from quant_data.registry import (
+    CANONICAL_REGISTRY_PATH,
+    load_registry,
+    stage5_registry_profile,
+)
 from quant_data.stage1 import explicit_store_map
 from quant_data.stage4 import run_clean_stage4_rebuild
 from quant_data.stage5 import (
@@ -72,7 +76,7 @@ class Stage5IntegrationTests(unittest.TestCase):
             }
             self.assertEqual(dumps_strict(actual), dumps_strict(golden))
             dumps_strict(evidence)
-    def test_all_public_tools_cannot_reach_writer_entry_points(self) -> None:
+    def test_stage5_public_tools_cannot_reach_writer_entry_points(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             temporary = Path(directory)
             work_root = temporary / "work"
@@ -80,10 +84,12 @@ class Stage5IntegrationTests(unittest.TestCase):
                 project_root=PROJECT_ROOT,
                 work_root=work_root / "stage4",
             )
-            registry = load_registry(
-                PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
-                project_root=PROJECT_ROOT,
-                environment={},
+            registry = stage5_registry_profile(
+                load_registry(
+                    PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
+                    project_root=PROJECT_ROOT,
+                    environment={},
+                )
             )
             stores = explicit_store_map(
                 work_root / "stage4" / "stage3" / "stage2" / "source"

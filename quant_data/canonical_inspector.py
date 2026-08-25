@@ -32,6 +32,7 @@ from .boundary.application import (
 from .dashboard.application import INTER_FONT_SHA256
 from .errors import Issue, ResourceLimitError, StoreUnavailableError, ValidationError
 from .json_codec import dumps_strict, loads_strict
+from .macro.fmp_calendar_wholesale import parse_fmp_us_calendar_wholesale
 from .macro.fmp_release_surprises import (
     ALL_SURPRISE_KINDS,
     GDP_ADVANCE_KIND,
@@ -39,13 +40,20 @@ from .macro.fmp_release_surprises import (
 )
 from .macro.fmp_treasury_curve import CURVE_VARIANT, PROVIDER, TENOR_MANIFEST
 from .macro.official_conditions import (
+    BEA_PERSONAL_INCOME_MANIFEST,
     BIS_MANIFEST,
     BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST,
+    CFNAI_MANIFEST,
     CHICAGO_MANIFEST,
     CMDI_MANIFEST,
     EIA_GAS_MANIFEST,
+    EIA_PETROLEUM_FUNDAMENTALS_MANIFEST,
     H41_MANIFEST,
+    FED_POLICY_RATE_MANIFEST,
+    INDUSTRIAL_PRODUCTION_MANIFEST,
     NBER_RECESSION_MANIFEST,
+    TREASURY_DEBT_MANIFEST,
+    TREASURY_FISCAL_BALANCE_MANIFEST,
     TREASURY_TGA_MANIFEST,
 )
 from .macro.nyfed_overnight_rates import (
@@ -57,30 +65,40 @@ from .macro.nyfed_repo_facilities import (
     PROVIDER as NYFED_REPO_PROVIDER,
 )
 from .macro.nyfed_soma_summary import COMPONENT_MANIFEST as SOMA_COMPONENT_MANIFEST
+from .macro.stage11_eia import EIA_WEEKLY_CANONICAL_SERIES_ID
 from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map
 
 
-_CURRENT_REGISTRY = "2.31.0"
-_CURRENT_SCHEMA = "1.8.0"
+_CURRENT_REGISTRY = "2.43.0"
+_CURRENT_SCHEMA = "1.9.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
     "market-prices",
     "market-instruments",
+    "spy-options",
     "macro-current",
     "macro-vintages",
     "macro-surprises",
     "price-wage-productivity",
+    "personal-income-outlays",
     "treasury-curve",
     "overnight-rates",
+    "policy-rates",
+    "industrial-production",
     "repo-facilities",
     "soma-summary",
     "h41-liquidity",
     "treasury-cash",
+    "treasury-debt",
+    "fiscal-balance",
     "financial-conditions",
+    "national-activity",
     "bis-credit",
     "credit-market-distress",
     "natural-gas-storage",
+    "crude-oil-stocks",
+    "petroleum-fundamentals",
     "electricity-retail",
     "recession-chronology",
     "fmp-economic-calendar",
@@ -88,20 +106,29 @@ _VIEWS = (
 _VIEW_LABELS = {
     "market-prices": "Market prices",
     "market-instruments": "Market symbols",
+    "spy-options": "SPY options",
     "macro-current": "Macro current",
     "macro-vintages": "Macro vintages",
     "macro-surprises": "Release surprises",
     "price-wage-productivity": "Prices, wages & productivity",
+    "personal-income-outlays": "Personal income & outlays",
     "treasury-curve": "Treasury curve",
     "overnight-rates": "Overnight rates",
+    "policy-rates": "Policy rates",
+    "industrial-production": "Industrial production",
     "repo-facilities": "Repo facilities",
     "soma-summary": "SOMA summary",
     "h41-liquidity": "Fed H.4.1 liquidity",
     "treasury-cash": "Treasury cash balance",
+    "treasury-debt": "Treasury debt",
+    "fiscal-balance": "Federal fiscal balance",
     "financial-conditions": "Financial conditions",
+    "national-activity": "National activity",
     "bis-credit": "BIS credit conditions",
     "credit-market-distress": "Corporate bond distress",
     "natural-gas-storage": "Natural gas storage",
+    "crude-oil-stocks": "Crude oil stocks",
+    "petroleum-fundamentals": "Petroleum fundamentals",
     "electricity-retail": "Electricity retail",
     "recession-chronology": "Recession chronology",
     "fmp-economic-calendar": "Raw FMP calendar",
@@ -118,16 +145,35 @@ _EIA_RETAIL_SERIES_IDS = tuple(item[0] for item in _EIA_RETAIL_SERIES)
 _REPO_FACILITY_CODES = tuple(item.code for item in FACILITY_MANIFEST)
 _SOMA_COMPONENTS = tuple(item.category for item in SOMA_COMPONENT_MANIFEST)
 _OFFICIAL_VIEW_MANIFESTS = {
+    "personal-income-outlays": (
+        "bea",
+        BEA_PERSONAL_INCOME_MANIFEST,
+    ),
     "price-wage-productivity": (
         "bls",
         BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST,
     ),
+    "policy-rates": ("federal_reserve_policy", FED_POLICY_RATE_MANIFEST),
+    "industrial-production": (
+        "federal_reserve_industrial_production",
+        INDUSTRIAL_PRODUCTION_MANIFEST,
+    ),
     "h41-liquidity": ("federal_reserve_h41", H41_MANIFEST),
     "treasury-cash": ("treasury_fiscal_data", TREASURY_TGA_MANIFEST),
+    "treasury-debt": ("treasury_fiscal_data", TREASURY_DEBT_MANIFEST),
+    "fiscal-balance": (
+        "treasury_fiscal_data",
+        TREASURY_FISCAL_BALANCE_MANIFEST,
+    ),
     "financial-conditions": ("chicagofed", CHICAGO_MANIFEST),
+    "national-activity": ("chicagofed", CFNAI_MANIFEST),
     "bis-credit": ("bis", BIS_MANIFEST),
     "credit-market-distress": ("nyfed_cmdi", CMDI_MANIFEST),
     "natural-gas-storage": ("eia", EIA_GAS_MANIFEST),
+    "petroleum-fundamentals": (
+        "eia",
+        EIA_PETROLEUM_FUNDAMENTALS_MANIFEST,
+    ),
     "recession-chronology": ("nber", NBER_RECESSION_MANIFEST),
 }
 _MACRO_SERIES = (
@@ -165,6 +211,10 @@ class CanonicalInspectorReadService:
         allowed = {
             "market-prices": {"view", "symbol", "start_date", "end_date", "direction", "page", "limit"},
             "market-instruments": {"view", "search", "direction", "page", "limit"},
+            "spy-options": {
+                "view", "option_type", "state", "expiration", "direction",
+                "page", "limit",
+            },
             "macro-current": {"view", "series", "period", "direction", "page", "limit"},
             "macro-vintages": {"view", "series", "period", "direction", "page", "limit"},
             "macro-surprises": {
@@ -179,6 +229,14 @@ class CanonicalInspectorReadService:
                 "view", "rate", "start_date", "end_date",
                 "direction", "page", "limit",
             },
+            "policy-rates": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "industrial-production": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
             "repo-facilities": {
                 "view", "facility", "start_date", "end_date",
                 "direction", "page", "limit",
@@ -191,6 +249,10 @@ class CanonicalInspectorReadService:
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
             },
+            "personal-income-outlays": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
             "h41-liquidity": {
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
@@ -199,7 +261,19 @@ class CanonicalInspectorReadService:
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
             },
+            "treasury-debt": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "fiscal-balance": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
             "financial-conditions": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
+            "national-activity": {
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
             },
@@ -215,8 +289,16 @@ class CanonicalInspectorReadService:
                 "view", "series", "start_date", "end_date",
                 "direction", "page", "limit",
             },
+            "petroleum-fundamentals": {
+                "view", "series", "start_date", "end_date",
+                "direction", "page", "limit",
+            },
             "electricity-retail": {
                 "view", "series", "start_period", "end_period",
+                "direction", "page", "limit",
+            },
+            "crude-oil-stocks": {
+                "view", "start_date", "end_date",
                 "direction", "page", "limit",
             },
             "recession-chronology": {
@@ -224,7 +306,7 @@ class CanonicalInspectorReadService:
                 "direction", "page", "limit",
             },
             "fmp-economic-calendar": {
-                "view", "country", "priority", "event_name", "keyword",
+                "view", "mode", "country", "priority", "event_name", "keyword",
                 "start_date", "end_date", "direction", "page", "limit",
             },
         }[view]
@@ -243,6 +325,8 @@ class CanonicalInspectorReadService:
             result = self._market_prices(query, direction, page, limit)
         elif view == "market-instruments":
             result = self._market_instruments(query, direction, page, limit)
+        elif view == "spy-options":
+            result = self._spy_options(query, direction, page, limit)
         elif view == "macro-current":
             result = self._macro_rows(query, direction, page, limit, current=True)
         elif view == "macro-vintages":
@@ -257,6 +341,10 @@ class CanonicalInspectorReadService:
             result = self._repo_facilities(query, direction, page, limit)
         elif view == "soma-summary":
             result = self._soma_summary(query, direction, page, limit)
+        elif view == "crude-oil-stocks":
+            result = self._eia_petroleum_weekly(
+                query, direction, page, limit
+            )
         elif view == "electricity-retail":
             result = self._eia_electricity_retail(
                 query, direction, page, limit
@@ -359,6 +447,149 @@ class CanonicalInspectorReadService:
             total = int(connection.execute(count_sql, tuple(parameters)).fetchone()[0])
             rows = _rows(connection.execute(sql, (*parameters, limit, (page - 1) * limit)).fetchall())
         return _result(columns, rows, total, page, limit, {"search": search})
+
+    def _spy_options(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        """Inspect only the latest fixed Alpaca indicative SPY capture."""
+
+        option_type = query.get("option_type", "").lower()
+        if option_type and option_type not in {"call", "put"}:
+            raise ValidationError("SPY option type is invalid")
+        state = query.get("state", "").lower()
+        if state and state not in {"present", "missing", "excluded"}:
+            raise ValidationError("SPY option surface state is invalid")
+        expiration = _optional_date(query.get("expiration"), "/expiration")
+
+        where: list[str] = []
+        parameters: list[object] = []
+        if option_type:
+            where.append("contract.option_type=?")
+            parameters.append(option_type)
+        if state:
+            where.append("surface.surface_state=?")
+            parameters.append(state)
+        if expiration:
+            where.append("contract.expiration_date=?")
+            parameters.append(expiration)
+        predicate = " AND ".join(where) if where else "1=1"
+        latest = """
+            WITH latest_capture AS (
+                SELECT capture.capture_id, capture.completed_at,
+                       capture.resolved_feed, capture.completeness
+                FROM option_surface_captures AS capture
+                JOIN stage10_instruments AS underlying
+                  ON underlying.instrument_id=capture.underlying_instrument_id
+                WHERE underlying.provider='fmp'
+                  AND underlying.provider_symbol='SPY'
+                  AND capture.environment='paper'
+                  AND capture.requested_feed='indicative'
+                  AND capture.resolved_feed='alpaca_indicative'
+                ORDER BY capture.completed_at DESC, capture.capture_id DESC
+                LIMIT 1
+            )
+        """
+        base = f"""
+            FROM latest_capture AS capture
+            JOIN option_surface_snapshots AS surface
+              ON surface.capture_id=capture.capture_id
+            JOIN option_contracts AS contract
+              ON contract.contract_id=surface.contract_id
+            LEFT JOIN option_capture_underlying_quotes AS underlying_quote
+              ON underlying_quote.capture_id=capture.capture_id
+            WHERE {predicate}
+        """
+        columns = (
+            "capture_id", "captured_at", "feed", "completeness",
+            "expiration_date", "contract_symbol", "option_type",
+            "strike_price", "contract_status", "deliverable_kind",
+            "surface_state", "bid_price", "ask_price", "last_price",
+            "implied_volatility", "delta", "gamma", "theta", "vega", "rho",
+            "open_interest", "close_price", "quote_at", "trade_at",
+            "underlying_last_price", "underlying_quote_at", "missing_reason",
+            "exclusion_reason",
+        )
+        sql = (
+            latest
+            + """
+            SELECT capture.capture_id,
+                   capture.completed_at AS captured_at,
+                   capture.resolved_feed AS feed,
+                   capture.completeness,
+                   contract.expiration_date,
+                   contract.contract_symbol,
+                   contract.option_type,
+                   contract.strike_price,
+                   contract.contract_status,
+                   contract.deliverable_kind,
+                   surface.surface_state,
+                   surface.bid_price,
+                   surface.ask_price,
+                   surface.last_price,
+                   surface.implied_volatility,
+                   surface.delta,
+                   surface.gamma,
+                   surface.theta,
+                   surface.vega,
+                   surface.rho,
+                   (
+                       SELECT interest.open_interest
+                       FROM option_open_interest AS interest
+                       WHERE interest.capture_id=surface.capture_id
+                         AND interest.contract_id=surface.contract_id
+                       ORDER BY interest.as_of_date DESC, interest.source_row DESC
+                       LIMIT 1
+                   ) AS open_interest,
+                   (
+                       SELECT close_price.close_price
+                       FROM option_close_prices AS close_price
+                       WHERE close_price.capture_id=surface.capture_id
+                         AND close_price.contract_id=surface.contract_id
+                       ORDER BY close_price.trade_date DESC,
+                                close_price.source_row DESC
+                       LIMIT 1
+                   ) AS close_price,
+                   surface.quote_at,
+                   surface.trade_at,
+                   underlying_quote.last_price AS underlying_last_price,
+                   underlying_quote.quote_at AS underlying_quote_at,
+                   surface.missing_reason,
+                   surface.exclusion_reason
+            """
+            + base
+            + f"""
+            ORDER BY contract.expiration_date {direction.upper()},
+                     contract.option_type ASC,
+                     CAST(contract.strike_price AS REAL) {direction.upper()},
+                     contract.contract_symbol ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.market, expected_role="market"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    latest + "SELECT COUNT(*) " + base, tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql, (*parameters, limit, (page - 1) * limit)
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {
+                "option_type": option_type,
+                "state": state,
+                "expiration": expiration,
+            },
+        )
 
     def _macro_rows(
         self,
@@ -755,6 +986,75 @@ class CanonicalInspectorReadService:
             {"facility": facility, "start_date": start, "end_date": end},
         )
 
+    def _eia_petroleum_weekly(
+        self,
+        query: Mapping[str, str],
+        direction: str,
+        page: int,
+        limit: int,
+    ) -> dict[str, Any]:
+        start = _optional_date(query.get("start_date"), "/start_date")
+        end = _optional_date(query.get("end_date"), "/end_date")
+        if start and end and start > end:
+            raise ValidationError("EIA weekly petroleum date range is invalid")
+        where = ["version.canonical_series_id=?"]
+        parameters: list[object] = [EIA_WEEKLY_CANONICAL_SERIES_ID]
+        if start:
+            where.append("version.period>=?")
+            parameters.append(start)
+        if end:
+            where.append("version.period<=?")
+            parameters.append(end)
+        base = f"""
+            FROM stage11_eia_weekly_observations AS observation
+            JOIN stage11_eia_weekly_observation_versions AS version
+              ON version.version_id=observation.current_version_id
+            WHERE {' AND '.join(where)}
+        """
+        columns = (
+            "period", "series", "provider_series", "value", "unit",
+            "correction", "available_at", "captured_at",
+        )
+        sql = (
+            """
+            SELECT version.period,
+                   version.canonical_series_id AS series,
+                   version.provider_series_id AS provider_series,
+                   version.value_text AS value,
+                   version.unit,
+                   version.correction_sequence AS correction,
+                   version.available_at,
+                   version.captured_at
+            """
+            + base
+            + f"""
+            ORDER BY version.period {direction.upper()}
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.macro, expected_role="macro"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    "SELECT COUNT(*) " + base, tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql,
+                    (*parameters, limit, (page - 1) * limit),
+                ).fetchall()
+            )
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {"start_date": start, "end_date": end},
+        )
+
     def _eia_electricity_retail(
         self,
         query: Mapping[str, str],
@@ -1073,6 +1373,9 @@ class CanonicalInspectorReadService:
     def _fmp_economic_calendar(
         self, query: Mapping[str, str], direction: str, page: int, limit: int
     ) -> dict[str, Any]:
+        mode = query.get("mode", "current")
+        if mode not in {"current", "history"}:
+            raise ValidationError("FMP calendar mode is invalid")
         country = _text_filter(query.get("country"), "/country", 64)
         priority = _text_filter(query.get("priority"), "/priority", 16)
         if priority and priority not in _FMP_PRIORITIES:
@@ -1084,23 +1387,162 @@ class CanonicalInspectorReadService:
         if start and end and start > end:
             raise ValidationError("FMP calendar date range is invalid")
 
-        where = [
-            "run.dataset_id='macro.fmp.economic_calendar_evidence'",
-            "run.command='fmp.macro.us_economic_calendar_wholesale'",
-            "run.status='succeeded'",
-            "artifact.dataset_id='macro.fmp.economic_calendar_evidence'",
-            "artifact.content_sha256=capture.response_sha256",
-            "snapshot.dataset_id='macro.fmp.economic_calendar_evidence'",
-            "snapshot.semantic_identity=capture.semantic_identity",
-            "snapshot.completeness='complete'",
-            "snapshot.validation_state='validated'",
-        ]
+        columns = (
+            "event_at", "country", "priority", "event_name", "currency", "unit",
+            "previous", "estimate", "actual", "change", "change_percentage",
+            "captured_at", "request_start", "request_end", "capture_id",
+            "source_row", "row_sha256", "response_sha256", "semantic_identity",
+            "raw_row_json",
+        )
+
+        if mode == "current":
+            with read_connection(self._stores, StoreRole.MACRO) as connection:
+                cache = connection.execute(
+                    """
+                    SELECT cache.response_bytes, cache.response_sha256,
+                           cache.semantic_identity,
+                           cache.source_semantic_identity, cache.captured_at,
+                           cache.captured_precision,
+                           cache.request_start_date, cache.request_end_date,
+                           cache.normalization_version,
+                           cache.persistence_version, cache.row_count,
+                           cache.receipt_id,
+                           receipt.response_sha256 AS receipt_response_sha256,
+                           receipt.semantic_identity AS receipt_semantic_identity,
+                           receipt.source_semantic_identity
+                               AS receipt_source_semantic_identity,
+                           receipt.captured_at AS receipt_captured_at,
+                           receipt.row_count AS receipt_row_count
+                    FROM fmp_economic_calendar_latest_response_cache AS cache
+                    JOIN fmp_economic_calendar_fetch_receipts AS receipt
+                      ON receipt.receipt_id=cache.receipt_id
+                    JOIN ingestion_runs AS run ON run.run_id=receipt.run_id
+                    WHERE cache.feed_id='fmp_us'
+                      AND run.dataset_id=
+                          'macro.fmp.economic_calendar_incremental_evidence'
+                      AND run.command=
+                          'fmp.macro.us_economic_calendar_wholesale'
+                      AND run.status='succeeded'
+                    """
+                ).fetchone()
+            if cache is not None:
+                capture = parse_fmp_us_calendar_wholesale(
+                    bytes(cache["response_bytes"]),
+                    captured_at=str(cache["captured_at"]),
+                    start_date=str(cache["request_start_date"]),
+                    end_date=str(cache["request_end_date"]),
+                )
+                if (
+                    str(cache["response_sha256"]) != capture.response_sha256
+                    or str(cache["source_semantic_identity"])
+                    != capture.semantic_identity
+                    or str(cache["captured_precision"])
+                    != capture.captured_precision
+                    or str(cache["normalization_version"])
+                    != "fmp_us_calendar_wholesale_evidence_v1"
+                    or str(cache["persistence_version"])
+                    != "fmp_us_calendar_incremental_events_v2"
+                    or int(cache["row_count"]) != len(capture.rows)
+                    or str(cache["receipt_response_sha256"])
+                    != capture.response_sha256
+                    or str(cache["receipt_semantic_identity"])
+                    != str(cache["semantic_identity"])
+                    or str(cache["receipt_source_semantic_identity"])
+                    != capture.semantic_identity
+                    or str(cache["receipt_captured_at"]) != capture.captured_at
+                    or int(cache["receipt_row_count"]) != len(capture.rows)
+                ):
+                    raise StoreUnavailableError(
+                        "FMP calendar latest response cache is invalid"
+                    )
+                rows = []
+                for item in capture.rows:
+                    row = {
+                        "event_at": item.event_at,
+                        "country": item.country,
+                        "priority": _stored_json_value(item.impact_json),
+                        "event_name": item.event_name,
+                        "currency": item.currency,
+                        "unit": item.unit,
+                        "previous": _stored_json_value(item.previous_json),
+                        "estimate": _stored_json_value(item.estimate_json),
+                        "actual": _stored_json_value(item.actual_json),
+                        "change": _stored_json_value(item.change_json),
+                        "change_percentage": _stored_json_value(
+                            item.change_percentage_json
+                        ),
+                        "captured_at": capture.captured_at,
+                        "request_start": capture.request_start_date,
+                        "request_end": capture.request_end_date,
+                        "capture_id": str(cache["receipt_id"]),
+                        "source_row": item.source_row,
+                        "row_sha256": item.row_sha256,
+                        "response_sha256": capture.response_sha256,
+                        "semantic_identity": capture.semantic_identity,
+                        "raw_row_json": item.raw_row_json,
+                    }
+                    keyword_text = " ".join(
+                        value
+                        for value in (
+                            item.event_name,
+                            item.country,
+                            item.currency or "",
+                            item.unit or "",
+                            item.raw_row_json,
+                        )
+                        if value
+                    ).casefold()
+                    if country and item.country.casefold() != country.casefold():
+                        continue
+                    if priority and row["priority"] != priority:
+                        continue
+                    if (
+                        event_name
+                        and event_name.casefold() not in item.event_name.casefold()
+                    ):
+                        continue
+                    if keyword and keyword.casefold() not in keyword_text:
+                        continue
+                    if start and item.event_at[:10] < start:
+                        continue
+                    if end and item.event_at[:10] > end:
+                        continue
+                    rows.append(row)
+                rows.sort(
+                    key=lambda item: (
+                        str(item["event_at"]),
+                        str(item["captured_at"]),
+                        str(item["capture_id"]),
+                        int(item["source_row"]),
+                    ),
+                    reverse=direction == "desc",
+                )
+                total = len(rows)
+                offset = (page - 1) * limit
+                return _result(
+                    columns,
+                    rows[offset : offset + limit],
+                    total,
+                    page,
+                    limit,
+                    {
+                        "mode": mode,
+                        "country": country,
+                        "priority": priority,
+                        "event_name": event_name,
+                        "keyword": keyword,
+                        "start_date": start,
+                        "end_date": end,
+                    },
+                )
+
+        where: list[str] = []
         parameters: list[object] = []
         if country:
             where.append("LOWER(calendar.country)=LOWER(?)")
             parameters.append(country)
         if priority:
-            where.append("calendar.impact_json=?")
+            where.append("calendar.priority=?")
             parameters.append(dumps_strict(priority))
         if event_name:
             where.append("calendar.event_name LIKE ? ESCAPE '\\'")
@@ -1121,54 +1563,120 @@ class CanonicalInspectorReadService:
         if end:
             where.append("SUBSTR(calendar.event_at, 1, 10)<=?")
             parameters.append(end)
-        predicate = " AND ".join(where)
-        columns = (
-            "event_at", "country", "priority", "event_name", "currency", "unit",
-            "previous", "estimate", "actual", "change", "change_percentage",
-            "captured_at", "request_start", "request_end", "capture_id",
-            "source_row", "row_sha256", "response_sha256", "semantic_identity",
-            "raw_row_json",
-        )
-        base = f"""
-            FROM fmp_economic_calendar_rows AS calendar
+
+        legacy = """
+            SELECT row.event_at, row.country, row.impact_json AS priority,
+                   row.event_name, row.currency, row.unit,
+                   row.previous_json AS previous,
+                   row.estimate_json AS estimate,
+                   row.actual_json AS actual,
+                   row.change_json AS change,
+                   row.change_percentage_json AS change_percentage,
+                   capture.captured_at,
+                   capture.request_start_date AS request_start,
+                   capture.request_end_date AS request_end,
+                   row.capture_id, row.source_row, row.row_sha256,
+                   capture.response_sha256, capture.semantic_identity,
+                   row.raw_row_json,
+                   LAG(row.row_sha256) OVER (
+                       PARTITION BY row.country, row.event_at, row.event_name,
+                                    COALESCE(row.currency, '')
+                       ORDER BY capture.captured_at, row.capture_id,
+                                row.source_row
+                   ) AS previous_row_sha256,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY row.country, row.event_at, row.event_name,
+                                    COALESCE(row.currency, '')
+                       ORDER BY capture.captured_at DESC, row.capture_id DESC,
+                                row.source_row DESC
+                   ) AS current_rank
+            FROM fmp_economic_calendar_rows AS row
             JOIN fmp_economic_calendar_captures AS capture
-              ON capture.capture_id=calendar.capture_id
-            JOIN ingestion_runs AS run
-              ON run.run_id=capture.run_id
+              ON capture.capture_id=row.capture_id
+            JOIN ingestion_runs AS run ON run.run_id=capture.run_id
             JOIN ingestion_artifacts AS artifact
               ON artifact.artifact_id=capture.artifact_id
              AND artifact.run_id=run.run_id
             JOIN ingestion_snapshots AS snapshot
               ON snapshot.snapshot_id=capture.snapshot_id
              AND snapshot.run_id=run.run_id
-            WHERE {predicate}
+            WHERE run.dataset_id='macro.fmp.economic_calendar_evidence'
+              AND run.command='fmp.macro.us_economic_calendar_wholesale'
+              AND run.status='succeeded'
+              AND artifact.dataset_id='macro.fmp.economic_calendar_evidence'
+              AND artifact.content_sha256=capture.response_sha256
+              AND snapshot.dataset_id='macro.fmp.economic_calendar_evidence'
+              AND snapshot.semantic_identity=capture.semantic_identity
+              AND snapshot.completeness='complete'
+              AND snapshot.validation_state='validated'
         """
+        if mode == "current":
+            common_table = f"WITH legacy AS ({legacy})"
+            where.insert(0, "calendar.current_rank=1")
+            relation = "legacy"
+        else:
+            common_table = f"""
+                WITH legacy AS ({legacy}),
+                new_history AS (
+                    SELECT event.event_at, event.country,
+                           version.impact_json AS priority,
+                           event.event_name, version.currency, version.unit,
+                           version.previous_json AS previous,
+                           version.estimate_json AS estimate,
+                           version.actual_json AS actual,
+                           version.change_json AS change,
+                           version.change_percentage_json AS change_percentage,
+                           version.captured_at,
+                           receipt.request_start_date AS request_start,
+                           receipt.request_end_date AS request_end,
+                           receipt.receipt_id AS capture_id,
+                           version.source_row, version.row_sha256,
+                           receipt.response_sha256,
+                           receipt.source_semantic_identity AS semantic_identity,
+                           version.raw_row_json,
+                           NULL AS previous_row_sha256,
+                           version.correction_sequence AS current_rank
+                    FROM fmp_economic_calendar_raw_event_versions AS version
+                    JOIN fmp_economic_calendar_raw_events AS event
+                      ON event.event_id=version.event_id
+                    JOIN fmp_economic_calendar_fetch_receipts AS receipt
+                      ON receipt.receipt_id=version.receipt_id
+                    JOIN ingestion_runs AS run ON run.run_id=receipt.run_id
+                    WHERE run.dataset_id=
+                              'macro.fmp.economic_calendar_incremental_evidence'
+                      AND run.command=
+                              'fmp.macro.us_economic_calendar_wholesale'
+                      AND run.status='succeeded'
+                ),
+                calendar_history AS (
+                    SELECT * FROM legacy
+                    WHERE previous_row_sha256 IS NULL
+                       OR previous_row_sha256 != row_sha256
+                    UNION ALL
+                    SELECT * FROM new_history
+                )
+            """
+            relation = "calendar_history"
+        predicate = "" if not where else "WHERE " + " AND ".join(where)
+        base = f"FROM {relation} AS calendar {predicate}"
         sql = f"""
-            SELECT calendar.event_at, calendar.country,
-                   calendar.impact_json AS priority,
-                   calendar.event_name, calendar.currency, calendar.unit,
-                   calendar.previous_json AS previous,
-                   calendar.estimate_json AS estimate,
-                   calendar.actual_json AS actual,
-                   calendar.change_json AS change,
-                   calendar.change_percentage_json AS change_percentage,
-                   capture.captured_at,
-                   capture.request_start_date AS request_start,
-                   capture.request_end_date AS request_end,
-                   calendar.capture_id, calendar.source_row,
-                   calendar.row_sha256, capture.response_sha256,
-                   capture.semantic_identity, calendar.raw_row_json
+            {common_table}
+            SELECT event_at, country, priority, event_name, currency, unit,
+                   previous, estimate, actual, change, change_percentage,
+                   captured_at, request_start, request_end, capture_id,
+                   source_row, row_sha256, response_sha256,
+                   semantic_identity, raw_row_json
             {base}
-            ORDER BY calendar.event_at {direction.upper()},
-                     capture.captured_at {direction.upper()},
-                     calendar.capture_id {direction.upper()},
-                     calendar.source_row {direction.upper()}
+            ORDER BY event_at {direction.upper()},
+                     captured_at {direction.upper()},
+                     capture_id {direction.upper()},
+                     source_row {direction.upper()}
             LIMIT ? OFFSET ?
         """
         with read_connection(self._stores, StoreRole.MACRO) as connection:
             total = int(
                 connection.execute(
-                    f"SELECT COUNT(*) {base}", tuple(parameters)
+                    f"{common_table} SELECT COUNT(*) {base}", tuple(parameters)
                 ).fetchone()[0]
             )
             stored = _rows(
@@ -1192,6 +1700,7 @@ class CanonicalInspectorReadService:
             page,
             limit,
             {
+                "mode": mode,
                 "country": country,
                 "priority": priority,
                 "event_name": event_name,
@@ -1515,6 +2024,33 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         )
     elif view == "market-instruments":
         fields.append(_input("search", "Symbol or name", query.get("search")))
+    elif view == "spy-options":
+        selected_type = str(query.get("option_type", ""))
+        type_options = '<option value="">All option types</option>' + "".join(
+            f'<option value="{item}"'
+            + (" selected" if item == selected_type else "")
+            + f">{item.title()}</option>"
+            for item in ("call", "put")
+        )
+        selected_state = str(query.get("state", ""))
+        state_options = '<option value="">All surface states</option>' + "".join(
+            f'<option value="{item}"'
+            + (" selected" if item == selected_state else "")
+            + f">{item.title()}</option>"
+            for item in ("present", "missing", "excluded")
+        )
+        fields.append(
+            f'<label>Option type<select name="option_type">{type_options}</select></label>'
+        )
+        fields.append(
+            f'<label>Surface state<select name="state">{state_options}</select></label>'
+        )
+        fields.append(
+            _input(
+                "expiration", "Exact expiration", query.get("expiration"),
+                input_type="date",
+            )
+        )
     elif view in {"macro-current", "macro-vintages"}:
         selected = str(query.get("series", _DEFAULT_SERIES))
         options = "".join(
@@ -1571,6 +2107,23 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         fields.append(
             f'<label>Component<select name="component">{options}</select></label>'
         )
+        fields.append(
+            _input(
+                "start_date",
+                "Start date",
+                query.get("start_date"),
+                input_type="date",
+            )
+        )
+        fields.append(
+            _input(
+                "end_date",
+                "End date",
+                query.get("end_date"),
+                input_type="date",
+            )
+        )
+    elif view == "crude-oil-stocks":
         fields.append(
             _input(
                 "start_date",
@@ -1662,6 +2215,16 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
         fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
     else:
+        selected_mode = str(query.get("mode", "current"))
+        mode_options = "".join(
+            f'<option value="{item}"'
+            + (" selected" if item == selected_mode else "")
+            + f">{label}</option>"
+            for item, label in (("current", "Current"), ("history", "History"))
+        )
+        fields.append(
+            f'<label>View<select name="mode">{mode_options}</select></label>'
+        )
         selected = str(query.get("priority", ""))
         options = '<option value="">All priorities</option>' + "".join(
             f'<option value="{html.escape(item, quote=True)}"'

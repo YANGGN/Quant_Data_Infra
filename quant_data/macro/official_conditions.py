@@ -65,6 +65,10 @@ BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID: Final = (
 BLS_PRICE_WAGE_PRODUCTIVITY_HANDLER: Final = (
     "macro.bls_price_wage_productivity_history"
 )
+BEA_PERSONAL_INCOME_COLLECTOR_ID: Final = (
+    "bea.macro.personal_income_history"
+)
+BEA_PERSONAL_INCOME_HANDLER: Final = "macro.bea_personal_income_history"
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +113,45 @@ H41_MANIFEST: Final = (
     ),
 )
 
+
+FED_POLICY_RATE_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.federal_reserve_policy.iorb",
+        "IORB",
+        "Interest rate on reserve balances",
+        "daily",
+        "percent",
+        "rate",
+    ),
+    OfficialSeriesSpec(
+        "macro.federal_reserve_policy.target_range_lower_bound",
+        "DFEDTARL",
+        "Federal funds target range lower bound",
+        "daily",
+        "percent",
+        "rate",
+    ),
+    OfficialSeriesSpec(
+        "macro.federal_reserve_policy.target_range_upper_bound",
+        "DFEDTARU",
+        "Federal funds target range upper bound",
+        "daily",
+        "percent",
+        "rate",
+    ),
+)
+
+INDUSTRIAL_PRODUCTION_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.federal_reserve.industrial_production_total_sa",
+        "INDPRO",
+        "Industrial Production: Total Index, seasonally adjusted",
+        "monthly",
+        "index_2017_100",
+        "level",
+    ),
+)
+
 CHICAGO_MANIFEST: Final = (
     OfficialSeriesSpec(
         "macro.chicagofed.nfci",
@@ -147,6 +190,17 @@ CHICAGO_MANIFEST: Final = (
         "Leverage",
         "Chicago Fed National Financial Conditions Index leverage component",
         "weekly",
+        "index",
+        "level",
+    ),
+)
+
+CFNAI_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.chicagofed.cfnai",
+        "CFNAI",
+        "Chicago Fed National Activity Index",
+        "monthly",
         "index",
         "level",
     ),
@@ -221,6 +275,61 @@ TREASURY_TGA_MANIFEST: Final = (
     ),
 )
 
+
+TREASURY_DEBT_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.treasury_fiscal.daily.total_public_debt_outstanding",
+        "tot_pub_debt_out_amt",
+        "Total public debt outstanding",
+        "daily",
+        "usd",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.treasury_fiscal.daily.debt_held_by_public",
+        "debt_held_public_amt",
+        "Debt held by the public",
+        "daily",
+        "usd",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.treasury_fiscal.daily.intragovernmental_holdings",
+        "intragov_hold_amt",
+        "Intragovernmental holdings",
+        "daily",
+        "usd",
+        "amount",
+    ),
+)
+
+TREASURY_FISCAL_BALANCE_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.treasury_fiscal.monthly.receipts",
+        "Receipts",
+        "Federal receipts",
+        "monthly",
+        "usd_millions",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.treasury_fiscal.monthly.outlays",
+        "Outlays",
+        "Federal outlays",
+        "monthly",
+        "usd_millions",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.treasury_fiscal.monthly.deficit_surplus",
+        "Deficit/Surplus (-)",
+        "Federal deficit / surplus",
+        "monthly",
+        "usd_millions",
+        "amount",
+    ),
+)
+
 EIA_GAS_MANIFEST: Final = (
     OfficialSeriesSpec(
         "macro.eia.weekly.lower_48_working_natural_gas_storage",
@@ -229,6 +338,33 @@ EIA_GAS_MANIFEST: Final = (
         "weekly",
         "bcf",
         "amount",
+    ),
+)
+
+EIA_PETROLEUM_FUNDAMENTALS_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.eia.petroleum.weekly.us_total_motor_gasoline_ending_stocks",
+        "WGTSTUS1",
+        "U.S. ending stocks of total motor gasoline",
+        "weekly",
+        "thousand_barrels",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.eia.petroleum.weekly.us_distillate_fuel_oil_ending_stocks",
+        "WDISTUS1",
+        "U.S. ending stocks of distillate fuel oil",
+        "weekly",
+        "thousand_barrels",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.eia.petroleum.weekly.us_finished_motor_gasoline_product_supplied",
+        "WGFUPUS2",
+        "U.S. product supplied of finished motor gasoline",
+        "weekly",
+        "thousand_barrels_per_day",
+        "rate",
     ),
 )
 
@@ -271,6 +407,44 @@ BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST: Final = (
         "percent_change_from_previous_quarter",
         "rate",
     ),
+    OfficialSeriesSpec(
+        "macro.bls.employment_cost_index_total_compensation_civilian_sa",
+        "CIS1010000000000I",
+        (
+            "Employment Cost Index - total compensation, civilian workers, "
+            "seasonally adjusted"
+        ),
+        "quarterly",
+        "index_2005_12_100",
+        "level",
+    ),
+)
+
+BEA_PERSONAL_INCOME_MANIFEST: Final = (
+    OfficialSeriesSpec(
+        "macro.bea.personal_income",
+        "A065RC",
+        "Personal income",
+        "monthly",
+        "usd_millions_saar",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.bea.disposable_personal_income",
+        "A067RC",
+        "Disposable personal income",
+        "monthly",
+        "usd_millions_saar",
+        "amount",
+    ),
+    OfficialSeriesSpec(
+        "macro.bea.personal_consumption_expenditures",
+        "DPCERC",
+        "Personal consumption expenditures",
+        "monthly",
+        "usd_millions_saar",
+        "amount",
+    ),
 )
 
 
@@ -300,6 +474,28 @@ _DEFINITIONS: Final = {
         H41_MANIFEST,
         1,
     ),
+    "policy_rates": _SourceDefinition(
+        "policy_rates",
+        "federal_reserve_policy",
+        H41_COLLECTOR_ID,
+        H41_HANDLER,
+        "federal_reserve_policy_rates_v1",
+        "fred/graph/IORB+DFEDTARL+DFEDTARU",
+        "text/csv",
+        FED_POLICY_RATE_MANIFEST,
+        1,
+    ),
+    "industrial_production": _SourceDefinition(
+        "industrial_production",
+        "federal_reserve_industrial_production",
+        H41_COLLECTOR_ID,
+        H41_HANDLER,
+        "federal_reserve_industrial_production_v1",
+        "fred/graph/INDPRO",
+        "text/csv",
+        INDUSTRIAL_PRODUCTION_MANIFEST,
+        1,
+    ),
     "chicago": _SourceDefinition(
         "chicago",
         "chicagofed",
@@ -309,6 +505,17 @@ _DEFINITIONS: Final = {
         "chicagofed/NFCI/nfci-data-series-csv.csv",
         "text/csv",
         CHICAGO_MANIFEST,
+        1,
+    ),
+    "cfnai": _SourceDefinition(
+        "cfnai",
+        "chicagofed",
+        CHICAGO_COLLECTOR_ID,
+        CHICAGO_HANDLER,
+        "chicagofed_cfnai_v1",
+        "chicagofed/CFNAI/cfnai-data-series-xlsx.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        CFNAI_MANIFEST,
         1,
     ),
     "bis": _SourceDefinition(
@@ -344,6 +551,31 @@ _DEFINITIONS: Final = {
         TREASURY_TGA_MANIFEST,
         1,
     ),
+    "treasury_debt": _SourceDefinition(
+        "treasury_debt",
+        "treasury_fiscal_data",
+        TREASURY_TGA_COLLECTOR_ID,
+        TREASURY_TGA_HANDLER,
+        "treasury_debt_to_penny_v1",
+        "treasury_fiscal_data/v2/accounting/od/debt_to_penny",
+        "application/json",
+        TREASURY_DEBT_MANIFEST,
+        1,
+    ),
+    "treasury_fiscal_balance": _SourceDefinition(
+        "treasury_fiscal_balance",
+        "treasury_fiscal_data",
+        TREASURY_TGA_COLLECTOR_ID,
+        TREASURY_TGA_HANDLER,
+        "treasury_mts_fiscal_balance_v1",
+        (
+            "treasury_fiscal_data/v1/accounting/mts/"
+            "mts_receipts_outlays_deficit_surplus"
+        ),
+        "application/json",
+        TREASURY_FISCAL_BALANCE_MANIFEST,
+        1,
+    ),
     "eia_gas": _SourceDefinition(
         "eia_gas",
         "eia",
@@ -353,6 +585,42 @@ _DEFINITIONS: Final = {
         "eia/v2/seriesid/NG.NW2_EPG0_SWO_R48_BCF.W",
         "application/json",
         EIA_GAS_MANIFEST,
+        1,
+        configuration_env=("EIA_API_KEY",),
+    ),
+    "eia_total_motor_gasoline_stocks": _SourceDefinition(
+        "eia_total_motor_gasoline_stocks",
+        "eia",
+        EIA_GAS_COLLECTOR_ID,
+        EIA_GAS_HANDLER,
+        "eia_total_motor_gasoline_stocks_v1",
+        "eia/v2/seriesid/PET.WGTSTUS1.W",
+        "application/json",
+        (EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[0],),
+        1,
+        configuration_env=("EIA_API_KEY",),
+    ),
+    "eia_distillate_fuel_oil_stocks": _SourceDefinition(
+        "eia_distillate_fuel_oil_stocks",
+        "eia",
+        EIA_GAS_COLLECTOR_ID,
+        EIA_GAS_HANDLER,
+        "eia_distillate_fuel_oil_stocks_v1",
+        "eia/v2/seriesid/PET.WDISTUS1.W",
+        "application/json",
+        (EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[1],),
+        1,
+        configuration_env=("EIA_API_KEY",),
+    ),
+    "eia_finished_motor_gasoline_product_supplied": _SourceDefinition(
+        "eia_finished_motor_gasoline_product_supplied",
+        "eia",
+        EIA_GAS_COLLECTOR_ID,
+        EIA_GAS_HANDLER,
+        "eia_finished_motor_gasoline_product_supplied_v1",
+        "eia/v2/seriesid/PET.WGFUPUS2.W",
+        "application/json",
+        (EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[2],),
         1,
         configuration_env=("EIA_API_KEY",),
     ),
@@ -372,11 +640,26 @@ _DEFINITIONS: Final = {
         "bls",
         BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
         BLS_PRICE_WAGE_PRODUCTIVITY_HANDLER,
-        "bls_price_wage_productivity_v1",
-        "bls/publicAPI/v2/timeseries/data/WPSFD4+CES0500000003+PRS85006092",
+        "bls_price_wage_productivity_v2",
+        (
+            "bls/publicAPI/v2/timeseries/data/"
+            "WPSFD4+CES0500000003+PRS85006092+CIS1010000000000I"
+        ),
         "application/json",
         BLS_PRICE_WAGE_PRODUCTIVITY_MANIFEST,
         1,
+    ),
+    "bea_personal_income": _SourceDefinition(
+        "bea_personal_income",
+        "bea",
+        BEA_PERSONAL_INCOME_COLLECTOR_ID,
+        BEA_PERSONAL_INCOME_HANDLER,
+        "bea_personal_income_v1",
+        "bea/NIPA/T20600",
+        "application/json",
+        BEA_PERSONAL_INCOME_MANIFEST,
+        1,
+        configuration_env=("BEA_API_KEY",),
     ),
 }
 
@@ -745,6 +1028,162 @@ def parse_federal_reserve_h41(
     )
 
 
+def parse_federal_reserve_policy_rates(
+    body: bytes,
+    *,
+    captured_at: str,
+    start_date: str,
+    end_date: str,
+) -> OfficialConditionsCapture:
+    """Parse one FRED CSV carrying IORB and the policy target bounds."""
+
+    start, end = _bounded_dates(
+        start_date, end_date, source="Federal Reserve policy rates"
+    )
+    text = _decode_csv(body, source="Federal Reserve policy rates FRED")
+    rows = list(csv.reader(io.StringIO(text, newline="")))
+    expected_header = ("observation_date",) + tuple(
+        item.provider_code for item in FED_POLICY_RATE_MANIFEST
+    )
+    if (
+        len(rows) < 2
+        or len(rows) > MAX_RESPONSE_ROWS + 1
+        or tuple(rows[0]) != expected_header
+    ):
+        raise _fail("Federal Reserve policy-rate CSV shape is invalid")
+
+    observations: list[OfficialObservation] = []
+    seen: set[tuple[str, str]] = set()
+    for row in rows[1:]:
+        if not row or not any(cell.strip() for cell in row):
+            continue
+        if len(row) != len(expected_header):
+            raise _fail("Federal Reserve policy-rate row is incomplete")
+        observed = parse_date(row[0].strip(), pointer="/time_period")
+        if observed < start or observed > end:
+            raise _fail(
+                "Federal Reserve policy-rate row is outside the requested window"
+            )
+        observed_text = observed.isoformat()
+        for column, spec in enumerate(FED_POLICY_RATE_MANIFEST, start=1):
+            identity = (spec.series_id, observed_text)
+            if identity in seen:
+                raise _fail(
+                    "Federal Reserve policy-rate observations must be unique"
+                )
+            seen.add(identity)
+            value_text, missing_reason = _value(
+                row[column], missing_tokens=frozenset({"", "."})
+            )
+            observations.append(
+                OfficialObservation(
+                    spec.series_id,
+                    spec.provider_code,
+                    observed_text,
+                    observed_text,
+                    observed_text,
+                    value_text,
+                    missing_reason,
+                    0,
+                )
+            )
+    if {item.series_id for item in observations} != {
+        item.series_id for item in FED_POLICY_RATE_MANIFEST
+    }:
+        raise _fail("Federal Reserve policy-rate series coverage is incomplete")
+    return _capture(
+        "policy_rates",
+        (("fred_policy_rates", body),),
+        captured_at=captured_at,
+        scope={
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "fred_series": [
+                item.provider_code for item in FED_POLICY_RATE_MANIFEST
+            ],
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
+def parse_federal_reserve_industrial_production(
+    body: bytes,
+    *,
+    captured_at: str,
+    start_date: str,
+    end_date: str,
+) -> OfficialConditionsCapture:
+    """Parse the fixed monthly FRED INDPRO CSV."""
+
+    start, end = _bounded_dates(
+        start_date,
+        end_date,
+        source="Federal Reserve industrial production",
+    )
+    text = _decode_csv(body, source="Federal Reserve industrial production FRED")
+    rows = list(csv.reader(io.StringIO(text, newline="")))
+    if (
+        len(rows) < 2
+        or len(rows) > _SMALL_SOURCE_ROW_LIMIT + 1
+        or tuple(rows[0]) != ("observation_date", "INDPRO")
+    ):
+        raise _fail("Federal Reserve industrial-production CSV shape is invalid")
+
+    spec = INDUSTRIAL_PRODUCTION_MANIFEST[0]
+    observations: list[OfficialObservation] = []
+    seen: set[str] = set()
+    for row in rows[1:]:
+        if not row or not any(cell.strip() for cell in row):
+            continue
+        if len(row) != 2:
+            raise _fail("Federal Reserve industrial-production row is incomplete")
+        observed = parse_date(row[0].strip(), pointer="/time_period")
+        if observed.day != 1 or observed < start or observed > end:
+            raise _fail(
+                "Federal Reserve industrial-production row is outside the "
+                "requested window"
+            )
+        source_period, period_start, period_end = _month_bounds(
+            (observed.year, observed.month)
+        )
+        if source_period in seen:
+            raise _fail(
+                "Federal Reserve industrial-production observations must be unique"
+            )
+        seen.add(source_period)
+        value_text, missing_reason = _value(
+            row[1], missing_tokens=frozenset({"", "."})
+        )
+        observations.append(
+            OfficialObservation(
+                spec.series_id,
+                spec.provider_code,
+                source_period,
+                period_start,
+                period_end,
+                value_text,
+                missing_reason,
+                0,
+            )
+        )
+    if not observations:
+        raise _fail("Federal Reserve industrial-production series is empty")
+    return _capture(
+        "industrial_production",
+        (("fred_indpro", body),),
+        captured_at=captured_at,
+        scope={
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "fred_series": ["INDPRO"],
+            "availability_basis": "local_capture",
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
 _CHICAGO_HEADER: Final = (
     "Friday_of_Week",
     "NFCI",
@@ -850,25 +1289,47 @@ _CMDI_HEADER: Final = (
     "p99",
     "Recession",
 )
+_CFNAI_HEADER: Final = (
+    "Date",
+    "P_I",
+    "EU_H",
+    "C_H",
+    "SO_I",
+    "CFNAI",
+    "CFNAI_MA3",
+    "DIFFUSION",
+)
+_CFNAI_PERIOD = re.compile(
+    r"^(?P<year>[0-9]{4}):(?P<month>0[1-9]|1[0-2])$"
+)
 _XLSX_CELL_REFERENCE = re.compile(
     r"^(?P<column>[A-Z]+)(?P<row>[1-9][0-9]*)$"
 )
 
 
-def _xlsx_column(cell: ElementTree.Element) -> str:
+def _xlsx_column(cell: ElementTree.Element, *, source: str) -> str:
     reference = cell.get("r", "")
     match = _XLSX_CELL_REFERENCE.fullmatch(reference)
     if match is None:
-        raise _fail("NY Fed CMDI workbook cell reference is invalid")
+        raise _fail(f"{source} workbook cell reference is invalid")
     return match.group("column")
 
 
 def _xlsx_value(
     cell: ElementTree.Element,
     shared_strings: tuple[str, ...],
+    *,
+    source: str,
 ) -> str:
     if cell.find(f"{_XLSX_NS}f") is not None:
-        raise _fail("NY Fed CMDI workbook formulas are unsupported")
+        raise _fail(f"{source} workbook formulas are unsupported")
+    if cell.get("t") == "inlineStr":
+        inline = cell.find(f"{_XLSX_NS}is")
+        if inline is None:
+            return ""
+        return "".join(
+            node.text or "" for node in inline.iter(f"{_XLSX_NS}t")
+        )
     value = cell.find(f"{_XLSX_NS}v")
     if value is None or value.text is None:
         return ""
@@ -876,32 +1337,28 @@ def _xlsx_value(
     if cell_type is None or cell_type == "n":
         return value.text.strip()
     if cell_type != "s":
-        raise _fail("NY Fed CMDI workbook cell type is invalid")
+        raise _fail(f"{source} workbook cell type is invalid")
     try:
         index = int(value.text)
         return shared_strings[index]
     except (IndexError, TypeError, ValueError) as exc:
-        raise _fail(
-            "NY Fed CMDI workbook shared string is invalid"
-        ) from exc
+        raise _fail(f"{source} workbook shared string is invalid") from exc
 
 
-def _cmdi_xlsx_rows(
+def _xlsx_rows(
     body: bytes,
+    *,
+    source: str,
+    header: tuple[str, ...],
 ) -> tuple[tuple[str, ...], ...]:
     if not isinstance(body, bytes) or not body:
-        raise _fail("NY Fed CMDI response must contain XLSX bytes")
+        raise _fail(f"{source} response must contain XLSX bytes")
     if len(body) > MAX_RESPONSE_BYTES:
-        raise ResourceLimitError(
-            "NY Fed CMDI response exceeds its byte bound"
-        )
+        raise ResourceLimitError(f"{source} response exceeds its byte bound")
     try:
         with ZipFile(io.BytesIO(body)) as archive:
             names = archive.namelist()
-            required = {
-                "xl/sharedStrings.xml",
-                "xl/worksheets/sheet1.xml",
-            }
+            required = {"xl/worksheets/sheet1.xml"}
             if (
                 len(names) != len(set(names))
                 or not required.issubset(names)
@@ -910,64 +1367,76 @@ def _cmdi_xlsx_rows(
                 )
                 > MAX_RESPONSE_BYTES
             ):
-                raise _fail("NY Fed CMDI workbook members are invalid")
-            shared_root = ElementTree.fromstring(
-                archive.read("xl/sharedStrings.xml")
-            )
-            shared_strings = tuple(
-                "".join(
-                    node.text or ""
-                    for node in item.iter(f"{_XLSX_NS}t")
+                raise _fail(f"{source} workbook members are invalid")
+            if "xl/sharedStrings.xml" in names:
+                shared_root = ElementTree.fromstring(
+                    archive.read("xl/sharedStrings.xml")
                 )
-                for item in shared_root.findall(f"{_XLSX_NS}si")
-            )
+                shared_strings = tuple(
+                    "".join(
+                        node.text or ""
+                        for node in item.iter(f"{_XLSX_NS}t")
+                    )
+                    for item in shared_root.findall(f"{_XLSX_NS}si")
+                )
+            else:
+                shared_strings = ()
             sheet_root = ElementTree.fromstring(
                 archive.read("xl/worksheets/sheet1.xml")
             )
     except (BadZipFile, ElementTree.ParseError, KeyError, OSError) as exc:
-        raise _fail("NY Fed CMDI workbook is invalid") from exc
+        raise _fail(f"{source} workbook is invalid") from exc
 
     sheet_data = sheet_root.find(f"{_XLSX_NS}sheetData")
     if sheet_data is None:
-        raise _fail("NY Fed CMDI workbook sheet is invalid")
+        raise _fail(f"{source} workbook sheet is invalid")
     rows: list[tuple[str, ...]] = []
     for row in sheet_data.findall(f"{_XLSX_NS}row"):
         cells: dict[str, str] = {}
         for cell in row.findall(f"{_XLSX_NS}c"):
-            column = _xlsx_column(cell)
+            column = _xlsx_column(cell, source=source)
             if column in cells:
-                raise _fail(
-                    "NY Fed CMDI workbook cells must be unique"
-                )
-            cells[column] = _xlsx_value(cell, shared_strings)
+                raise _fail(f"{source} workbook cells must be unique")
+            cells[column] = _xlsx_value(
+                cell, shared_strings, source=source
+            )
         rows.append(
             tuple(
                 cells.get(chr(ord("A") + index), "")
-                for index in range(len(_CMDI_HEADER))
+                for index in range(len(header))
             )
         )
         if len(rows) > _SMALL_SOURCE_ROW_LIMIT + 1:
-            raise ResourceLimitError(
-                "NY Fed CMDI response exceeds its row bound"
-            )
-    if len(rows) < 2 or rows[0] != _CMDI_HEADER:
-        raise _fail("NY Fed CMDI workbook header is invalid")
+            raise ResourceLimitError(f"{source} response exceeds its row bound")
+    if len(rows) < 2 or rows[0] != header:
+        raise _fail(f"{source} workbook header is invalid")
     return tuple(rows[1:])
 
 
-def _excel_date(raw: str) -> date:
+def _cmdi_xlsx_rows(body: bytes) -> tuple[tuple[str, ...], ...]:
+    return _xlsx_rows(body, source="NY Fed CMDI", header=_CMDI_HEADER)
+
+
+def _excel_date(raw: str, *, source: str) -> date:
     try:
         serial = Decimal(raw)
     except (InvalidOperation, ValueError) as exc:
-        raise _fail("NY Fed CMDI week ending date is invalid") from exc
+        raise _fail(f"{source} date is invalid") from exc
     if (
         not serial.is_finite()
         or serial != serial.to_integral_value()
         or serial < 1
         or serial > 100_000
     ):
-        raise _fail("NY Fed CMDI week ending date is invalid")
+        raise _fail(f"{source} date is invalid")
     return date(1899, 12, 30) + timedelta(days=int(serial))
+
+
+def _cfnai_period_date(raw: str) -> date:
+    match = _CFNAI_PERIOD.fullmatch(raw)
+    if match is None:
+        raise _fail("Chicago Fed CFNAI date is invalid")
+    return date(int(match.group("year")), int(match.group("month")), 1)
 
 
 def parse_nyfed_cmdi(
@@ -987,7 +1456,7 @@ def parse_nyfed_cmdi(
     observations: list[OfficialObservation] = []
     seen: set[tuple[str, str]] = set()
     for row in rows:
-        observed = _excel_date(row[0])
+        observed = _excel_date(row[0], source="NY Fed CMDI week ending")
         if observed.weekday() != 4 or observed < start or observed > end:
             raise _fail(
                 "NY Fed CMDI week ending date is outside the requested window"
@@ -1029,6 +1498,70 @@ def parse_nyfed_cmdi(
             "from": start.isoformat(),
             "to": end.isoformat(),
             "series": ["Market CMDI", "IG CMDI", "HY CMDI"],
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
+def parse_chicagofed_national_activity(
+    body: bytes,
+    *,
+    captured_at: str,
+    start_date: str,
+    end_date: str,
+) -> OfficialConditionsCapture:
+    """Parse headline CFNAI from the fixed Chicago Fed workbook."""
+
+    start, end = _bounded_dates(
+        start_date, end_date, source="Chicago Fed CFNAI"
+    )
+    rows = _xlsx_rows(
+        body,
+        source="Chicago Fed CFNAI",
+        header=_CFNAI_HEADER,
+    )
+    spec = CFNAI_MANIFEST[0]
+    observations: list[OfficialObservation] = []
+    seen: set[str] = set()
+    for row in rows:
+        observed = _cfnai_period_date(row[0])
+        if observed.day != 1 or observed < start or observed > end:
+            raise _fail(
+                "Chicago Fed CFNAI date is outside the requested window"
+            )
+        source_period, period_start, period_end = _month_bounds(
+            (observed.year, observed.month)
+        )
+        if source_period in seen:
+            raise _fail("Chicago Fed CFNAI observations must be unique")
+        seen.add(source_period)
+        value_text, missing_reason = _value(
+            row[5], missing_tokens=frozenset({""})
+        )
+        observations.append(
+            OfficialObservation(
+                spec.series_id,
+                spec.provider_code,
+                source_period,
+                period_start,
+                period_end,
+                value_text,
+                missing_reason,
+                0,
+            )
+        )
+    if not observations:
+        raise _fail("Chicago Fed CFNAI series is empty")
+    return _capture(
+        "cfnai",
+        (("cfnai_indexes", body),),
+        captured_at=captured_at,
+        scope={
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "series": ["CFNAI"],
+            "availability_basis": "local_capture",
             "completeness": "complete",
         },
         observations=observations,
@@ -1127,7 +1660,233 @@ def parse_treasury_tga(
     )
 
 
+def parse_treasury_debt(
+    body: bytes,
+    *,
+    captured_at: str,
+    start_date: str,
+    end_date: str,
+) -> OfficialConditionsCapture:
+    """Parse one complete bounded Treasury Debt to the Penny page."""
+
+    start, end = _bounded_dates(
+        start_date, end_date, source="Treasury Debt to the Penny"
+    )
+    payload = _decode_json(body, source="Treasury Debt to the Penny")
+    if not isinstance(payload, dict):
+        raise _fail("Treasury debt response shape is invalid")
+    rows = payload.get("data")
+    metadata = payload.get("meta")
+    if not isinstance(rows, list) or not isinstance(metadata, dict):
+        raise _fail("Treasury debt response shape is invalid")
+    if not rows or len(rows) > 10_000:
+        raise _fail("Treasury debt response row count is invalid")
+    if _json_count(
+        metadata.get("total-pages"),
+        source="Treasury debt",
+        field="total-pages",
+    ) != 1:
+        raise _fail("Treasury debt response is not a complete page")
+    if _json_count(
+        metadata.get("total-count"),
+        source="Treasury debt",
+        field="total-count",
+    ) != len(rows):
+        raise _fail("Treasury debt response count is incomplete")
+
+    observations: list[OfficialObservation] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise _fail("Treasury debt response row is invalid")
+        record_date = row.get("record_date")
+        if not isinstance(record_date, str):
+            raise _fail("Treasury debt record date is invalid")
+        observed = parse_date(record_date, pointer="/record_date")
+        if observed < start or observed > end:
+            raise _fail("Treasury debt row is outside the requested window")
+        period = observed.isoformat()
+        if period in seen:
+            raise _fail("Treasury debt observations must be unique")
+        seen.add(period)
+        for spec in TREASURY_DEBT_MANIFEST:
+            if spec.provider_code not in row:
+                raise _fail("Treasury debt amount is missing")
+            raw_amount = row[spec.provider_code]
+            if (
+                isinstance(raw_amount, str)
+                and raw_amount.strip().casefold() == "null"
+            ):
+                value_text, missing_reason = None, "source_missing"
+            else:
+                value_text, missing_reason = _json_value(
+                    raw_amount,
+                    source="Treasury debt",
+                    field=spec.provider_code,
+                )
+            observations.append(
+                OfficialObservation(
+                    spec.series_id,
+                    spec.provider_code,
+                    period,
+                    period,
+                    period,
+                    value_text,
+                    missing_reason,
+                    0,
+                )
+            )
+    return _capture(
+        "treasury_debt",
+        (("debt_to_penny", body),),
+        captured_at=captured_at,
+        scope={
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "fields": [
+                item.provider_code for item in TREASURY_DEBT_MANIFEST
+            ],
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
+def parse_treasury_fiscal_balance(
+    body: bytes,
+    *,
+    captured_at: str,
+    start_date: str,
+    end_date: str,
+) -> OfficialConditionsCapture:
+    """Parse one complete bounded Monthly Treasury Statement summary page."""
+
+    source = "Monthly Treasury Statement"
+    start, end = _bounded_dates(start_date, end_date, source=source)
+    payload = _decode_json(body, source=source)
+    if not isinstance(payload, dict):
+        raise _fail("Monthly Treasury Statement response shape is invalid")
+    rows = payload.get("data")
+    metadata = payload.get("meta")
+    if not isinstance(rows, list) or not isinstance(metadata, dict):
+        raise _fail("Monthly Treasury Statement response shape is invalid")
+    if not rows or len(rows) > 10_000:
+        raise _fail("Monthly Treasury Statement response row count is invalid")
+    if _json_count(
+        metadata.get("total-pages"), source=source, field="total-pages"
+    ) != 1:
+        raise _fail("Monthly Treasury Statement response is not a complete page")
+    if _json_count(
+        metadata.get("total-count"), source=source, field="total-count"
+    ) != len(rows):
+        raise _fail("Monthly Treasury Statement response count is incomplete")
+
+    specs = {
+        item.provider_code: item
+        for item in TREASURY_FISCAL_BALANCE_MANIFEST
+    }
+    expected = frozenset(specs)
+    observations: list[OfficialObservation] = []
+    all_periods: set[str] = set()
+    selected_by_period: dict[str, set[str]] = {}
+    seen: set[tuple[str, str]] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise _fail("Monthly Treasury Statement response row is invalid")
+        record_date = row.get("record_date")
+        category = row.get("amt_category")
+        if not isinstance(record_date, str) or not isinstance(category, str):
+            raise _fail("Monthly Treasury Statement row identity is invalid")
+        observed = parse_date(record_date, pointer="/record_date")
+        if observed < start or observed > end:
+            raise _fail(
+                "Monthly Treasury Statement row is outside the requested window"
+            )
+        source_period, period_start, period_end = _month_bounds(
+            (observed.year, observed.month)
+        )
+        all_periods.add(source_period)
+        spec = specs.get(category)
+        if spec is None:
+            continue
+        key = (source_period, category)
+        if key in seen:
+            raise _fail("Monthly Treasury Statement observations must be unique")
+        seen.add(key)
+        if "mil_amt" not in row:
+            raise _fail("Monthly Treasury Statement amount is missing")
+        raw_amount = row["mil_amt"]
+        if (
+            isinstance(raw_amount, str)
+            and raw_amount.strip().casefold() == "null"
+        ):
+            value_text, missing_reason = None, "source_missing"
+        else:
+            value_text, missing_reason = _json_value(
+                raw_amount,
+                source=source,
+                field="mil_amt",
+            )
+        selected_by_period.setdefault(source_period, set()).add(category)
+        observations.append(
+            OfficialObservation(
+                spec.series_id,
+                spec.provider_code,
+                source_period,
+                period_start,
+                period_end,
+                value_text,
+                missing_reason,
+                0,
+            )
+        )
+    if not observations or any(
+        selected_by_period.get(period, set()) != expected
+        for period in all_periods
+    ):
+        raise _fail("Monthly Treasury Statement categories are incomplete")
+    return _capture(
+        "treasury_fiscal_balance",
+        (("mts_receipts_outlays_deficit_surplus", body),),
+        captured_at=captured_at,
+        scope={
+            "from": start.isoformat(),
+            "to": end.isoformat(),
+            "categories": [
+                item.provider_code
+                for item in TREASURY_FISCAL_BALANCE_MANIFEST
+            ],
+            "field": "mil_amt",
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
 _EIA_GAS_LEGACY_SERIES_ID: Final = "NG.NW2_EPG0_SWO_R48_BCF.W"
+_EIA_PETROLEUM_SOURCES: Final = {
+    "eia_total_motor_gasoline_stocks": (
+        "PET.WGTSTUS1.W",
+        "Thousand Barrels",
+        "total_motor_gasoline_stocks",
+        "EIA total motor gasoline stocks",
+        EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[0],
+    ),
+    "eia_distillate_fuel_oil_stocks": (
+        "PET.WDISTUS1.W",
+        "Thousand Barrels",
+        "distillate_fuel_oil_stocks",
+        "EIA distillate fuel oil stocks",
+        EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[1],
+    ),
+    "eia_finished_motor_gasoline_product_supplied": (
+        "PET.WGFUPUS2.W",
+        "Thousand Barrels per Day",
+        "finished_motor_gasoline_product_supplied",
+        "EIA finished motor gasoline product supplied",
+        EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[2],
+    ),
+}
 _EIA_CREDENTIAL_FIELDS: Final = frozenset({
     "api_key",
     "api-key",
@@ -1243,6 +2002,324 @@ def parse_eia_natural_gas_storage(
         scope={
             "series_id": _EIA_GAS_LEGACY_SERIES_ID,
             "frequency": "weekly",
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
+def _parse_eia_weekly_petroleum_series(
+    body: bytes,
+    *,
+    captured_at: str,
+    credential: str,
+    source_key: str,
+) -> OfficialConditionsCapture:
+    (
+        legacy_id,
+        source_unit,
+        part_name,
+        source,
+        spec,
+    ) = _EIA_PETROLEUM_SOURCES[source_key]
+    if not isinstance(credential, str) or not credential:
+        raise _fail("EIA credential is invalid")
+    payload = _decode_json(body, source=source)
+    sanitized = _sanitize_eia_payload(payload, credential=credential)
+    try:
+        sanitized_body = dumps_strict(
+            sanitized, max_bytes=MAX_RESPONSE_BYTES
+        ).encode("utf-8")
+    except ResourceLimitError:
+        raise
+    except ValidationError as exc:
+        raise _fail("EIA response cannot be safely retained") from exc
+    if not isinstance(sanitized, dict):
+        raise _fail(f"{source} response shape is invalid")
+    response = sanitized.get("response")
+    if not isinstance(response, dict):
+        raise _fail(f"{source} response shape is invalid")
+    frequency = response.get("frequency")
+    rows = response.get("data")
+    if (
+        not isinstance(frequency, str)
+        or frequency.casefold() != "weekly"
+        or not isinstance(rows, list)
+    ):
+        raise _fail(f"{source} response shape is invalid")
+    if not rows or len(rows) > _SMALL_SOURCE_ROW_LIMIT:
+        raise _fail(f"{source} response row count is invalid")
+    if _json_count(
+        response.get("total"), source=source, field="total"
+    ) != len(rows):
+        raise _fail(f"{source} response is incomplete")
+
+    observations: list[OfficialObservation] = []
+    seen: set[str] = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            raise _fail(f"{source} response row is invalid")
+        if (
+            row.get("series") != spec.provider_code
+            or row.get("units") != source_unit
+        ):
+            raise _fail(f"{source} series or unit is invalid")
+        period_value = row.get("period")
+        if not isinstance(period_value, str):
+            raise _fail(f"{source} period is invalid")
+        observed = parse_date(period_value, pointer="/period")
+        period = observed.isoformat()
+        if period in seen:
+            raise _fail(f"{source} observations must be unique")
+        seen.add(period)
+        if "value" not in row:
+            raise _fail(f"{source} value is missing")
+        value_text, missing_reason = _json_value(
+            row["value"], source=source, field="value"
+        )
+        observations.append(
+            OfficialObservation(
+                spec.series_id,
+                spec.provider_code,
+                period,
+                period,
+                period,
+                value_text,
+                missing_reason,
+                0,
+            )
+        )
+    return _capture(
+        source_key,
+        ((part_name, sanitized_body),),
+        captured_at=captured_at,
+        scope={
+            "series_id": legacy_id,
+            "frequency": "weekly",
+            "completeness": "complete",
+        },
+        observations=observations,
+    )
+
+
+def parse_eia_total_motor_gasoline_stocks(
+    body: bytes, *, captured_at: str, credential: str
+) -> OfficialConditionsCapture:
+    return _parse_eia_weekly_petroleum_series(
+        body,
+        captured_at=captured_at,
+        credential=credential,
+        source_key="eia_total_motor_gasoline_stocks",
+    )
+
+
+def parse_eia_distillate_fuel_oil_stocks(
+    body: bytes, *, captured_at: str, credential: str
+) -> OfficialConditionsCapture:
+    return _parse_eia_weekly_petroleum_series(
+        body,
+        captured_at=captured_at,
+        credential=credential,
+        source_key="eia_distillate_fuel_oil_stocks",
+    )
+
+
+def parse_eia_finished_motor_gasoline_product_supplied(
+    body: bytes, *, captured_at: str, credential: str
+) -> OfficialConditionsCapture:
+    return _parse_eia_weekly_petroleum_series(
+        body,
+        captured_at=captured_at,
+        credential=credential,
+        source_key="eia_finished_motor_gasoline_product_supplied",
+    )
+
+
+_BEA_PERSONAL_INCOME_LINES: Final = {
+    "A065RC": ("1", "Personal income"),
+    "A067RC": ("27", "Equals: Disposable personal income"),
+    "DPCERC": ("29", "Personal consumption expenditures"),
+}
+_BEA_MONTH = re.compile(r"^(?P<year>[0-9]{4})M(?P<month>0[1-9]|1[0-2])$")
+_BEA_CREDENTIAL_FIELDS: Final = frozenset({"userid", "apikey"})
+_BEA_DROP: Final = object()
+
+
+def _bea_credential_field(value: str) -> bool:
+    normalized = value.casefold().replace("_", "").replace("-", "").replace(" ", "")
+    return normalized in _BEA_CREDENTIAL_FIELDS
+
+
+def _sanitize_bea_payload(value: object, *, credential: str) -> object:
+    if isinstance(value, dict):
+        parameter_name = value.get("ParameterName")
+        if (
+            isinstance(parameter_name, str)
+            and _bea_credential_field(parameter_name)
+        ):
+            return _BEA_DROP
+        sanitized: dict[str, object] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise _fail("BEA response object key is invalid")
+            if _bea_credential_field(key):
+                continue
+            if credential in key:
+                raise _fail("BEA response retains its credential")
+            child = _sanitize_bea_payload(item, credential=credential)
+            if child is not _BEA_DROP:
+                sanitized[key] = child
+        return sanitized
+    if isinstance(value, list):
+        sanitized_items: list[object] = []
+        for item in value:
+            child = _sanitize_bea_payload(item, credential=credential)
+            if child is not _BEA_DROP:
+                sanitized_items.append(child)
+        return sanitized_items
+    if isinstance(value, str) and credential in value:
+        raise _fail("BEA response retains its credential")
+    return value
+
+
+def parse_bea_personal_income(
+    body: bytes,
+    *,
+    captured_at: str,
+    credential: str,
+) -> OfficialConditionsCapture:
+    """Parse the fixed monthly BEA personal-income and outlays table."""
+
+    if not isinstance(credential, str) or not credential:
+        raise _fail("BEA credential is invalid")
+    payload = _decode_json(body, source="BEA personal income and outlays")
+    sanitized = _sanitize_bea_payload(payload, credential=credential)
+    if not isinstance(sanitized, dict):
+        raise _fail("BEA personal income response shape is invalid")
+    try:
+        sanitized_body = dumps_strict(
+            sanitized, max_bytes=MAX_RESPONSE_BYTES
+        ).encode("utf-8")
+    except ResourceLimitError:
+        raise
+    except ValidationError as exc:
+        raise _fail("BEA response cannot be safely retained") from exc
+
+    envelope = sanitized.get("BEAAPI")
+    results = envelope.get("Results") if isinstance(envelope, dict) else None
+    if (
+        not isinstance(results, dict)
+        or "Error" in results
+        or "error" in results
+    ):
+        raise _fail("BEA personal income response did not succeed")
+    rows = results.get("Data")
+    if (
+        not isinstance(rows, list)
+        or not rows
+        or len(rows) > MAX_RESPONSE_BYTES // 64
+    ):
+        raise _fail("BEA personal income response row count is invalid")
+
+    spec_by_code = {
+        item.provider_code: item for item in BEA_PERSONAL_INCOME_MANIFEST
+    }
+    observations: list[OfficialObservation] = []
+    seen: set[tuple[str, str]] = set()
+    seen_series: set[str] = set()
+    periods_by_series = {code: set() for code in spec_by_code}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise _fail("BEA personal income response row is invalid")
+        provider_code = row.get("SeriesCode")
+        if provider_code not in spec_by_code:
+            continue
+        expected_line, expected_description = _BEA_PERSONAL_INCOME_LINES[
+            provider_code
+        ]
+        if (
+            row.get("TableName") != "T20600"
+            or _json_scalar_text(
+                row.get("LineNumber"),
+                source="BEA personal income and outlays",
+                field="LineNumber",
+            ).strip()
+            != expected_line
+            or row.get("LineDescription") != expected_description
+            or row.get("METRIC_NAME") != "Current Dollars"
+            or row.get("CL_UNIT") != "Level"
+            or _json_scalar_text(
+                row.get("UNIT_MULT"),
+                source="BEA personal income and outlays",
+                field="UNIT_MULT",
+            ).strip()
+            != "6"
+        ):
+            raise _fail("BEA personal income series semantics are invalid")
+
+        raw_period = row.get("TimePeriod")
+        match = (
+            _BEA_MONTH.fullmatch(raw_period)
+            if isinstance(raw_period, str)
+            else None
+        )
+        if match is None:
+            raise _fail("BEA personal income monthly period is invalid")
+        source_period, period_start, period_end = _month_bounds(
+            (int(match.group("year")), int(match.group("month")))
+        )
+        identity = (provider_code, source_period)
+        if identity in seen:
+            raise _fail("BEA personal income observations must be unique")
+        seen.add(identity)
+        value_text, missing_reason = _value(
+            _json_scalar_text(
+                row.get("DataValue"),
+                source="BEA personal income and outlays",
+                field="DataValue",
+            ),
+            missing_tokens=frozenset({"", "---", "...", "(na)"}),
+        )
+        spec = spec_by_code[provider_code]
+        observations.append(
+            OfficialObservation(
+                spec.series_id,
+                provider_code,
+                source_period,
+                period_start,
+                period_end,
+                value_text,
+                missing_reason,
+                0,
+            )
+        )
+        seen_series.add(provider_code)
+        periods_by_series[provider_code].add(source_period)
+
+    if seen_series != set(spec_by_code):
+        raise _fail("BEA personal income series coverage is incomplete")
+    period_inventories = tuple(periods_by_series.values())
+    if any(
+        periods != period_inventories[0]
+        for periods in period_inventories[1:]
+    ):
+        raise _fail("BEA personal income series coverage is incomplete")
+    return _capture(
+        "bea_personal_income",
+        (("nipa_t20600", sanitized_body),),
+        captured_at=captured_at,
+        scope={
+            "dataset": "NIPA",
+            "table_name": "T20600",
+            "frequency": "M",
+            "year": "ALL",
+            "series": [
+                item.provider_code for item in BEA_PERSONAL_INCOME_MANIFEST
+            ],
+            "metric_name": "Current Dollars",
+            "cl_unit": "Level",
+            "unit_mult": "6",
+            "availability_basis": "local_capture",
             "completeness": "complete",
         },
         observations=observations,
@@ -2396,16 +3473,22 @@ def _append_or_reuse_observation(
 
 
 __all__ = (
+    "BEA_PERSONAL_INCOME_COLLECTOR_ID",
+    "BEA_PERSONAL_INCOME_HANDLER",
+    "BEA_PERSONAL_INCOME_MANIFEST",
     "BIS_COLLECTOR_ID",
     "BIS_HANDLER",
     "BIS_MANIFEST",
     "CANONICAL_DATASET_ID",
+    "CFNAI_MANIFEST",
     "CHICAGO_COLLECTOR_ID",
     "CHICAGO_HANDLER",
     "CHICAGO_MANIFEST",
     "H41_COLLECTOR_ID",
     "H41_HANDLER",
     "H41_MANIFEST",
+    "FED_POLICY_RATE_MANIFEST",
+    "INDUSTRIAL_PRODUCTION_MANIFEST",
     "MAX_RESPONSE_BYTES",
     "MAX_RESPONSE_ROWS",
     "OUTPUT_DATASET_IDS",
@@ -2415,19 +3498,31 @@ __all__ = (
     "OfficialObservation",
     "OfficialResponsePart",
     "OfficialSeriesSpec",
+    "parse_bea_personal_income",
     "parse_bis_credit_conditions",
+    "parse_chicagofed_national_activity",
     "parse_chicagofed_financial_conditions",
     "parse_federal_reserve_h41",
+    "parse_federal_reserve_industrial_production",
+    "parse_federal_reserve_policy_rates",
     "EIA_GAS_COLLECTOR_ID",
     "EIA_GAS_HANDLER",
     "EIA_GAS_MANIFEST",
+    "EIA_PETROLEUM_FUNDAMENTALS_MANIFEST",
     "NBER_RECESSION_COLLECTOR_ID",
     "NBER_RECESSION_HANDLER",
     "NBER_RECESSION_MANIFEST",
     "TREASURY_TGA_COLLECTOR_ID",
     "TREASURY_TGA_HANDLER",
     "TREASURY_TGA_MANIFEST",
+    "TREASURY_DEBT_MANIFEST",
+    "TREASURY_FISCAL_BALANCE_MANIFEST",
     "parse_eia_natural_gas_storage",
+    "parse_eia_total_motor_gasoline_stocks",
+    "parse_eia_distillate_fuel_oil_stocks",
+    "parse_eia_finished_motor_gasoline_product_supplied",
     "parse_nber_us_recession",
     "parse_treasury_tga",
+    "parse_treasury_debt",
+    "parse_treasury_fiscal_balance",
 )

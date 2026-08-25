@@ -25,7 +25,7 @@ PRE_CMDI_SOURCE_SHA256 = (
     "9be40d07a7984b223303174a079b19a2a57fa7fcb5a56678482533dc53e4f8ff"
 )
 CURRENT_SOURCE_SHA256 = (
-    "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
+    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
 )
 
 
@@ -40,7 +40,7 @@ class NyFedCmdiRegistryTests(unittest.TestCase):
     def test_collector_is_manual_credential_free_and_bound(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.29.0")
+        self.assertEqual(registry.revision, "2.43.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -48,7 +48,7 @@ class NyFedCmdiRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (38, 51, 48),
+            (40, 53, 50),
         )
         collector = next(
             item
@@ -99,9 +99,9 @@ class NyFedCmdiRegistryTests(unittest.TestCase):
         )
         datasets = {item.id: item for item in registry.datasets}
         for dataset_id in DATASET_IDS:
+            self.assertIn(COLLECTOR_ID, datasets[dataset_id].collector_ids)
             self.assertEqual(
-                datasets[dataset_id].collector_ids[-4],
-                COLLECTOR_ID,
+                datasets[dataset_id].collector_ids.count(COLLECTOR_ID), 1
             )
         self.assertFalse(
             any(

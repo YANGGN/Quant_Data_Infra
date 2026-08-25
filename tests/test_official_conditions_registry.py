@@ -29,7 +29,7 @@ PRE_SOURCE_SHA256 = (
     "999ff3ef57e2c858139e2c1122e9d2409d53d66dd6f1cdcd7cb624e08542f969"
 )
 CURRENT_SOURCE_SHA256 = (
-    "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
+    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
 )
 
 
@@ -44,7 +44,7 @@ class OfficialConditionsRegistryTests(unittest.TestCase):
     def test_three_collectors_are_manual_credential_free_and_bound(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.29.0")
+        self.assertEqual(registry.revision, "2.43.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -52,7 +52,7 @@ class OfficialConditionsRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (38, 51, 48),
+            (40, 53, 50),
         )
         collectors = {
             str(item["id"]): item for item in registry.collectors
@@ -103,10 +103,14 @@ class OfficialConditionsRegistryTests(unittest.TestCase):
             )
         datasets = {item.id: item for item in registry.datasets}
         for dataset_id in DATASET_IDS:
-            self.assertEqual(
-                datasets[dataset_id].collector_ids[-7:-4],
-                COLLECTOR_IDS,
-            )
+            for collector_id in COLLECTOR_IDS:
+                self.assertIn(
+                    collector_id, datasets[dataset_id].collector_ids
+                )
+                self.assertEqual(
+                    datasets[dataset_id].collector_ids.count(collector_id),
+                    1,
+                )
         self.assertFalse(
             any(
                 step.collector_id in COLLECTOR_IDS

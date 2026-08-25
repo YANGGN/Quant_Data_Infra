@@ -20,6 +20,34 @@ from .results import query_result_schema
 SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
+VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
+VERSIONED_CATALOG_VERSION = "2.8.0"
+
+ADDITIVE_PUBLIC_TOOL_NAMES = (
+    "market.get_available_ticker",
+    "market.get_price_series",
+)
+
+VERSIONED_MARKET_RETURN_TOOLS = (
+    "market.get_returns",
+    "market.get_forward_returns",
+)
+VERSIONED_TIMESERIES_ANALYSIS_TOOLS = (
+    "timeseries.describe",
+    "timeseries.align",
+    "timeseries.correlation",
+)
+VERSIONED_ECONOMETRICS_TOOLS = (
+    "econometrics.regression",
+    "econometrics.rolling_regression",
+    "econometrics.stationarity",
+    "econometrics.structural_breaks",
+)
+VERSIONED_TOOL_NAMES = (
+    *VERSIONED_MARKET_RETURN_TOOLS,
+    *VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+    *VERSIONED_ECONOMETRICS_TOOLS,
+)
 
 PUBLIC_TOOL_NAMES = (
     "macro.search_series",
@@ -94,6 +122,12 @@ FAMILY_COUNTS = {
     "options": 6,
     "research": 10,
 }
+CURRENT_FAMILY_COUNTS = {**FAMILY_COUNTS, "market": 7}
+CURRENT_PUBLIC_TOOL_NAMES = (
+    *PUBLIC_TOOL_NAMES[: PUBLIC_TOOL_NAMES.index("market.get_returns")],
+    *ADDITIVE_PUBLIC_TOOL_NAMES,
+    *PUBLIC_TOOL_NAMES[PUBLIC_TOOL_NAMES.index("market.get_returns") :],
+)
 
 _SEARCH_TOOLS = frozenset(
     {
@@ -144,7 +178,8 @@ class ToolProfile:
 
     @property
     def operation_graph_id(self) -> str:
-        return f"tool_platform.{self.name}"
+        suffix = ".v1" if self.name in ADDITIVE_PUBLIC_TOOL_NAMES else ""
+        return f"tool_platform.{self.name}{suffix}"
 
 
 _DATASETS: dict[str, tuple[str, ...]] = {
@@ -213,6 +248,42 @@ _DATASETS: dict[str, tuple[str, ...]] = {
         "fixture.macro.treasury_yield_curves",
     ),
 }
+
+
+def current_tool_profiles() -> tuple[ToolProfile, ...]:
+    """Return the recovered inventory plus reviewed additive native tools."""
+
+    additive = (
+        ToolProfile(
+            name="market.get_available_ticker",
+            family="market",
+            input_kind="stage10_available_ticker_v1",
+            stores=("market",),
+            datasets=(
+                "market.stage10.instruments",
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+            ),
+        ),
+        ToolProfile(
+            name="market.get_price_series",
+            family="market",
+            input_kind="stage10_market_price_v1",
+            stores=("market",),
+            datasets=(
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+                "market.stage10.instruments",
+            ),
+        ),
+    )
+    profiles = list(tool_profiles())
+    insertion = PUBLIC_TOOL_NAMES.index("market.get_returns")
+    profiles[insertion:insertion] = additive
+    result = tuple(profiles)
+    if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
+        raise AssertionError("The active public-tool inventory drifted")
+    return result
 
 
 def _family(name: str) -> str:
@@ -309,6 +380,12 @@ def _example(profile: ToolProfile, series_example: Mapping[str, Any]) -> dict[st
 
 def _schema_id(name: str, direction: str) -> str:
     return f"urn:quant-data:tool:{name}:{direction}:1.0.0"
+
+
+def _versioned_schema_id(
+    name: str, direction: str, version: str = "2.0.0"
+) -> str:
+    return f"urn:quant-data:tool:{name}:{direction}:{version}"
 
 
 def build_tool_entries(
@@ -412,6 +489,214 @@ def build_tool_entries(
         )
     return tuple(generated)
 
+def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
+    """Build native tools added after the recovered 57-name compatibility set."""
+
+    from .market_prices import stage10_market_price_series_schema
+
+    name = "market.get_price_series"
+    profile = next(
+        item for item in current_tool_profiles() if item.name == name
+    )
+    series_schema = stage10_market_price_series_schema()
+    output_schema = query_result_schema(name, series_schema)
+    output_schema["properties"]["series"]["minItems"] = 4
+    output_schema["properties"]["series"]["maxItems"] = 4
+    operation_graph_id = profile.operation_graph_id
+    price_entries = (
+        {
+            "id": name,
+            "family": profile.family,
+            "api_version": "1.0",
+            "version": "1.0.0",
+            "operation_version": "1.0.0",
+            "lifecycle": "experimental",
+            "compatibility": {
+                "status": "additive_native_v1",
+                "predecessor": None,
+            },
+            "description": (
+                "Read one ticker's canonical Stage 10 open, high, low, and "
+                "close price series."
+            ),
+            "assumptions": [
+                "stage10_canonical_model",
+                "host_selected_stores",
+                "provider_symbol_ticker",
+                "raw_provider_native_ohlc",
+                "adjustment_semantics_not_established",
+                "session_calendar_not_established",
+            ],
+            "handler": operation_graph_id,
+            "operation_graph_id": operation_graph_id,
+            "read_only": True,
+            "stores": list(profile.stores),
+            "datasets": list(profile.datasets),
+            "input_type": "Stage10MarketPriceArgumentsV1",
+            "input_schema_id": _versioned_schema_id(
+                name, "input", version="1.0.0"
+            ),
+            "input_schema": typed_input_schema(
+                "stage10_market_price_v1", {}
+            ),
+            "output_type": "QueryResultV1",
+            "output_schema_id": _versioned_schema_id(
+                name, "output", version="1.0.0"
+            ),
+            "output_schema": output_schema,
+            "examples": [
+                {
+                    "ticker": "AAPL",
+                    "mode": "latest",
+                    "as_of": None,
+                    "date_only_policy": "completed_date",
+                    "limit": 100,
+                }
+            ],
+            "workload_bounds": {
+                "max_rows": 10000,
+                "max_series": 4,
+                "max_operations": 5000000,
+                "max_request_bytes": 8388608,
+                "max_response_bytes": 8388608,
+            },
+            "cost_model": {
+                "expression": "rows + series + operations",
+                "deterministic": True,
+            },
+            "timeout_class": "interactive_5s",
+            "availability_policy": {
+                "modes": ["latest", "as_of"],
+                "default_date_only_policy": "completed_date",
+                "point_in_time_default": "not_applicable",
+                "as_of_point_in_time_status": (
+                    "safe_for_retained_local_captures"
+                ),
+                "date_bounds": "optional_inclusive_trade_dates",
+            },
+            "live_capability": {
+                "possible": False,
+                "capability_id": None,
+                "offline_status": "not_applicable",
+            },
+            "contracts": {
+                "availability": "local_capture",
+                "point_in_time": "explicit",
+                "returns": "not_applicable_raw_ohlc",
+            },
+            "composable": {
+                "input_types": [],
+                "output_types": [
+                    "QueryResultV1",
+                    "Stage10MarketPriceSeriesV1",
+                ],
+            },
+            "observability": "metadata_only",
+            "owner": "market",
+            "review_requirements": ["schema", "semantics", "read_only"],
+        },
+    )
+    ticker_name = "market.get_available_ticker"
+    ticker_profile = next(
+        item for item in current_tool_profiles() if item.name == ticker_name
+    )
+    ticker_output_schema = query_result_schema(ticker_name, series_schema)
+    ticker_output_schema["properties"]["series"]["maxItems"] = 0
+    ticker_operation_graph_id = ticker_profile.operation_graph_id
+    ticker_entry = {
+        "id": ticker_name,
+        "family": ticker_profile.family,
+        "api_version": "1.0",
+        "version": "1.0.0",
+        "operation_version": "1.0.0",
+        "lifecycle": "experimental",
+        "compatibility": {
+            "status": "additive_native_v1",
+            "predecessor": None,
+        },
+        "description": (
+            "List current Stage 10 tickers that have at least one "
+            "retrievable daily-price row."
+        ),
+        "assumptions": [
+            "stage10_canonical_model",
+            "host_selected_stores",
+            "current_retrievable_price_rows_only",
+            "omitted_limit_defaults_to_10000",
+            "not_a_live_universe",
+            "not_a_historical_point_in_time_universe",
+        ],
+        "handler": ticker_operation_graph_id,
+        "operation_graph_id": ticker_operation_graph_id,
+        "read_only": True,
+        "stores": list(ticker_profile.stores),
+        "datasets": list(ticker_profile.datasets),
+        "input_type": "Stage10AvailableTickerArgumentsV1",
+        "input_schema_id": _versioned_schema_id(
+            ticker_name, "input", version="1.0.0"
+        ),
+        "input_schema": typed_input_schema(
+            "stage10_available_ticker_v1", {}
+        ),
+        "output_type": "QueryResultV1",
+        "output_schema_id": _versioned_schema_id(
+            ticker_name, "output", version="1.0.0"
+        ),
+        "output_schema": ticker_output_schema,
+        "examples": [{}],
+        "workload_bounds": {
+            "max_rows": 10000,
+            "max_series": 1,
+            "max_operations": 5000000,
+            "max_request_bytes": 8388608,
+            "max_response_bytes": 8388608,
+        },
+        "cost_model": {
+            "expression": "rows + series + operations",
+            "deterministic": True,
+        },
+        "timeout_class": "interactive_5s",
+        "availability_policy": {
+            "modes": ["latest"],
+            "default_date_only_policy": "not_applicable",
+            "point_in_time_default": "not_applicable_current_only",
+            "selection": "current_retrievable_stage10_daily_price",
+        },
+        "live_capability": {
+            "possible": False,
+            "capability_id": None,
+            "offline_status": "not_applicable",
+        },
+        "contracts": {
+            "availability": "current_stored_knowledge",
+            "point_in_time": "not_applicable_current_only",
+            "returns": "not_applicable",
+        },
+        "composable": {
+            "input_types": [],
+            "output_types": ["QueryResultV1"],
+        },
+        "observability": "metadata_only",
+        "owner": "market",
+        "review_requirements": ["schema", "semantics", "read_only"],
+    }
+    return (ticker_entry, *price_entries)
+
+
+def build_current_tool_entries(
+    legacy_entries: Mapping[str, Mapping[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    """Merge additive native tools without changing frozen recovered entries."""
+
+    entries = list(build_tool_entries(legacy_entries))
+    insertion = PUBLIC_TOOL_NAMES.index("market.get_returns")
+    entries[insertion:insertion] = list(build_additive_tool_entries())
+    result = tuple(entries)
+    if tuple(item["id"] for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
+        raise AssertionError("The active public-tool declaration order drifted")
+    return result
+
+
 
 def schema_catalog(entries: tuple[Mapping[str, Any], ...]) -> dict[str, Any]:
     contracts: list[dict[str, Any]] = []
@@ -434,6 +719,669 @@ def schema_catalog(entries: tuple[Mapping[str, Any], ...]) -> dict[str, Any]:
         "dialect": SCHEMA_DIALECT,
         "contracts": contracts,
     }
+
+
+def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
+    """Build additive v2 variants without mutating frozen v1 entries."""
+
+    from .market_returns import stage10_market_return_series_schema
+    from .market_statistics import (
+        stage10_market_return_example,
+        stage10_market_statistic_series_schema,
+    )
+
+    return_series_schema = stage10_market_return_series_schema()
+    analysis_series_schema = stage10_market_statistic_series_schema()
+    result: list[dict[str, Any]] = []
+    for name in VERSIONED_MARKET_RETURN_TOOLS:
+        direction = "forward" if name == "market.get_forward_returns" else "trailing"
+        operation_graph_id = f"tool_platform.{name}.v2"
+        variant = {
+            "id": name,
+            "family": "market",
+            "api_version": "1.0",
+            "version": "2.0.0",
+            "operation_version": "2.0.0",
+            "lifecycle": "experimental",
+            "compatibility": {
+                "status": "successor_breaking_v2",
+                "predecessor": "1.0.0",
+            },
+            "description": (
+                "Read-only Stage 10 close-to-close forward return operation."
+                if direction == "forward"
+                else "Read-only Stage 10 close-to-close trailing return operation."
+            ),
+            "assumptions": [
+                "stage10_canonical_model",
+                "host_selected_stores",
+                "close_to_close_prices",
+                "observed_row_horizon",
+                "adjustment_semantics_not_established",
+                "session_calendar_not_established",
+            ],
+            "handler": operation_graph_id,
+            "operation_graph_id": operation_graph_id,
+            "read_only": True,
+            "stores": ["market"],
+            "datasets": [
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+                "market.stage10.instruments",
+            ],
+            "input_type": "Stage10MarketReturnArgumentsV2",
+            "input_schema_id": _versioned_schema_id(name, "input"),
+            "input_schema": typed_input_schema("stage10_market_return_v2", {}),
+            "output_type": "QueryResultV1",
+            "output_schema_id": _versioned_schema_id(name, "output"),
+            "output_schema": query_result_schema(name, return_series_schema),
+            "examples": [
+                {
+                    "identifier": "AAPL",
+                    "identifier_kind": "provider_symbol",
+                    "start_date": "2026-08-10",
+                    "end_date": "2026-08-12",
+                    "mode": "latest",
+                    "as_of": None,
+                    "date_only_policy": "completed_date",
+                    "method": "simple",
+                    "horizon": 1,
+                    "limit": 100,
+                }
+            ],
+            "workload_bounds": {
+                "max_rows": 10000,
+                "max_series": 1,
+                "max_operations": 5000000,
+                "max_request_bytes": 8388608,
+                "max_response_bytes": 8388608,
+            },
+            "cost_model": {
+                "expression": "rows + series + operations",
+                "deterministic": True,
+            },
+            "timeout_class": "interactive_5s",
+            "availability_policy": {
+                "modes": ["latest", "as_of"],
+                "default_date_only_policy": "completed_date",
+                "point_in_time_default": "not_applicable",
+                "as_of_point_in_time_status": "safe_for_retained_local_captures",
+            },
+            "live_capability": {
+                "possible": False,
+                "capability_id": None,
+                "offline_status": "not_applicable",
+            },
+            "contracts": {
+                "availability": "local_capture",
+                "point_in_time": "explicit",
+                "returns": f"close_to_close_{direction}_observed_rows",
+            },
+            "composable": {
+                "input_types": [],
+                "output_types": ["QueryResultV1"],
+            },
+            "observability": "metadata_only",
+            "owner": "market",
+            "review_requirements": ["schema", "semantics", "read_only"],
+        }
+        result.append(
+            {
+                "tool": name,
+                "default_version": "1.0.0",
+                "selector_field": "tool_version",
+                "variants": [variant],
+                "deprecations": [
+                    {
+                        "version": "1.0.0",
+                        "code": "tool_version_deprecated",
+                        "message": (
+                            f"{name} version 1.0.0 remains available for compatibility; "
+                            "select version 2.0.0 for typed Stage 10 returns."
+                        ),
+                        "replacement": {"tool": name, "version": "2.0.0"},
+                        "removal": {"status": "not_scheduled", "milestone": None},
+                    }
+                ],
+            }
+        )
+
+    examples = {
+        "AAPL": stage10_market_return_example("AAPL"),
+        "MSFT": stage10_market_return_example("MSFT"),
+    }
+    analysis_contracts = {
+        "timeseries.describe": {
+            "input_kind": "stage10_market_describe_v2",
+            "input_type": "Stage10MarketDescribeArgumentsV2",
+            "description": "Describe one exact Stage 10 close-to-close return series.",
+            "example": {"series": examples["AAPL"], "limit": 100},
+            "max_series": 1,
+            "returns": "matched_stage10_close_to_close_input",
+        },
+        "timeseries.align": {
+            "input_kind": "stage10_market_align_v2",
+            "input_type": "Stage10MarketAlignArgumentsV2",
+            "description": (
+                "Align compatible Stage 10 return series without filling values."
+            ),
+            "example": {
+                "series": [examples["AAPL"], examples["MSFT"]],
+                "join": "inner",
+                "limit": 100,
+            },
+            "max_series": 20,
+            "returns": "matched_stage10_close_to_close_inputs",
+        },
+        "timeseries.correlation": {
+            "input_kind": "stage10_market_correlation_v2",
+            "input_type": "Stage10MarketCorrelationArgumentsV2",
+            "description": (
+                "Correlate exactly two complete compatible Stage 10 return series."
+            ),
+            "example": {
+                "series": [examples["AAPL"], examples["MSFT"]],
+                "limit": 100,
+            },
+            "max_series": 2,
+            "returns": "matched_stage10_close_to_close_complete_pairs",
+        },
+    }
+    for name in VERSIONED_TIMESERIES_ANALYSIS_TOOLS:
+        contract = analysis_contracts[name]
+        operation_graph_id = f"tool_platform.{name}.v2"
+        variant = {
+            "id": name,
+            "family": "timeseries",
+            "api_version": "1.0",
+            "version": "2.0.0",
+            "operation_version": "2.0.0",
+            "lifecycle": "experimental",
+            "compatibility": {
+                "status": "successor_breaking_v2",
+                "predecessor": "1.0.0",
+            },
+            "description": contract["description"],
+            "assumptions": [
+                "caller_supplied_stage10_return_series",
+                "no_store_access",
+                "strict_return_contract_compatibility",
+                "explicit_missingness",
+                "client_snapshot_coherence_not_established",
+            ],
+            "handler": operation_graph_id,
+            "operation_graph_id": operation_graph_id,
+            "read_only": True,
+            "stores": [],
+            "datasets": [],
+            "input_type": contract["input_type"],
+            "input_schema_id": _versioned_schema_id(name, "input"),
+            "input_schema": typed_input_schema(
+                contract["input_kind"], analysis_series_schema
+            ),
+            "output_type": "QueryResultV1",
+            "output_schema_id": _versioned_schema_id(name, "output"),
+            "output_schema": query_result_schema(name, analysis_series_schema),
+            "examples": [contract["example"]],
+            "workload_bounds": {
+                "max_rows": 10000,
+                "max_series": contract["max_series"],
+                "max_operations": 5000000,
+                "max_request_bytes": 8388608,
+                "max_response_bytes": 8388608,
+            },
+            "cost_model": {
+                "expression": "rows + series + operations",
+                "deterministic": True,
+            },
+            "timeout_class": "interactive_5s",
+            "availability_policy": {
+                "modes": ["inherited_from_typed_input"],
+                "point_in_time_default": "inherited_and_revalidated",
+            },
+            "live_capability": {
+                "possible": False,
+                "capability_id": None,
+                "offline_status": "not_applicable",
+            },
+            "contracts": {
+                "availability": "inherited_from_typed_input",
+                "point_in_time": "exact_input_contract",
+                "returns": contract["returns"],
+            },
+            "composable": {
+                "input_types": ["Stage10MarketReturnSeriesV2"],
+                "output_types": ["QueryResultV1"],
+            },
+            "observability": "metadata_only",
+            "owner": "tool_platform",
+            "review_requirements": ["schema", "semantics", "read_only"],
+        }
+        result.append(
+            {
+                "tool": name,
+                "default_version": "1.0.0",
+                "selector_field": "tool_version",
+                "variants": [variant],
+                "deprecations": [
+                    {
+                        "version": "1.0.0",
+                        "code": "tool_version_deprecated",
+                        "message": (
+                            f"{name} version 1.0.0 remains available for legacy "
+                            "TimeSeries composition; select version 2.0.0 for "
+                            "typed Stage 10 return-series composition."
+                        ),
+                        "replacement": {"tool": name, "version": "2.0.0"},
+                        "removal": {"status": "not_scheduled", "milestone": None},
+                    }
+                ],
+            }
+        )
+
+    econometric_contracts = {
+        "econometrics.regression": {
+            "input_kind": "stage10_market_regression_v2",
+            "input_type": "Stage10MarketRegressionArgumentsV2",
+            "description": (
+                "Fit contemporaneous OLS with explicit classical inference "
+                "to compatible trailing Stage 10 returns."
+            ),
+            "example": {
+                "series": [examples["AAPL"], examples["MSFT"]],
+                "intercept": True,
+                "covariance": "classical_homoskedastic",
+                "confidence_level": "0.95",
+                "limit": 100,
+            },
+            "max_rows": 5000,
+            "max_series": 20,
+            "model": "ordinary_least_squares_v2",
+            "returns": "matched_stage10_trailing_returns_complete_rows",
+        },
+        "econometrics.rolling_regression": {
+            "input_kind": "stage10_market_rolling_regression_v2",
+            "input_type": "Stage10MarketRollingRegressionArgumentsV2",
+            "description": (
+                "Fit the exact v2 OLS kernel over fixed contiguous windows "
+                "of compatible trailing Stage 10 returns."
+            ),
+            "example": {
+                "series": [examples["AAPL"], examples["MSFT"]],
+                "window": 3,
+                "intercept": True,
+                "covariance": "classical_homoskedastic",
+                "confidence_level": "0.95",
+                "limit": 100,
+            },
+            "max_rows": 5000,
+            "max_series": 20,
+            "model": "rolling_ordinary_least_squares_v2",
+            "returns": "matched_stage10_trailing_returns_fixed_windows",
+        },
+        "econometrics.stationarity": {
+            "input_kind": "stage10_market_stationarity_v2",
+            "input_type": "Stage10MarketStationarityArgumentsV2",
+            "description": (
+                "Run a fixed-lag constant-only augmented Dickey-Fuller test "
+                "with MacKinnon 2010 finite-sample critical values."
+            ),
+            "example": {
+                "series": examples["AAPL"],
+                "deterministic": "constant",
+                "lag": 0,
+                "significance": "0.05",
+                "limit": 100,
+            },
+            "max_rows": 5000,
+            "max_series": 1,
+            "model": "augmented_dickey_fuller_v2",
+            "returns": "one_matched_stage10_trailing_return_series",
+        },
+        "econometrics.structural_breaks": {
+            "input_kind": "stage10_market_structural_breaks_v2",
+            "input_type": "Stage10MarketStructuralBreakArgumentsV2",
+            "description": (
+                "Compare pooled and split classical OLS fits at one "
+                "caller-declared coefficient-break index using a Chow F test."
+            ),
+            "example": {
+                "series": [examples["AAPL"], examples["MSFT"]],
+                "intercept": True,
+                "break_index": 1,
+                "significance": "0.05",
+                "limit": 100,
+            },
+            "max_rows": 5000,
+            "max_series": 20,
+            "model": "chow_pooled_vs_segmented_ols_fixed_break",
+            "returns": "matched_stage10_trailing_returns_one_declared_break",
+            "assumptions": (
+                "caller_declared_zero_based_first_post_break_row",
+                "single_break_no_search_or_multiple_testing_adjustment",
+                "exact_f_requires_gaussian_homoskedastic_independent_errors_exogenous_fixed_design",
+                "each_segment_requires_more_rows_than_fitted_parameters",
+                "structural_break_decision_is_in_sample_not_predictive",
+            ),
+        },
+
+    }
+    for name in VERSIONED_ECONOMETRICS_TOOLS:
+        contract = econometric_contracts[name]
+        operation_graph_id = f"tool_platform.{name}.v2"
+        variant = {
+            "id": name,
+            "family": "econometrics",
+            "api_version": "1.0",
+            "version": "2.0.0",
+            "operation_version": "2.0.0",
+            "lifecycle": "experimental",
+            "compatibility": {
+                "status": "successor_breaking_v2",
+                "predecessor": "1.0.0",
+            },
+            "description": contract["description"],
+            "assumptions": [
+                "caller_supplied_stage10_trailing_return_series",
+                "no_store_access",
+                "strict_return_contract_compatibility",
+                "explicit_missingness",
+                "client_snapshot_coherence_not_established",
+                "contemporaneous_association_not_prediction_or_causality",
+                *contract.get("assumptions", ()),
+            ],
+            "handler": operation_graph_id,
+            "operation_graph_id": operation_graph_id,
+            "read_only": True,
+            "stores": [],
+            "datasets": [],
+            "input_type": contract["input_type"],
+            "input_schema_id": _versioned_schema_id(name, "input"),
+            "input_schema": typed_input_schema(
+                contract["input_kind"], analysis_series_schema
+            ),
+            "output_type": "QueryResultV1",
+            "output_schema_id": _versioned_schema_id(name, "output"),
+            "output_schema": query_result_schema(name, analysis_series_schema),
+            "examples": [contract["example"]],
+            "workload_bounds": {
+                "max_rows": contract["max_rows"],
+                "max_series": contract["max_series"],
+                "max_operations": 5000000,
+                "max_request_bytes": 8388608,
+                "max_response_bytes": 8388608,
+            },
+            "cost_model": {
+                "expression": "rows + series + operations",
+                "deterministic": True,
+            },
+            "timeout_class": "interactive_5s",
+            "availability_policy": {
+                "modes": ["inherited_from_typed_input"],
+                "point_in_time_default": "inherited_and_revalidated",
+            },
+            "live_capability": {
+                "possible": False,
+                "capability_id": None,
+                "offline_status": "not_applicable",
+            },
+            "contracts": {
+                "availability": "inherited_from_typed_input",
+                "point_in_time": "exact_input_contract",
+                "returns": contract["returns"],
+                "estimator": contract["model"],
+            },
+            "composable": {
+                "input_types": ["Stage10MarketReturnSeriesV2"],
+                "output_types": ["QueryResultV1"],
+            },
+            "observability": "metadata_only",
+            "owner": "tool_platform",
+            "review_requirements": ["schema", "semantics", "read_only"],
+        }
+        variants = [variant]
+        if name in {
+            "econometrics.regression",
+            "econometrics.rolling_regression",
+        }:
+            rolling = name == "econometrics.rolling_regression"
+            version = "2.1.0"
+            graph = f"tool_platform.{name}.v2_1"
+            example = copy.deepcopy(contract["example"])
+            example["covariance"] = "hc1"
+            example["hac_lag"] = 0
+            example["diagnostic_lag"] = 1
+            if rolling:
+                example["window"] = 8
+            input_kind = (
+                "stage10_market_rolling_regression_v2_1"
+                if rolling
+                else "stage10_market_regression_v2_1"
+            )
+            input_type = (
+                "Stage10MarketRollingRegressionArgumentsV21"
+                if rolling
+                else "Stage10MarketRegressionArgumentsV21"
+            )
+            model = (
+                "rolling_ordinary_least_squares_robust_inference_v2_1"
+                if rolling
+                else "ordinary_least_squares_robust_inference_v2_1"
+            )
+            v21_variant = copy.deepcopy(variant)
+            v21_variant.update(
+                {
+                    "version": version,
+                    "operation_version": version,
+                    "compatibility": {
+                        "status": "successor_explicit_v2_1",
+                        "predecessor": "2.0.0",
+                    },
+                    "description": (
+                        "Fit fixed-window OLS with explicit classical, HC1, "
+                        "HC3, or fixed-lag Bartlett Newey-West inference and "
+                        "per-window residual diagnostics."
+                        if rolling
+                        else
+                        "Fit OLS with explicit classical, HC1, HC3, or "
+                        "fixed-lag Bartlett Newey-West inference and fixed-lag "
+                        "residual diagnostics."
+                    ),
+                    "handler": graph,
+                    "operation_graph_id": graph,
+                    "input_type": input_type,
+                    "input_schema_id": _versioned_schema_id(
+                        name, "input", version
+                    ),
+                    "input_schema": typed_input_schema(
+                        input_kind, analysis_series_schema
+                    ),
+                    "output_schema_id": _versioned_schema_id(
+                        name, "output", version
+                    ),
+                    "output_schema": query_result_schema(
+                        name, analysis_series_schema
+                    ),
+                    "examples": [example],
+                }
+            )
+            v21_variant["assumptions"] = [
+                *variant["assumptions"],
+                "explicit_covariance_estimator",
+                "fixed_hac_lag_no_automatic_bandwidth",
+                "fixed_residual_diagnostic_lag",
+                "robust_inference_uses_asymptotic_normal_reference",
+                "residual_diagnostics_use_asymptotic_chi_square_reference",
+            ]
+            v21_variant["contracts"]["estimator"] = model
+            variants.append(v21_variant)
+        if name == "econometrics.regression":
+            version = "3.0.0"
+            graph = "tool_platform.econometrics.regression.v3"
+            v3_variant = copy.deepcopy(variant)
+            v3_variant.update(
+                {
+                    "version": version,
+                    "operation_version": version,
+                    "compatibility": {
+                        "status": "successor_breaking_v3",
+                        "predecessor": "2.1.0",
+                    },
+                    "description": (
+                        "Run an explicit fixed-specification Engle-Granger "
+                        "cointegration, reduced-form VAR, or conditional "
+                        "Granger predictive-content analysis."
+                    ),
+                    "handler": graph,
+                    "operation_graph_id": graph,
+                    "input_type": (
+                        "Stage10MarketRegressionModelSuiteArgumentsV3"
+                    ),
+                    "input_schema_id": _versioned_schema_id(
+                        name, "input", version
+                    ),
+                    "input_schema": typed_input_schema(
+                        "stage10_market_regression_model_suite_v3",
+                        analysis_series_schema,
+                    ),
+                    "output_schema_id": _versioned_schema_id(
+                        name, "output", version
+                    ),
+                    "output_schema": query_result_schema(
+                        name, analysis_series_schema
+                    ),
+                    "examples": [
+                        {
+                            "series": [examples["AAPL"], examples["MSFT"]],
+                            "analysis": "granger_causality",
+                            "deterministic": "constant",
+                            "lag_order": 1,
+                            "significance": "0.05",
+                            "source_index": 1,
+                            "target_index": 0,
+                            "limit": 100,
+                        }
+                    ],
+                }
+            )
+            v3_variant["assumptions"] = [
+                "caller_supplied_stage10_trailing_horizon_one_return_series",
+                "no_store_access",
+                "strict_return_contract_compatibility",
+                "balanced_contiguous_aligned_sample_no_fill_or_row_deletion",
+                "fixed_lag_order_no_automatic_selection",
+                "constant_deterministic_term_only",
+                "engle_granger_assumes_both_log_level_paths_are_i1",
+                "engle_granger_is_directional_first_series_on_second",
+                "var_is_reduced_form_without_structural_identification",
+                "gaussian_homoskedastic_independent_errors_exogenous_fixed_design",
+                "granger_means_conditional_predictive_content_not_structural_causality",
+                "client_snapshot_coherence_not_established",
+                "all_decisions_are_in_sample_not_predictive",
+            ]
+            v3_variant["contracts"] = {
+                "availability": "inherited_from_typed_input",
+                "point_in_time": "exact_input_contract",
+                "returns": (
+                    "balanced_stage10_trailing_horizon_one_returns_or_"
+                    "normalized_log_levels_reconstructed_from_them"
+                ),
+                "estimator": "fixed_specification_econometric_model_suite_v3",
+            }
+            v3_variant["workload_bounds"]["max_series"] = 5
+            variants.append(v3_variant)
+        if name == "econometrics.stationarity":
+            version = "2.1.0"
+            graph = "tool_platform.econometrics.stationarity.v2_1"
+            example = copy.deepcopy(contract["example"])
+            example["adf_lag"] = example.pop("lag")
+            example["kpss_lag"] = 2
+            v21_variant = copy.deepcopy(variant)
+            v21_variant.update(
+                {
+                    "version": version,
+                    "operation_version": version,
+                    "compatibility": {
+                        "status": "successor_explicit_v2_1",
+                        "predecessor": "2.0.0",
+                    },
+                    "description": (
+                        "Run fixed-lag constant-only ADF and level-KPSS tests "
+                        "with one explicit joint interpretation."
+                    ),
+                    "handler": graph,
+                    "operation_graph_id": graph,
+                    "input_type": "Stage10MarketStationarityArgumentsV21",
+                    "input_schema_id": _versioned_schema_id(
+                        name, "input", version
+                    ),
+                    "input_schema": typed_input_schema(
+                        "stage10_market_stationarity_v2_1",
+                        analysis_series_schema,
+                    ),
+                    "output_schema_id": _versioned_schema_id(
+                        name, "output", version
+                    ),
+                    "output_schema": query_result_schema(
+                        name, analysis_series_schema
+                    ),
+                    "examples": [example],
+                }
+            )
+            v21_variant["assumptions"] = [
+                *variant["assumptions"],
+                "fixed_adf_lag_no_automatic_selection",
+                "fixed_kpss_bartlett_lag_no_automatic_bandwidth",
+                "kpss_level_stationarity_null",
+                "joint_interpretation_uses_one_fixed_significance_level",
+                "stationarity_decisions_are_in_sample_not_predictive",
+            ]
+            v21_variant["contracts"]["estimator"] = (
+                "adf_fixed_lag_plus_kpss_level_fixed_bartlett_lag_v2_1"
+            )
+            variants.append(v21_variant)
+
+
+        result.append(
+            {
+                "tool": name,
+                "default_version": "1.0.0",
+                "selector_field": "tool_version",
+                "variants": variants,
+                "deprecations": [
+                    {
+                        "version": "1.0.0",
+                        "code": "tool_version_deprecated",
+                        "message": (
+                            f"{name} version 1.0.0 remains available for legacy "
+                            "TimeSeries composition; select version 2.0.0 for "
+                            "typed Stage 10 econometrics."
+                        ),
+                        "replacement": {"tool": name, "version": "2.0.0"},
+                        "removal": {"status": "not_scheduled", "milestone": None},
+                    }
+                ],
+            }
+        )
+    return tuple(result)
+
+
+def versioned_schema_catalog(
+    policies: tuple[Mapping[str, Any], ...],
+    additive_entries: tuple[Mapping[str, Any], ...] = (),
+) -> dict[str, Any]:
+    variants = (
+        tuple(
+            variant
+            for policy in policies
+            for variant in policy["variants"]
+        )
+        + tuple(additive_entries)
+    )
+    payload = schema_catalog(variants)
+    payload["schema_id"] = VERSIONED_CATALOG_ID
+    payload["schema_version"] = VERSIONED_CATALOG_VERSION
+    return payload
 
 
 def legacy_tool_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
@@ -463,21 +1411,45 @@ def legacy_tool_entry(entry: Mapping[str, Any]) -> dict[str, Any]:
 
 
 OPERATION_GRAPH_IDS = frozenset(
-    profile.operation_graph_id for profile in tool_profiles()
+    profile.operation_graph_id for profile in current_tool_profiles()
+)
+VERSIONED_OPERATION_GRAPH_IDS = frozenset(
+    [
+        "tool_platform.econometrics.regression.v3",
+        *(f"tool_platform.{name}.v2" for name in VERSIONED_TOOL_NAMES),
+        "tool_platform.econometrics.regression.v2_1",
+        "tool_platform.econometrics.rolling_regression.v2_1",
+        "tool_platform.econometrics.stationarity.v2_1",
+    ]
 )
 
 
 __all__ = (
     "CATALOG_ID",
     "CATALOG_VERSION",
+    "ADDITIVE_PUBLIC_TOOL_NAMES",
+    "CURRENT_FAMILY_COUNTS",
+    "CURRENT_PUBLIC_TOOL_NAMES",
     "FAMILY_COUNTS",
     "LEGACY_TOOL_NAMES",
     "OPERATION_GRAPH_IDS",
     "PUBLIC_TOOL_NAMES",
     "SCHEMA_DIALECT",
     "ToolProfile",
+    "VERSIONED_CATALOG_ID",
+    "VERSIONED_CATALOG_VERSION",
+    "VERSIONED_ECONOMETRICS_TOOLS",
+    "VERSIONED_MARKET_RETURN_TOOLS",
+    "VERSIONED_TIMESERIES_ANALYSIS_TOOLS",
+    "VERSIONED_TOOL_NAMES",
+    "VERSIONED_OPERATION_GRAPH_IDS",
+    "build_additive_tool_entries",
+    "build_current_tool_entries",
     "build_tool_entries",
+    "build_tool_version_policies",
     "legacy_tool_entry",
     "schema_catalog",
+    "versioned_schema_catalog",
+    "current_tool_profiles",
     "tool_profiles",
 )

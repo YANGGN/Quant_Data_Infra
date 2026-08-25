@@ -22,7 +22,7 @@ DATASET_IDS = (
     "fixture.macro.stage3_catalog",
 )
 CURRENT_SOURCE_SHA256 = (
-    "d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0"
+    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
 )
 PRE_EXTENSION_SOURCE_SHA256 = (
     "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
@@ -40,7 +40,7 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
     def test_collector_is_manual_bounded_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.31.0")
+        self.assertEqual(registry.revision, "2.43.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -48,7 +48,7 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (39, 51, 49),
+            (40, 53, 50),
         )
         collector = next(
             item
@@ -76,7 +76,7 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
         self.assertEqual(collector["retry_policy"]["max_attempts"], 1)
         datasets = {item.id: item for item in registry.datasets}
         for dataset_id in DATASET_IDS:
-            self.assertEqual(datasets[dataset_id].collector_ids[-1], COLLECTOR_ID)
+            self.assertIn(COLLECTOR_ID, datasets[dataset_id].collector_ids)
             self.assertEqual(
                 datasets[dataset_id].collector_ids.count(COLLECTOR_ID), 1
             )
@@ -117,7 +117,14 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
         drifted = replace(
             registry,
             datasets=tuple(
-                replace(item, collector_ids=item.collector_ids[:-1])
+                replace(
+                    item,
+                    collector_ids=tuple(
+                        value
+                        for value in item.collector_ids
+                        if value != COLLECTOR_ID
+                    ),
+                )
                 if item.id == first
                 else item
                 for item in registry.datasets

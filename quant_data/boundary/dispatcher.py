@@ -1,4 +1,4 @@
-"""Fixed read-only adapters for the Stage 1 public tool subset.
+"""Fixed read-only adapters for the versioned public tool surface.
 
 The dispatcher deliberately contains no SQL or store-path selection.  It
 constructs typed, host-routed requests for the macro gateway and composes a
@@ -27,7 +27,12 @@ from quant_data.errors import (
     ValidationError,
 )
 from quant_data.json_codec import dumps_strict
-from quant_data.registry import PUBLIC_TOOL_NAMES, Registry, STAGE1_TOOL_NAMES
+from quant_data.registry import (
+    CURRENT_PUBLIC_TOOL_NAMES,
+    PUBLIC_TOOL_NAMES,
+    Registry,
+    STAGE1_TOOL_NAMES,
+)
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
 from quant_data.temporal import DateOnlyPolicy, TemporalValue, parse_date
@@ -36,7 +41,13 @@ from quant_data.tool_platform.arguments import (
     preflight_dimensions,
     public_arguments,
 )
-from quant_data.tool_platform.catalog import tool_profiles
+from quant_data.tool_platform.catalog import (
+    ADDITIVE_PUBLIC_TOOL_NAMES,
+    VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_MARKET_RETURN_TOOLS,
+    VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+    current_tool_profiles,
+)
 
 from quant_data.tool_platform.context import (
     CapabilitySet,
@@ -54,10 +65,37 @@ _TIME_SERIES_VERSION = "1.0.0"
 _DESCRIPTION_CONTRACT = "quant_data.timeseries_description"
 _DESCRIPTION_VERSION = "1.0.0"
 _HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
+_SEMANTIC_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
 
 _STAGE5_INPUT_KINDS = {
-    profile.name: profile.input_kind for profile in tool_profiles()
+    profile.name: profile.input_kind for profile in current_tool_profiles()
+}
+_VERSIONED_INPUT_KINDS = {
+    **{
+        (name, "2.0.0"): "stage10_market_return_v2"
+        for name in VERSIONED_MARKET_RETURN_TOOLS
+    },
+    ("timeseries.describe", "2.0.0"): "stage10_market_describe_v2",
+    ("timeseries.align", "2.0.0"): "stage10_market_align_v2",
+    ("timeseries.correlation", "2.0.0"): "stage10_market_correlation_v2",
+    ("econometrics.regression", "2.0.0"): "stage10_market_regression_v2",
+    (
+        "econometrics.rolling_regression",
+        "2.0.0",
+    ): "stage10_market_rolling_regression_v2",
+    ("econometrics.stationarity", "2.0.0"): "stage10_market_stationarity_v2",
+    ("econometrics.stationarity", "2.1.0"): "stage10_market_stationarity_v2_1",
+    (
+        "econometrics.structural_breaks",
+        "2.0.0",
+    ): "stage10_market_structural_breaks_v2",
+    ("econometrics.regression", "2.1.0"): "stage10_market_regression_v2_1",
+    ("econometrics.regression", "3.0.0"): "stage10_market_regression_model_suite_v3",
+    (
+        "econometrics.rolling_regression",
+        "2.1.0",
+    ): "stage10_market_rolling_regression_v2_1",
 }
 
 class UnknownToolError(QuantDataError):
@@ -65,6 +103,13 @@ class UnknownToolError(QuantDataError):
 
     code = "unknown_tool"
     http_status = 404
+
+
+class UnsupportedToolVersionError(QuantDataError):
+    """A known logical tool does not expose the requested semantic version."""
+
+    code = "unsupported_tool_version"
+    http_status = 400
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,7 +162,11 @@ class ToolDispatcher:
         )
         self._receipt_state = local()
         self._names = tuple(tool["id"] for tool in registry.tools)
-        if self._names not in (STAGE1_TOOL_NAMES, PUBLIC_TOOL_NAMES):
+        if self._names not in (
+            STAGE1_TOOL_NAMES,
+            PUBLIC_TOOL_NAMES,
+            CURRENT_PUBLIC_TOOL_NAMES,
+        ):
             raise ValidationError("Registry does not expose a reviewed tool inventory")
         self._registry_sha256 = registry.source_sha256 or hashlib.sha256(
             registry.source_path.read_bytes()
@@ -142,7 +191,9 @@ class ToolDispatcher:
                     "stage1_milestone_status"
                 ],
             }
-        return {"id": "stage5", "status": "fixture_validated"}
+        if self._names == PUBLIC_TOOL_NAMES:
+            return {"id": "stage5", "status": "fixture_validated"}
+        return {"id": "tool_platform", "status": "active_read_only"}
 
 
     def manifest(self) -> dict[str, Any]:
@@ -155,42 +206,33 @@ class ToolDispatcher:
 
         public_tools: list[dict[str, Any]] = []
         for declaration in self._registry.tools:
-            public = {
-                "name": declaration["id"],
-                "version": declaration["version"],
-                "read_only": True,
-                "datasets": list(declaration["datasets"]),
-                "input_schema": copy.deepcopy(declaration["input_schema"]),
-                "output_schema": copy.deepcopy(declaration["output_schema"]),
-                "examples": copy.deepcopy(declaration["examples"]),
-                "workload_bounds": copy.deepcopy(declaration["workload_bounds"]),
-                "availability_policy": copy.deepcopy(declaration["availability_policy"]),
-            }
-            for field_name in (
-                "family",
-                "api_version",
-                "operation_version",
-                "lifecycle",
-                "compatibility",
-                "description",
-                "assumptions",
-                "operation_graph_id",
-                "stores",
-                "input_type",
-                "input_schema_id",
-                "output_type",
-                "output_schema_id",
-                "cost_model",
-                "timeout_class",
-                "live_capability",
-                "contracts",
-                "composable",
-                "observability",
-                "owner",
-                "review_requirements",
-            ):
-                if field_name in declaration:
-                    public[field_name] = copy.deepcopy(declaration[field_name])
+            public = self._public_declaration(declaration)
+            policy = self._registry.version_policy(str(declaration["id"]))
+            if policy is not None:
+                deprecations = {
+                    item["version"]: item for item in policy["deprecations"]
+                }
+                versions: list[dict[str, Any]] = []
+                for variant in self._registry.versions_for(str(declaration["id"])):
+                    version_public = self._public_declaration(variant)
+                    deprecation = deprecations.get(variant["version"])
+                    if deprecation is not None:
+                        version_public["deprecation"] = copy.deepcopy(deprecation)
+                        version_public["lifecycle"] = "deprecated"
+                    versions.append(version_public)
+                public["version_selector"] = {
+                    "field": policy["selector_field"],
+                    "default_version": policy["default_version"],
+                    "explicit_selection_required_for": [
+                        item["version"]
+                        for item in policy["variants"]
+                    ],
+                }
+                public["versions"] = versions
+                public["deprecation"] = copy.deepcopy(
+                    deprecations[declaration["version"]]
+                )
+                public["lifecycle"] = "deprecated"
             public_tools.append(public)
 
         result = {
@@ -205,6 +247,46 @@ class ToolDispatcher:
         dumps_strict(result)
         return result
 
+    @staticmethod
+    def _public_declaration(declaration: Mapping[str, Any]) -> dict[str, Any]:
+        public = {
+            "name": declaration["id"],
+            "version": declaration["version"],
+            "read_only": True,
+            "datasets": list(declaration["datasets"]),
+            "input_schema": copy.deepcopy(declaration["input_schema"]),
+            "output_schema": copy.deepcopy(declaration["output_schema"]),
+            "examples": copy.deepcopy(declaration["examples"]),
+            "workload_bounds": copy.deepcopy(declaration["workload_bounds"]),
+            "availability_policy": copy.deepcopy(declaration["availability_policy"]),
+        }
+        for field_name in (
+            "family",
+            "api_version",
+            "operation_version",
+            "lifecycle",
+            "compatibility",
+            "description",
+            "assumptions",
+            "operation_graph_id",
+            "stores",
+            "input_type",
+            "input_schema_id",
+            "output_type",
+            "output_schema_id",
+            "cost_model",
+            "timeout_class",
+            "live_capability",
+            "contracts",
+            "composable",
+            "observability",
+            "owner",
+            "review_requirements",
+        ):
+            if field_name in declaration:
+                public[field_name] = copy.deepcopy(declaration[field_name])
+        return public
+
     def receipt_for(
         self,
         name: str,
@@ -212,12 +294,13 @@ class ToolDispatcher:
         result: Mapping[str, Any] | None = None,
         *,
         error_code: str | None = None,
+        tool_version: str | None = None,
     ) -> ToolReceipt:
         try:
-            declaration = self._tool_declaration(name)
-        except UnknownToolError:
+            declaration = self._tool_declaration(name, tool_version)
+        except (UnknownToolError, UnsupportedToolVersionError):
             if (
-                self._names != PUBLIC_TOOL_NAMES
+                self._names not in (PUBLIC_TOOL_NAMES, CURRENT_PUBLIC_TOOL_NAMES)
                 or error_code is None
                 or not isinstance(name, str)
                 or not name
@@ -232,7 +315,7 @@ class ToolDispatcher:
                 "started_at": "1970-01-01T00:00:00Z", "finished_at": "1970-01-01T00:00:00Z", "elapsed_seconds": Decimal("0")
             }
         details: dict[str, Any] | None = None
-        if self._names == PUBLIC_TOOL_NAMES:
+        if self._names in (PUBLIC_TOOL_NAMES, CURRENT_PUBLIC_TOOL_NAMES):
             raw_arguments = dict(arguments or {})
             if error_code is None:
                 public_arguments = self._public_arguments(raw_arguments)
@@ -241,6 +324,8 @@ class ToolDispatcher:
                     "tool": name,
                     "arguments": public_arguments,
                 }
+                if tool_version is not None:
+                    request_material["tool_version"] = tool_version
             else:
                 series_value = raw_arguments.get("series")
                 public_arguments = {
@@ -261,6 +346,8 @@ class ToolDispatcher:
                     "error_code": error_code,
                     "shape": public_arguments,
                 }
+                if tool_version is not None:
+                    request_material["tool_version"] = tool_version
             if declaration is None:
                 details = {
                     "request_id": hashlib.sha256(
@@ -295,7 +382,7 @@ class ToolDispatcher:
                 return ToolReceipt(
                     registry_revision=self._registry.revision,
                     tool_name=name,
-                    tool_version="unknown",
+                    tool_version=tool_version or "unknown",
                     details=details,
                 )
             public_result = dict(result or {})
@@ -307,6 +394,20 @@ class ToolDispatcher:
                     if isinstance(item, Mapping) and isinstance(item.get("code"), str)
                 }
             )
+            deprecation_warnings: list[dict[str, Any]] = []
+            policy = self._registry.version_policy(name)
+            if policy is not None:
+                deprecation_warnings = [
+                    copy.deepcopy(item)
+                    for item in policy["deprecations"]
+                    if item["version"] == declaration["version"]
+                ]
+                warning_codes = sorted(
+                    {
+                        *warning_codes,
+                        *(item["code"] for item in deprecation_warnings),
+                    }
+                )
             records = public_result.get("records", [])
             series = public_result.get("series", [])
             research_contract = public_result.get("research_contract", {})
@@ -362,6 +463,8 @@ class ToolDispatcher:
                 if isinstance(public_result.get("lineage"), list)
                 else 0,
             }
+            if policy is not None:
+                details["deprecation_warnings"] = deprecation_warnings
         return ToolReceipt(
             registry_revision=self._registry.revision,
             tool_name=name,
@@ -370,7 +473,13 @@ class ToolDispatcher:
         )
 
 
-    def call(self, name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
+    def call(
+        self,
+        name: str,
+        arguments: Mapping[str, Any],
+        *,
+        tool_version: str | None = None,
+    ) -> dict[str, Any]:
         """Execute within the process-wide bounded read-only request pool."""
 
         started_ns = perf_counter_ns()
@@ -385,7 +494,7 @@ class ToolDispatcher:
                 raise ConcurrencyLimitError(
                     "The host read-only execution pool is at capacity"
                 )
-            return self._call_one(name, arguments)
+            return self._call_one(name, arguments, tool_version=tool_version)
         finally:
             if acquired:
                 self._execution_slots.release()
@@ -401,18 +510,26 @@ class ToolDispatcher:
                 / Decimal(1_000_000_000),
             }
 
-    def _call_one(self, name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
+    def _call_one(
+        self,
+        name: str,
+        arguments: Mapping[str, Any],
+        *,
+        tool_version: str | None,
+    ) -> dict[str, Any]:
         """Validate and execute exactly one registered read-only operation."""
 
-        declaration = self._tool_declaration(name)
+        declaration = self._tool_declaration(name, tool_version)
         if not isinstance(arguments, Mapping):
             raise ValidationError(
                 "Tool arguments must be an object",
                 issues=(Issue("/arguments", "type", "Expected an object"),),
             )
 
-        if name == "timeseries.describe" and isinstance(
-            arguments.get("series"), TimeSeries
+        if (
+            name == "timeseries.describe"
+            and declaration["version"] == "1.0.0"
+            and isinstance(arguments.get("series"), TimeSeries)
         ):
             if set(arguments) != {"series"}:
                 raise ValidationError(
@@ -430,13 +547,17 @@ class ToolDispatcher:
             self._validate_output(result, declaration)
             return result
 
-
         public_material = public_arguments(dict(arguments))
         validate_schema(public_material, declaration["input_schema"])
-        if name in STAGE1_TOOL_NAMES:
+        if name in STAGE1_TOOL_NAMES and declaration["version"] == "1.0.0":
             typed_material = self._typed_arguments(dict(arguments))
         else:
-            dimensions = preflight_dimensions(public_material)
+            input_kind = _VERSIONED_INPUT_KINDS.get(
+                (name, declaration["version"]), _STAGE5_INPUT_KINDS[name]
+            )
+            dimensions = preflight_dimensions(
+                public_material, input_kind=input_kind
+            )
             bounds = declaration["workload_bounds"]
             if (
                 dimensions["rows"] > bounds["max_rows"]
@@ -446,12 +567,35 @@ class ToolDispatcher:
                 raise ResourceLimitError(
                     "Tool workload exceeds its registered preflight limits"
                 )
+            decode_series = self._timeseries_from_public
+            if (
+                (
+                    declaration["version"] == "2.0.0"
+                    and name in (
+                        *VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+                        *VERSIONED_ECONOMETRICS_TOOLS,
+                    )
+                )
+                or declaration["version"] == "2.1.0"
+                or (
+                    declaration["version"] == "3.0.0"
+                    and name == "econometrics.regression"
+                )
+            ):
+                from quant_data.tool_platform.market_statistics import (
+                    stage10_market_statistic_series_schema,
+                )
+
+                stage10_schema = stage10_market_statistic_series_schema()
+                decode_series = lambda value: self._timeseries_from_public(
+                    value, schema=stage10_schema
+                )
             typed_material = parse_arguments(
-                _STAGE5_INPUT_KINDS[name], public_material, self._timeseries_from_public
+                input_kind, public_material, decode_series
             )
         if name == "macro.get_series":
             result = self._macro_get_series(public_material)
-        elif name == "timeseries.describe":
+        elif name == "timeseries.describe" and declaration["version"] == "1.0.0":
             result = self._describe(typed_material["series"])
         else:
             context = self._stage5_context(name, declaration)
@@ -465,7 +609,6 @@ class ToolDispatcher:
         self._validate_output(result, declaration)
         return result
 
-
     def describe(self, series: TimeSeries) -> dict[str, Any]:
         """Typed convenience entry point for direct in-process composition."""
 
@@ -474,10 +617,23 @@ class ToolDispatcher:
         series.validate_lineage()
         return self.call("timeseries.describe", {"series": series})
 
-    def _tool_declaration(self, name: str) -> Mapping[str, Any]:
+    def _tool_declaration(
+        self, name: str, tool_version: str | None = None
+    ) -> Mapping[str, Any]:
         if not isinstance(name, str) or name not in self._names:
             raise UnknownToolError("Unknown tool")
-        return self._registry.tool(name)
+        if tool_version is not None and (
+            not isinstance(tool_version, str)
+            or not _SEMANTIC_VERSION.fullmatch(tool_version)
+        ):
+            raise ValidationError(
+                "Tool version must be a semantic version",
+                issues=(Issue("/tool_version", "type", "Expected a semantic version"),),
+            )
+        for declaration in self._registry.versions_for(name):
+            if tool_version is None or declaration["version"] == tool_version:
+                return declaration
+        raise UnsupportedToolVersionError("Unsupported tool version")
 
     def _stage5_context(
         self,
@@ -507,6 +663,14 @@ class ToolDispatcher:
             deadline=deadline,
             cancellation=self._cancellation,
             clock=clock,
+            execution=(
+                "read_only"
+                if (
+                    name in ADDITIVE_PUBLIC_TOOL_NAMES
+                    or declaration["version"] in {"2.0.0", "2.1.0", "3.0.0"}
+                )
+                else "offline_fixture"
+            ),
         )
 
     def _typed_arguments(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -639,13 +803,22 @@ class ToolDispatcher:
             },
         }
 
-    def _timeseries_from_public(self, value: Any) -> TimeSeries:
+    def _timeseries_from_public(
+        self,
+        value: Any,
+        *,
+        schema: Mapping[str, Any] | None = None,
+    ) -> TimeSeries:
         """Decode a public envelope into an immutable, fully validated value."""
 
         if isinstance(value, TimeSeries):
             return value
-        macro_schema = self._registry.tool("macro.get_series")["output_schema"]
-        validate_schema(value, macro_schema)
+        selected_schema = (
+            self._registry.tool("macro.get_series")["output_schema"]
+            if schema is None
+            else schema
+        )
+        validate_schema(value, selected_schema)
         if not isinstance(value, Mapping):  # The schema check gives the caller a pointer.
             raise ValidationError("TimeSeries must be an object")
         if value.get("contract") != _TIME_SERIES_CONTRACT or value.get("contract_version") != _TIME_SERIES_VERSION:
