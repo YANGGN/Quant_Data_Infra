@@ -339,9 +339,14 @@ def _parse_rows(body: bytes) -> tuple[_ArticleRow, ...]:
 def _validate_registry(registry: Registry) -> None:
     if (
         not isinstance(registry, Registry)
-        or registry.schema_version != "1.8.0"
-        or registry.registry_version
-        not in {"2.21.0", "2.23.0", "2.24.0", "2.25.0"}
+        or (registry.schema_version, registry.registry_version)
+        not in {
+            ("1.8.0", "2.21.0"),
+            ("1.8.0", "2.23.0"),
+            ("1.8.0", "2.24.0"),
+            ("1.8.0", "2.25.0"),
+            ("1.9.0", "2.43.0"),
+        }
     ):
         raise ValidationError("FMP stock-latest importer requires the reviewed canonical registry")
     collector_matches = [

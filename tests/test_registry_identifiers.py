@@ -125,7 +125,7 @@ class RegistryIdentifierTests(unittest.TestCase):
         )
         self.assertEqual(len(registry.migrations), 40)
         self.assertEqual(len(registry.datasets), 53)
-        self.assertEqual(len(registry.collectors), 50)
+        self.assertEqual(len(registry.collectors), 51)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")

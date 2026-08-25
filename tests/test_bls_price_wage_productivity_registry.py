@@ -48,7 +48,7 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (40, 53, 50),
+            (40, 53, 51),
         )
         collector = next(
             item

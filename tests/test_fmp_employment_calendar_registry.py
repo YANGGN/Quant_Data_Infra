@@ -76,7 +76,7 @@ class FmpEmploymentCalendarRegistryTests(unittest.TestCase):
         self.assertEqual(registry.revision, "2.43.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (40, 53, 50),
+            (40, 53, 51),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

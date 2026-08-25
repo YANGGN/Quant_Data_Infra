@@ -52,7 +52,7 @@ class OfficialConditionsRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (40, 53, 50),
+            (40, 53, 51),
         )
         collectors = {
             str(item["id"]): item for item in registry.collectors

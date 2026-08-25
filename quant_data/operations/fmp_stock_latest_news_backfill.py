@@ -154,9 +154,14 @@ def _registry_preflight(registry: Registry) -> None:
     except (AttributeError, TypeError) as exc:
         raise _ConfigurationFailure from exc
     if (
-        registry.schema_version != "1.8.0"
-        or registry.registry_version
-        not in {"2.21.0", "2.23.0", "2.24.0", "2.25.0"}
+        (registry.schema_version, registry.registry_version)
+        not in {
+            ("1.8.0", "2.21.0"),
+            ("1.8.0", "2.23.0"),
+            ("1.8.0", "2.24.0"),
+            ("1.8.0", "2.25.0"),
+            ("1.9.0", "2.43.0"),
+        }
         or len(collector) != 1
         or len(migration) != 1
         or migration[0].store != StoreRole.NEWS.value

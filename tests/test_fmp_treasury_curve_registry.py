@@ -86,7 +86,7 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (40, 53, 50),
+            (40, 53, 51),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

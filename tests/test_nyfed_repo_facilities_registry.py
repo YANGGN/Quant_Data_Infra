@@ -48,7 +48,7 @@ class NyFedRepoFacilitiesRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (40, 53, 50),
+            (40, 53, 51),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

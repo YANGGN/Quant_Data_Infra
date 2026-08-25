@@ -52,7 +52,7 @@ class FmpWholesaleCalendarRegistryTests(unittest.TestCase):
         self.assertEqual(current.revision, "2.43.0")
         self.assertEqual(
             (len(current.migrations), len(current.datasets), len(current.collectors)),
-            (40, 53, 50),
+            (40, 53, 51),
         )
         registry = fmp_calendar_incremental_registry_profile(current)
 
@@ -138,7 +138,7 @@ class FmpWholesaleCalendarRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             (len(current.migrations), len(current.datasets), len(current.collectors)),
-            (40, 53, 50),
+            (40, 53, 51),
         )
 
         migration = next(

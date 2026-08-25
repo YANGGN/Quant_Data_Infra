@@ -34,7 +34,7 @@ class EmploymentVintageRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (40, 53, 50),
+            (40, 53, 51),
         )
 
         migration = next(item for item in registry.migrations if item.id == MIGRATION_ID)
