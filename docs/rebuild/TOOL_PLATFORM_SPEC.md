@@ -70,7 +70,9 @@ more native tools: `stats.distribution_diagnostics`,
 the reserved `data.quality_audit` and `timeseries.transform` names. The current
 manifest therefore has 65 logical names. None of the eight additive tools
 claims recovered behavior, and the two successors do not mutate their frozen
-v1 contracts.
+v1 contracts. Registry `2.48.0` additionally provides an explicit `2.0.0`
+successor for reserved `market.technical_indicators`; the logical-name count
+therefore remains 65 and the frozen v1 contract is unchanged.
 
 The recovered compatibility names are:
 
@@ -679,6 +681,29 @@ SHA-256 `381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf`.
 Exact projection removes only this increment and restores byte-exact registry
 `2.46.0` and catalog `2.9.0`; the generated v1 catalog remains byte-identical.
 
+Registry `2.48.0` adds the store-free
+`market.technical_indicators@2.0.0` successor. It exposes 65 logical names,
+15 version-selection policies, and 19 explicit variants. The v2 catalog is
+version `2.11.0` with 54 contracts at SHA-256
+`864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757`.
+Exact projection removes only this policy and restores byte-exact registry
+`2.47.0` and catalog `2.10.0`; the generated v1 catalog remains
+byte-identical.
+
+The v2 indicator operation accepts one through five unmodified scalar series
+from `market.get_price_series` and `market.get_volume_series`. Every call
+contains one explicit indicator and only its relevant parameters. Close is
+always required; high/low and provider-native volume are required where the
+formula needs them. Inputs must share one instrument, period grid, capture
+identity, selection mode, cutoff, and retained-availability contract.
+Truncated or raw-missing input fails closed. Outputs preserve the bar grid,
+carry conservative source-derived availability and path-free lineage, and
+represent warm-up or undefined values with an explicit missing reason.
+Rolling dispersion uses sample standard deviation; EMA and MACD use SMA
+seeds; ATR, RSI, and ADX use Wilder smoothing. The outputs are descriptive
+transformations and establish no trading signal, portfolio, or position
+semantics.
+
 `data.quality_audit@2.0.0` accepts one through twenty supplied typed Stage 10
 return series. It validates lineage, reports requested and observed coverage,
 explicit missing values, absent calendar dates, duplicates, out-of-order rows,
@@ -733,6 +758,22 @@ conservative event identity. History combines consecutive material legacy
 changes with append-only migration-0018 event versions. Both modes retain the
 existing bounded pagination and columns, expose no response body or writable
 connection, and use the fixed macro-store read path.
+
+The same loopback-only Inspector has an additive `options-surfaces` view over
+the existing market option relations. It accepts only the fixed 15-ETF
+universe, target DTEs `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and
+`365`, exact expiration, `call|put`, `present|missing|excluded`, direction,
+and bounded pagination. It chooses the latest paper/indicative capture for
+each underlying and selected-expiration cohort, supports the legacy singleton
+`target_dte` scope and the broad sorted `target_dtes` scope, and exposes
+contract, quote/Greek, open-interest, close-price, underlying-quote, and
+explicit synchronized-input missingness fields. Open interest, close price,
+underlying quote, rate curve, dividend set, and expiry-model inputs each expose
+their persisted state and missing reason rather than making nulls ambiguous.
+It exposes no SQL, caller
+path, provider request, credential, writable connection, or ingestion action.
+The legacy `spy-options` view remains unchanged.
+
 ## Security requirements
 
 - The service SHOULD bind to loopback by default.

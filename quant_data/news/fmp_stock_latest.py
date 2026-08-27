@@ -350,6 +350,8 @@ def _validate_registry(registry: Registry) -> None:
             ("1.9.0", "2.45.0"),
             ("1.9.0", "2.46.0"),
             ("1.9.0", "2.47.0"),
+            ("1.9.0", "2.48.0"),
+            ("1.9.0", "2.49.0"),
         }
     ):
         raise ValidationError("FMP stock-latest importer requires the reviewed canonical registry")

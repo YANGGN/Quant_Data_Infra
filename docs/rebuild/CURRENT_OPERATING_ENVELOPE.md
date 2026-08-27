@@ -1,7 +1,7 @@
 # Current Operating Envelope
 
 Status: Current operational routing snapshot; non-authorizing
-Reconciled: 2026-08-25
+Reconciled: 2026-08-27
 
 ## Purpose
 
@@ -28,13 +28,13 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.47.0`, schema `1.9.0`, with
-source SHA-256 `eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8`.
+The current accepted registry is revision `2.49.0`, schema `1.9.0`, with
+source SHA-256 `6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1`.
 The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
 authority. Because it never entered the active configuration lineage, it
-remains absent from the later additive `2.23.0` through `2.47.0` lineage,
+remains absent from the later additive `2.23.0` through `2.49.0` lineage,
 including Treasury `2.23.0`, NY Fed headline-rate `2.24.0`, NY Fed
 repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
 official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
@@ -323,6 +323,61 @@ Exact projection removes only those two policies and four native names,
 restoring byte-exact registry `2.46.0` at SHA-256
 `b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264`
 and catalog `2.9.0`.
+
+Revision `2.48.0` adds only the explicit, store-free
+`market.technical_indicators@2.0.0` successor. It consumes caller-supplied
+typed Stage 10 OHLCV values, revalidates their exact instrument, grid,
+capture, and point-in-time contracts, and calculates one of 15 deterministic
+indicator specifications per call. It opens no store and performs no
+provider, credential, canonical-store, migration, scheduler, export, hosting,
+or deployment operation. The active manifest remains 65 names and has 15
+version policies and 19 variants. Catalog `2.11.0` has 54 contracts at
+SHA-256
+`864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757`.
+Exact projection removes only this policy and restores byte-exact registry
+`2.47.0` at SHA-256
+`eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8`
+and catalog `2.10.0`.
+
+Revision `2.49.0` adds the private, manual-only
+`alpaca.market.etf_option_surface_grid` collector over the existing Stage 10
+ETF identities and option relations. Its scope is fixed to `SPY`, `QQQ`,
+`IWM`, `DIA`, and `XLB`, `XLC`, `XLE`, `XLF`, `XLI`, `XLK`, `XLP`, `XLRE`,
+`XLU`, `XLV`, `XLY`; target DTEs are exactly `1`, `2`, `3`, `7`, `14`, `30`,
+`60`, `90`, `180`, and `365`. It selects the nearest positive listed expiry
+for each target, breaks ties toward the earlier expiry, collapses targets that
+select the same expiry, and requires standard call-and-put listings before an
+expiry is eligible. The catalog search is bounded to positive DTEs through
+`730`, twice the largest target; if an eligible expiry exists in that window,
+every later expiry is strictly farther from every supported target. Contracts
+between 80% and 120% of the IEX spot reference are retained with paper-account
+indicative snapshots; nonstandard surfaces are explicitly excluded rather
+than silently analyzed. Open interest and close observations retain their own
+dated present/missing state even when a quote is missing or stale; future-dated
+source evidence fails closed. It makes at
+most 362 single-attempt requests and is bounded by 900,016 rows, 256 MiB, and
+900 seconds. The remaining aggregate byte allowance is passed to each request
+before its body is read, and semantic material is framed into a streaming hash
+under the same explicit 256 MiB normalized-byte ceiling rather than an implicit
+serializer default. Exact semantic replay writes nothing; a partial run
+isolates invalid or omitted ETF snapshots, reports its completed and failed
+underlyings, and never claims success.
+
+The fixed local Inspector adds the read-only `options-surfaces` view with
+allowlisted underlying, target-DTE, expiration, option-type, and surface-state
+filters. It exposes explicit state and missing-reason fields for surface,
+open-interest, close-price, underlying-quote, rate-curve, dividend-set, and
+expiry-model inputs. The existing `spy-options` view and the separately authorized 15:55
+SPY host timer remain unchanged and SPY-only. The broad collector has no job,
+timer, scheduler, public tool, migration, new dataset, export, hosting, or
+deployment scope. Its zero-argument live entry point is
+`python3 -m quant_data.operations.alpaca_etf_options_refresh`; implementation
+and offline validation did not invoke it, access Alpaca credentials, issue a
+provider request, or write `data/market.sqlite`. No live-completion receipt
+exists for the broad grid. Exact projection removes only the collector and its
+three reciprocal dataset bindings and restores byte-exact registry `2.48.0`
+at SHA-256
+`3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524`.
 
 Under [ADR 0012](../adr/0012-compact-fmp-calendar-retention.md), revision
 `2.40.0` leaves the complete migration-0016 history untouched and changes only

@@ -91,7 +91,8 @@ class CanonicalInspectorTests(unittest.TestCase):
             );
             INSERT INTO stage10_instruments VALUES
               ('i-aapl', 'fmp', 'AAPL', 'equity', 'Apple Inc.', 'NASDAQ', '1980-12-12'),
-              ('i-spy', 'fmp', 'SPY', 'etf', 'SPDR S&P 500 ETF Trust', 'NYSE', '1993-01-29');
+              ('i-spy', 'fmp', 'SPY', 'etf', 'SPDR S&P 500 ETF Trust', 'NYSE', '1993-01-29'),
+              ('i-qqq', 'fmp', 'QQQ', 'etf', 'Invesco QQQ Trust', 'NASDAQ', '1999-03-10');
             INSERT INTO stage10_daily_price_versions VALUES
               ('v-aapl-1', 'i-aapl', '2026-08-14', '220.1', '224.0', '219.5', '223.7', 1000,
                '2026-08-15T00:00:00Z', '2026-08-15T00:00:00Z'),
@@ -119,7 +120,8 @@ class CanonicalInspectorTests(unittest.TestCase):
                 environment TEXT NOT NULL,
                 completed_at TEXT NOT NULL,
                 available_at TEXT NOT NULL,
-                completeness TEXT NOT NULL
+                completeness TEXT NOT NULL,
+                request_scope_json TEXT NOT NULL
             );
             CREATE TABLE option_contracts (
                 contract_id TEXT PRIMARY KEY,
@@ -175,17 +177,52 @@ class CanonicalInspectorTests(unittest.TestCase):
                 underlying_quote_id TEXT PRIMARY KEY,
                 capture_id TEXT NOT NULL,
                 input_state TEXT NOT NULL,
+                missing_reason TEXT,
                 bid_price REAL,
                 ask_price REAL,
                 last_price REAL,
                 trade_price REAL,
                 quote_at TEXT
             );
+            CREATE TABLE option_capture_rate_curves (
+                rate_curve_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                curve_date TEXT,
+                source_name TEXT,
+                input_state TEXT NOT NULL,
+                missing_reason TEXT
+            );
+            CREATE TABLE option_capture_dividend_sets (
+                dividend_set_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                source_name TEXT,
+                input_state TEXT NOT NULL,
+                missing_reason TEXT
+            );
+            CREATE TABLE option_capture_expiry_inputs (
+                expiry_input_id TEXT PRIMARY KEY,
+                capture_id TEXT NOT NULL,
+                expiration_date TEXT NOT NULL,
+                input_state TEXT NOT NULL,
+                missing_reason TEXT,
+                spot_price REAL,
+                risk_free_rate REAL,
+                dividend_yield REAL,
+                forward_price REAL
+            );
             INSERT INTO option_surface_captures VALUES
               ('capture-old', 'i-spy', 'indicative', 'alpaca_indicative', 'paper',
-               '2026-08-22T19:55:00Z', '2026-08-22T19:55:00Z', 'complete'),
+               '2026-08-22T19:55:00Z', '2026-08-22T19:55:00Z', 'complete',
+               '{"underlying_symbol":"SPY","target_dte":30,"selected_expiration":"2026-09-19","spot_price":"640"}'),
               ('capture-current', 'i-spy', 'indicative', 'alpaca_indicative', 'paper',
-               '2026-08-25T19:55:00Z', '2026-08-25T19:55:00Z', 'complete');
+               '2026-08-25T19:55:00Z', '2026-08-25T19:55:00Z', 'complete',
+               '{"underlying_symbol":"SPY","target_dte":30,"selected_expiration":"2026-09-25","spot_price":"645"}'),
+              ('capture-qqq-old', 'i-qqq', 'indicative', 'alpaca_indicative', 'paper',
+               '2026-08-24T19:55:00Z', '2026-08-24T19:55:00Z', 'complete',
+               '{"underlying_symbol":"QQQ","target_dtes":[7,14],"selected_expiration":"2026-09-26","spot_price":"574"}'),
+              ('capture-qqq-current', 'i-qqq', 'indicative', 'alpaca_indicative', 'paper',
+               '2026-08-25T19:56:00Z', '2026-08-25T19:56:00Z', 'complete',
+               '{"underlying_symbol":"QQQ","target_dtes":[7,14],"selected_expiration":"2026-09-26","spot_price":"575"}');
             INSERT INTO option_contracts VALUES
               ('contract-old', 'i-spy', 'SPY260919C00640000', '2026-09-19', '640',
                'call', 'standard', 100, 'active'),
@@ -194,7 +231,11 @@ class CanonicalInspectorTests(unittest.TestCase):
               ('contract-put', 'i-spy', 'SPY260925P00640000', '2026-09-25', '640',
                'put', 'standard', 100, 'active'),
               ('contract-missing', 'i-spy', 'SPY260925C00655000', '2026-09-25', '655',
-               'call', 'standard', 100, 'active');
+               'call', 'standard', 100, 'active'),
+              ('contract-qqq-call', 'i-qqq', 'QQQ260926C00575000', '2026-09-26', '575',
+               'call', 'standard', 100, 'active'),
+              ('contract-qqq-put', 'i-qqq', 'QQQ260926P00570000', '2026-09-26', '570',
+               'put', 'standard', 100, 'active');
             INSERT INTO option_surface_snapshots VALUES
               ('surface-old', 'capture-old', 'contract-old', 'present', NULL, NULL,
                5.0, 5.1, 5.05, 0.20, 0.50, 0.01, -0.04, 0.10, 0.02,
@@ -207,16 +248,63 @@ class CanonicalInspectorTests(unittest.TestCase):
                NULL, NULL, NULL, NULL),
               ('surface-missing', 'capture-current', 'contract-missing', 'missing',
                'quote_unavailable', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+               NULL, NULL, NULL, NULL, NULL),
+              ('surface-qqq-old', 'capture-qqq-old', 'contract-qqq-call', 'present', NULL, NULL,
+               8.1, 8.2, 8.15, 0.22, 0.54, 0.013, -0.05, 0.12, 0.021,
+               '2026-08-24T19:54:00Z', '2026-08-24T19:54:00Z'),
+              ('surface-qqq-call', 'capture-qqq-current', 'contract-qqq-call', 'present', NULL, NULL,
+               8.3, 8.4, 8.35, 0.221, 0.55, 0.014, -0.051, 0.13, 0.022,
+               '2026-08-25T19:55:00Z', '2026-08-25T19:55:00Z'),
+              ('surface-qqq-put', 'capture-qqq-current', 'contract-qqq-put', 'missing',
+               'quote_unavailable', NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                NULL, NULL, NULL, NULL, NULL);
             INSERT INTO option_open_interest VALUES
               ('oi-call', 'capture-current', 'contract-call', '2026-08-25', 12345,
-               'present', NULL, 1);
+               'present', NULL, 1),
+              ('oi-qqq-call', 'capture-qqq-current', 'contract-qqq-call', '2026-08-25', 54321,
+               'present', NULL, 1),
+              ('oi-qqq-put', 'capture-qqq-current', 'contract-qqq-put', '2026-08-25', NULL,
+               'missing', 'source_not_provided', 1);
             INSERT INTO option_close_prices VALUES
               ('close-call', 'capture-current', 'contract-call', '2026-08-25', 4.05,
-               'present', NULL, 1);
+               'present', NULL, 1),
+              ('close-qqq-call', 'capture-qqq-current', 'contract-qqq-call', '2026-08-25', 8.25,
+               'present', NULL, 1),
+              ('close-qqq-put', 'capture-qqq-current', 'contract-qqq-put', '2026-08-25', NULL,
+               'missing', 'source_not_provided', 1);
             INSERT INTO option_capture_underlying_quotes VALUES
-              ('underlying-current', 'capture-current', 'present', 644.9, 645.1,
-               645.0, 645.0, '2026-08-25T19:54:00.123456700Z');
+              ('underlying-current', 'capture-current', 'present', NULL, 644.9, 645.1,
+               645.0, 645.0, '2026-08-25T19:54:00.123456700Z'),
+              ('underlying-qqq-current', 'capture-qqq-current', 'present', NULL, 574.9, 575.1,
+               NULL, NULL, '2026-08-25T19:55:00Z');
+            INSERT INTO option_capture_rate_curves VALUES
+              ('rate-old', 'capture-old', NULL, NULL, 'missing',
+               'not_collected_in_live_v1'),
+              ('rate-current', 'capture-current', NULL, NULL, 'missing',
+               'not_collected_in_live_v1'),
+              ('rate-qqq-old', 'capture-qqq-old', NULL, NULL, 'missing',
+               'not_collected_in_live_etf_grid'),
+              ('rate-qqq-current', 'capture-qqq-current', NULL, NULL, 'missing',
+               'not_collected_in_live_etf_grid');
+            INSERT INTO option_capture_dividend_sets VALUES
+              ('dividend-old', 'capture-old', NULL, 'missing',
+               'not_collected_in_live_v1'),
+              ('dividend-current', 'capture-current', NULL, 'missing',
+               'not_collected_in_live_v1'),
+              ('dividend-qqq-old', 'capture-qqq-old', NULL, 'missing',
+               'not_collected_in_live_etf_grid'),
+              ('dividend-qqq-current', 'capture-qqq-current', NULL, 'missing',
+               'not_collected_in_live_etf_grid');
+            INSERT INTO option_capture_expiry_inputs VALUES
+              ('expiry-old', 'capture-old', '2026-09-19', 'missing',
+               'synchronized_model_inputs_not_collected_in_live_v1', NULL, NULL, NULL, NULL),
+              ('expiry-current', 'capture-current', '2026-09-25', 'missing',
+               'synchronized_model_inputs_not_collected_in_live_v1', NULL, NULL, NULL, NULL),
+              ('expiry-qqq-old', 'capture-qqq-old', '2026-09-26', 'missing',
+               'synchronized_model_inputs_not_collected_in_live_v1', NULL, NULL, NULL, NULL),
+              ('expiry-qqq-current', 'capture-qqq-current', '2026-09-26', 'missing',
+               'synchronized_model_inputs_not_collected_in_live_etf_grid',
+               NULL, NULL, NULL, NULL);
             """
         )
         connection.commit()
@@ -1818,6 +1906,158 @@ class CanonicalInspectorTests(unittest.TestCase):
             before,
             (self._sha256(self.market), self._sha256(self.macro)),
         )
+
+    def test_options_surfaces_view_is_fixed_filterable_and_read_only(self) -> None:
+        before = (self._sha256(self.market), self._sha256(self.macro))
+        response = self.application.handle("GET", "/api/rows?view=options-surfaces")
+        self.assertEqual(response.status, 200)
+        payload = loads_strict(response.body)
+        self.assertEqual(payload["execution"], "read_only")
+        result = payload["result"]
+        self.assertEqual(result["total"], 6)
+        self.assertIn("target_dtes", result["columns"])
+        self.assertIn("input_state", result["columns"])
+        self.assertIn("input_missing_reason", result["columns"])
+        self.assertIn("open_interest_state", result["columns"])
+        self.assertIn("open_interest_missing_reason", result["columns"])
+        self.assertIn("close_price_state", result["columns"])
+        self.assertIn("close_price_missing_reason", result["columns"])
+        self.assertIn("underlying_quote_state", result["columns"])
+        self.assertIn("underlying_quote_missing_reason", result["columns"])
+        self.assertIn("rate_curve_state", result["columns"])
+        self.assertIn("rate_curve_missing_reason", result["columns"])
+        self.assertIn("dividend_set_state", result["columns"])
+        self.assertIn("dividend_set_missing_reason", result["columns"])
+        qqq_rows = [
+            row for row in result["rows"] if row["underlying_symbol"] == "QQQ"
+        ]
+        self.assertEqual(len(qqq_rows), 2)
+        self.assertTrue(
+            all(row["capture_id"] == "capture-qqq-current" for row in qqq_rows)
+        )
+        self.assertTrue(all(row["target_dtes"] == [7, 14] for row in qqq_rows))
+        qqq_call = next(
+            row
+            for row in qqq_rows
+            if row["contract_symbol"] == "QQQ260926C00575000"
+        )
+        self.assertEqual(qqq_call["open_interest"], 54321)
+        self.assertEqual(qqq_call["open_interest_as_of_date"], "2026-08-25")
+        self.assertEqual(qqq_call["open_interest_state"], "present")
+        self.assertIsNone(qqq_call["open_interest_missing_reason"])
+        self.assertEqual(qqq_call["close_price"], Decimal("8.25"))
+        self.assertEqual(qqq_call["close_price_trade_date"], "2026-08-25")
+        self.assertEqual(qqq_call["close_price_state"], "present")
+        self.assertIsNone(qqq_call["close_price_missing_reason"])
+        self.assertEqual(qqq_call["input_state"], "missing")
+        self.assertEqual(
+            qqq_call["input_missing_reason"],
+            "synchronized_model_inputs_not_collected_in_live_etf_grid",
+        )
+        self.assertEqual(qqq_call["underlying_spot_price"], "575")
+        self.assertEqual(qqq_call["underlying_bid_price"], Decimal("574.9"))
+        self.assertIsNone(qqq_call["underlying_last_price"])
+        self.assertEqual(qqq_call["underlying_quote_state"], "present")
+        self.assertIsNone(qqq_call["underlying_quote_missing_reason"])
+        self.assertEqual(qqq_call["rate_curve_state"], "missing")
+        self.assertEqual(
+            qqq_call["rate_curve_missing_reason"],
+            "not_collected_in_live_etf_grid",
+        )
+        self.assertEqual(qqq_call["dividend_set_state"], "missing")
+        self.assertEqual(
+            qqq_call["dividend_set_missing_reason"],
+            "not_collected_in_live_etf_grid",
+        )
+
+        qqq_target = loads_strict(
+            self.application.handle(
+                "GET",
+                "/api/rows?view=options-surfaces&underlying=QQQ&target_dte=7",
+            ).body
+        )["result"]
+        self.assertEqual(qqq_target["total"], 2)
+        self.assertEqual(
+            {row["contract_symbol"] for row in qqq_target["rows"]},
+            {"QQQ260926C00575000", "QQQ260926P00570000"},
+        )
+        self.assertNotIn("capture-qqq-old", str(qqq_target["rows"]))
+
+        filtered = loads_strict(
+            self.application.handle(
+                "GET",
+                "/api/rows?view=options-surfaces&underlying=QQQ&target_dte=14"
+                "&option_type=put&state=missing&expiration=2026-09-26",
+            ).body
+        )["result"]
+        self.assertEqual(filtered["total"], 1)
+        missing_row = filtered["rows"][0]
+        self.assertEqual(missing_row["missing_reason"], "quote_unavailable")
+        self.assertEqual(missing_row["open_interest_state"], "missing")
+        self.assertEqual(
+            missing_row["open_interest_missing_reason"], "source_not_provided"
+        )
+        self.assertEqual(missing_row["close_price_state"], "missing")
+        self.assertEqual(
+            missing_row["close_price_missing_reason"], "source_not_provided"
+        )
+
+        legacy = loads_strict(
+            self.application.handle(
+                "GET",
+                "/api/rows?view=options-surfaces&underlying=SPY&target_dte=30"
+                "&option_type=call&state=present&expiration=2026-09-25",
+            ).body
+        )["result"]
+        self.assertEqual(legacy["total"], 1)
+        self.assertEqual(legacy["rows"][0]["target_dtes"], [30])
+        self.assertEqual(legacy["rows"][0]["capture_id"], "capture-current")
+
+        document = self.application.handle(
+            "GET", "/?view=options-surfaces&underlying=QQQ&target_dte=14"
+        ).body.decode("utf-8")
+        self.assertIn("Options surfaces", document)
+        self.assertIn('name="underlying"', document)
+        self.assertIn('name="target_dte"', document)
+        self.assertIn('<option value="QQQ" selected>', document)
+        self.assertIn('<option value="365">365 DTE</option>', document)
+
+        for invalid in (
+            "/api/rows?view=options-surfaces&underlying=spy",
+            "/api/rows?view=options-surfaces&underlying=SPY%27%20OR%201%3D1--",
+            "/api/rows?view=options-surfaces&target_dte=4",
+            "/api/rows?view=options-surfaces&target_dte=7%20OR%201%3D1",
+            "/api/rows?view=options-surfaces&option_type=spread",
+            "/api/rows?view=options-surfaces&state=stale",
+            "/api/rows?view=options-surfaces&expiration=2026-13-40",
+            "/api/rows?view=options-surfaces&relation=sqlite_master",
+        ):
+            with self.subTest(invalid=invalid):
+                self.assertEqual(self.application.handle("GET", invalid).status, 400)
+
+        self.assertEqual(
+            before,
+            (self._sha256(self.market), self._sha256(self.macro)),
+        )
+
+    def test_options_surfaces_rejects_empty_stored_target_dtes(self) -> None:
+        connection = sqlite3.connect(self.market)
+        connection.execute(
+            "UPDATE option_surface_captures SET request_scope_json=? "
+            "WHERE capture_id='capture-qqq-current'",
+            (
+                '{"underlying_symbol":"QQQ","target_dtes":[],"selected_expiration":'
+                '"2026-09-26","spot_price":"575"}',
+            ),
+        )
+        connection.commit()
+        connection.close()
+        response = self.application.handle(
+            "GET", "/api/rows?view=options-surfaces&underlying=QQQ"
+        )
+        self.assertEqual(response.status, 503)
+        payload = loads_strict(response.body)
+        self.assertEqual(payload["error"]["code"], "store_unavailable")
 
     def test_company_fundamentals_view_is_fixed_filterable_and_read_only(self) -> None:
         before = self._sha256(self.company)

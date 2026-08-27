@@ -267,6 +267,17 @@ class DomainOperationTests(unittest.TestCase):
         self.assertEqual(result.diagnostics[0].code, "fixture_semantics_not_established")
         self.assertEqual(result.truncation.returned_count, 0)
 
+        legacy_indicator = self._call(
+            "market.technical_indicators",
+            self._query(["fixture.market.instrument.spy.v1"], limit=25),
+        )
+        self.assertEqual(legacy_indicator.status, "not_established")
+        self.assertFalse(legacy_indicator.series)
+        self.assertEqual(
+            legacy_indicator.diagnostics[0].code,
+            "fixture_semantics_not_established",
+        )
+
         research = self._call(
             "research.liquidity_credit_state",
             {

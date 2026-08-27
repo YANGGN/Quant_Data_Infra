@@ -50,6 +50,7 @@ tools:
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_available_ticker
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_volume_series
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.search_series --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.describe_series --tool-version 2.0.0
@@ -123,6 +124,45 @@ inclusive date bounds, date-only policy, and limit shape. It returns one
 provider-native volume series selected from the exact same Stage 10 rows. Its
 unit is not normalized, and volume-adjustment and session-calendar semantics
 are explicitly not established.
+
+`market.technical_indicators` must be selected explicitly at version
+`2.0.0`; omitted version selection preserves the reconstructed v1
+`not_established` behavior. Version 2 is store-free. Pass its `series`
+array the complete typed scalar series taken from the `series` fields of the
+price and, when required, volume responses. Do not strip or alter their
+metadata, audit, observations, provenance, or lineage digests. Supplying the
+full four-series OHLC response is supported even for a close-only calculation.
+
+Version 2 calculates exactly one indicator specification per call and returns
+one through three aligned scalar series. The required source fields are:
+
+- `close` for every indicator;
+- `high`, `low`, and `close` for true range, ATR, Donchian,
+  stochastic, ADX, and accumulation/distribution; and
+- `volume` as well as `close` for OBV, or as well as high/low/close for
+  accumulation/distribution.
+
+The `indicator` value is one of `sma`, `ema`,
+`rolling_standard_deviation`, `rolling_z_score`, `true_range`,
+`average_true_range`, `rate_of_change`,
+`relative_strength_index`, `macd`, `bollinger_bands`,
+`donchian_channels`, `stochastic_oscillator`,
+`average_directional_index`, `on_balance_volume`, or
+`accumulation_distribution`. Copy all nullable parameter fields from the
+selected `describe` result. Parameters unused by the chosen indicator must
+be `null`; relevant fields are mandatory. MACD requires
+`fast_window < slow_window`; Bollinger requires a positive
+`standard_deviation_multiplier` no greater than 10.
+
+Every output retains the input period grid. A warm-up, missing lookback, zero
+denominator, or zero price range is an explicit observation with
+`value: null` and a `missing_reason`; rows are never silently dropped or
+filled. Rolling dispersion and Bollinger use sample standard deviation.
+EMA/MACD use an SMA seed, ATR/RSI/ADX use Wilder smoothing, rate of change is
+reported on a 0-to-100 percentage scale, flat RSI is defined as 50, OBV starts
+at zero, and accumulation/distribution treats a zero high-low range as zero
+money-flow volume. These are descriptive transformations, not buy/sell
+signals.
 
 The canonical macro interface is explicit version `2.0.0`. Start with
 `macro.search_series`, then `macro.describe_series`, and pass the returned
@@ -227,12 +267,14 @@ Use tools as a sequence of validated typed results:
 2. Retrieve raw OHLC with `market.get_price_series` for one returned ticker.
 3. Retrieve provider-native volume with `market.get_volume_series` when the
    analysis needs it.
-4. Use the selected return tool version to produce compatible return series.
-5. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
+4. For descriptive technical analysis, pass those unmodified typed series to
+   `market.technical_indicators@2.0.0`, one indicator specification per call.
+5. Use the selected return tool version to produce compatible return series.
+6. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
    limitation before inference.
-6. Feed compatible, non-truncated series into the explicitly selected
+7. Feed compatible, non-truncated series into the explicitly selected
    transformation, general-statistics, or econometrics contract.
-7. Preserve each response's receipt, lineage, point-in-time policy, and
+8. Preserve each response's receipt, lineage, point-in-time policy, and
    warnings with the final research artifact.
 
 For macro work, search and describe with explicit v2 first, retrieve the

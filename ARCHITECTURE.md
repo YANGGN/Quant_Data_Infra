@@ -216,7 +216,7 @@ Every Stage 2 store carries the same ten control-plane relations:
   published work.
 
 The system registry is declarative source configuration. The current accepted
-revision is `2.47.0` with schema version `1.9.0`. It preserves the bounded
+revision is `2.49.0` with schema version `1.9.0`. It preserves the bounded
 Stage 8 declaration and its 57-name recovered compatibility target, while the
 active manifest contains eight additive native tools for 65 total names.
 Revision `2.43.0` also adds one private Alpaca collector with no public tool.
@@ -234,6 +234,14 @@ four native statistics tools for distribution diagnostics, covariance,
 seeded bootstrap confidence intervals, and deterministic principal components.
 It consumes only caller-supplied typed Stage 10 return series and adds no data
 store, provider operation, credential, write path, or operational surface.
+Revision `2.48.0` adds only the store-free
+`market.technical_indicators@2.0.0` successor over caller-supplied typed Stage
+10 OHLCV series. Revision `2.49.0` adds the private, manual-only fixed ETF
+option-surface grid over the existing identities and option schema plus a
+fixed local read-only Inspector view. The broad collector has no registry job
+or host timer; the separately authorized SPY timer remains SPY-only. Its
+implementation evidence is offline and does not claim a provider request or
+canonical population.
 It preserves four local-private dashboard
 exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
 manual JSON Atlas export. It adds isolated private declarations for the Stage 9
@@ -338,6 +346,27 @@ samples where applicable; bootstrap requires and reports an explicit seed;
 PCA has deterministic descending component order and canonical eigenvector
 signs. Exact projection restores registry `2.46.0` and catalog `2.9.0`; the
 frozen v1 catalog remains byte-identical.
+
+Registry `2.48.0` advances the current catalog to `2.11.0` with 54 schemas and
+adds only the store-free `market.technical_indicators@2.0.0` successor. It
+calculates one of 15 deterministic indicator specifications from supplied
+typed Stage 10 OHLCV series and opens no store. Exact projection restores
+registry `2.47.0` and catalog `2.10.0`.
+
+Registry `2.49.0` retains that tool catalog and adds the private
+`alpaca.market.etf_option_surface_grid` collector for `SPY`, `QQQ`, `IWM`,
+`DIA`, and the eleven sector ETFs at target DTEs `1`, `2`, `3`, `7`, `14`,
+`30`, `60`, `90`, `180`, and `365`. It deterministically selects nearest
+positive expiries with standard call-and-put listings, collapses duplicate
+target mappings, and uses the sufficient positive-DTE catalog horizon through
+730 days. It captures 80%-120%-of-IEX-spot contracts and paper indicative
+snapshots, retains dated OI/close state independently of quote availability,
+explicitly excludes nonstandard surfaces, and publishes through
+the existing replay-safe option relations. A fixed local read-only
+`options-surfaces` Inspector view exposes the retained cohorts. The collector
+is manual-only and bounded to 362 requests, 900,016 rows, 256 MiB, and 900
+seconds; it has no timer or registry job. Exact projection restores registry
+`2.48.0`. The implementation did not call Alpaca or write the canonical store.
 
 Registry `2.40.0` implements
 [ADR 0012](docs/adr/0012-compact-fmp-calendar-retention.md) as a forward-only

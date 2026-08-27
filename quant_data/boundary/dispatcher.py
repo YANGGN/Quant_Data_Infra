@@ -47,6 +47,7 @@ from quant_data.tool_platform.catalog import (
     VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
     VERSIONED_MARKET_RETURN_TOOLS,
+    VERSIONED_TECHNICAL_INDICATOR_TOOLS,
     VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
     current_tool_profiles,
 )
@@ -81,6 +82,10 @@ _VERSIONED_INPUT_KINDS = {
         (name, "2.0.0"): "stage10_market_return_v2"
         for name in VERSIONED_MARKET_RETURN_TOOLS
     },
+    (
+        "market.technical_indicators",
+        "2.0.0",
+    ): "stage10_technical_indicator_v2",
     ("timeseries.describe", "2.0.0"): "stage10_market_describe_v2",
     ("timeseries.align", "2.0.0"): "stage10_market_align_v2",
     ("timeseries.correlation", "2.0.0"): "stage10_market_correlation_v2",
@@ -580,6 +585,20 @@ class ToolDispatcher:
                 )
             decode_series = self._timeseries_from_public
             if (
+                declaration["version"] == "2.0.0"
+                and name in VERSIONED_TECHNICAL_INDICATOR_TOOLS
+            ):
+                from quant_data.tool_platform.technical_indicator_adapter import (
+                    stage10_technical_indicator_input_series_schema,
+                )
+
+                indicator_schema = (
+                    stage10_technical_indicator_input_series_schema()
+                )
+                decode_series = lambda value: self._timeseries_from_public(
+                    value, schema=indicator_schema
+                )
+            elif (
                 (
                     declaration["version"] == "2.0.0"
                     and name in (

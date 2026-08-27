@@ -428,6 +428,25 @@ The following decisions apply to every stage:
   credential, canonical write, migration, scheduler, export, hosting, or
   deployment.
 
+- Registry `2.48.0` adds only the store-free
+  `market.technical_indicators@2.0.0` successor. It consumes compatible typed
+  Stage 10 OHLCV inputs and computes one of 15 deterministic indicator
+  specifications with explicit warm-up and undefined missingness. Catalog
+  `2.11.0` has 54 contracts; exact projection restores registry `2.47.0` and
+  catalog `2.10.0`. It adds no provider, credential, store, migration,
+  scheduler, export, hosting, or deployment scope.
+
+- Registry `2.49.0` adds one private, manual-only Alpaca ETF option-surface
+  grid for `SPY`, `QQQ`, `IWM`, `DIA`, and the eleven sector ETFs. Exact DTE
+  targets are `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and `365`;
+  nearest positive expiries are deterministic and duplicate target mappings
+  are captured once. It reuses the existing option schema and replay-safe
+  publisher, and the local Inspector gains a fixed read-only
+  `options-surfaces` view. The broad collector has no registry job or timer;
+  the separately authorized SPY timer remains SPY-only. The implementation
+  did not issue a live request or write the canonical store, so population
+  remains a separate bounded manual operation.
+
 - On 2026-08-23 the user separately authorized a fourth host-level recurring
   exception, `quant-data-macro-current-refresh.timer`, at 18:30
   America/New_York on weekdays. On 2026-08-24 the user expanded it to

@@ -278,11 +278,12 @@ The system does not replace an offset-bearing timestamp with a different
 timezone representation. It may derive an internal instant-ordering key for
 comparison, but the stored and returned value remains unchanged.
 
-The Alpaca SPY option-surface collector has one deliberately narrow source-
-native inspection exception. Retained underlying `observed_at` and `quote_at`
-and option `quote_at` and `trade_at` fields accept an offset-bearing ISO 8601
-source lexeme with one through nine fractional digits. Those exact strings are
-stored, returned by the Inspector, and included in semantic identity.
+The Alpaca SPY and fixed ETF-grid option-surface collectors share one
+deliberately narrow source-native inspection exception. Retained underlying
+`observed_at` and `quote_at` and option `quote_at` and `trade_at` fields accept
+an offset-bearing ISO 8601 source lexeme with one through nine fractional
+digits. Those exact strings are stored, returned by the Inspector, and
+included in semantic identity.
 
 These source-native fields are inspection and audit text only. They are not
 accepted as shared `TemporalValue`, cutoff, or `as_of` inputs. A transient

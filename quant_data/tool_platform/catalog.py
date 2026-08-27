@@ -21,7 +21,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.10.0"
+VERSIONED_CATALOG_VERSION = "2.11.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -46,6 +46,7 @@ VERSIONED_MARKET_RETURN_TOOLS = (
     "market.get_returns",
     "market.get_forward_returns",
 )
+VERSIONED_TECHNICAL_INDICATOR_TOOLS = ("market.technical_indicators",)
 VERSIONED_TIMESERIES_ANALYSIS_TOOLS = (
     "timeseries.transform",
     "timeseries.describe",
@@ -62,6 +63,7 @@ VERSIONED_ECONOMETRICS_TOOLS = (
 VERSIONED_TOOL_NAMES = (
     *VERSIONED_CANONICAL_MACRO_TOOLS,
     *VERSIONED_MARKET_RETURN_TOOLS,
+    *VERSIONED_TECHNICAL_INDICATOR_TOOLS,
     *(
         item
         for item in VERSIONED_TIMESERIES_ANALYSIS_TOOLS
@@ -1211,6 +1213,11 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
         stage10_market_return_example,
         stage10_market_statistic_series_schema,
     )
+    from .technical_indicator_adapter import (
+        stage10_technical_indicator_example,
+        stage10_technical_indicator_input_series_schema,
+        stage10_technical_indicator_output_series_schema,
+    )
 
     return_series_schema = stage10_market_return_series_schema()
     analysis_series_schema = stage10_market_statistic_series_schema()
@@ -1493,6 +1500,130 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
                 ],
             }
         )
+
+    name = "market.technical_indicators"
+    operation_graph_id = "tool_platform.market.technical_indicators.v2"
+    indicator_output_schema = query_result_schema(
+        name, stage10_technical_indicator_output_series_schema()
+    )
+    indicator_output_schema["properties"]["series"]["minItems"] = 1
+    indicator_output_schema["properties"]["series"]["maxItems"] = 3
+    indicator_variant = {
+        "id": name,
+        "family": "market",
+        "api_version": "1.0",
+        "version": "2.0.0",
+        "operation_version": "2.0.0",
+        "lifecycle": "experimental",
+        "compatibility": {
+            "status": "successor_breaking_v2",
+            "predecessor": "1.0.0",
+        },
+        "description": (
+            "Calculate one deterministic SMA, EMA, volatility, momentum, "
+            "trend, channel, oscillator, or volume-derived indicator over "
+            "caller-supplied typed Stage 10 OHLCV series."
+        ),
+        "assumptions": [
+            "caller_supplied_stage10_raw_ohlcv_series",
+            "one_indicator_specification_per_call",
+            "no_store_access",
+            "strict_instrument_selection_and_period_grid_compatibility",
+            "no_fill_or_session_inference",
+            "sample_standard_deviation_for_rolling_dispersion",
+            "sma_seeded_ema_and_wilder_recursions",
+            "recursive_state_resets_after_missing_input",
+            "raw_price_adjustment_semantics_not_established",
+            "provider_native_volume_not_normalized",
+        ],
+        "handler": operation_graph_id,
+        "operation_graph_id": operation_graph_id,
+        "read_only": True,
+        "stores": [],
+        "datasets": [],
+        "input_type": "Stage10TechnicalIndicatorArgumentsV2",
+        "input_schema_id": _versioned_schema_id(name, "input"),
+        "input_schema": typed_input_schema(
+            "stage10_technical_indicator_v2",
+            stage10_technical_indicator_input_series_schema(),
+        ),
+        "output_type": "QueryResultV1",
+        "output_schema_id": _versioned_schema_id(name, "output"),
+        "output_schema": indicator_output_schema,
+        "examples": [
+            {
+                "series": [stage10_technical_indicator_example()],
+                "indicator": "sma",
+                "window": 3,
+                "fast_window": None,
+                "slow_window": None,
+                "signal_window": None,
+                "standard_deviation_multiplier": None,
+                "limit": 100,
+            }
+        ],
+        "workload_bounds": {
+            "max_rows": 10000,
+            "max_series": 5,
+            "max_operations": 5000000,
+            "max_request_bytes": 8388608,
+            "max_response_bytes": 8388608,
+        },
+        "cost_model": {
+            "expression": "rows + series + operations",
+            "deterministic": True,
+        },
+        "timeout_class": "interactive_5s",
+        "availability_policy": {
+            "modes": ["inherited_from_typed_input"],
+            "point_in_time_default": "inherited_and_revalidated",
+            "missingness": "explicit_warmup_or_undefined_points",
+        },
+        "live_capability": {
+            "possible": False,
+            "capability_id": None,
+            "offline_status": "not_applicable",
+        },
+        "contracts": {
+            "availability": "conservative_from_input_contributors",
+            "point_in_time": "exact_input_contract",
+            "returns": "not_applicable_raw_ohlcv_transform",
+        },
+        "composable": {
+            "input_types": [
+                "Stage10MarketPriceSeriesV1",
+                "Stage10MarketVolumeSeriesV1",
+            ],
+            "output_types": [
+                "QueryResultV1",
+                "Stage10TechnicalIndicatorSeriesV2",
+            ],
+        },
+        "observability": "metadata_only",
+        "owner": "tool_platform",
+        "review_requirements": ["schema", "semantics", "read_only"],
+    }
+    result.append(
+        {
+            "tool": name,
+            "default_version": "1.0.0",
+            "selector_field": "tool_version",
+            "variants": [indicator_variant],
+            "deprecations": [
+                {
+                    "version": "1.0.0",
+                    "code": "tool_version_deprecated",
+                    "message": (
+                        "market.technical_indicators version 1.0.0 remains "
+                        "available for compatibility; select version 2.0.0 "
+                        "for typed store-free OHLCV indicators."
+                    ),
+                    "replacement": {"tool": name, "version": "2.0.0"},
+                    "removal": {"status": "not_scheduled", "milestone": None},
+                }
+            ],
+        }
+    )
 
     examples = {
         "AAPL": stage10_market_return_example("AAPL"),
@@ -2258,6 +2389,7 @@ __all__ = (
     "VERSIONED_DATA_QUALITY_TOOLS",
     "VERSIONED_ECONOMETRICS_TOOLS",
     "VERSIONED_MARKET_RETURN_TOOLS",
+    "VERSIONED_TECHNICAL_INDICATOR_TOOLS",
     "VERSIONED_TIMESERIES_ANALYSIS_TOOLS",
     "VERSIONED_TOOL_NAMES",
     "VERSIONED_OPERATION_GRAPH_IDS",

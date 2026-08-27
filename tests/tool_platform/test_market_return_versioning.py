@@ -5,6 +5,7 @@ import json
 import tempfile
 import unittest
 from dataclasses import replace
+from decimal import Decimal
 from pathlib import Path
 
 from quant_data.boundary import Stage1Application, ToolDispatcher
@@ -13,6 +14,7 @@ from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.registry import (
     CANONICAL_REGISTRY_PATH,
     analytics_foundation_registry_profile,
+    alpaca_etf_options_registry_profile,
     alpaca_spy_options_registry_profile,
     canonical_access_registry_profile,
     econometrics_model_suite_v3_registry_profile,
@@ -26,6 +28,7 @@ from quant_data.registry import (
     robust_econometrics_v21_registry_profile,
     stationarity_v21_registry_profile,
     structural_breaks_v2_registry_profile,
+    technical_indicators_v2_registry_profile,
     timeseries_analysis_v2_registry_profile,
 )
 from quant_data.stage1 import explicit_store_map
@@ -45,10 +48,16 @@ V1_CATALOG_SHA256 = (
     "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 )
 V2_CATALOG_SHA256 = (
-    "381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf"
+    "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
 CURRENT_REGISTRY_SHA256 = (
+    "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
+)
+PRE_TECHNICAL_INDICATORS_REGISTRY_SHA256 = (
     "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
+)
+PRE_TECHNICAL_INDICATORS_CATALOG_SHA256 = (
+    "381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf"
 )
 PRE_ANALYTICS_FOUNDATION_REGISTRY_SHA256 = (
     "b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264"
@@ -175,9 +184,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             ):
                 generated_bytes(root)
 
-            direct_predecessor = analytics_foundation_registry_profile(
-                self.registry
-            )
+            direct_predecessor = alpaca_etf_options_registry_profile(self.registry)
             registry_path.write_text(
                 json.dumps(
                     direct_predecessor.raw,
@@ -191,10 +198,47 @@ class MarketReturnVersioningTests(unittest.TestCase):
             registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
             self.assertEqual(
                 registry_bytes,
-                (PROJECT_ROOT / CANONICAL_REGISTRY_PATH).read_bytes(),
+                (
+                    json.dumps(
+                        direct_predecessor.raw,
+                        ensure_ascii=True,
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n"
+                ).encode("utf-8"),
+            )
+            self.assertEqual(
+                json.loads(registry_bytes)["registry_version"], "2.48.0"
             )
             self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
             self.assertEqual(v2_bytes, V2_CATALOG.read_bytes())
+
+            analytics_predecessor = analytics_foundation_registry_profile(
+                self.registry
+            )
+            registry_path.write_text(
+                json.dumps(
+                    analytics_predecessor.raw,
+                    ensure_ascii=True,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
+            self.assertEqual(
+                hashlib.sha256(registry_bytes).hexdigest(),
+                PRE_TECHNICAL_INDICATORS_REGISTRY_SHA256,
+            )
+            self.assertEqual(
+                hashlib.sha256(v2_bytes).hexdigest(),
+                PRE_TECHNICAL_INDICATORS_CATALOG_SHA256,
+            )
+            self.assertEqual(json.loads(registry_bytes)["registry_version"], "2.47.0")
+            self.assertEqual(json.loads(v2_bytes)["schema_version"], "2.10.0")
+            self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
 
             canonical_predecessor = canonical_access_registry_profile(
                 self.registry
@@ -213,7 +257,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
             expected_registry_bytes = (
                 json.dumps(
-                    direct_predecessor.raw,
+                    analytics_predecessor.raw,
                     ensure_ascii=True,
                     indent=2,
                     sort_keys=True,
@@ -266,14 +310,37 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 {item["id"] for item in regenerated["collectors"]},
             )
 
-    def test_current_registry_has_fourteen_versioned_tools_and_eighteen_variants(
+    def test_current_registry_has_fifteen_versioned_tools_and_nineteen_variants(
         self,
     ) -> None:
         self.assertEqual(
             (self.registry.schema_version, self.registry.registry_version),
-            ("1.9.0", "2.47.0"),
+            ("1.9.0", "2.49.0"),
         )
         self.assertEqual(self.registry.source_sha256, CURRENT_REGISTRY_SHA256)
+        technical_predecessor = technical_indicators_v2_registry_profile(
+            self.registry
+        )
+        self.assertEqual(
+            (
+                technical_predecessor.registry_version,
+                technical_predecessor.source_sha256,
+            ),
+            ("2.47.0", PRE_TECHNICAL_INDICATORS_REGISTRY_SHA256),
+        )
+        self.assertEqual(
+            technical_predecessor.raw["tool_version_schema_catalog"],
+            {
+                "schema_id": "quant_data.tool_contract_catalog.v2",
+                "schema_version": "2.10.0",
+                "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+                "sha256": PRE_TECHNICAL_INDICATORS_CATALOG_SHA256,
+            },
+        )
+        self.assertIs(
+            technical_indicators_v2_registry_profile(technical_predecessor),
+            technical_predecessor,
+        )
         analytics_predecessor = analytics_foundation_registry_profile(
             self.registry
         )
@@ -434,6 +501,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "macro.get_series",
                 "market.get_returns",
                 "market.get_forward_returns",
+                "market.technical_indicators",
                 "timeseries.describe",
                 "timeseries.align",
                 "timeseries.correlation",
@@ -495,6 +563,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "econometrics.structural_breaks",
             "data.quality_audit",
             "timeseries.transform",
+            "market.technical_indicators",
         ):
             with self.subTest(name=name):
                 self.assertEqual(self.registry.tool(name)["version"], "1.0.0")
@@ -510,7 +579,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 len(policy["variants"])
                 for policy in self.registry.tool_version_policies
             ),
-            18,
+            19,
         )
         for name in (
             "econometrics.regression",
@@ -554,7 +623,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         v1 = loads_strict(V1_CATALOG.read_bytes())
         v2 = loads_strict(V2_CATALOG.read_bytes())
         self.assertEqual(len(v1["contracts"]), 114)
-        self.assertEqual(len(v2["contracts"]), 52)
+        self.assertEqual(len(v2["contracts"]), 54)
         self.assertEqual(
             {item["tool"] for item in v2["contracts"]},
             {
@@ -563,6 +632,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "market.get_returns",
                 "market.get_available_ticker",
                 "market.get_forward_returns",
+                "market.technical_indicators",
                 "macro.search_series",
                 "macro.describe_series",
                 "macro.get_series",
@@ -605,7 +675,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         )
         self.assertEqual(
             sum(item["id"].endswith(":2.0.0") for item in v2["contracts"]),
-            28,
+            30,
         )
         self.assertEqual(
             sum(item["id"].endswith(":2.1.0") for item in v2["contracts"]),
@@ -666,6 +736,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "macro.get_series",
             "market.get_returns",
             "market.get_forward_returns",
+            "market.technical_indicators",
             "timeseries.describe",
             "timeseries.align",
             "timeseries.correlation",
@@ -994,6 +1065,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "econometrics.regression",
             "econometrics.rolling_regression",
             "econometrics.stationarity",
+            "market.technical_indicators",
         ):
             with self.subTest(name=name):
                 declaration = self.registry.tool(name, "2.0.0")
@@ -1075,6 +1147,40 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 lambda value: value,
             )
 
+    def test_technical_indicator_v2_dispatch_is_store_free(self) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            root = Path(temporary)
+            dispatcher = ToolDispatcher(
+                explicit_store_map(root / "stores"), self.registry
+            )
+            declaration = self.registry.tool(
+                "market.technical_indicators", "2.0.0"
+            )
+            result = dispatcher.call(
+                "market.technical_indicators",
+                dict(declaration["examples"][0]),
+                tool_version="2.0.0",
+            )
+            self.assertFalse(any(root.iterdir()))
+
+        self.assertEqual(result["tool"], "market.technical_indicators")
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(len(result["series"]), 1)
+        self.assertEqual(result["series"][0]["metadata"]["indicator"], "sma")
+        self.assertEqual(
+            [
+                item["value"]
+                for item in result["series"][0]["observations"]
+            ],
+            [
+                None,
+                None,
+                Decimal("101"),
+                Decimal("101.3333333333333333333333333333333"),
+                Decimal("102"),
+            ],
+        )
+
     def test_http_unknown_version_is_sanitized_before_store_access(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
             stores = explicit_store_map(Path(temporary) / "stores")
@@ -1132,7 +1238,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         self.assertEqual(malformed_payload["error"]["code"], "invalid_request")
         self.assertEqual(
             malformed_payload["receipt"],
-            {"registry_revision": "2.47.0"},
+            {"registry_revision": "2.49.0"},
         )
         for response in non_string:
             with self.subTest(body=response.body):
@@ -1141,7 +1247,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 self.assertEqual(payload["error"]["code"], "invalid_request")
                 self.assertEqual(
                     payload["receipt"],
-                    {"registry_revision": "2.47.0"},
+                    {"registry_revision": "2.49.0"},
                 )
 
 

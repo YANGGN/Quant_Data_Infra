@@ -223,6 +223,8 @@ _ALPACA_SPY_OPTION_DATASET_IDS = (
     "fixture.market.option_capture_evidence",
     "fixture.market.options",
 )
+_ALPACA_ETF_OPTION_COLLECTOR_ID = "alpaca.market.etf_option_surface_grid"
+_ALPACA_ETF_OPTION_DATASET_IDS = _ALPACA_SPY_OPTION_DATASET_IDS
 _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID = "sec.company.aapl_fundamentals"
 _SEC_AAPL_COMPANYFACTS_DATASET_IDS = (
     "fixture.company.sec_evidence",
@@ -408,6 +410,15 @@ _ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256 = (
 )
 _ANALYTICS_FOUNDATION_CATALOG_SOURCE_SHA256 = (
     "381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf"
+)
+_TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256 = (
+    "3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524"
+)
+_ALPACA_ETF_OPTION_REGISTRY_SOURCE_SHA256 = (
+    "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
+)
+_TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
+    "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
 _PRE_ANALYTICS_FOUNDATION_TOOL_NAMES = tuple(
     name
@@ -1667,7 +1678,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.47.0"
+        or raw["registry_version"] != "2.49.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2461,7 +2472,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=52,
+        expected_count=54,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3533,7 +3544,9 @@ def load_registry(
         stage11_collector = collector_id in _STAGE11_COLLECTOR_IDS
         fmp_stock_latest_collector = collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID
         max_workload_bytes = (
-            67_108_864
+            268_435_456
+            if collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID
+            else 67_108_864
             if (
                 fmp_stock_latest_collector
                 or collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
@@ -3564,7 +3577,9 @@ def load_registry(
             or workload[name] > max_workload_bytes
             for name in workload
         ) or workload["max_rows"] > (
-            500_000
+            900_016
+            if collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID
+            else 500_000
             if collector_id == "philadelphia_fed.macro.live_employment_vintages"
             else 1_000
             if fmp_stock_latest_collector
@@ -4503,6 +4518,59 @@ def load_registry(
                     "alpaca_spy_options",
                     "Alpaca SPY option-surface collector drifted",
                 )
+        elif collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "market.alpaca_etf_option_surface_grid"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs != _ALPACA_ETF_OPTION_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "resolved_feed",
+                    "environment",
+                    "normalized_contracts",
+                    "normalized_surface",
+                    "synchronized_inputs",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "api_secret",
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_capture_cohort_and_bridge_instrument",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 362,
+                    "max_rows": 900_016,
+                    "max_bytes": 268_435_456,
+                    "max_seconds": 900,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("ALPACA_API_KEY", "ALPACA_API_SECRET")
+            ):
+                raise _error(
+                    pointer,
+                    "alpaca_etf_options",
+                    "Alpaca ETF option-surface grid collector drifted",
+                )
         elif collector_id == _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID:
             if (
                 collector["version"] != "1.0.0"
@@ -4981,9 +5049,244 @@ def _tool_policy_variant_inventory(
     )
 
 
+def alpaca_etf_options_registry_profile(registry: Registry) -> Registry:
+    """Project the broad manual Alpaca options collector back to exact 2.48."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.49.0"), ("1.9.0", "2.48.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    collector_by_id = {
+        str(item["id"]): item for item in registry.collectors
+    }
+    if version == ("1.9.0", "2.48.0"):
+        if (
+            registry.source_sha256
+            != _TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256
+            or _ALPACA_ETF_OPTION_COLLECTOR_ID in collector_by_id
+            or any(
+                _ALPACA_ETF_OPTION_COLLECTOR_ID
+                in dataset_by_id[dataset_id].collector_ids
+                for dataset_id in _ALPACA_ETF_OPTION_DATASET_IDS
+            )
+        ):
+            raise RegistryError(
+                "Registry 2.48 Alpaca ETF options predecessor identity drifted"
+            )
+        return registry
+
+    collector = collector_by_id.get(_ALPACA_ETF_OPTION_COLLECTOR_ID)
+    if (
+        registry.source_sha256 != _ALPACA_ETF_OPTION_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _ALPACA_ETF_OPTION_REGISTRY_SOURCE_SHA256
+        or collector is None
+        or collector["handler"] != "market.alpaca_etf_option_surface_grid"
+        or collector["configuration_env"]
+        != ["ALPACA_API_KEY", "ALPACA_API_SECRET"]
+        or collector["output_datasets"]
+        != list(_ALPACA_ETF_OPTION_DATASET_IDS)
+        or collector["schedule_eligibility"] != {"mode": "manual_only"}
+        or collector["workload_bounds"]
+        != {
+            "max_bytes": 268_435_456,
+            "max_requests": 362,
+            "max_rows": 900_016,
+            "max_seconds": 900,
+        }
+        or any(
+            dataset_by_id[dataset_id].collector_ids.count(
+                _ALPACA_ETF_OPTION_COLLECTOR_ID
+            )
+            != 1
+            for dataset_id in _ALPACA_ETF_OPTION_DATASET_IDS
+        )
+        or any(
+            step.collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Current Alpaca ETF options registry identity drifted")
+
+    projected_collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _ALPACA_ETF_OPTION_COLLECTOR_ID
+    )
+    projected_datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id != _ALPACA_ETF_OPTION_COLLECTOR_ID
+            ),
+        )
+        for item in registry.datasets
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.48.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _ALPACA_ETF_OPTION_COLLECTOR_ID
+    ]
+    raw["datasets"] = [
+        {
+            **item,
+            "collector_ids": [
+                collector_id
+                for collector_id in item["collector_ids"]
+                if collector_id != _ALPACA_ETF_OPTION_COLLECTOR_ID
+            ],
+        }
+        for item in raw["datasets"]
+    ]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Alpaca ETF options registry projection drifted")
+    return replace(
+        registry,
+        registry_version="2.48.0",
+        datasets=projected_datasets,
+        collectors=projected_collectors,
+        raw=raw,
+        source_sha256=_TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def technical_indicators_v2_registry_profile(registry: Registry) -> Registry:
+    """Project the technical-indicator increment back to exact registry 2.47."""
+
+    registry = alpaca_etf_options_registry_profile(registry)
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.48.0"), ("1.9.0", "2.47.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    tool_names = tuple(str(item["id"]) for item in registry.tools)
+    raw_dataset_tool_ids = {
+        str(item["id"]): tuple(str(tool_id) for tool_id in item["tool_ids"])
+        for item in registry.raw["datasets"]
+    }
+    dataset_tool_ids_match = (
+        len(raw_dataset_tool_ids) == len(registry.datasets)
+        and all(
+            raw_dataset_tool_ids.get(item.id) == item.tool_ids
+            for item in registry.datasets
+        )
+    )
+    predecessor_policies = tuple(
+        policy
+        for policy in build_tool_version_policies()
+        if policy["tool"] != "market.technical_indicators"
+    )
+    predecessor_inventory = tuple(
+        (
+            str(policy["tool"]),
+            tuple(str(item["version"]) for item in policy["variants"]),
+        )
+        for policy in predecessor_policies
+    )
+    predecessor_catalog = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": "2.10.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _ANALYTICS_FOUNDATION_CATALOG_SOURCE_SHA256,
+    }
+    if version == ("1.9.0", "2.47.0"):
+        if (
+            registry.source_sha256
+            != _ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256
+            or tool_names != CURRENT_PUBLIC_TOOL_NAMES
+            or not dataset_tool_ids_match
+            or _tool_policy_variant_inventory(registry)
+            != predecessor_inventory
+            or registry.raw.get("tool_version_schema_catalog")
+            != predecessor_catalog
+        ):
+            raise RegistryError(
+                "Registry 2.47 technical-indicator predecessor identity drifted"
+            )
+        return registry
+
+    current_catalog = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": VERSIONED_CATALOG_VERSION,
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256,
+    }
+    current_inventory = tuple(
+        (
+            str(policy["tool"]),
+            tuple(str(item["version"]) for item in policy["variants"]),
+        )
+        for policy in build_tool_version_policies()
+    )
+    if (
+        registry.source_sha256
+        != _TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256
+        or tool_names != CURRENT_PUBLIC_TOOL_NAMES
+        or not dataset_tool_ids_match
+        or _tool_policy_variant_inventory(registry) != current_inventory
+        or registry.raw.get("tool_version_schema_catalog") != current_catalog
+    ):
+        raise RegistryError(
+            "Current technical-indicator registry identity drifted"
+        )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.47.0"
+    raw["tool_versions"] = [
+        item
+        for item in raw["tool_versions"]
+        if item["tool"] != "market.technical_indicators"
+    ]
+    raw["tool_version_schema_catalog"] = predecessor_catalog
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Technical-indicator registry projection drifted")
+    policies = tuple(
+        item
+        for item in registry.tool_version_policies
+        if str(item["tool"]) != "market.technical_indicators"
+    )
+    return replace(
+        registry,
+        registry_version="2.47.0",
+        tool_version_policies=policies,
+        raw=raw,
+        source_sha256=_ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def analytics_foundation_registry_profile(registry: Registry) -> Registry:
     """Project the analytics foundation increment back to exact registry 2.46."""
 
+    registry = technical_indicators_v2_registry_profile(registry)
     version = (registry.schema_version, registry.registry_version)
     if version not in {("1.9.0", "2.47.0"), ("1.9.0", "2.46.0")}:
         return registry
@@ -5007,7 +5310,11 @@ def analytics_foundation_registry_profile(registry: Registry) -> Registry:
         policy
         for policy in build_tool_version_policies()
         if policy["tool"]
-        not in {"data.quality_audit", "timeseries.transform"}
+        not in {
+            "data.quality_audit",
+            "timeseries.transform",
+            "market.technical_indicators",
+        }
     )
     predecessor_policy_inventory = tuple(
         (
@@ -5041,7 +5348,7 @@ def analytics_foundation_registry_profile(registry: Registry) -> Registry:
 
     current_catalog = {
         "schema_id": VERSIONED_CATALOG_ID,
-        "schema_version": VERSIONED_CATALOG_VERSION,
+        "schema_version": "2.10.0",
         "resource": "quant_data/generated/tool_contract_schemas_v2.json",
         "sha256": _ANALYTICS_FOUNDATION_CATALOG_SOURCE_SHA256,
     }
@@ -5051,6 +5358,7 @@ def analytics_foundation_registry_profile(registry: Registry) -> Registry:
             tuple(str(item["version"]) for item in policy["variants"]),
         )
         for policy in build_tool_version_policies()
+        if policy["tool"] != "market.technical_indicators"
     )
     if (
         registry.source_sha256
@@ -5194,7 +5502,11 @@ def canonical_access_registry_profile(registry: Registry) -> Registry:
             )
             for policy in build_tool_version_policies()
             if policy["tool"]
-            not in {"data.quality_audit", "timeseries.transform"}
+            not in {
+                "data.quality_audit",
+                "timeseries.transform",
+                "market.technical_indicators",
+            }
         )
         or registry.raw.get("tool_version_schema_catalog") != current_catalog
     ):

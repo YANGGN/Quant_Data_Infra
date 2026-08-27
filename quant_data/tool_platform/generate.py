@@ -59,6 +59,12 @@ _REVIEWED_REGISTRY_SOURCE_SHA256 = {
     ("1.9.0", "2.47.0"): (
         "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
     ),
+    ("1.9.0", "2.48.0"): (
+        "3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524"
+    ),
+    ("1.9.0", "2.49.0"): (
+        "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
+    ),
 }
 CATALOG_RESOURCE = Path("quant_data/generated/tool_contract_schemas_v1.json")
 VERSIONED_CATALOG_RESOURCE = Path(
@@ -77,6 +83,9 @@ _ANALYTICS_FOUNDATION_VERSIONED_TOOL_IDS = frozenset(
         "data.quality_audit",
         "timeseries.transform",
     }
+)
+_TECHNICAL_INDICATOR_VERSIONED_TOOL_IDS = frozenset(
+    {"market.technical_indicators"}
 )
 
 
@@ -127,13 +136,26 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         version_policies = tuple(
             item
             for item in version_policies
-            if item["tool"] not in _ANALYTICS_FOUNDATION_VERSIONED_TOOL_IDS
+            if item["tool"]
+            not in (
+                _ANALYTICS_FOUNDATION_VERSIONED_TOOL_IDS
+                | _TECHNICAL_INDICATOR_VERSIONED_TOOL_IDS
+            )
         )
         catalog_version = "2.9.0"
+    elif source_version == ("1.9.0", "2.46.0"):
+        version_policies = tuple(
+            item
+            for item in version_policies
+            if item["tool"] not in _TECHNICAL_INDICATOR_VERSIONED_TOOL_IDS
+        )
+        catalog_version = "2.10.0"
     elif source_version not in {
         ("1.9.0", "2.45.0"),
         ("1.9.0", "2.46.0"),
         ("1.9.0", "2.47.0"),
+        ("1.9.0", "2.48.0"),
+        ("1.9.0", "2.49.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -155,7 +177,11 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         version_policies = tuple(
             item
             for item in version_policies
-            if item["tool"] not in macro_v2_tools
+            if item["tool"]
+            not in (
+                macro_v2_tools
+                | _TECHNICAL_INDICATOR_VERSIONED_TOOL_IDS
+            )
         )
         catalog_version = "2.8.0"
     catalog_payload = schema_catalog(recovered_entries)
@@ -171,27 +197,35 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
 
     raw["schema_version"] = "1.9.0"
     raw["registry_version"] = (
-        "2.47.0"
-        if source_version
-        in {("1.9.0", "2.46.0"), ("1.9.0", "2.47.0")}
+        "2.49.0"
+        if source_version == ("1.9.0", "2.49.0")
         else (
-            "2.46.0"
-            if source_version == ("1.9.0", "2.45.0")
+            "2.48.0"
+            if source_version
+            in {("1.9.0", "2.47.0"), ("1.9.0", "2.48.0")}
             else (
-                "2.44.0"
-                if source_version == ("1.9.0", "2.44.0")
+                "2.47.0"
+                if source_version == ("1.9.0", "2.46.0")
                 else (
-                    "2.43.0"
-                    if source_version == ("1.9.0", "2.43.0")
+                    "2.46.0"
+                    if source_version == ("1.9.0", "2.45.0")
                     else (
-                        "2.42.0"
-                        if source_version
-                        in {
-                            ("1.9.0", "2.40.0"),
-                            ("1.9.0", "2.41.0"),
-                            ("1.9.0", "2.42.0"),
-                        }
-                        else "2.39.0"
+                        "2.44.0"
+                        if source_version == ("1.9.0", "2.44.0")
+                        else (
+                            "2.43.0"
+                            if source_version == ("1.9.0", "2.43.0")
+                            else (
+                                "2.42.0"
+                                if source_version
+                                in {
+                                    ("1.9.0", "2.40.0"),
+                                    ("1.9.0", "2.41.0"),
+                                    ("1.9.0", "2.42.0"),
+                                }
+                                else "2.39.0"
+                            )
+                        )
                     )
                 )
             )

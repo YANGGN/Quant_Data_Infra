@@ -20,6 +20,7 @@ from quant_data.tool_platform.arguments import (
     Stage10MarketRegressionModelSuiteArgumentsV3,
     Stage10MarketRollingRegressionArgumentsV21,
     Stage10MarketStructuralBreakArgumentsV2,
+    Stage10TechnicalIndicatorArgumentsV2,
     input_schema,
     parse_arguments,
     preflight_dimensions,
@@ -125,6 +126,67 @@ class ArgumentContractTests(unittest.TestCase):
                 {"database_path": "/tmp/forbidden.sqlite"},
                 lambda _: series(),
             )
+
+    def test_technical_indicator_v2_arguments_are_strict_and_costed(self) -> None:
+        input_kind = "stage10_technical_indicator_v2"
+        schema = input_schema(input_kind, SERIES_SCHEMA)
+        self.assertEqual(schema["properties"]["series"]["maxItems"], 5)
+        self.assertIn(
+            "average_directional_index",
+            schema["properties"]["indicator"]["enum"],
+        )
+        public = {
+            "series": [raw_series(5)],
+            "indicator": "bollinger_bands",
+            "window": 2,
+            "fast_window": None,
+            "slow_window": None,
+            "signal_window": None,
+            "standard_deviation_multiplier": Decimal("2"),
+            "limit": 5,
+        }
+        validate_schema(public, schema)
+        parsed = parse_arguments(input_kind, public, lambda _: series())
+        self.assertIsInstance(parsed, Stage10TechnicalIndicatorArgumentsV2)
+        self.assertEqual(
+            preflight_dimensions(public, input_kind=input_kind),
+            {"rows": 5, "series": 1, "operations": 35},
+        )
+
+        invalid = (
+            {**public, "signal_window": 2},
+            {**public, "standard_deviation_multiplier": None},
+            {**public, "window": 1},
+            {
+                **public,
+                "indicator": "macd",
+                "window": None,
+                "fast_window": 5,
+                "slow_window": 5,
+                "signal_window": 2,
+                "standard_deviation_multiplier": None,
+            },
+            {**public, "standard_deviation_multiplier": Decimal("0")},
+        )
+        for arguments in invalid:
+            with self.subTest(arguments=arguments):
+                with self.assertRaises(ValidationError):
+                    parse_arguments(input_kind, arguments, lambda _: series())
+
+        decoder_calls = 0
+
+        def decode(_: object) -> TimeSeries:
+            nonlocal decoder_calls
+            decoder_calls += 1
+            return series()
+
+        with self.assertRaises(ValidationError):
+            parse_arguments(
+                input_kind,
+                {**public, "series": [raw_series() for _ in range(6)]},
+                decode,
+            )
+        self.assertEqual(decoder_calls, 0)
 
     def test_typed_argument_values_are_frozen_mappings(self) -> None:
         source_parameters = [{"name": "window", "value": 5}]

@@ -29,7 +29,7 @@ PRE_SOURCE_SHA256 = (
     "999ff3ef57e2c858139e2c1122e9d2409d53d66dd6f1cdcd7cb624e08542f969"
 )
 CURRENT_SOURCE_SHA256 = (
-    "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
+    "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
 )
 
 
@@ -44,7 +44,7 @@ class OfficialConditionsRegistryTests(unittest.TestCase):
     def test_three_collectors_are_manual_credential_free_and_bound(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.47.0")
+        self.assertEqual(registry.revision, "2.49.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -52,7 +52,7 @@ class OfficialConditionsRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (40, 53, 53),
+            (40, 53, 54),
         )
         collectors = {
             str(item["id"]): item for item in registry.collectors

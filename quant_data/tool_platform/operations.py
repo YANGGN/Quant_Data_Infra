@@ -22,6 +22,7 @@ from .catalog import (
     VERSIONED_CANONICAL_MACRO_TOOLS,
     VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_TECHNICAL_INDICATOR_TOOLS,
     VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
 )
 from .context import ToolExecutionContext
@@ -120,11 +121,16 @@ def invoke_operation(
             and name == "econometrics.regression"
         )
     )
+    versioned_technical_indicator = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_TECHNICAL_INDICATOR_TOOLS
+    )
     if name not in REGISTERED_STAGE5_OPERATIONS and not (
         versioned_macro
         or versioned_quality
         or versioned_timeseries
         or versioned_econometrics
+        or versioned_technical_indicator
     ):
         raise LookupError("Operation graph is not registered")
     context.checkpoint()
@@ -188,6 +194,17 @@ def invoke_operation(
         from .market_returns import invoke_stage10_market_return
 
         return invoke_stage10_market_return(name, arguments, context, registry)
+    if versioned_technical_indicator:
+        expected_graph = "tool_platform.market.technical_indicators.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected technical-indicator operation graph is invalid"
+            )
+        from .technical_indicator_adapter import (
+            invoke_stage10_technical_indicator,
+        )
+
+        return invoke_stage10_technical_indicator(name, arguments, context)
     if versioned_timeseries:
         expected_graph = f"tool_platform.{name}.v2"
         if context.operation_graph_id != expected_graph:

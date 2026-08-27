@@ -5,13 +5,13 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.47.0`, schema `1.9.0`. The former `2.22.0`/`validated` working candidate is
+`2.49.0`, schema `1.9.0`. The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.47.0` revisions. For any
+from the later additive `2.23.0` through `2.49.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -545,6 +545,46 @@ native names, restoring byte-exact registry `2.46.0` and catalog `2.9.0`.
 This revision adds no provider request, canonical-store operation, migration,
 dataset, collector, credential, write path, scheduler, export, hosting, or
 deployment.
+
+Registry `2.48.0` adds only an explicit local, store-free `2.0.0` policy for
+the existing reserved `market.technical_indicators` name. Omitted version
+selection still routes to its frozen reconstructed v1 contract; explicit v2
+accepts caller-supplied typed Stage 10 OHLCV series and calculates one
+deterministic indicator specification per call. SMA, EMA, rolling sample
+standard deviation and z-score, true range and ATR, rate of change and RSI,
+MACD, Bollinger Bands, Donchian channels, stochastic oscillator, ADX, OBV,
+and accumulation/distribution are supported. The active inventory remains
+65 names and becomes 15 version policies and 19 variants. Catalog `2.11.0`
+has 54 contracts at SHA-256
+`864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757`;
+the registry source SHA-256 is
+`3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524`.
+Exact projection removes only this version policy and restores byte-exact
+registry `2.47.0` and catalog `2.10.0`. This revision adds no provider
+request, canonical-store operation, migration, dataset, collector,
+credential, write path, scheduler, export, hosting, or deployment.
+
+Registry `2.49.0` adds only the private
+`alpaca.market.etf_option_surface_grid` collector and reciprocal bindings to
+the three existing market instrument, option-evidence, and canonical-option
+datasets. The collector fixes 15 ETF underlyings, ten DTE targets, standard
+call-and-put expiry eligibility, 80%-120%-of-spot contracts, explicit
+nonstandard-surface exclusion, paper environment, IEX underlying snapshots,
+and Alpaca indicative option snapshots. It is `manual_only`, has no registry job,
+uses the existing Alpaca credential resolver and market-store lock/publisher,
+and caps one run at 362 single-attempt requests, 900,016 rows, 256 MiB, and
+900 seconds. The inventory is 40 migrations, 53 datasets, 54 collectors,
+8 jobs, 65 tools, 15 tool-version policies, 4 dashboards, and 1 export. The
+tool catalog remains `2.11.0` with 54 contracts at SHA-256
+`864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757`;
+the registry source SHA-256 is
+`6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1`.
+Exact projection removes only this collector and its reciprocal bindings and
+restores byte-exact registry `2.48.0` at SHA-256
+`3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524`.
+This revision adds no migration, dataset ownership, public tool, scheduler,
+export, hosting, or deployment, and registry presence is not a live-run
+receipt.
 
 ADR 0012 defines the exact `2.40.0` topology. The legacy
 `macro.fmp.economic_calendar_evidence` dataset remains active and readable

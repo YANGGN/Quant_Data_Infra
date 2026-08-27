@@ -208,6 +208,32 @@ is registry `2.46.0` with catalog `2.9.0`. No portfolio or position semantics,
 provider request, credential, canonical write, migration, scheduler, export,
 hosting, or deployment scope was added.
 
+Later on 2026-08-26 the user selected the proposed technical-indicator
+sequence. Registry `2.48.0` adds an explicit store-free
+`market.technical_indicators@2.0.0` successor while preserving the
+reconstructed v1 behavior. It consumes unmodified typed Stage 10 OHLCV
+series, calculates one of 15 deterministic indicator specifications per
+call, and returns one through three aligned scalar series with explicit
+warm-up/undefined missingness and derived lineage. The active manifest
+remains 65 names, with 15 version policies and 19 variants; catalog `2.11.0`
+has 54 contracts. Exact projection restores byte-identical registry `2.47.0`
+and catalog `2.10.0`. This adds no provider request, credential,
+canonical-store operation, migration, dataset, collector, write path,
+scheduler, export, hosting, deployment, portfolio, or position scope.
+
+On 2026-08-26 the user requested broad option-surface coverage. Registry
+`2.49.0` adds one private, manual-only Alpaca collector over the fixed ETF
+universe `SPY`, `QQQ`, `IWM`, `DIA`, and the eleven sector ETFs, with exact
+DTE targets `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and `365`.
+Nearest positive listed expiries are selected deterministically and duplicate
+target mappings are captured once. The fixed local Inspector adds a read-only
+`options-surfaces` view. The existing scheduled SPY collector and its
+`spy-options` view remain unchanged and SPY-only; the broad collector has no
+scheduler or registry job. Implementation and offline validation made no
+provider request, credential read, or canonical-store write, so no broad-grid
+live-completion receipt is claimed. Exact projection restores byte-identical
+registry `2.48.0`; catalog `2.11.0` is unchanged.
+
 For any provider, credential, scheduler, canonical-store, migration,
 promotion, retirement, deployment, public-exposure, or destructive task, read
 the [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) before the

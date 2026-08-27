@@ -208,6 +208,57 @@ class Stage10MarketVolumeArgumentsV1(_ArgumentMapping):
 
 
 @dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV2(_ArgumentMapping):
+    """Calculate one explicit technical-indicator specification over OHLCV."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class CanonicalMacroSearchArgumentsV2(_ArgumentMapping):
     """Search the current retained canonical macro catalog."""
 
@@ -803,6 +854,7 @@ _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     Stage10AvailableTickerArgumentsV1,
     Stage10MarketPriceArgumentsV1,
     Stage10MarketVolumeArgumentsV1,
+    Stage10TechnicalIndicatorArgumentsV2,
     CanonicalMacroSearchArgumentsV2,
     CanonicalMacroDescribeArgumentsV2,
     CanonicalMacroSeriesArgumentsV2,
@@ -1487,6 +1539,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
         Stage10MarketAlignArgumentsV2,
         Stage10MarketCorrelationArgumentsV2,
         Stage10DataQualityArgumentsV2,
+        Stage10TechnicalIndicatorArgumentsV2,
         Stage10MarketTransformArgumentsV2,
         Stage10DistributionArgumentsV1,
         Stage10BootstrapArgumentsV1,
@@ -1518,6 +1571,123 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 "minimum",
                 "limit must retain one quality summary per supplied series",
             )
+        if argument_type is Stage10TechnicalIndicatorArgumentsV2:
+            indicator_contract = _field_contract(argument_type, "indicator")
+            indicator = _validated_string(
+                mapping["indicator"], indicator_contract, "/indicator"
+            )
+            if indicator not in indicator_contract.enum:
+                raise _validation_error(
+                    "/indicator", "enum", "Unsupported technical indicator"
+                )
+            values["indicator"] = indicator
+            parameter_names = (
+                "window",
+                "fast_window",
+                "slow_window",
+                "signal_window",
+            )
+            for field_name in parameter_names:
+                values[field_name] = _validated_optional_limit(
+                    mapping[field_name],
+                    _field_contract(argument_type, field_name),
+                    f"/{field_name}",
+                )
+            raw_multiplier = mapping["standard_deviation_multiplier"]
+            multiplier: Decimal | None = None
+            if raw_multiplier is not None:
+                validated = _validated_scalar(
+                    raw_multiplier, "/standard_deviation_multiplier"
+                )
+                if (
+                    isinstance(validated, bool)
+                    or not isinstance(validated, (int, Decimal))
+                ):
+                    raise _validation_error(
+                        "/standard_deviation_multiplier",
+                        "type",
+                        "Expected a finite number or null",
+                    )
+                multiplier = (
+                    validated
+                    if isinstance(validated, Decimal)
+                    else Decimal(validated)
+                )
+                if not Decimal("0") < multiplier <= Decimal("10"):
+                    raise _validation_error(
+                        "/standard_deviation_multiplier",
+                        "range",
+                        "Multiplier must be greater than zero and at most ten",
+                    )
+            values["standard_deviation_multiplier"] = multiplier
+            required_parameters = {
+                "sma": ("window",),
+                "ema": ("window",),
+                "rolling_standard_deviation": ("window",),
+                "rolling_z_score": ("window",),
+                "true_range": (),
+                "average_true_range": ("window",),
+                "rate_of_change": ("window",),
+                "relative_strength_index": ("window",),
+                "macd": ("fast_window", "slow_window", "signal_window"),
+                "bollinger_bands": (
+                    "window",
+                    "standard_deviation_multiplier",
+                ),
+                "donchian_channels": ("window",),
+                "stochastic_oscillator": ("window", "signal_window"),
+                "average_directional_index": ("window",),
+                "on_balance_volume": (),
+                "accumulation_distribution": (),
+            }
+            active = set(required_parameters[indicator])
+            supplied = {
+                name
+                for name in (
+                    *parameter_names,
+                    "standard_deviation_multiplier",
+                )
+                if values[name] is not None
+            }
+            missing = active - supplied
+            if missing:
+                name = sorted(missing)[0]
+                raise _validation_error(
+                    f"/{name}",
+                    "required_for_indicator",
+                    f"{name} is required for {indicator}",
+                )
+            extra = supplied - active
+            if extra:
+                name = sorted(extra)[0]
+                raise _validation_error(
+                    f"/{name}",
+                    "only_for_indicator",
+                    f"{name} is not used by {indicator}",
+                )
+            if (
+                indicator
+                in {
+                    "rolling_standard_deviation",
+                    "rolling_z_score",
+                    "bollinger_bands",
+                }
+                and int(values["window"]) < 2
+            ):
+                raise _validation_error(
+                    "/window",
+                    "minimum",
+                    f"{indicator} requires a window of at least two",
+                )
+            if (
+                indicator == "macd"
+                and int(values["fast_window"]) >= int(values["slow_window"])
+            ):
+                raise _validation_error(
+                    "/fast_window",
+                    "ordering",
+                    "MACD fast_window must be smaller than slow_window",
+                )
         if argument_type is Stage10MarketAlignArgumentsV2:
             join_contract = _field_contract(argument_type, "join")
             join = _validated_string(mapping["join"], join_contract, "/join")
@@ -1984,6 +2154,7 @@ def parse_arguments(
                 Stage10MarketAlignArgumentsV2,
                 Stage10MarketCorrelationArgumentsV2,
                 Stage10DataQualityArgumentsV2,
+                Stage10TechnicalIndicatorArgumentsV2,
                 Stage10CovarianceArgumentsV1,
                 Stage10PrincipalComponentsArgumentsV1,
                 Stage10MarketRegressionArgumentsV2,
@@ -2011,6 +2182,10 @@ def parse_arguments(
         )
     if prepared.argument_type is Stage10DataQualityArgumentsV2:
         return Stage10DataQualityArgumentsV2(series=decoded, **dict(values))
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV2:
+        return Stage10TechnicalIndicatorArgumentsV2(
+            series=decoded, **dict(values)
+        )
     if prepared.argument_type is Stage10MarketTransformArgumentsV2:
         return Stage10MarketTransformArgumentsV2(
             series=decoded[0], **dict(values)
@@ -2146,6 +2321,10 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         item.name
         for item, _ in _declared_fields(Stage10MarketCorrelationArgumentsV2)
     }
+    technical_indicator_names = {
+        item.name
+        for item, _ in _declared_fields(Stage10TechnicalIndicatorArgumentsV2)
+    }
     market_regression_names = {
         item.name
         for item, _ in _declared_fields(Stage10MarketRegressionArgumentsV2)
@@ -2233,6 +2412,8 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         )
     if names == market_correlation_names:
         return Stage10MarketCorrelationArgumentsV2.INPUT_KIND
+    if names == technical_indicator_names:
+        return Stage10TechnicalIndicatorArgumentsV2.INPUT_KIND
     if names == market_regression_names:
         return Stage10MarketRegressionArgumentsV2.INPUT_KIND
     if names == market_rolling_regression_names:
@@ -2286,6 +2467,30 @@ def preflight_dimensions(
         operations += rows * int(prepared.values["kpss_lag"])
     if prepared.argument_type is Stage10MarketStructuralBreakArgumentsV2:
         operations *= 3
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV2:
+        output_count = {
+            "macd": 3,
+            "bollinger_bands": 3,
+            "donchian_channels": 3,
+            "stochastic_oscillator": 2,
+            "average_directional_index": 3,
+        }.get(str(prepared.values["indicator"]), 1)
+        effective_window = max(
+            (
+                int(prepared.values[name])
+                for name in (
+                    "window",
+                    "fast_window",
+                    "slow_window",
+                    "signal_window",
+                )
+                if prepared.values[name] is not None
+            ),
+            default=1,
+        )
+        operations = rows * (
+            series + output_count * effective_window
+        )
     if prepared.argument_type is Stage10MarketTransformArgumentsV2:
         if prepared.values["operation"] == "rolling_statistic":
             operations *= int(prepared.values["window"])
@@ -2325,6 +2530,7 @@ __all__ = [
     "Stage10AvailableTickerArgumentsV1",
     "Stage10MarketPriceArgumentsV1",
     "Stage10MarketVolumeArgumentsV1",
+    "Stage10TechnicalIndicatorArgumentsV2",
     "CanonicalMacroSearchArgumentsV2",
     "CanonicalMacroDescribeArgumentsV2",
     "CanonicalMacroSeriesArgumentsV2",

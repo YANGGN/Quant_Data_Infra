@@ -165,6 +165,8 @@ def _registry_preflight(registry: Registry) -> None:
             ("1.9.0", "2.45.0"),
             ("1.9.0", "2.46.0"),
             ("1.9.0", "2.47.0"),
+            ("1.9.0", "2.48.0"),
+            ("1.9.0", "2.49.0"),
         }
         or len(collector) != 1
         or len(migration) != 1

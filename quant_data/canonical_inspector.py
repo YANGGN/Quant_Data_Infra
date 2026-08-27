@@ -66,17 +66,22 @@ from .macro.nyfed_repo_facilities import (
 )
 from .macro.nyfed_soma_summary import COMPONENT_MANIFEST as SOMA_COMPONENT_MANIFEST
 from .macro.stage11_eia import EIA_WEEKLY_CANONICAL_SERIES_ID
+from .market.alpaca_options import (
+    ALPACA_ETF_OPTIONS_DTE_TARGETS as _OPTIONS_SURFACE_TARGET_DTES,
+    ALPACA_ETF_OPTIONS_UNIVERSE as _OPTIONS_SURFACE_UNDERLYINGS,
+)
 from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map, stable_id
 
 
-_CURRENT_REGISTRY = "2.47.0"
+_CURRENT_REGISTRY = "2.49.0"
 _CURRENT_SCHEMA = "1.9.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
     "market-prices",
     "market-instruments",
     "spy-options",
+    "options-surfaces",
     "company-fundamentals",
     "macro-current",
     "macro-vintages",
@@ -108,6 +113,7 @@ _VIEW_LABELS = {
     "market-prices": "Market prices",
     "market-instruments": "Market symbols",
     "spy-options": "SPY options",
+    "options-surfaces": "Options surfaces",
     "company-fundamentals": "Company fundamentals",
     "macro-current": "Macro current",
     "macro-vintages": "Macro vintages",
@@ -214,6 +220,9 @@ _COMPANY_METRIC_IDS = {
 _COMPANY_METRIC_CODES_BY_ID = {
     metric_id: metric for metric, metric_id in _COMPANY_METRIC_IDS.items()
 }
+_OPTIONS_SURFACE_TARGET_DTE_TEXT = frozenset(
+    str(value) for value in _OPTIONS_SURFACE_TARGET_DTES
+)
 _MAX_LIMIT = 100
 _MAX_PAGE = 1000
 
@@ -235,6 +244,10 @@ class CanonicalInspectorReadService:
             "spy-options": {
                 "view", "option_type", "state", "expiration", "direction",
                 "page", "limit",
+            },
+            "options-surfaces": {
+                "view", "underlying", "target_dte", "expiration", "option_type",
+                "state", "direction", "page", "limit",
             },
             "company-fundamentals": {
                 "view", "cik", "metric", "period_end", "direction", "page", "limit",
@@ -351,6 +364,8 @@ class CanonicalInspectorReadService:
             result = self._market_instruments(query, direction, page, limit)
         elif view == "spy-options":
             result = self._spy_options(query, direction, page, limit)
+        elif view == "options-surfaces":
+            result = self._options_surfaces(query, direction, page, limit)
         elif view == "company-fundamentals":
             result = self._company_fundamentals(query, direction, page, limit)
         elif view == "macro-current":
@@ -614,6 +629,304 @@ class CanonicalInspectorReadService:
                 "option_type": option_type,
                 "state": state,
                 "expiration": expiration,
+            },
+        )
+
+    def _options_surfaces(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        """Inspect latest paper/indicative Alpaca captures for each expiry cohort."""
+
+        underlying = query.get("underlying", "")
+        if underlying and underlying not in _OPTIONS_SURFACE_UNDERLYINGS:
+            raise ValidationError("Options underlying is invalid")
+        target_dte = query.get("target_dte", "")
+        if target_dte and target_dte not in _OPTIONS_SURFACE_TARGET_DTE_TEXT:
+            raise ValidationError("Options target DTE is invalid")
+        option_type = query.get("option_type", "")
+        if option_type and option_type not in {"call", "put"}:
+            raise ValidationError("Options option type is invalid")
+        state = query.get("state", "")
+        if state and state not in {"present", "missing", "excluded"}:
+            raise ValidationError("Options surface state is invalid")
+        expiration = _optional_date(query.get("expiration"), "/expiration")
+
+        where = ["capture.capture_rank=1"]
+        parameters: list[object] = []
+        if underlying:
+            where.append("capture.underlying_symbol=?")
+            parameters.append(underlying)
+        if target_dte:
+            where.append(
+                "EXISTS (SELECT 1 FROM json_each(capture.target_dtes) AS target "
+                "WHERE CAST(target.value AS TEXT)=?)"
+            )
+            parameters.append(target_dte)
+        if option_type:
+            where.append("contract.option_type=?")
+            parameters.append(option_type)
+        if state:
+            where.append("surface.surface_state=?")
+            parameters.append(state)
+        if expiration:
+            where.append("contract.expiration_date=?")
+            parameters.append(expiration)
+        predicate = " AND ".join(where)
+        latest = """
+            WITH eligible_captures AS (
+                SELECT capture.capture_id,
+                       capture.requested_feed,
+                       capture.resolved_feed,
+                       capture.environment,
+                       capture.completed_at,
+                       capture.completeness,
+                       underlying.provider_symbol AS underlying_symbol,
+                       CASE WHEN json_valid(capture.request_scope_json)=1 THEN
+                           CASE WHEN json_type(
+                               capture.request_scope_json, '$.selected_expiration'
+                           )='text' THEN json_extract(
+                               capture.request_scope_json, '$.selected_expiration'
+                           ) END
+                       END AS selected_expiration,
+                       CASE WHEN json_valid(capture.request_scope_json)=1 THEN
+                           CASE
+                               WHEN json_type(
+                                   capture.request_scope_json, '$.target_dtes'
+                               )='array' THEN json_extract(
+                                   capture.request_scope_json, '$.target_dtes'
+                               )
+                               WHEN json_type(
+                                   capture.request_scope_json, '$.target_dte'
+                               )='integer' THEN json_array(json_extract(
+                                   capture.request_scope_json, '$.target_dte'
+                               ))
+                               ELSE json_array()
+                           END
+                       ELSE json_array() END AS target_dtes,
+                       CASE WHEN json_valid(capture.request_scope_json)=1
+                              AND json_type(
+                                  capture.request_scope_json, '$.spot_price'
+                              ) IN ('integer', 'real', 'text')
+                            THEN json_extract(
+                                capture.request_scope_json, '$.spot_price'
+                            )
+                       END AS underlying_spot_price
+                FROM option_surface_captures AS capture
+                JOIN stage10_instruments AS underlying
+                  ON underlying.instrument_id=capture.underlying_instrument_id
+                WHERE underlying.provider='fmp'
+                  AND underlying.provider_symbol IN (
+                      'SPY', 'QQQ', 'IWM', 'DIA', 'XLB', 'XLC', 'XLE', 'XLF',
+                      'XLI', 'XLK', 'XLP', 'XLRE', 'XLU', 'XLV', 'XLY'
+                  )
+                  AND capture.environment='paper'
+                  AND capture.requested_feed='indicative'
+                  AND capture.resolved_feed='alpaca_indicative'
+            ),
+            ranked_captures AS (
+                SELECT eligible_captures.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY underlying_symbol, selected_expiration
+                           ORDER BY completed_at DESC, capture_id DESC
+                       ) AS capture_rank
+                FROM eligible_captures
+                WHERE selected_expiration IS NOT NULL
+            )
+        """
+        base = f"""
+            FROM ranked_captures AS capture
+            JOIN option_surface_snapshots AS surface
+              ON surface.capture_id=capture.capture_id
+            JOIN option_contracts AS contract
+              ON contract.contract_id=surface.contract_id
+            LEFT JOIN option_capture_underlying_quotes AS underlying_quote
+              ON underlying_quote.capture_id=capture.capture_id
+            LEFT JOIN option_capture_expiry_inputs AS expiry_input
+              ON expiry_input.capture_id=capture.capture_id
+             AND expiry_input.expiration_date=capture.selected_expiration
+            LEFT JOIN option_capture_rate_curves AS rate_curve
+              ON rate_curve.capture_id=capture.capture_id
+            LEFT JOIN option_capture_dividend_sets AS dividend_set
+              ON dividend_set.capture_id=capture.capture_id
+            WHERE {predicate}
+        """
+        columns = (
+            "underlying_symbol", "target_dtes", "capture_id", "captured_at",
+            "requested_feed", "resolved_feed", "environment", "completeness",
+            "selected_expiration", "input_state", "input_missing_reason",
+            "input_spot_price", "risk_free_rate", "dividend_yield", "forward_price",
+            "rate_curve_state", "rate_curve_missing_reason", "rate_curve_date",
+            "rate_curve_source_name", "dividend_set_state",
+            "dividend_set_missing_reason", "dividend_source_name",
+            "contract_id", "contract_symbol", "expiration_date", "option_type",
+            "strike_price", "contract_status", "deliverable_kind", "surface_state",
+            "bid_price", "ask_price", "last_price", "implied_volatility", "delta",
+            "gamma", "theta", "vega", "rho", "open_interest",
+            "open_interest_as_of_date", "open_interest_state",
+            "open_interest_missing_reason", "close_price", "close_price_trade_date",
+            "close_price_state", "close_price_missing_reason",
+            "quote_at", "trade_at", "underlying_spot_price",
+            "underlying_quote_state", "underlying_quote_missing_reason",
+            "underlying_bid_price", "underlying_ask_price", "underlying_last_price",
+            "underlying_trade_price", "underlying_quote_at", "missing_reason",
+            "exclusion_reason",
+        )
+        sql = (
+            latest
+            + """
+            SELECT capture.underlying_symbol,
+                   capture.target_dtes,
+                   capture.capture_id,
+                   capture.completed_at AS captured_at,
+                   capture.requested_feed,
+                   capture.resolved_feed,
+                   capture.environment,
+                   capture.completeness,
+                   capture.selected_expiration,
+                   expiry_input.input_state,
+                   expiry_input.missing_reason AS input_missing_reason,
+                   expiry_input.spot_price AS input_spot_price,
+                   expiry_input.risk_free_rate,
+                   expiry_input.dividend_yield,
+                   expiry_input.forward_price,
+                   rate_curve.input_state AS rate_curve_state,
+                   rate_curve.missing_reason AS rate_curve_missing_reason,
+                   rate_curve.curve_date AS rate_curve_date,
+                   rate_curve.source_name AS rate_curve_source_name,
+                   dividend_set.input_state AS dividend_set_state,
+                   dividend_set.missing_reason AS dividend_set_missing_reason,
+                   dividend_set.source_name AS dividend_source_name,
+                   contract.contract_id,
+                   contract.contract_symbol,
+                   contract.expiration_date,
+                   contract.option_type,
+                   contract.strike_price,
+                   contract.contract_status,
+                   contract.deliverable_kind,
+                   surface.surface_state,
+                   surface.bid_price,
+                   surface.ask_price,
+                   surface.last_price,
+                   surface.implied_volatility,
+                   surface.delta,
+                   surface.gamma,
+                   surface.theta,
+                   surface.vega,
+                   surface.rho,
+                   (
+                       SELECT interest.open_interest
+                       FROM option_open_interest AS interest
+                       WHERE interest.capture_id=surface.capture_id
+                         AND interest.contract_id=surface.contract_id
+                       ORDER BY interest.as_of_date DESC, interest.source_row DESC
+                       LIMIT 1
+                   ) AS open_interest,
+                   (
+                       SELECT interest.as_of_date
+                       FROM option_open_interest AS interest
+                       WHERE interest.capture_id=surface.capture_id
+                         AND interest.contract_id=surface.contract_id
+                       ORDER BY interest.as_of_date DESC, interest.source_row DESC
+                       LIMIT 1
+                   ) AS open_interest_as_of_date,
+                   (
+                       SELECT interest.observation_state
+                       FROM option_open_interest AS interest
+                       WHERE interest.capture_id=surface.capture_id
+                         AND interest.contract_id=surface.contract_id
+                       ORDER BY interest.as_of_date DESC, interest.source_row DESC
+                       LIMIT 1
+                   ) AS open_interest_state,
+                   (
+                       SELECT interest.missing_reason
+                       FROM option_open_interest AS interest
+                       WHERE interest.capture_id=surface.capture_id
+                         AND interest.contract_id=surface.contract_id
+                       ORDER BY interest.as_of_date DESC, interest.source_row DESC
+                       LIMIT 1
+                   ) AS open_interest_missing_reason,
+                   (
+                       SELECT close_price.close_price
+                       FROM option_close_prices AS close_price
+                       WHERE close_price.capture_id=surface.capture_id
+                         AND close_price.contract_id=surface.contract_id
+                       ORDER BY close_price.trade_date DESC, close_price.source_row DESC
+                       LIMIT 1
+                   ) AS close_price,
+                   (
+                       SELECT close_price.trade_date
+                       FROM option_close_prices AS close_price
+                       WHERE close_price.capture_id=surface.capture_id
+                         AND close_price.contract_id=surface.contract_id
+                       ORDER BY close_price.trade_date DESC, close_price.source_row DESC
+                       LIMIT 1
+                   ) AS close_price_trade_date,
+                   (
+                       SELECT close_price.observation_state
+                       FROM option_close_prices AS close_price
+                       WHERE close_price.capture_id=surface.capture_id
+                         AND close_price.contract_id=surface.contract_id
+                       ORDER BY close_price.trade_date DESC, close_price.source_row DESC
+                       LIMIT 1
+                   ) AS close_price_state,
+                   (
+                       SELECT close_price.missing_reason
+                       FROM option_close_prices AS close_price
+                       WHERE close_price.capture_id=surface.capture_id
+                         AND close_price.contract_id=surface.contract_id
+                       ORDER BY close_price.trade_date DESC, close_price.source_row DESC
+                       LIMIT 1
+                   ) AS close_price_missing_reason,
+                   surface.quote_at,
+                   surface.trade_at,
+                   capture.underlying_spot_price,
+                   underlying_quote.input_state AS underlying_quote_state,
+                   underlying_quote.missing_reason AS underlying_quote_missing_reason,
+                   underlying_quote.bid_price AS underlying_bid_price,
+                   underlying_quote.ask_price AS underlying_ask_price,
+                   underlying_quote.last_price AS underlying_last_price,
+                   underlying_quote.trade_price AS underlying_trade_price,
+                   underlying_quote.quote_at AS underlying_quote_at,
+                   surface.missing_reason,
+                   surface.exclusion_reason
+            """
+            + base
+            + f"""
+            ORDER BY capture.underlying_symbol ASC,
+                     capture.selected_expiration {direction.upper()},
+                     contract.option_type ASC,
+                     CAST(contract.strike_price AS REAL) {direction.upper()},
+                     contract.contract_symbol ASC
+            LIMIT ? OFFSET ?
+            """
+        )
+        with _immutable_store_connection(
+            self._stores.market, expected_role="market"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    latest + "SELECT COUNT(*) " + base, tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql, (*parameters, limit, (page - 1) * limit)
+                ).fetchall()
+            )
+        for row in rows:
+            row["target_dtes"] = _option_target_dtes(row["target_dtes"])
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {
+                "underlying": underlying,
+                "target_dte": target_dte,
+                "expiration": expiration,
+                "option_type": option_type,
+                "state": state,
             },
         )
 
@@ -2099,6 +2412,23 @@ def _like_contains(value: str) -> str:
     return f"%{escaped}%"
 
 
+def _option_target_dtes(raw: Any) -> list[int]:
+    values = loads_strict(str(raw), max_bytes=1024)
+    if (
+        not isinstance(values, list)
+        or not values
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value not in _OPTIONS_SURFACE_TARGET_DTES
+            for value in values
+        )
+        or values != sorted(set(values))
+    ):
+        raise StoreUnavailableError("Option capture scope is invalid")
+    return values
+
+
 def _stored_json_value(raw: Any) -> Any:
     if raw is None:
         return None
@@ -2215,6 +2545,53 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         )
         fields.append(
             f'<label>Option type<select name="option_type">{type_options}</select></label>'
+        )
+        fields.append(
+            f'<label>Surface state<select name="state">{state_options}</select></label>'
+        )
+        fields.append(
+            _input(
+                "expiration", "Exact expiration", query.get("expiration"),
+                input_type="date",
+            )
+        )
+    elif view == "options-surfaces":
+        selected_underlying = str(query.get("underlying", ""))
+        underlying_options = '<option value="">All configured underlyings</option>' + "".join(
+            f'<option value="{html.escape(item, quote=True)}"'
+            + (" selected" if item == selected_underlying else "")
+            + f">{html.escape(item)}</option>"
+            for item in _OPTIONS_SURFACE_UNDERLYINGS
+        )
+        fields.append(
+            f'<label>Underlying<select name="underlying">{underlying_options}</select></label>'
+        )
+        selected_target_dte = str(query.get("target_dte", ""))
+        target_dte_options = '<option value="">All target DTEs</option>' + "".join(
+            f'<option value="{item}"'
+            + (" selected" if str(item) == selected_target_dte else "")
+            + f">{item} DTE</option>"
+            for item in _OPTIONS_SURFACE_TARGET_DTES
+        )
+        fields.append(
+            f'<label>Target DTE<select name="target_dte">{target_dte_options}</select></label>'
+        )
+        selected_type = str(query.get("option_type", ""))
+        type_options = '<option value="">All option types</option>' + "".join(
+            f'<option value="{item}"'
+            + (" selected" if item == selected_type else "")
+            + f">{item.title()}</option>"
+            for item in ("call", "put")
+        )
+        fields.append(
+            f'<label>Option type<select name="option_type">{type_options}</select></label>'
+        )
+        selected_state = str(query.get("state", ""))
+        state_options = '<option value="">All surface states</option>' + "".join(
+            f'<option value="{item}"'
+            + (" selected" if item == selected_state else "")
+            + f">{item.title()}</option>"
+            for item in ("present", "missing", "excluded")
         )
         fields.append(
             f'<label>Surface state<select name="state">{state_options}</select></label>'
