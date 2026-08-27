@@ -11,7 +11,6 @@ from typing import Any
 from quant_data.tool_platform.catalog import (
     CATALOG_ID,
     CATALOG_VERSION,
-    CURRENT_PUBLIC_TOOL_NAMES,
     LEGACY_TOOL_NAMES,
     PUBLIC_TOOL_NAMES,
     VERSIONED_CATALOG_ID,
@@ -48,10 +47,36 @@ _REVIEWED_REGISTRY_SOURCE_SHA256 = {
     ("1.9.0", "2.43.0"): (
         "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
     ),
+    ("1.9.0", "2.44.0"): (
+        "af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182"
+    ),
+    ("1.9.0", "2.45.0"): (
+        "f151db20dd26fe2123e887415736431cfe1dcda8bf8f42d83a8b47ad3a27fec2"
+    ),
+    ("1.9.0", "2.46.0"): (
+        "b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264"
+    ),
+    ("1.9.0", "2.47.0"): (
+        "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
+    ),
 }
 CATALOG_RESOURCE = Path("quant_data/generated/tool_contract_schemas_v1.json")
 VERSIONED_CATALOG_RESOURCE = Path(
     "quant_data/generated/tool_contract_schemas_v2.json"
+)
+_ANALYTICS_FOUNDATION_NATIVE_TOOL_IDS = frozenset(
+    {
+        "stats.distribution_diagnostics",
+        "stats.covariance_matrix",
+        "stats.bootstrap_confidence_interval",
+        "stats.principal_components",
+    }
+)
+_ANALYTICS_FOUNDATION_VERSIONED_TOOL_IDS = frozenset(
+    {
+        "data.quality_audit",
+        "timeseries.transform",
+    }
 )
 
 
@@ -86,28 +111,90 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     recovered_entries = build_tool_entries(legacy)
     entries = build_current_tool_entries(legacy)
     additive_entries = build_additive_tool_entries()
+    version_policies = build_tool_version_policies()
+    catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version == ("1.9.0", "2.45.0"):
+        entries = tuple(
+            item
+            for item in entries
+            if item["id"] not in _ANALYTICS_FOUNDATION_NATIVE_TOOL_IDS
+        )
+        additive_entries = tuple(
+            item
+            for item in additive_entries
+            if item["id"] not in _ANALYTICS_FOUNDATION_NATIVE_TOOL_IDS
+        )
+        version_policies = tuple(
+            item
+            for item in version_policies
+            if item["tool"] not in _ANALYTICS_FOUNDATION_VERSIONED_TOOL_IDS
+        )
+        catalog_version = "2.9.0"
+    elif source_version not in {
+        ("1.9.0", "2.45.0"),
+        ("1.9.0", "2.46.0"),
+        ("1.9.0", "2.47.0"),
+    }:
+        step1_additions = {
+            "macro.get_release_calendar",
+            "market.get_volume_series",
+        }
+        macro_v2_tools = {
+            "macro.search_series",
+            "macro.describe_series",
+            "macro.get_series",
+        }
+        entries = tuple(
+            item for item in entries if item["id"] not in step1_additions
+        )
+        additive_entries = tuple(
+            item
+            for item in additive_entries
+            if item["id"] not in step1_additions
+        )
+        version_policies = tuple(
+            item
+            for item in version_policies
+            if item["tool"] not in macro_v2_tools
+        )
+        catalog_version = "2.8.0"
     catalog_payload = schema_catalog(recovered_entries)
     catalog_bytes = _render(catalog_payload)
     catalog_sha = hashlib.sha256(catalog_bytes).hexdigest()
-    version_policies = build_tool_version_policies()
-    versioned_catalog_bytes = _render(
-        versioned_schema_catalog(version_policies, additive_entries)
+    versioned_catalog_payload = versioned_schema_catalog(
+        version_policies,
+        additive_entries,
     )
+    versioned_catalog_payload["schema_version"] = catalog_version
+    versioned_catalog_bytes = _render(versioned_catalog_payload)
     versioned_catalog_sha = hashlib.sha256(versioned_catalog_bytes).hexdigest()
 
     raw["schema_version"] = "1.9.0"
     raw["registry_version"] = (
-        "2.43.0"
-        if source_version == ("1.9.0", "2.43.0")
+        "2.47.0"
+        if source_version
+        in {("1.9.0", "2.46.0"), ("1.9.0", "2.47.0")}
         else (
-            "2.42.0"
-            if source_version
-            in {
-                ("1.9.0", "2.40.0"),
-                ("1.9.0", "2.41.0"),
-                ("1.9.0", "2.42.0"),
-            }
-            else "2.39.0"
+            "2.46.0"
+            if source_version == ("1.9.0", "2.45.0")
+            else (
+                "2.44.0"
+                if source_version == ("1.9.0", "2.44.0")
+                else (
+                    "2.43.0"
+                    if source_version == ("1.9.0", "2.43.0")
+                    else (
+                        "2.42.0"
+                        if source_version
+                        in {
+                            ("1.9.0", "2.40.0"),
+                            ("1.9.0", "2.41.0"),
+                            ("1.9.0", "2.42.0"),
+                        }
+                        else "2.39.0"
+                    )
+                )
+            )
         )
     )
     raw["tool_schema_catalog"] = {
@@ -118,7 +205,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     }
     raw["tool_version_schema_catalog"] = {
         "schema_id": VERSIONED_CATALOG_ID,
-        "schema_version": VERSIONED_CATALOG_VERSION,
+        "schema_version": catalog_version,
         "resource": VERSIONED_CATALOG_RESOURCE.as_posix(),
         "sha256": versioned_catalog_sha,
     }
@@ -141,7 +228,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
                     by_dataset[dataset_id].append(variant["id"])
     for dataset in raw["datasets"]:
         dataset["tool_ids"] = by_dataset[dataset["id"]]
-    raw["presentation_order"]["tools"] = list(CURRENT_PUBLIC_TOOL_NAMES)
+    raw["presentation_order"]["tools"] = [item["id"] for item in entries]
     return _render(raw), catalog_bytes, versioned_catalog_bytes
 
 

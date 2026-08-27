@@ -187,6 +187,27 @@ subprocess with host-owned registry and store routing. This adds no direct
 SQLite access, provider request, credential, write, migration, scheduler,
 export, hosting, or deployment scope.
 
+On 2026-08-25 the user selected canonical access as Step 1 of the remaining
+tool foundation. Registry `2.46.0` adds native Stage 10 volume and macro
+release-calendar readers plus explicit v2 macro search, describe, and series
+variants. Stored current pointers, availability cutoffs, and evidenced
+first-release flags define the selection modes; official-vintage IDs never
+fall back to the generic macro core. The active manifest has 61 names and
+projects exactly to registry `2.45.0`. This adds no portfolio or position
+tool, provider request, credential, canonical write, migration, scheduler,
+export, hosting, or deployment scope.
+
+On 2026-08-26 the user selected Steps 2-4 of that foundation. Registry
+`2.47.0` adds explicit `2.0.0` quality-audit and time-series-transform
+successors plus four native statistics tools: distribution diagnostics,
+covariance/correlation matrices, explicitly seeded deterministic bootstrap
+confidence intervals, and deterministic PCA. The tools consume supplied typed
+Stage 10 trailing-return series and open no store. The active manifest has 65
+names, catalog `2.10.0` has 52 contracts, and the exact predecessor projection
+is registry `2.46.0` with catalog `2.9.0`. No portfolio or position semantics,
+provider request, credential, canonical write, migration, scheduler, export,
+hosting, or deployment scope was added.
+
 For any provider, credential, scheduler, canonical-store, migration,
 promotion, retirement, deployment, public-exposure, or destructive task, read
 the [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) before the

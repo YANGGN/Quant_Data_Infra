@@ -15,9 +15,12 @@ from quant_data.registry import Registry
 
 from .catalog import (
     ADDITIVE_PUBLIC_TOOL_NAMES,
+    ADDITIVE_STAGE10_STATISTICS_TOOLS,
     CURRENT_PUBLIC_TOOL_NAMES,
     LEGACY_TOOL_NAMES,
     PUBLIC_TOOL_NAMES,
+    VERSIONED_CANONICAL_MACRO_TOOLS,
+    VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
     VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
 )
@@ -91,6 +94,14 @@ def invoke_operation(
         context.tool_version == "2.0.0"
         and name in VERSIONED_TIMESERIES_ANALYSIS_TOOLS
     )
+    versioned_macro = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_CANONICAL_MACRO_TOOLS
+    )
+    versioned_quality = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_DATA_QUALITY_TOOLS
+    )
     versioned_econometrics = (
         (
             context.tool_version == "2.0.0"
@@ -109,7 +120,12 @@ def invoke_operation(
             and name == "econometrics.regression"
         )
     )
-    if name not in REGISTERED_STAGE5_OPERATIONS and not (versioned_timeseries or versioned_econometrics):
+    if name not in REGISTERED_STAGE5_OPERATIONS and not (
+        versioned_macro
+        or versioned_quality
+        or versioned_timeseries
+        or versioned_econometrics
+    ):
         raise LookupError("Operation graph is not registered")
     context.checkpoint()
     context.budget.require(
@@ -117,13 +133,28 @@ def invoke_operation(
         series=_series_count(arguments),
         operations=min(_limit(arguments) * max(_series_count(arguments), 1), 5_000_000),
     )
+    if versioned_macro:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected canonical macro operation graph is invalid")
+        from .macro_access import invoke_canonical_macro
+
+        return invoke_canonical_macro(name, arguments, context, registry)
     if name in ADDITIVE_PUBLIC_TOOL_NAMES:
         expected_graph = f"tool_platform.{name}.v1"
         if (
             context.tool_version != "1.0.0"
             or context.operation_graph_id != expected_graph
         ):
-            raise LookupError("Selected additive market operation graph is invalid")
+            raise LookupError("Selected additive operation graph is invalid")
+        if name in ADDITIVE_STAGE10_STATISTICS_TOOLS:
+            from .market_analysis_adapter import (
+                invoke_stage10_analysis_foundation,
+            )
+
+            return invoke_stage10_analysis_foundation(
+                name, arguments, context
+            )
         if name == "market.get_available_ticker":
             from .market_tickers import invoke_stage10_available_tickers
 
@@ -136,7 +167,17 @@ def invoke_operation(
             return invoke_stage10_market_price(
                 name, arguments, context, registry
             )
-        raise LookupError("Selected additive market operation is invalid")
+        if name == "market.get_volume_series":
+            from .market_volume import invoke_stage10_market_volume
+
+            return invoke_stage10_market_volume(
+                name, arguments, context, registry
+            )
+        if name == "macro.get_release_calendar":
+            from .macro_access import invoke_release_calendar
+
+            return invoke_release_calendar(name, arguments, context, registry)
+        raise LookupError("Selected additive operation is invalid")
     if context.tool_version == "2.0.0" and name in {
         "market.get_returns",
         "market.get_forward_returns",
@@ -151,9 +192,24 @@ def invoke_operation(
         expected_graph = f"tool_platform.{name}.v2"
         if context.operation_graph_id != expected_graph:
             raise LookupError("Selected Stage 10 statistic operation graph is invalid")
+        if name == "timeseries.transform":
+            from .market_analysis_adapter import (
+                invoke_stage10_analysis_foundation,
+            )
+
+            return invoke_stage10_analysis_foundation(
+                name, arguments, context
+            )
         from .market_statistics import invoke_stage10_market_statistic
 
         return invoke_stage10_market_statistic(name, arguments, context)
+    if versioned_quality:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected data-quality operation graph is invalid")
+        from .market_analysis_adapter import invoke_stage10_analysis_foundation
+
+        return invoke_stage10_analysis_foundation(name, arguments, context)
     if versioned_econometrics:
         graph_suffix = {
             "2.0.0": "v2",

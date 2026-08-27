@@ -6,8 +6,10 @@ triggering a service or timer. Before scheduler or provider work, read the
 [current operating envelope](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
 and [scheduling contract](../../docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
-Five recurring timers are approved and active. Agents may inspect active
-status read-only, but may not change or manually trigger any timer.
+Five recurring timers are approved and active. A sixth weekday SEC company-
+fundamentals timer is explicitly authorized and staged pending its focused
+activation gate. Agents may inspect active status read-only, but may not
+change or manually trigger an existing timer.
 
 ## Closed: market-close timer
 
@@ -114,3 +116,17 @@ These inspection commands are read-only:
 
 Do not manually start the service, change the timer, expose credentials, or
 repurpose it for another symbol, feed, environment, time, or store.
+
+## Authorized SEC market-equity fundamentals timer
+
+`quant-data-sec-company-fundamentals.timer` is enabled for 07:15
+America/New_York on weekdays with `Persistent=false`. Its fixed zero-argument
+service reads the canonical Stage 10 equity roster, performs one bounded SEC
+ticker discovery, and processes sequential submissions/CompanyFacts pairs at
+no more than five requests per second, without retry. It targets only
+`data/company.sqlite`; `data/market.sqlite` is descriptor-pinned and immutable
+for roster discovery. It was linked and enabled on 2026-08-25 after the
+authorized historical population, focused validation, independent review,
+and host checks passed. The service was not manually started and its first
+scheduled trigger is 2026-08-26 at 07:15 America/New_York. Do not manually
+start or repurpose the service or the frozen recovered `sec-daily` job.

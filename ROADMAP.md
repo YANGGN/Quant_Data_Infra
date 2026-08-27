@@ -363,6 +363,71 @@ The following decisions apply to every stage:
   2026-08-25 after the focused offline gate and host status check passed; its
   first scheduled trigger is 15:55 EDT that day.
 
+- Registry `2.44.0` adds one private, manual-only SEC core-fundamentals
+  collector for fixed AAPL CIK `0000320193`. It makes exactly two
+  single-attempt requests—submissions and CompanyFacts—then reuses the existing
+  company schema and publisher to append issuer, filing, raw-fact, normalized
+  fundamental, and filing-membership history. A fixed local read-only
+  Inspector view exposes the normalized AAPL rows. This increment adds no
+  migration, public tool, scheduler, export, hosting, or deployment.
+  The explicitly authorized seed completed on 2026-08-25: two responses
+  produced 1,026 filings, 1,552 normalized fundamental versions, and 682
+  current Inspector rows across 10 metrics in `data/company.sqlite`.
+
+- Registry `2.45.0` extends that private SEC path to the 519 Stage 10 equity
+  symbols. A fixed zero-argument wrapper resolves the official SEC ticker map,
+  deduplicates shared CIKs, and processes sequential submissions/CompanyFacts
+  pairs at no more than five requests per second, with no retry, per-issuer
+  isolation, 64 MiB/50,000-row issuer bounds, and a six-hour aggregate bound.
+  AAPL continues to use its exact legacy semantic identity. The existing
+  ten-metric reviewed map now supports annual 20-F/40-F facts, and the local
+  read-only Inspector covers every populated issuer with an exact CIK filter.
+  The user explicitly authorized one longest-available SEC CompanyFacts
+  population and scheduled fetching; the implementation fixes the latter to
+  a new hardened, non-persistent weekday 07:15 America/New_York host timer.
+  The 2026-08-25 pass completed without exhausting its aggregate deadline,
+  matched 517 of 519 equity symbols to 514 SEC issuers, and populated 476 of
+  those issuers. It issued 1,011 requests and retained 467,858 filings plus
+  571,162 normalized fundamental versions; history spans filing dates from
+  1995-05-19 and selected fact periods from 2006-12-31. Thirty-eight issuer
+  attempts failed independently, two symbols were unmatched, and one matched
+  issuer failed ticker confirmation. Post-write integrity, foreign-key,
+  lineage, and live Inspector checks passed. The timer was then linked and
+  enabled without manually starting its service; future weekday invocations
+  provide new attempts under the same no-retry-per-invocation rule. This
+  increment adds no migration, public tool, export, hosting, or deployment.
+
+- Registry `2.46.0` completes Step 1 of the post-restoration analytics plan:
+  canonical read access. Explicit `2.0.0` variants of
+  `macro.search_series`, `macro.describe_series`, and `macro.get_series`
+  expose the generic and official-vintage macro cores without crossing their
+  authority boundary. The series reader implements stored-evidence
+  `latest`, `as_of`, and evidenced `first_release` selection. Native
+  `market.get_volume_series` reuses the verified Stage 10 row selector, and
+  native `macro.get_release_calendar` composes retained legacy and
+  incremental calendar evidence for `latest` or `as_of` retrieval. The active
+  inventory is 61 names and catalog `2.9.0` has 40 contracts; the 57-name/v1
+  compatibility surface remains byte-identical. Exact projection restores
+  registry `2.45.0` and catalog `2.8.0`. This increment adds no portfolio or
+  position tool, migration, dataset owner, collector, provider request,
+  credential access, canonical write, scheduler, export, hosting, or
+  deployment.
+
+- Registry `2.47.0` completes Steps 2-4 of the post-restoration analytics
+  foundation. Explicit `2.0.0` successors implement Stage 10 return-series
+  quality auditing and time-series transformations. Four additive native
+  statistics tools implement distribution diagnostics, sample covariance and
+  correlation, explicitly seeded deterministic bootstrap intervals, and
+  deterministic covariance- or correlation-basis PCA. All six tools are
+  store-free and consume only caller-supplied typed trailing-return series;
+  they reject or explicitly report incomplete, truncated, or incompatible
+  inputs according to their contracts. The active inventory is 65 names,
+  catalog `2.10.0` has 52 contracts, and exact projection restores registry
+  `2.46.0` and catalog `2.9.0`. The frozen v1 surface remains byte-identical.
+  This increment adds no portfolio or position tool, provider request,
+  credential, canonical write, migration, scheduler, export, hosting, or
+  deployment.
+
 - On 2026-08-23 the user separately authorized a fourth host-level recurring
   exception, `quant-data-macro-current-refresh.timer`, at 18:30
   America/New_York on weekdays. On 2026-08-24 the user expanded it to

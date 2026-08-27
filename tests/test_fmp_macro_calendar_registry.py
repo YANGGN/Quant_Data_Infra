@@ -32,10 +32,10 @@ class FmpMacroCalendarRegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.revision, "2.43.0")
+        self.assertEqual(registry.revision, "2.47.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (40, 53, 51),
+            (40, 53, 53),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID
@@ -59,7 +59,15 @@ class FmpMacroCalendarRegistryTests(unittest.TestCase):
             item for item in registry.datasets if item.id == OFFICIAL_DATASET_ID
         )
         surprise_tool = registry.tool(SURPRISE_TOOL_ID)
-        self.assertEqual(official.tool_ids, (SURPRISE_TOOL_ID,))
+        self.assertEqual(
+            official.tool_ids,
+            (
+                SURPRISE_TOOL_ID,
+                "macro.search_series",
+                "macro.describe_series",
+                "macro.get_series",
+            ),
+        )
         self.assertEqual(
             surprise_tool["datasets"],
             [DATASET_ID, OFFICIAL_DATASET_ID],

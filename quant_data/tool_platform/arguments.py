@@ -178,6 +178,148 @@ class Stage10MarketPriceArgumentsV1(_ArgumentMapping):
 
 
 @dataclass(frozen=True, slots=True)
+class Stage10MarketVolumeArgumentsV1(_ArgumentMapping):
+    """Read one ticker's canonical Stage 10 provider-reported volume."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_market_volume_v1"
+
+    ticker: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=200)
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalMacroSearchArgumentsV2(_ArgumentMapping):
+    """Search the current retained canonical macro catalog."""
+
+    INPUT_KIND: ClassVar[str] = "canonical_macro_search_v2"
+
+    query: str = _typed_field(
+        _InputField(types=("string",), required=False, max_length=500),
+        default="",
+    )
+    provider: str | None = _typed_field(
+        _InputField(
+            types=("string",), required=False, max_length=100
+        ),
+        default=None,
+    )
+    frequency: str | None = _typed_field(
+        _InputField(
+            types=("string",), required=False, max_length=100
+        ),
+        default=None,
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=500
+        ),
+        default=500,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalMacroDescribeArgumentsV2(_ArgumentMapping):
+    """Describe one exact canonical macro series."""
+
+    INPUT_KIND: ClassVar[str] = "canonical_macro_describe_v2"
+
+    series_id: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=200)
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=1
+        ),
+        default=1,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalMacroSeriesArgumentsV2(_ArgumentMapping):
+    """Read one canonical generic or official-vintage macro series."""
+
+    INPUT_KIND: ClassVar[str] = "canonical_macro_series_v2"
+
+    series_id: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=200)
+    )
+    mode: str = _typed_field(
+        _InputField(
+            types=("string",), enum=("latest", "as_of", "first_release")
+        )
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MacroReleaseCalendarArgumentsV1(_ArgumentMapping):
+    """Read the retained FMP U.S. release calendar by local availability."""
+
+    INPUT_KIND: ClassVar[str] = "macro_release_calendar_v1"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    event_name: str | None = _typed_field(
+        _InputField(
+            types=("string",), required=False, max_length=256
+        ),
+        default=None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class Stage10MarketReturnArgumentsV2(_ArgumentMapping):
     """Typed v2 contract for one Stage 10 close-to-close return series."""
 
@@ -252,6 +394,130 @@ class Stage10MarketCorrelationArgumentsV2(_ArgumentMapping):
     series: tuple[TimeSeries, ...] = _typed_field(
         _InputField(min_items=2, max_items=2, form="series_array")
     )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10DataQualityArgumentsV2(_ArgumentMapping):
+    """Audit one to twenty supplied Stage 10 return-series contracts."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_data_quality_v2"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=20, form="series_array")
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10MarketTransformArgumentsV2(_ArgumentMapping):
+    """Run one explicit statistic or drawdown transform over trailing returns."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_market_transform_v2"
+
+    series: TimeSeries = _typed_field(_InputField(form="series"))
+    operation: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "rolling_statistic",
+                "autocorrelation",
+                "partial_autocorrelation",
+                "ljung_box",
+                "drawdown_episodes",
+            ),
+        )
+    )
+    rolling_statistic: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("mean", "sample_standard_deviation", "minimum", "maximum"),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=2, maximum=252)
+    )
+    max_lag: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=252)
+    )
+    ljung_box_lag: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=252)
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10DistributionArgumentsV1(_ArgumentMapping):
+    """Describe one complete trailing Stage 10 return distribution."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_distribution_v1"
+
+    series: TimeSeries = _typed_field(_InputField(form="series"))
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10BootstrapArgumentsV1(_ArgumentMapping):
+    """Build a deterministic IID percentile interval for one statistic."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_bootstrap_v1"
+
+    series: TimeSeries = _typed_field(_InputField(form="series"))
+    statistic: str = _typed_field(
+        _InputField(types=("string",), enum=("mean", "median"))
+    )
+    seed: int = _typed_field(
+        _InputField(types=("integer",), minimum=0, maximum=4_294_967_295)
+    )
+    replicates: int = _typed_field(
+        _InputField(types=("integer",), minimum=100, maximum=5_000)
+    )
+    confidence_level: str = _typed_field(
+        _InputField(types=("string",), enum=("0.90", "0.95", "0.99"))
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10CovarianceArgumentsV1(_ArgumentMapping):
+    """Estimate sample covariance/correlation over joint-complete returns."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_covariance_v1"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=2, max_items=20, form="series_array")
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10PrincipalComponentsArgumentsV1(_ArgumentMapping):
+    """Run deterministic PCA over joint-complete trailing returns."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_principal_components_v1"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=2, max_items=20, form="series_array")
+    )
+    basis: str = _typed_field(
+        _InputField(types=("string",), enum=("covariance", "correlation"))
+    )
+    components: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=20)
+    )
+    include_scores: bool = _typed_field(_InputField(types=("boolean",)))
     limit: int = _typed_field(
         _InputField(types=("integer",), minimum=1, maximum=10_000)
     )
@@ -536,10 +802,21 @@ _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     QueryArguments,
     Stage10AvailableTickerArgumentsV1,
     Stage10MarketPriceArgumentsV1,
+    Stage10MarketVolumeArgumentsV1,
+    CanonicalMacroSearchArgumentsV2,
+    CanonicalMacroDescribeArgumentsV2,
+    CanonicalMacroSeriesArgumentsV2,
+    MacroReleaseCalendarArgumentsV1,
     Stage10MarketReturnArgumentsV2,
     Stage10MarketDescribeArgumentsV2,
     Stage10MarketAlignArgumentsV2,
     Stage10MarketCorrelationArgumentsV2,
+    Stage10DataQualityArgumentsV2,
+    Stage10MarketTransformArgumentsV2,
+    Stage10DistributionArgumentsV1,
+    Stage10BootstrapArgumentsV1,
+    Stage10CovarianceArgumentsV1,
+    Stage10PrincipalComponentsArgumentsV1,
     Stage10MarketRegressionArgumentsV2,
     Stage10MarketRollingRegressionArgumentsV2,
     Stage10MarketRegressionArgumentsV21,
@@ -643,6 +920,8 @@ def _schema_for_field(
         schema["maxItems"] = contract.max_items
     if contract.enum:
         schema["enum"] = list(contract.enum)
+        if "null" in contract.types:
+            schema["enum"].append(None)
     if contract.form == "array":
         if contract.item is None:  # pragma: no cover - module invariant
             raise AssertionError("Array field lacks an item declaration")
@@ -729,6 +1008,14 @@ def _validated_limit(value: Any, contract: _InputField, pointer: str) -> int:
     return value
 
 
+def _validated_optional_limit(
+    value: Any, contract: _InputField, pointer: str
+) -> int | None:
+    if value is None:
+        return None
+    return _validated_limit(value, contract, pointer)
+
+
 def _validated_scalar(value: Any, pointer: str) -> Scalar:
     if value is None or isinstance(value, (str, bool)):
         return value
@@ -764,6 +1051,14 @@ def _optional_calendar_date(value: Any, pointer: str) -> str | None:
         raise _validation_error(pointer, "type", "Expected a calendar date")
     parse_date(value, pointer=pointer)
     return value
+
+
+def _optional_bounded_string(
+    value: Any, contract: _InputField, pointer: str
+) -> str | None:
+    if value is None:
+        return None
+    return _validated_string(value, contract, pointer)
 
 
 def _validated_parameters(
@@ -931,7 +1226,10 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             MappingProxyType({"limit": limit}),
         )
 
-    if argument_type is Stage10MarketPriceArgumentsV1:
+    if argument_type in {
+        Stage10MarketPriceArgumentsV1,
+        Stage10MarketVolumeArgumentsV1,
+    }:
         ticker = _validated_string(
             mapping["ticker"],
             _field_contract(argument_type, "ticker"),
@@ -990,6 +1288,128 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     "end_date": end_date,
                 }
             ),
+        )
+
+    if argument_type is CanonicalMacroSearchArgumentsV2:
+        query = _validated_string(
+            mapping.get("query", ""),
+            _field_contract(argument_type, "query"),
+            "/query",
+        )
+        provider = _optional_bounded_string(
+            mapping.get("provider"),
+            _field_contract(argument_type, "provider"),
+            "/provider",
+        )
+        frequency = _optional_bounded_string(
+            mapping.get("frequency"),
+            _field_contract(argument_type, "frequency"),
+            "/frequency",
+        )
+        limit = _validated_limit(
+            mapping.get("limit", 500),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "query": query,
+                    "provider": provider,
+                    "frequency": frequency,
+                    "limit": limit,
+                }
+            ),
+        )
+
+    if argument_type is CanonicalMacroDescribeArgumentsV2:
+        series_id = _validated_string(
+            mapping["series_id"],
+            _field_contract(argument_type, "series_id"),
+            "/series_id",
+        )
+        if not series_id.strip():
+            raise _validation_error(
+                "/series_id", "min_length", "Series ID cannot be blank"
+            )
+        limit = _validated_limit(
+            mapping.get("limit", 1),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType({"series_id": series_id, "limit": limit}),
+        )
+
+    if argument_type in {
+        CanonicalMacroSeriesArgumentsV2,
+        MacroReleaseCalendarArgumentsV1,
+    }:
+        enum_values: dict[str, str] = {}
+        for field_name in ("mode", "date_only_policy"):
+            contract = _field_contract(argument_type, field_name)
+            value = _validated_string(
+                mapping[field_name], contract, f"/{field_name}"
+            )
+            if value not in contract.enum:
+                raise _validation_error(
+                    f"/{field_name}", "enum", f"Unsupported {field_name}"
+                )
+            enum_values[field_name] = value
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        if enum_values["mode"] == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of", "required_for_as_of", "as_of mode requires a cutoff"
+            )
+        if enum_values["mode"] != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of", "only_for_as_of", "Only as_of mode may provide a cutoff"
+            )
+        start_date = _optional_calendar_date(
+            mapping.get("start_date"), "/start_date"
+        )
+        end_date = _optional_calendar_date(mapping.get("end_date"), "/end_date")
+        if (
+            start_date is not None
+            and end_date is not None
+            and parse_date(end_date, pointer="/end_date")
+            < parse_date(start_date, pointer="/start_date")
+        ):
+            raise _validation_error(
+                "/end_date", "range", "end_date cannot precede start_date"
+            )
+        limit = _validated_limit(
+            mapping["limit"], _field_contract(argument_type, "limit"), "/limit"
+        )
+        values: dict[str, Any] = {
+            "mode": enum_values["mode"],
+            "as_of": as_of,
+            "date_only_policy": enum_values["date_only_policy"],
+            "limit": limit,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        if argument_type is CanonicalMacroSeriesArgumentsV2:
+            series_id = _validated_string(
+                mapping["series_id"],
+                _field_contract(argument_type, "series_id"),
+                "/series_id",
+            )
+            if not series_id.strip():
+                raise _validation_error(
+                    "/series_id", "min_length", "Series ID cannot be blank"
+                )
+            values["series_id"] = series_id
+        else:
+            values["event_name"] = _optional_bounded_string(
+                mapping.get("event_name"),
+                _field_contract(argument_type, "event_name"),
+                "/event_name",
+            )
+        return _PreparedArguments(
+            argument_type, MappingProxyType(values)
         )
 
     if argument_type is Stage10MarketReturnArgumentsV2:
@@ -1066,6 +1486,12 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
         Stage10MarketDescribeArgumentsV2,
         Stage10MarketAlignArgumentsV2,
         Stage10MarketCorrelationArgumentsV2,
+        Stage10DataQualityArgumentsV2,
+        Stage10MarketTransformArgumentsV2,
+        Stage10DistributionArgumentsV1,
+        Stage10BootstrapArgumentsV1,
+        Stage10CovarianceArgumentsV1,
+        Stage10PrincipalComponentsArgumentsV1,
         Stage10MarketRegressionArgumentsV2,
         Stage10MarketRollingRegressionArgumentsV2,
         Stage10MarketRegressionArgumentsV21,
@@ -1083,12 +1509,176 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             mapping["limit"], _field_contract(argument_type, "limit"), "/limit"
         )
         values: dict[str, Any] = {"limit": limit}
+        if (
+            argument_type is Stage10DataQualityArgumentsV2
+            and limit < len(raw_series)
+        ):
+            raise _validation_error(
+                "/limit",
+                "minimum",
+                "limit must retain one quality summary per supplied series",
+            )
         if argument_type is Stage10MarketAlignArgumentsV2:
             join_contract = _field_contract(argument_type, "join")
             join = _validated_string(mapping["join"], join_contract, "/join")
             if join not in join_contract.enum:
                 raise _validation_error("/join", "enum", "Unsupported join policy")
             values["join"] = join
+        if argument_type is Stage10MarketTransformArgumentsV2:
+            operation_contract = _field_contract(argument_type, "operation")
+            operation = _validated_string(
+                mapping["operation"], operation_contract, "/operation"
+            )
+            if operation not in operation_contract.enum:
+                raise _validation_error(
+                    "/operation", "enum", "Unsupported transform operation"
+                )
+            values["operation"] = operation
+            rolling_statistic = mapping["rolling_statistic"]
+            if rolling_statistic is not None:
+                rolling_contract = _field_contract(
+                    argument_type, "rolling_statistic"
+                )
+                rolling_statistic = _validated_string(
+                    rolling_statistic, rolling_contract, "/rolling_statistic"
+                )
+                if rolling_statistic not in rolling_contract.enum:
+                    raise _validation_error(
+                        "/rolling_statistic",
+                        "enum",
+                        "Unsupported rolling statistic",
+                    )
+            values["rolling_statistic"] = rolling_statistic
+            for field_name in ("window", "max_lag", "ljung_box_lag"):
+                values[field_name] = _validated_optional_limit(
+                    mapping[field_name],
+                    _field_contract(argument_type, field_name),
+                    f"/{field_name}",
+                )
+            required_fields = {
+                "rolling_statistic": ("rolling_statistic", "window"),
+                "autocorrelation": ("max_lag",),
+                "partial_autocorrelation": ("max_lag",),
+                "ljung_box": ("ljung_box_lag",),
+                "drawdown_episodes": (),
+            }
+            active = set(required_fields[operation])
+            supplied = {
+                name
+                for name in (
+                    "rolling_statistic",
+                    "window",
+                    "max_lag",
+                    "ljung_box_lag",
+                )
+                if values[name] is not None
+            }
+            missing = active - supplied
+            if missing:
+                name = sorted(missing)[0]
+                raise _validation_error(
+                    f"/{name}",
+                    "required_for_operation",
+                    f"{name} is required for {operation}",
+                )
+            extra = supplied - active
+            if extra:
+                name = sorted(extra)[0]
+                raise _validation_error(
+                    f"/{name}",
+                    "only_for_operation",
+                    f"{name} is not used by {operation}",
+                )
+            if (
+                operation == "rolling_statistic"
+                and int(values["window"]) > limit
+            ):
+                raise _validation_error(
+                    "/window",
+                    "range",
+                    "window cannot exceed the output limit",
+                )
+            if (
+                operation == "ljung_box"
+                and limit < max(8, 2 * int(values["ljung_box_lag"]) + 1)
+            ):
+                raise _validation_error(
+                    "/limit",
+                    "minimum",
+                    "limit is too short for the fixed Ljung-Box lag",
+                )
+        if argument_type is Stage10BootstrapArgumentsV1:
+            statistic_contract = _field_contract(argument_type, "statistic")
+            statistic = _validated_string(
+                mapping["statistic"], statistic_contract, "/statistic"
+            )
+            if statistic not in statistic_contract.enum:
+                raise _validation_error(
+                    "/statistic", "enum", "Unsupported bootstrap statistic"
+                )
+            confidence_contract = _field_contract(
+                argument_type, "confidence_level"
+            )
+            confidence_level = _validated_string(
+                mapping["confidence_level"],
+                confidence_contract,
+                "/confidence_level",
+            )
+            if confidence_level not in confidence_contract.enum:
+                raise _validation_error(
+                    "/confidence_level",
+                    "enum",
+                    "Unsupported confidence level",
+                )
+            values.update(
+                {
+                    "statistic": statistic,
+                    "seed": _validated_limit(
+                        mapping["seed"],
+                        _field_contract(argument_type, "seed"),
+                        "/seed",
+                    ),
+                    "replicates": _validated_limit(
+                        mapping["replicates"],
+                        _field_contract(argument_type, "replicates"),
+                        "/replicates",
+                    ),
+                    "confidence_level": confidence_level,
+                }
+            )
+        if argument_type is Stage10PrincipalComponentsArgumentsV1:
+            basis_contract = _field_contract(argument_type, "basis")
+            basis = _validated_string(mapping["basis"], basis_contract, "/basis")
+            if basis not in basis_contract.enum:
+                raise _validation_error("/basis", "enum", "Unsupported PCA basis")
+            components = _validated_limit(
+                mapping["components"],
+                _field_contract(argument_type, "components"),
+                "/components",
+            )
+            if components > len(raw_series):
+                raise _validation_error(
+                    "/components",
+                    "range",
+                    "components cannot exceed the supplied series count",
+                )
+            if not isinstance(mapping["include_scores"], bool):
+                raise _validation_error(
+                    "/include_scores", "type", "Expected a boolean"
+                )
+            if mapping["include_scores"] and limit * components > 100_000:
+                raise _validation_error(
+                    "/include_scores",
+                    "matrix_limit",
+                    "Requested PCA scores exceed the result matrix limit",
+                )
+            values.update(
+                {
+                    "basis": basis,
+                    "components": components,
+                    "include_scores": mapping["include_scores"],
+                }
+            )
         if argument_type in {
             Stage10MarketRegressionArgumentsV2,
             Stage10MarketRollingRegressionArgumentsV2,
@@ -1371,6 +1961,16 @@ def parse_arguments(
         return Stage10AvailableTickerArgumentsV1(**dict(values))
     if prepared.argument_type is Stage10MarketPriceArgumentsV1:
         return Stage10MarketPriceArgumentsV1(**dict(values))
+    if prepared.argument_type is Stage10MarketVolumeArgumentsV1:
+        return Stage10MarketVolumeArgumentsV1(**dict(values))
+    if prepared.argument_type is CanonicalMacroSearchArgumentsV2:
+        return CanonicalMacroSearchArgumentsV2(**dict(values))
+    if prepared.argument_type is CanonicalMacroDescribeArgumentsV2:
+        return CanonicalMacroDescribeArgumentsV2(**dict(values))
+    if prepared.argument_type is CanonicalMacroSeriesArgumentsV2:
+        return CanonicalMacroSeriesArgumentsV2(**dict(values))
+    if prepared.argument_type is MacroReleaseCalendarArgumentsV1:
+        return MacroReleaseCalendarArgumentsV1(**dict(values))
     if prepared.argument_type is Stage10MarketReturnArgumentsV2:
         return Stage10MarketReturnArgumentsV2(**dict(values))
 
@@ -1383,6 +1983,9 @@ def parse_arguments(
             in {
                 Stage10MarketAlignArgumentsV2,
                 Stage10MarketCorrelationArgumentsV2,
+                Stage10DataQualityArgumentsV2,
+                Stage10CovarianceArgumentsV1,
+                Stage10PrincipalComponentsArgumentsV1,
                 Stage10MarketRegressionArgumentsV2,
                 Stage10MarketRollingRegressionArgumentsV2,
                 Stage10MarketRegressionArgumentsV21,
@@ -1404,6 +2007,26 @@ def parse_arguments(
         return Stage10MarketAlignArgumentsV2(series=decoded, **dict(values))
     if prepared.argument_type is Stage10MarketCorrelationArgumentsV2:
         return Stage10MarketCorrelationArgumentsV2(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10DataQualityArgumentsV2:
+        return Stage10DataQualityArgumentsV2(series=decoded, **dict(values))
+    if prepared.argument_type is Stage10MarketTransformArgumentsV2:
+        return Stage10MarketTransformArgumentsV2(
+            series=decoded[0], **dict(values)
+        )
+    if prepared.argument_type is Stage10DistributionArgumentsV1:
+        return Stage10DistributionArgumentsV1(
+            series=decoded[0], **dict(values)
+        )
+    if prepared.argument_type is Stage10BootstrapArgumentsV1:
+        return Stage10BootstrapArgumentsV1(
+            series=decoded[0], **dict(values)
+        )
+    if prepared.argument_type is Stage10CovarianceArgumentsV1:
+        return Stage10CovarianceArgumentsV1(series=decoded, **dict(values))
+    if prepared.argument_type is Stage10PrincipalComponentsArgumentsV1:
+        return Stage10PrincipalComponentsArgumentsV1(
             series=decoded, **dict(values)
         )
     if prepared.argument_type is Stage10MarketRegressionArgumentsV2:
@@ -1494,6 +2117,22 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
     market_price_names = {
         item.name for item, _ in _declared_fields(Stage10MarketPriceArgumentsV1)
     }
+    canonical_macro_search_names = {
+        item.name
+        for item, _ in _declared_fields(CanonicalMacroSearchArgumentsV2)
+    }
+    canonical_macro_describe_names = {
+        item.name
+        for item, _ in _declared_fields(CanonicalMacroDescribeArgumentsV2)
+    }
+    canonical_macro_series_names = {
+        item.name
+        for item, _ in _declared_fields(CanonicalMacroSeriesArgumentsV2)
+    }
+    macro_calendar_names = {
+        item.name
+        for item, _ in _declared_fields(MacroReleaseCalendarArgumentsV1)
+    }
     market_return_names = {
         item.name for item, _ in _declared_fields(Stage10MarketReturnArgumentsV2)
     }
@@ -1558,6 +2197,25 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         return SingleSeriesArguments.INPUT_KIND
     if names == query_names:
         return QueryArguments.INPUT_KIND
+    if names and names <= canonical_macro_search_names:
+        return CanonicalMacroSearchArgumentsV2.INPUT_KIND
+    if names <= canonical_macro_describe_names and "series_id" in names:
+        return CanonicalMacroDescribeArgumentsV2.INPUT_KIND
+    if names <= canonical_macro_series_names and {
+        "series_id",
+        "mode",
+        "as_of",
+        "date_only_policy",
+        "limit",
+    } <= names:
+        return CanonicalMacroSeriesArgumentsV2.INPUT_KIND
+    if names <= macro_calendar_names and {
+        "mode",
+        "as_of",
+        "date_only_policy",
+        "limit",
+    } <= names:
+        return MacroReleaseCalendarArgumentsV1.INPUT_KIND
     if names <= available_ticker_names:
         return Stage10AvailableTickerArgumentsV1.INPUT_KIND
     if names == market_price_names:
@@ -1628,6 +2286,20 @@ def preflight_dimensions(
         operations += rows * int(prepared.values["kpss_lag"])
     if prepared.argument_type is Stage10MarketStructuralBreakArgumentsV2:
         operations *= 3
+    if prepared.argument_type is Stage10MarketTransformArgumentsV2:
+        if prepared.values["operation"] == "rolling_statistic":
+            operations *= int(prepared.values["window"])
+        elif prepared.values["operation"] in {
+            "autocorrelation",
+            "partial_autocorrelation",
+        }:
+            operations *= int(prepared.values["max_lag"]) + 1
+        elif prepared.values["operation"] == "ljung_box":
+            operations *= int(prepared.values["ljung_box_lag"]) + 1
+    if prepared.argument_type is Stage10BootstrapArgumentsV1:
+        operations *= int(prepared.values["replicates"])
+    if prepared.argument_type is Stage10PrincipalComponentsArgumentsV1:
+        operations += max(series, 1) ** 3
     if prepared.argument_type is Stage10MarketRegressionModelSuiteArgumentsV3:
         lag_order = int(prepared.values["lag_order"])
         if prepared.values["analysis"] == "engle_granger_cointegration":
@@ -1652,10 +2324,21 @@ __all__ = [
     "QueryArguments",
     "Stage10AvailableTickerArgumentsV1",
     "Stage10MarketPriceArgumentsV1",
+    "Stage10MarketVolumeArgumentsV1",
+    "CanonicalMacroSearchArgumentsV2",
+    "CanonicalMacroDescribeArgumentsV2",
+    "CanonicalMacroSeriesArgumentsV2",
+    "MacroReleaseCalendarArgumentsV1",
     "Stage10MarketReturnArgumentsV2",
     "Stage10MarketDescribeArgumentsV2",
     "Stage10MarketAlignArgumentsV2",
     "Stage10MarketCorrelationArgumentsV2",
+    "Stage10DataQualityArgumentsV2",
+    "Stage10MarketTransformArgumentsV2",
+    "Stage10DistributionArgumentsV1",
+    "Stage10BootstrapArgumentsV1",
+    "Stage10CovarianceArgumentsV1",
+    "Stage10PrincipalComponentsArgumentsV1",
     "Stage10MarketRegressionArgumentsV2",
     "Stage10MarketRollingRegressionArgumentsV2",
     "Stage10MarketStationarityArgumentsV2",

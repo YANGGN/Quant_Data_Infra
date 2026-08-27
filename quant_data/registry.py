@@ -17,6 +17,7 @@ from .schema import validate_schema
 from .stores import STORE_ROLES
 from .tool_platform.catalog import (
     ADDITIVE_PUBLIC_TOOL_NAMES,
+    ADDITIVE_STAGE10_STATISTICS_TOOLS,
     CATALOG_ID,
     CATALOG_VERSION,
     CURRENT_FAMILY_COUNTS,
@@ -28,6 +29,8 @@ from .tool_platform.catalog import (
     SCHEMA_DIALECT,
     VERSIONED_CATALOG_ID,
     VERSIONED_CATALOG_VERSION,
+    VERSIONED_CANONICAL_MACRO_TOOLS,
+    VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
     VERSIONED_MARKET_RETURN_TOOLS,
     VERSIONED_OPERATION_GRAPH_IDS,
@@ -220,6 +223,16 @@ _ALPACA_SPY_OPTION_DATASET_IDS = (
     "fixture.market.option_capture_evidence",
     "fixture.market.options",
 )
+_SEC_AAPL_COMPANYFACTS_COLLECTOR_ID = "sec.company.aapl_fundamentals"
+_SEC_AAPL_COMPANYFACTS_DATASET_IDS = (
+    "fixture.company.sec_evidence",
+    "fixture.company.issuers",
+    "fixture.company.filings",
+    "fixture.company.fundamentals",
+    "fixture.company.filing_issuer_membership",
+)
+_SEC_MARKET_COMPANYFACTS_COLLECTOR_ID = "sec.company.market_fundamentals"
+_SEC_MARKET_COMPANYFACTS_DATASET_IDS = _SEC_AAPL_COMPANYFACTS_DATASET_IDS
 
 _STAGE1_DASHBOARD_ID = "stage1.overview"
 _STAGE5_REGISTRY_SOURCE_SHA256 = (
@@ -378,9 +391,37 @@ _MARKET_AVAILABLE_TICKER_V1_CATALOG_SOURCE_SHA256 = (
 _ALPACA_SPY_OPTION_REGISTRY_SOURCE_SHA256 = (
     "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
 )
-_PRE_MARKET_AVAILABLE_TICKER_TOOL_NAMES = tuple(
+_SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256 = (
+    "af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182"
+)
+_SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256 = (
+    "f151db20dd26fe2123e887415736431cfe1dcda8bf8f42d83a8b47ad3a27fec2"
+)
+_CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256 = (
+    "b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264"
+)
+_CANONICAL_ACCESS_CATALOG_SOURCE_SHA256 = (
+    "e6fa88fa63856247ab00073a14ff1321cfafa05d5323a22c26008e81d0b1eb5c"
+)
+_ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256 = (
+    "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
+)
+_ANALYTICS_FOUNDATION_CATALOG_SOURCE_SHA256 = (
+    "381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf"
+)
+_PRE_ANALYTICS_FOUNDATION_TOOL_NAMES = tuple(
     name
     for name in CURRENT_PUBLIC_TOOL_NAMES
+    if name not in ADDITIVE_STAGE10_STATISTICS_TOOLS
+)
+_PRE_CANONICAL_ACCESS_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_ANALYTICS_FOUNDATION_TOOL_NAMES
+    if name not in {"macro.get_release_calendar", "market.get_volume_series"}
+)
+_PRE_MARKET_AVAILABLE_TICKER_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_CANONICAL_ACCESS_TOOL_NAMES
     if name != "market.get_available_ticker"
 )
 
@@ -1481,8 +1522,69 @@ def _validate_strict_schema(schema: Any, pointer: str) -> None:
             or len(schema_type) != len(set(schema_type))
         ):
             raise _error(pointer, "schema", "Unsupported union schema type")
-        if set(schema) != {"type"}:
-            raise _error(pointer, "schema", "Stage 1 union schemas may only declare type")
+        allowed = {
+            "type",
+            "enum",
+            "minimum",
+            "maximum",
+            "minLength",
+            "maxLength",
+        }
+        if set(schema) - allowed:
+            raise _error(
+                pointer,
+                "schema",
+                "Union schema contains an unsupported keyword",
+            )
+        nonnull = set(schema_type) - {"null"}
+        if set(schema) != {"type"} and (
+            "null" not in schema_type or len(nonnull) != 1
+        ):
+            raise _error(
+                pointer,
+                "schema",
+                "Constrained unions must contain one scalar type and null",
+            )
+        if "enum" in schema:
+            enum = schema["enum"]
+            if (
+                not isinstance(enum, list)
+                or not enum
+                or None not in enum
+                or any(
+                    item is not None
+                    and (
+                        ("string" in nonnull and not isinstance(item, str))
+                        or (
+                            "integer" in nonnull
+                            and (
+                                isinstance(item, bool)
+                                or not isinstance(item, int)
+                            )
+                        )
+                    )
+                    for item in enum
+                )
+            ):
+                raise _error(
+                    pointer,
+                    "schema",
+                    "Nullable union enum is invalid",
+                )
+        for bound in ("minimum", "maximum", "minLength", "maxLength"):
+            if bound in schema and (
+                isinstance(schema[bound], bool)
+                or not isinstance(schema[bound], int)
+            ):
+                raise _error(
+                    pointer,
+                    "schema",
+                    "Nullable union bound must be an integer",
+                )
+        if schema.get("minimum", 0) > schema.get("maximum", MAX_JSON_BYTES):
+            raise _error(pointer, "schema", "Nullable numeric bounds are inverted")
+        if schema.get("minLength", 0) > schema.get("maxLength", MAX_JSON_BYTES):
+            raise _error(pointer, "schema", "Nullable string bounds are inverted")
         return
     if schema_type == "object":
         allowed = {"type", "additionalProperties", "properties", "required"}
@@ -1565,7 +1667,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.43.0"
+        or raw["registry_version"] != "2.47.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2359,7 +2461,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=30,
+        expected_count=52,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3184,20 +3286,25 @@ def load_registry(
         variant_stores = _stable_identifier_array(
             variant["stores"], f"{policy_pointer}/variants/0/stores"
         )
-        expected_variant_stores = (
-            ("market",)
-            if policy["tool"] in VERSIONED_MARKET_RETURN_TOOLS
-            else ()
-        )
-        expected_variant_datasets = (
-            (
+        if policy["tool"] in VERSIONED_CANONICAL_MACRO_TOOLS:
+            expected_variant_stores = ("macro",)
+            expected_variant_datasets = (
+                "fixture.macro.rtdsm_employ",
+                "fixture.macro.rtdsm_employ_evidence",
+                "fixture.macro.stage3_catalog",
+                "macro.official_vintages",
+                "macro.official_vintages_evidence",
+            )
+        elif policy["tool"] in VERSIONED_MARKET_RETURN_TOOLS:
+            expected_variant_stores = ("market",)
+            expected_variant_datasets = (
                 "market.stage10.daily_prices",
                 "market.stage10.source_evidence",
                 "market.stage10.instruments",
             )
-            if policy["tool"] in VERSIONED_MARKET_RETURN_TOOLS
-            else ()
-        )
+        else:
+            expected_variant_stores = ()
+            expected_variant_datasets = ()
         if (
             variant_stores != expected_variant_stores
             or tuple(variant_datasets) != expected_variant_datasets
@@ -3427,7 +3534,10 @@ def load_registry(
         fmp_stock_latest_collector = collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID
         max_workload_bytes = (
             67_108_864
-            if fmp_stock_latest_collector
+            if (
+                fmp_stock_latest_collector
+                or collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            )
             else 16_777_216
             if (
                 collector_id == "fmp.market.stage10_daily_history"
@@ -3443,6 +3553,7 @@ def load_registry(
                 or collector_id in _OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS
                 or collector_id == _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
                 or collector_id == _BEA_PERSONAL_INCOME_COLLECTOR_ID
+                or collector_id == _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
             )
             else MAX_JSON_BYTES
         )
@@ -3474,6 +3585,8 @@ def load_registry(
                 _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
                 _BEA_PERSONAL_INCOME_COLLECTOR_ID,
             }
+            else 50_000
+            if collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
             else 10_000
         ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Collector bounds are invalid")
@@ -4390,6 +4503,110 @@ def load_registry(
                     "alpaca_spy_options",
                     "Alpaca SPY option-surface collector drifted",
                 )
+        elif collector_id == _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "company.sec_aapl_fundamentals"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _SEC_AAPL_COMPANYFACTS_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "cik_scope",
+                    "normalization_version",
+                    "submissions",
+                    "companyfacts",
+                    "metric_mappings",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                    "user_agent_email",
+                    "user_agent_name",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_sec_versions_and_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 2,
+                    "max_rows": 10_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 120,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("SEC_USER_AGENT_NAME", "SEC_USER_AGENT_EMAIL")
+            ):
+                raise _error(
+                    pointer,
+                    "sec_aapl_companyfacts",
+                    "SEC AAPL company-fundamentals collector drifted",
+                )
+        elif collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "company.sec_market_fundamentals"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs != _SEC_MARKET_COMPANYFACTS_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "cik_scope",
+                    "normalization_version",
+                    "submissions",
+                    "companyfacts",
+                    "metric_mappings",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                    "user_agent_email",
+                    "user_agent_name",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_sec_versions_and_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 2,
+                    "max_rows": 50_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 120,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("SEC_USER_AGENT_NAME", "SEC_USER_AGENT_EMAIL")
+            ):
+                raise _error(
+                    pointer,
+                    "sec_market_companyfacts",
+                    "SEC market-universe company-fundamentals collector drifted",
+                )
         elif collector["network"] is not False or any(
             not name.startswith("QUANT_") for name in configuration_env
         ):
@@ -4764,9 +4981,529 @@ def _tool_policy_variant_inventory(
     )
 
 
+def analytics_foundation_registry_profile(registry: Registry) -> Registry:
+    """Project the analytics foundation increment back to exact registry 2.46."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.47.0"), ("1.9.0", "2.46.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    tool_names = tuple(str(item["id"]) for item in registry.tools)
+    raw_dataset_tool_ids = {
+        str(item["id"]): tuple(str(tool_id) for tool_id in item["tool_ids"])
+        for item in registry.raw["datasets"]
+    }
+    dataset_tool_ids_match = (
+        len(raw_dataset_tool_ids) == len(registry.datasets)
+        and all(
+            raw_dataset_tool_ids.get(item.id) == item.tool_ids
+            for item in registry.datasets
+        )
+    )
+    predecessor_policies = tuple(
+        policy
+        for policy in build_tool_version_policies()
+        if policy["tool"]
+        not in {"data.quality_audit", "timeseries.transform"}
+    )
+    predecessor_policy_inventory = tuple(
+        (
+            str(policy["tool"]),
+            tuple(str(item["version"]) for item in policy["variants"]),
+        )
+        for policy in predecessor_policies
+    )
+    catalog_246 = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": "2.9.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _CANONICAL_ACCESS_CATALOG_SOURCE_SHA256,
+    }
+    if version == ("1.9.0", "2.46.0"):
+        if (
+            registry.source_sha256
+            != _CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256
+            or tool_names != _PRE_ANALYTICS_FOUNDATION_TOOL_NAMES
+            or not dataset_tool_ids_match
+            or _tool_policy_variant_inventory(registry)
+            != predecessor_policy_inventory
+            or registry.raw.get("tool_version_schema_catalog") != catalog_246
+        ):
+            raise RegistryError(
+                "Registry 2.46 analytics-foundation predecessor identity drifted"
+            )
+        return registry
+
+    current_catalog = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": VERSIONED_CATALOG_VERSION,
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _ANALYTICS_FOUNDATION_CATALOG_SOURCE_SHA256,
+    }
+    current_policy_inventory = tuple(
+        (
+            str(policy["tool"]),
+            tuple(str(item["version"]) for item in policy["variants"]),
+        )
+        for policy in build_tool_version_policies()
+    )
+    if (
+        registry.source_sha256
+        != _ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256
+        or tool_names != CURRENT_PUBLIC_TOOL_NAMES
+        or not dataset_tool_ids_match
+        or _tool_policy_variant_inventory(registry)
+        != current_policy_inventory
+        or registry.raw.get("tool_version_schema_catalog") != current_catalog
+    ):
+        raise RegistryError("Current analytics-foundation registry identity drifted")
+
+    removed_tools = set(ADDITIVE_STAGE10_STATISTICS_TOOLS)
+    removed_policies = {"data.quality_audit", "timeseries.transform"}
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.46.0"
+    raw["tools"] = [
+        item for item in raw["tools"] if item["id"] not in removed_tools
+    ]
+    raw["tool_versions"] = [
+        item
+        for item in raw["tool_versions"]
+        if item["tool"] not in removed_policies
+    ]
+    raw["tool_version_schema_catalog"] = catalog_246
+    raw["presentation_order"]["tools"] = list(
+        _PRE_ANALYTICS_FOUNDATION_TOOL_NAMES
+    )
+
+    tool_ids_by_dataset: dict[str, list[str]] = {
+        item["id"]: [] for item in raw["datasets"]
+    }
+    for tool in raw["tools"]:
+        for dataset_id in tool["datasets"]:
+            tool_ids_by_dataset[dataset_id].append(tool["id"])
+    for policy in raw["tool_versions"]:
+        for variant in policy["variants"]:
+            for dataset_id in variant["datasets"]:
+                if variant["id"] not in tool_ids_by_dataset[dataset_id]:
+                    tool_ids_by_dataset[dataset_id].append(variant["id"])
+    raw["datasets"] = [
+        {**item, "tool_ids": tool_ids_by_dataset[item["id"]]}
+        for item in raw["datasets"]
+    ]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Analytics-foundation registry projection drifted")
+
+    tools = tuple(
+        item for item in registry.tools if str(item["id"]) not in removed_tools
+    )
+    policies = tuple(
+        item
+        for item in registry.tool_version_policies
+        if str(item["tool"]) not in removed_policies
+    )
+    projected_datasets = tuple(
+        replace(item, tool_ids=tuple(tool_ids_by_dataset[item.id]))
+        for item in registry.datasets
+    )
+    return replace(
+        registry,
+        registry_version="2.46.0",
+        datasets=projected_datasets,
+        tools=tools,
+        tool_version_policies=policies,
+        raw=raw,
+        source_sha256=_CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def canonical_access_registry_profile(registry: Registry) -> Registry:
+    """Project Step 1 canonical access back to exact registry 2.45."""
+
+    registry = analytics_foundation_registry_profile(registry)
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.46.0"), ("1.9.0", "2.45.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    tool_names = tuple(str(item["id"]) for item in registry.tools)
+    raw_dataset_tool_ids = {
+        str(item["id"]): tuple(str(tool_id) for tool_id in item["tool_ids"])
+        for item in registry.raw["datasets"]
+    }
+    dataset_tool_ids_match = (
+        len(raw_dataset_tool_ids) == len(registry.datasets)
+        and all(
+            raw_dataset_tool_ids.get(item.id) == item.tool_ids
+            for item in registry.datasets
+        )
+    )
+    catalog_245 = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": "2.8.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _MARKET_AVAILABLE_TICKER_V1_CATALOG_SOURCE_SHA256,
+    }
+    if version == ("1.9.0", "2.45.0"):
+        if (
+            registry.source_sha256
+            != _SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+            or tool_names != _PRE_CANONICAL_ACCESS_TOOL_NAMES
+            or not dataset_tool_ids_match
+            or _tool_policy_variant_inventory(registry) != _POLICY_VARIANTS_2_39
+            or registry.raw.get("tool_version_schema_catalog") != catalog_245
+        ):
+            raise RegistryError(
+                "Registry 2.45 canonical-access predecessor identity drifted"
+            )
+        return registry
+
+    current_catalog = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": "2.9.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _CANONICAL_ACCESS_CATALOG_SOURCE_SHA256,
+    }
+    if (
+        registry.source_sha256 != _CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256
+        or tool_names != _PRE_ANALYTICS_FOUNDATION_TOOL_NAMES
+        or not dataset_tool_ids_match
+        or _tool_policy_variant_inventory(registry)
+        != tuple(
+            (
+                str(policy["tool"]),
+                tuple(str(item["version"]) for item in policy["variants"]),
+            )
+            for policy in build_tool_version_policies()
+            if policy["tool"]
+            not in {"data.quality_audit", "timeseries.transform"}
+        )
+        or registry.raw.get("tool_version_schema_catalog") != current_catalog
+    ):
+        raise RegistryError("Current canonical-access registry identity drifted")
+
+    removed_tools = {"macro.get_release_calendar", "market.get_volume_series"}
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.45.0"
+    raw["tools"] = [
+        item for item in raw["tools"] if item["id"] not in removed_tools
+    ]
+    raw["tool_versions"] = [
+        item
+        for item in raw["tool_versions"]
+        if item["tool"] not in VERSIONED_CANONICAL_MACRO_TOOLS
+    ]
+    raw["tool_version_schema_catalog"] = catalog_245
+    raw["presentation_order"]["tools"] = list(
+        _PRE_CANONICAL_ACCESS_TOOL_NAMES
+    )
+
+    tool_ids_by_dataset: dict[str, list[str]] = {
+        item["id"]: [] for item in raw["datasets"]
+    }
+    for tool in raw["tools"]:
+        for dataset_id in tool["datasets"]:
+            tool_ids_by_dataset[dataset_id].append(tool["id"])
+    for policy in raw["tool_versions"]:
+        for variant in policy["variants"]:
+            for dataset_id in variant["datasets"]:
+                if variant["id"] not in tool_ids_by_dataset[dataset_id]:
+                    tool_ids_by_dataset[dataset_id].append(variant["id"])
+    raw["datasets"] = [
+        {**item, "tool_ids": tool_ids_by_dataset[item["id"]]}
+        for item in raw["datasets"]
+    ]
+
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical access registry projection drifted")
+
+    tools = tuple(
+        item for item in registry.tools if str(item["id"]) not in removed_tools
+    )
+    policies = tuple(
+        item
+        for item in registry.tool_version_policies
+        if str(item["tool"]) not in VERSIONED_CANONICAL_MACRO_TOOLS
+    )
+    projected_datasets = tuple(
+        replace(item, tool_ids=tuple(tool_ids_by_dataset[item.id]))
+        for item in registry.datasets
+    )
+    return replace(
+        registry,
+        registry_version="2.45.0",
+        datasets=projected_datasets,
+        tools=tools,
+        tool_version_policies=policies,
+        raw=raw,
+        source_sha256=_SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def sec_market_companyfacts_registry_profile(registry: Registry) -> Registry:
+    """Project the additive market-universe SEC collector back to exact 2.44."""
+
+    registry = canonical_access_registry_profile(registry)
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.45.0"), ("1.9.0", "2.44.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    collector_by_id = {str(item["id"]): item for item in registry.collectors}
+    if version == ("1.9.0", "2.44.0"):
+        if (
+            registry.source_sha256
+            != _SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+            or _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID in collector_by_id
+            or any(
+                _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+                in dataset_by_id[dataset_id].collector_ids
+                for dataset_id in _SEC_MARKET_COMPANYFACTS_DATASET_IDS
+            )
+        ):
+            raise RegistryError(
+                "Registry 2.44 SEC market-universe predecessor identity drifted"
+            )
+        return registry
+
+    collector = collector_by_id.get(_SEC_MARKET_COMPANYFACTS_COLLECTOR_ID)
+    if (
+        registry.source_sha256
+        != _SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+        or collector is None
+        or collector["handler"] != "company.sec_market_fundamentals"
+        or collector["configuration_env"]
+        != ["SEC_USER_AGENT_NAME", "SEC_USER_AGENT_EMAIL"]
+        or collector["input_datasets"] != ["market.stage10.instruments"]
+        or collector["output_datasets"]
+        != list(_SEC_MARKET_COMPANYFACTS_DATASET_IDS)
+        or collector["workload_bounds"]
+        != {
+            "max_bytes": 67_108_864,
+            "max_requests": 2,
+            "max_rows": 50_000,
+            "max_seconds": 120,
+        }
+        or any(
+            dataset_by_id[dataset_id].collector_ids.count(
+                _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            )
+            != 1
+            for dataset_id in _SEC_MARKET_COMPANYFACTS_DATASET_IDS
+        )
+        or any(
+            step.collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Current SEC market-universe registry identity drifted")
+
+    projected_collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+    )
+    projected_datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id != _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            ),
+        )
+        for item in registry.datasets
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.44.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+    ]
+    raw["datasets"] = [
+        {
+            **item,
+            "collector_ids": [
+                collector_id
+                for collector_id in item["collector_ids"]
+                if collector_id != _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            ],
+        }
+        for item in raw["datasets"]
+    ]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical SEC market-universe registry projection drifted")
+    return replace(
+        registry,
+        registry_version="2.44.0",
+        datasets=projected_datasets,
+        collectors=projected_collectors,
+        raw=raw,
+        source_sha256=_SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256,
+    )
+
+
+def sec_aapl_companyfacts_registry_profile(registry: Registry) -> Registry:
+    """Project the additive AAPL SEC collector back to exact registry 2.43."""
+
+    registry = sec_market_companyfacts_registry_profile(registry)
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.44.0"), ("1.9.0", "2.43.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    collector_by_id = {
+        str(item["id"]): item for item in registry.collectors
+    }
+    if version == ("1.9.0", "2.43.0"):
+        if (
+            registry.source_sha256 != _ALPACA_SPY_OPTION_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _ALPACA_SPY_OPTION_REGISTRY_SOURCE_SHA256
+            or _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID in collector_by_id
+            or any(
+                _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+                in dataset_by_id[dataset_id].collector_ids
+                for dataset_id in _SEC_AAPL_COMPANYFACTS_DATASET_IDS
+            )
+        ):
+            raise RegistryError(
+                "Registry 2.43 SEC AAPL predecessor identity drifted"
+            )
+        return registry
+
+    collector = collector_by_id.get(_SEC_AAPL_COMPANYFACTS_COLLECTOR_ID)
+    if (
+        registry.source_sha256
+        != _SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256
+        or collector is None
+        or collector["handler"] != "company.sec_aapl_fundamentals"
+        or collector["configuration_env"]
+        != ["SEC_USER_AGENT_NAME", "SEC_USER_AGENT_EMAIL"]
+        or collector["output_datasets"]
+        != list(_SEC_AAPL_COMPANYFACTS_DATASET_IDS)
+        or collector["workload_bounds"]
+        != {
+            "max_bytes": 16_777_216,
+            "max_requests": 2,
+            "max_rows": 10_000,
+            "max_seconds": 120,
+        }
+        or any(
+            dataset_by_id[dataset_id].collector_ids.count(
+                _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+            )
+            != 1
+            for dataset_id in _SEC_AAPL_COMPANYFACTS_DATASET_IDS
+        )
+        or any(
+            step.collector_id == _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+            for job in registry.jobs
+            for step in job.steps
+        )
+    ):
+        raise RegistryError("Current SEC AAPL registry identity drifted")
+
+    projected_collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) != _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+    )
+    projected_datasets = tuple(
+        replace(
+            item,
+            collector_ids=tuple(
+                collector_id
+                for collector_id in item.collector_ids
+                if collector_id != _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+            ),
+        )
+        for item in registry.datasets
+    )
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.43.0"
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+    ]
+    raw["datasets"] = [
+        {
+            **item,
+            "collector_ids": [
+                collector_id
+                for collector_id in item["collector_ids"]
+                if collector_id != _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+            ],
+        }
+        for item in raw["datasets"]
+    ]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _ALPACA_SPY_OPTION_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Canonical SEC AAPL registry projection drifted")
+    return replace(
+        registry,
+        registry_version="2.43.0",
+        datasets=projected_datasets,
+        collectors=projected_collectors,
+        raw=raw,
+        source_sha256=_ALPACA_SPY_OPTION_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def alpaca_spy_options_registry_profile(registry: Registry) -> Registry:
     """Project the additive Alpaca SPY collector back to exact registry 2.42."""
 
+    registry = sec_aapl_companyfacts_registry_profile(registry)
     version = (registry.schema_version, registry.registry_version)
     if version not in {("1.9.0", "2.43.0"), ("1.9.0", "2.42.0")}:
         return registry
@@ -4909,7 +5646,7 @@ def market_available_ticker_v1_registry_profile(
         != _MARKET_AVAILABLE_TICKER_V1_REGISTRY_SOURCE_SHA256
         or hashlib.sha256(payload).hexdigest()
         != _MARKET_AVAILABLE_TICKER_V1_REGISTRY_SOURCE_SHA256
-        or tool_names != CURRENT_PUBLIC_TOOL_NAMES
+        or tool_names != _PRE_CANONICAL_ACCESS_TOOL_NAMES
         or _tool_policy_variant_inventory(registry) != _POLICY_VARIANTS_2_39
         or registry.raw.get("tool_version_schema_catalog")
         != {
@@ -6025,7 +6762,11 @@ def timeseries_analysis_v2_registry_profile(registry: Registry) -> Registry:
         )
         != (
             *VERSIONED_MARKET_RETURN_TOOLS,
-            *VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+            *(
+                item
+                for item in VERSIONED_TIMESERIES_ANALYSIS_TOOLS
+                if item != "timeseries.transform"
+            ),
         )
     ):
         raise RegistryError("Canonical registry cannot reproduce revision 2.32")

@@ -43,11 +43,23 @@ the manifest advertises:
 ```
 
 The active inventory is intentionally read from the manifest rather than
-hard-coded here. In particular, it includes both native market-data tools:
+hard-coded here. The canonical-access foundation includes these native data
+tools:
 
 ```bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_available_ticker
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_volume_series
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.search_series --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.describe_series --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_series --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe data.quality_audit --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe timeseries.transform --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.distribution_diagnostics
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.covariance_matrix
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.bootstrap_confidence_interval
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.principal_components
 ```
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
@@ -82,6 +94,21 @@ printf '%s\n' '{"api_version":"1.0","tool":"market.get_available_ticker","argume
 
 printf '%s\n' '{"api_version":"1.0","tool":"market.get_price_series","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"market.get_volume_series","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"macro.search_series","tool_version":"2.0.0","arguments":{"query":"gdp","limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"macro.describe_series","tool_version":"2.0.0","arguments":{"series_id":"macro.gdp.real_qoq_saar_pct"}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_series","tool_version":"2.0.0","arguments":{"series_id":"macro.gdp.real_qoq_saar_pct","mode":"as_of","as_of":"2026-07-31T23:59:59Z","date_only_policy":"completed_date","limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_release_calendar","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ```
 
 `start_date` and `end_date` are independently optional for
@@ -90,6 +117,53 @@ under the stated mode and limit. The returned typed series are ordered `open`,
 `high`, `low`, `close`; they are raw provider-native prices. Adjustments and
 session-calendar semantics are not established, so do not label them adjusted
 or derive an unstated session policy.
+
+`market.get_volume_series` accepts the same ticker, mode, cutoff, optional
+inclusive date bounds, date-only policy, and limit shape. It returns one
+provider-native volume series selected from the exact same Stage 10 rows. Its
+unit is not normalized, and volume-adjustment and session-calendar semantics
+are explicitly not established.
+
+The canonical macro interface is explicit version `2.0.0`. Start with
+`macro.search_series`, then `macro.describe_series`, and pass the returned
+exact `series_id` to `macro.get_series`. Omitted version selection preserves
+legacy v1 behavior. The v2 reader supports `latest`, `as_of`, and
+`first_release`; `as_of` uses stored availability rather than period dates,
+and `first_release` fails closed unless the selected storage model retains an
+explicit flag and evidence. Official-vintage IDs never fall back to a generic
+series with the same ID. Preserve nullable source-native vintage fields in
+the returned `MacroTimeSeriesV2` rather than inventing timestamps.
+
+`macro.get_release_calendar` supports `latest` and `as_of`, optional inclusive
+event-date bounds, an optional case-insensitive event-name substring, and explicit
+truncation. Its availability is retained local capture time. It does not
+support or imply first-release selection.
+
+The Step 2-4 analytical tools do not open a database. Pass them the complete
+typed trailing-return series returned by the explicitly selected
+`market.get_returns@2.0.0` contract, preserving its audit, lineage, return
+definition, and point-in-time metadata exactly. Select `2.0.0` explicitly for
+`data.quality_audit` and `timeseries.transform`; omitted version selection
+continues to mean their legacy v1 contracts. The four `stats.*` tools are
+native `1.0.0` names.
+
+Use `data.quality_audit@2.0.0` before inference when coverage, explicit
+missingness, duplicates, ordering, availability, truncation, or lineage needs
+to be checked. Its calendar gaps do not establish missing exchange sessions.
+Use `timeseries.transform@2.0.0` for one explicitly selected rolling, ACF,
+PACF, Ljung-Box, or drawdown operation; copy its operation-specific nullable
+fields exactly from `describe` because irrelevant parameters are rejected.
+
+The general statistics tools operate on compatible, non-truncated returns.
+Covariance and PCA use one outer-aligned, joint-complete sample rather than
+pairwise-changing samples. Bootstrap requires an explicit unsigned 32-bit
+`seed`, and its result echoes the seed and deterministic generator contract.
+PCA requires an explicit covariance or correlation `basis`, orders components
+by descending eigenvalue with deterministic ties, canonicalizes eigenvector
+signs, and includes scores only when `include_scores` is true. Treat typed
+not-established results for insufficient samples, zero variance, interior
+missingness, or rank limitations as outcomes rather than silently changing
+the sample.
 
 For a non-default semantic version, include the version in the envelope:
 
@@ -151,11 +225,21 @@ Use tools as a sequence of validated typed results:
 
 1. Discover symbols with `market.get_available_ticker`.
 2. Retrieve raw OHLC with `market.get_price_series` for one returned ticker.
-3. Use the selected return tool version to produce compatible return series.
-4. Feed compatible, non-truncated series into time-series statistics or the
-   explicitly selected econometrics version.
-5. Preserve each response's receipt, lineage, point-in-time policy, and
+3. Retrieve provider-native volume with `market.get_volume_series` when the
+   analysis needs it.
+4. Use the selected return tool version to produce compatible return series.
+5. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
+   limitation before inference.
+6. Feed compatible, non-truncated series into the explicitly selected
+   transformation, general-statistics, or econometrics contract.
+7. Preserve each response's receipt, lineage, point-in-time policy, and
    warnings with the final research artifact.
+
+For macro work, search and describe with explicit v2 first, retrieve the
+series under a declared `latest`, `as_of`, or evidenced `first_release` mode,
+then align only frequency-compatible, non-truncated outputs. Use the calendar
+tool separately when release timing is part of the design; do not infer
+release timing from observation periods.
 
 Do not silently fill missing observations, mix raw prices with adjusted-price
 assumptions, change the return definition, or discard point-in-time metadata

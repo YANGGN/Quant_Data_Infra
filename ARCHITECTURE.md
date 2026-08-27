@@ -216,10 +216,24 @@ Every Stage 2 store carries the same ten control-plane relations:
   published work.
 
 The system registry is declarative source configuration. The current accepted
-revision is `2.43.0` with schema version `1.9.0`. It preserves the bounded
+revision is `2.47.0` with schema version `1.9.0`. It preserves the bounded
 Stage 8 declaration and its 57-name recovered compatibility target, while the
-active manifest contains two additive native tools for 59 total names.
+active manifest contains eight additive native tools for 65 total names.
 Revision `2.43.0` also adds one private Alpaca collector with no public tool.
+Revision `2.44.0` adds one private, manual-only AAPL SEC submissions and
+CompanyFacts collector with no migration, public tool, or scheduler.
+Revision `2.45.0` adds the private market-equity SEC CompanyFacts collector;
+the separately authorized fixed host operation and timer are operational
+exceptions rather than recovered registry jobs.
+Revision `2.46.0` adds only local read-only canonical-access tools and explicit
+macro v2 variants; it adds no migration, collector, provider request, write
+path, scheduler, export, hosting, or deployment.
+Revision `2.47.0` adds the store-free Step 2-4 analytical foundation: explicit
+`2.0.0` successors for `data.quality_audit` and `timeseries.transform`, plus
+four native statistics tools for distribution diagnostics, covariance,
+seeded bootstrap confidence intervals, and deterministic principal components.
+It consumes only caller-supplied typed Stage 10 return series and adds no data
+store, provider operation, credential, write path, or operational surface.
 It preserves four local-private dashboard
 exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
 manual JSON Atlas export. It adds isolated private declarations for the Stage 9
@@ -300,6 +314,30 @@ to `2.7.0` with 28 schemas by adding only the input and output contracts for
 Registry `2.42.0` advances the current catalog to `2.8.0` with 30 schemas by
 adding only the input and output contracts for
 `market.get_available_ticker`.
+Registry `2.46.0` advances the current catalog to `2.9.0` with 40 schemas. It
+adds native `market.get_volume_series` and `macro.get_release_calendar` tools
+and explicit `2.0.0` variants of `macro.search_series`,
+`macro.describe_series`, and `macro.get_series`. The macro reader routes the
+official ten-series allowlist only to the official-vintage model and all other
+IDs only to the generic model; it never falls back across those authorities.
+`latest` follows the retained current pointer, `as_of` admits only stored
+availability at or before the cutoff under the declared date-only policy, and
+`first_release` requires stored first-release evidence. Calendar retrieval is
+capture-available and supports only `latest` and `as_of`. Market volume reuses
+the exact Stage 10 price-row selection while publishing volume-specific units
+and assumptions. Exact projection restores byte-identical registry `2.45.0`
+and catalog `2.8.0`; the frozen v1 catalog remains unchanged.
+
+Registry `2.47.0` advances the current catalog to `2.10.0` with 52 schemas and
+65 logical names. `data.quality_audit@2.0.0` reports coverage, explicit
+missingness, duplicates, ordering, availability, truncation, and lineage
+without inventing a trading-session calendar. `timeseries.transform@2.0.0`
+adds rolling statistics, ACF, PACF, fixed-lag Ljung-Box diagnostics, and
+drawdown episodes. The four additive statistics tools use joint-complete
+samples where applicable; bootstrap requires and reports an explicit seed;
+PCA has deterministic descending component order and canonical eigenvector
+signs. Exact projection restores registry `2.46.0` and catalog `2.9.0`; the
+frozen v1 catalog remains byte-identical.
 
 Registry `2.40.0` implements
 [ADR 0012](docs/adr/0012-compact-fmp-calendar-retention.md) as a forward-only
@@ -347,6 +385,40 @@ canonical change. The registry declaration remains `manual_only`; the current
 user's separately authorized 15:55 host timer is the only recurring exception.
 This increment adds no migration, public tool, export, deployment, or authority
 for either recovered market job.
+
+Registry `2.44.0` adds the private fixed-AAPL SEC core-fundamentals collector.
+It performs one submissions and one CompanyFacts request before acquiring the
+company-store lock, enforces a 120-second pre-write deadline, maps only an
+explicit reviewed core concept set, and
+publishes through the existing immutable SEC evidence and append-only fact and
+fundamental version relations. The Inspector exposes a fixed read-only AAPL
+fundamentals view. The collector remains manual-only and adds no migration,
+public tool, timer, export, or deployment.
+
+Registry `2.45.0` adds the private market-equity SEC core-fundamentals
+collector while preserving the fixed-AAPL identity for exact pilot replay.
+The fixed zero-argument operation reads the 519 Stage 10 equity symbols from
+the canonical market store through a descriptor-pinned immutable connection,
+resolves them against SEC's official ticker map, deduplicates shared CIKs, and
+processes one issuer at a time. Each issuer uses one submissions and one
+CompanyFacts request, at no more than five requests per second and with no
+retry; network capture and parsing finish before that issuer's short company-
+store publication lock. The parser retains the reviewed ten-metric core map,
+adds annual 20-F/40-F support, and accepts at most 64 MiB and 50,000 selected
+source rows per issuer. Exact semantic replay writes nothing. The Inspector
+shows all populated issuers and permits only an exact ten-digit CIK filter.
+This revision adds no migration, public tool, export, hosting, or deployment.
+The user's separate operational decision authorizes one bounded historical
+population and a scheduled host refresh. The implementation fixes that
+refresh to a hardened, non-persistent weekday timer at 07:15
+America/New_York. The 2026-08-25 bounded pass matched 517 of 519 market-equity
+symbols to 514 SEC issuers, populated 476 of those issuers, and retained
+571,162 normalized fundamental versions across the reviewed ten metrics.
+Thirty-eight issuer attempts failed independently, two symbols were unmatched,
+and one matched issuer failed the submissions-ticker confirmation; no same-run
+retries were performed. Immutable integrity, foreign-key, lineage, and
+Inspector checks passed, after which the timer was linked, enabled, and left
+waiting without manually starting its service.
 
 The Chow test's exact finite-sample F reference requires Gaussian,
 homoskedastic, independent errors and the standard exogenous fixed-design

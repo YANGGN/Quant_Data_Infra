@@ -152,6 +152,11 @@ class Stage10DailyPriceSeriesTests(unittest.TestCase):
         )
         return json.dumps(rows, separators=(",", ":")).encode("utf-8")
 
+    def _volume_corrected_body(self, volume: int) -> bytes:
+        rows = json.loads(self.body)
+        rows[1]["volume"] = volume
+        return json.dumps(rows, separators=(",", ":")).encode("utf-8")
+
     @staticmethod
     def _query(
         *,
@@ -228,6 +233,28 @@ class Stage10DailyPriceSeriesTests(unittest.TestCase):
             "date_only_policy": "completed_date",
             "limit": limit,
         }
+
+    @staticmethod
+    def _public_volume_arguments(
+        *,
+        mode: str = "latest",
+        as_of: str | None = None,
+        limit: int = 100,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> dict[str, object]:
+        result: dict[str, object] = {
+            "ticker": "AAPL",
+            "mode": mode,
+            "as_of": as_of,
+            "date_only_policy": "completed_date",
+            "limit": limit,
+        }
+        if start_date is not None:
+            result["start_date"] = start_date
+        if end_date is not None:
+            result["end_date"] = end_date
+        return result
 
     def test_typed_ohlc_series_are_coherent_and_optional_bounds_are_read_only(
         self,
@@ -370,6 +397,176 @@ class Stage10DailyPriceSeriesTests(unittest.TestCase):
         )
         series.validate_lineage()
         dumps_strict(series.to_primitive())
+
+    def test_typed_volume_series_reuses_selection_without_price_metadata_leakage(
+        self,
+    ) -> None:
+        before = mutation_fingerprint(self.stores)
+        series = self.repository.get_volume_series(
+            self._query(start_date=None, end_date=None)
+        )
+        start_only = self.repository.get_volume_series(
+            self._query(start_date="2026-08-11", end_date=None)
+        )
+        end_only = self.repository.get_volume_series(
+            self._query(start_date=None, end_date="2026-08-11")
+        )
+        after = mutation_fingerprint(self.stores)
+
+        self.assertEqual(before["sha256"], after["sha256"])
+        self.assertEqual(
+            tuple(item.value for item in series.observations),
+            (Decimal("1000"), Decimal("1001"), Decimal("1002")),
+        )
+        self.assertEqual(
+            tuple(item.period_start for item in start_only.observations),
+            ("2026-08-11", "2026-08-12"),
+        )
+        self.assertEqual(
+            tuple(item.period_start for item in end_only.observations),
+            ("2026-08-10", "2026-08-11"),
+        )
+        self.assertEqual(series.metadata["unit"], "provider_native_volume")
+        self.assertEqual(series.metadata["value_representation"], "volume")
+        self.assertEqual(series.metadata["data_variant"], "fmp_full_eod_v1")
+        self.assertEqual(series.metadata["observation_field"], "volume")
+        self.assertNotIn("currency_segment", series.metadata)
+        self.assertNotIn("price_variant", series.metadata)
+        self.assertNotIn("currency_segment", series.audit)
+        self.assertNotIn("price_variant", series.audit)
+        self.assertTrue(
+            all(
+                item.unit == "provider_native_volume"
+                and item.value_representation == "volume"
+                and item.dimensions["data_variant"] == "fmp_full_eod_v1"
+                and "currency_segment" not in item.dimensions
+                and "price_variant" not in item.dimensions
+                for item in series.observations
+            )
+        )
+        self.assertEqual(series.audit["requested_start_date"], None)
+        self.assertEqual(series.audit["requested_end_date"], None)
+        self.assertEqual(series.provenance["dataset_id"], DATASET_ID)
+        self.assertIn(
+            "volume_adjustment_semantics_not_established", series.warnings
+        )
+        self.assertIn("volume_unit_semantics_provider_native", series.warnings)
+        self.assertTrue(
+            all(item.version_id and item.evidence_id for item in series.observations)
+        )
+        series.validate_lineage()
+        dumps_strict(series.to_primitive())
+
+        before_correction = self.repository.get_volume_series(
+            self._query(mode="as_of", as_of="2026-08-15T02:00:00Z")
+        )
+        self._publish(
+            self._volume_corrected_body(0),
+            captured_at="2026-08-15T03:00:00Z",
+        )
+        read_before = mutation_fingerprint(self.stores)
+        latest = self.repository.get_volume_series(self._query())
+        repeated = self.repository.get_volume_series(
+            self._query(mode="as_of", as_of="2026-08-15T02:00:00Z")
+        )
+        after_correction = self.repository.get_volume_series(
+            self._query(mode="as_of", as_of="2026-08-15T04:00:00Z")
+        )
+        read_after = mutation_fingerprint(self.stores)
+
+        self.assertEqual(read_before["sha256"], read_after["sha256"])
+        self.assertEqual(before_correction.observations[1].value, Decimal("1001"))
+        self.assertEqual(latest.observations[1].value, Decimal("0"))
+        self.assertEqual(after_correction.observations[1].value, Decimal("0"))
+        self.assertEqual(
+            dumps_strict(before_correction.to_primitive()),
+            dumps_strict(repeated.to_primitive()),
+        )
+        self.assertNotEqual(
+            before_correction.observations[1].version_id,
+            after_correction.observations[1].version_id,
+        )
+        self.assertEqual(before_correction.audit["point_in_time_status"], "safe")
+        self.assertEqual(
+            before_correction.audit["point_in_time_scope"],
+            "retained_local_captures",
+        )
+
+    def test_public_volume_series_omits_dates_matches_http_and_preserves_lineage(
+        self,
+    ) -> None:
+        dispatcher = ToolDispatcher(self.stores, self.registry)
+        arguments = self._public_volume_arguments()
+        declaration = self.registry.tool("market.get_volume_series")
+        self.assertNotIn("start_date", declaration["input_schema"]["required"])
+        self.assertNotIn("end_date", declaration["input_schema"]["required"])
+        self.assertIn("start_date", declaration["input_schema"]["properties"])
+        self.assertIn("end_date", declaration["input_schema"]["properties"])
+
+        before = mutation_fingerprint(self.stores)
+        direct = dispatcher.call("market.get_volume_series", arguments)
+        application = Stage1Application(self.stores, self.registry)
+        response = application.handle(
+            "POST",
+            "/api/agent-tools/call",
+            headers={"Content-Type": "application/json"},
+            body=dumps_strict(
+                {
+                    "api_version": "1.0",
+                    "tool": "market.get_volume_series",
+                    "arguments": arguments,
+                }
+            ).encode("utf-8"),
+        )
+        after = mutation_fingerprint(self.stores)
+
+        self.assertEqual(before["sha256"], after["sha256"])
+        self.assertEqual(response.status, 200)
+        payload = loads_strict(response.body)
+        self.assertEqual(dumps_strict(payload["result"]), dumps_strict(direct))
+        self.assertEqual(payload["tool"]["version"], "1.0.0")
+        self.assertEqual(
+            payload["receipt"]["operation_graph_id"],
+            "tool_platform.market.get_volume_series.v1",
+        )
+        self.assertEqual(direct["status"], "ok")
+        self.assertEqual(len(direct["series"]), 1)
+        series = direct["series"][0]
+        self.assertEqual(series["metadata"]["unit"], "provider_native_volume")
+        self.assertEqual(series["metadata"]["value_representation"], "volume")
+        self.assertNotIn("currency_segment", series["metadata"])
+        self.assertNotIn("price_variant", series["metadata"])
+        self.assertEqual(
+            tuple(item["value"] for item in series["observations"]),
+            (Decimal("1000"), Decimal("1001"), Decimal("1002")),
+        )
+        self.assertEqual(direct["truncation"]["returned_count"], 3)
+        self.assertEqual(
+            direct["diagnostics"][0]["code"], "stage10_market_volume_quality"
+        )
+        self.assertEqual(
+            tuple(item["dataset_id"] for item in direct["lineage"]),
+            (
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+                "market.stage10.instruments",
+            ),
+        )
+        manifest_tool = next(
+            item
+            for item in dispatcher.manifest()["tools"]
+            if item["name"] == "market.get_volume_series"
+        )
+        self.assertEqual(manifest_tool["version"], "1.0.0")
+        self.assertEqual(manifest_tool["stores"], ["market"])
+        self.assertEqual(
+            manifest_tool["datasets"],
+            [
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+                "market.stage10.instruments",
+            ],
+        )
 
     def test_as_of_instrument_identity_fails_closed_before_capture(self) -> None:
         with self.assertRaisesRegex(ValidationError, "unavailable at the cutoff"):
@@ -1232,6 +1429,143 @@ class Stage10DailyPriceSeriesTests(unittest.TestCase):
 
         with self.assertRaises(StoreUnavailableError):
             self.repository.get_close_series(self._query())
+
+
+class IsolatedPublicStage10VolumeSeriesTests(unittest.TestCase):
+    """Public volume regression coverage without the project-data runtime guard."""
+
+    def test_as_of_limit_is_deterministic_and_read_only(self) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            root = Path(temporary)
+            stores = explicit_store_map(root / "stores")
+            registry = load_registry(
+                PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
+                project_root=PROJECT_ROOT,
+                environment={},
+            )
+            initialize_all(stores, registry, applied_at="2026-08-15T00:00:00Z")
+            with writer_connection(stores, StoreRole.MARKET) as connection:
+                connection.execute(
+                    """
+                    INSERT INTO ingestion_runs(
+                        run_id, dataset_id, semantic_identity, command, scope_json,
+                        status, started_at, code_version
+                    ) VALUES (?, ?, ?, ?, ?, 'running', ?, ?)
+                    """,
+                    (
+                        "isolated_volume_seed_run",
+                        "market.stage10.instruments",
+                        "c" * 64,
+                        "fixture.seed",
+                        "{}",
+                        _CAPTURED_AT,
+                        "fixture",
+                    ),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO stage10_instruments(
+                        instrument_id, provider, provider_symbol, asset_type,
+                        display_name, exchange_code, currency_segment,
+                        first_trade_date, identity_seed_sha256, captured_at,
+                        captured_precision, run_id
+                    ) VALUES (?, 'fmp', 'AAPL', 'equity', 'AAPL fixture', 'XNAS',
+                              'provider_native', NULL, ?, ?, 'datetime', ?)
+                    """,
+                    (
+                        "isolated_volume_aapl",
+                        "d" * 64,
+                        _CAPTURED_AT,
+                        "isolated_volume_seed_run",
+                    ),
+                )
+
+            collector = Stage12BIncrementalCollector(
+                fixture_root=root,
+                market_store=stores.market,
+                scope=load_stage12b_incremental_market_v1_scope(_STAGE12B_SCOPE),
+                stage12a_scope=load_stage12_market_v1_scope(_STAGE12A_SCOPE),
+                stage12a_scope_source=_STAGE12A_SCOPE,
+            )
+
+            def publish(body: bytes, *, captured_at: str) -> None:
+                collector.publish(
+                    collector.prepare(
+                        Stage12BFixtureRequest(
+                            symbol="AAPL",
+                            from_date="2026-08-10",
+                            to_date="2026-08-12",
+                            session_dates=(
+                                "2026-08-10",
+                                "2026-08-11",
+                                "2026-08-12",
+                            ),
+                            captured_at=captured_at,
+                        ),
+                        Stage12BFixtureResponse(
+                            status=200,
+                            media_type="application/json; charset=utf-8",
+                            body=body,
+                            elapsed_seconds=1,
+                        ),
+                    )
+                )
+
+            initial_body = _FIXTURE.read_bytes()
+            publish(initial_body, captured_at=_CAPTURED_AT)
+            corrected_rows = json.loads(initial_body)
+            corrected_rows[0]["volume"] = 0
+            publish(
+                json.dumps(corrected_rows, separators=(",", ":")).encode("utf-8"),
+                captured_at="2026-08-15T03:00:00Z",
+            )
+
+            dispatcher = ToolDispatcher(stores, registry)
+            as_of_arguments = {
+                "ticker": "AAPL",
+                "mode": "as_of",
+                "as_of": "2026-08-15T02:00:00Z",
+                "date_only_policy": "completed_date",
+                "limit": 1,
+            }
+            before = mutation_fingerprint(stores)
+            selected = dispatcher.call("market.get_volume_series", as_of_arguments)
+            repeated = dispatcher.call("market.get_volume_series", as_of_arguments)
+            latest = dispatcher.call(
+                "market.get_volume_series",
+                {
+                    **as_of_arguments,
+                    "mode": "latest",
+                    "as_of": None,
+                },
+            )
+            after = mutation_fingerprint(stores)
+
+            self.assertEqual(before["sha256"], after["sha256"])
+            self.assertEqual(dumps_strict(selected), dumps_strict(repeated))
+            self.assertTrue(selected["truncation"]["applied"])
+            self.assertEqual(selected["truncation"]["limit"], 1)
+            self.assertEqual(selected["truncation"]["returned_count"], 1)
+            self.assertTrue(selected["truncation"]["has_more"])
+            series = selected["series"][0]
+            self.assertEqual(series["audit"]["mode"], "as_of")
+            self.assertEqual(series["audit"]["cutoff"], "2026-08-15T02:00:00Z")
+            self.assertEqual(series["audit"]["point_in_time_status"], "safe")
+            self.assertEqual(series["observations"][0]["period_start"], "2026-08-10")
+            self.assertEqual(series["observations"][0]["value"], Decimal("1000"))
+            self.assertEqual(latest["series"][0]["observations"][0]["value"], Decimal("0"))
+            self.assertNotEqual(
+                series["observations"][0]["version_id"],
+                latest["series"][0]["observations"][0]["version_id"],
+            )
+            self.assertEqual(
+                tuple(item["dataset_id"] for item in selected["lineage"]),
+                (
+                    "market.stage10.daily_prices",
+                    "market.stage10.source_evidence",
+                    "market.stage10.instruments",
+                ),
+            )
 
 
 if __name__ == "__main__":

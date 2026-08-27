@@ -1,4 +1,4 @@
-"""Loopback-only read inspector for the canonical market and macro stores.
+"""Loopback-only read inspector for canonical market, macro, and company stores.
 
 This is intentionally separate from the frozen Stage 6 portal.  Browser input
 selects only fixed, bounded read templates; it can never select a database
@@ -67,16 +67,17 @@ from .macro.nyfed_repo_facilities import (
 from .macro.nyfed_soma_summary import COMPONENT_MANIFEST as SOMA_COMPONENT_MANIFEST
 from .macro.stage11_eia import EIA_WEEKLY_CANONICAL_SERIES_ID
 from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
-from .stores import StoreMap, StoreRole, read_connection, resolve_store_map
+from .stores import StoreMap, StoreRole, read_connection, resolve_store_map, stable_id
 
 
-_CURRENT_REGISTRY = "2.43.0"
+_CURRENT_REGISTRY = "2.47.0"
 _CURRENT_SCHEMA = "1.9.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
     "market-prices",
     "market-instruments",
     "spy-options",
+    "company-fundamentals",
     "macro-current",
     "macro-vintages",
     "macro-surprises",
@@ -107,6 +108,7 @@ _VIEW_LABELS = {
     "market-prices": "Market prices",
     "market-instruments": "Market symbols",
     "spy-options": "SPY options",
+    "company-fundamentals": "Company fundamentals",
     "macro-current": "Macro current",
     "macro-vintages": "Macro vintages",
     "macro-surprises": "Release surprises",
@@ -192,7 +194,26 @@ _DEFAULT_SERIES = "macro.gdp.real_qoq_saar_pct"
 _FMP_PRIORITIES = ("High", "Medium", "Low", "None")
 _GDP_RELEASE_STAGES = ("advance", "initial", "second", "third")
 _SYMBOL = re.compile(r"^[A-Za-z0-9.^=_-]{1,32}$")
+_CIK = re.compile(r"^[0-9]{10}$")
 _PERIOD = re.compile(r"^[0-9]{4}(?:Q[1-4]|-[0-9]{2})$")
+_COMPANY_METRICS = (
+    "revenue",
+    "net_income",
+    "total_assets",
+    "total_liabilities",
+    "operating_cash_flow",
+    "shares_outstanding",
+    "weighted_average_shares_basic",
+    "weighted_average_shares_diluted",
+    "earnings_per_share_basic",
+    "earnings_per_share_diluted",
+)
+_COMPANY_METRIC_IDS = {
+    metric: stable_id("company_metric", metric) for metric in _COMPANY_METRICS
+}
+_COMPANY_METRIC_CODES_BY_ID = {
+    metric_id: metric for metric, metric_id in _COMPANY_METRIC_IDS.items()
+}
 _MAX_LIMIT = 100
 _MAX_PAGE = 1000
 
@@ -214,6 +235,9 @@ class CanonicalInspectorReadService:
             "spy-options": {
                 "view", "option_type", "state", "expiration", "direction",
                 "page", "limit",
+            },
+            "company-fundamentals": {
+                "view", "cik", "metric", "period_end", "direction", "page", "limit",
             },
             "macro-current": {"view", "series", "period", "direction", "page", "limit"},
             "macro-vintages": {"view", "series", "period", "direction", "page", "limit"},
@@ -327,6 +351,8 @@ class CanonicalInspectorReadService:
             result = self._market_instruments(query, direction, page, limit)
         elif view == "spy-options":
             result = self._spy_options(query, direction, page, limit)
+        elif view == "company-fundamentals":
+            result = self._company_fundamentals(query, direction, page, limit)
         elif view == "macro-current":
             result = self._macro_rows(query, direction, page, limit, current=True)
         elif view == "macro-vintages":
@@ -589,6 +615,154 @@ class CanonicalInspectorReadService:
                 "state": state,
                 "expiration": expiration,
             },
+        )
+
+    def _company_fundamentals(
+        self, query: Mapping[str, str], direction: str, page: int, limit: int
+    ) -> dict[str, Any]:
+        """Inspect latest normalized facts for the reviewed core metrics."""
+
+        cik = query.get("cik", "").strip()
+        if cik and _CIK.fullmatch(cik) is None:
+            raise ValidationError("Company CIK is invalid")
+        metric = query.get("metric", "").strip()
+        if metric and metric not in _COMPANY_METRICS:
+            raise ValidationError("Company fundamental metric is invalid")
+        period_end = _optional_date(query.get("period_end"), "/period_end")
+
+        metric_placeholders = ", ".join("?" for _ in _COMPANY_METRIC_IDS)
+        where = [
+            "fundamental.current_rank=1",
+            f"fundamental.metric_id IN ({metric_placeholders})",
+        ]
+        parameters: list[object] = list(_COMPANY_METRIC_IDS.values())
+        if cik:
+            where.append("issuer.cik=?")
+            parameters.append(cik)
+        if metric:
+            where.append("fundamental.metric_id=?")
+            parameters.append(_COMPANY_METRIC_IDS[metric])
+        if period_end:
+            where.append("fundamental.reference_period_end=?")
+            parameters.append(period_end)
+
+        common_table = """
+            WITH latest_issuer_version AS (
+                SELECT issuer_version_id, issuer_id, legal_name, name_state,
+                       version_sequence,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY issuer_id
+                           ORDER BY version_sequence DESC, issuer_version_id DESC
+                       ) AS current_rank
+                FROM company_issuer_versions
+            ),
+            current_fundamentals AS (
+                SELECT fundamental.*,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY issuer_id, metric_id,
+                                        reference_period_end
+                           ORDER BY version_sequence DESC,
+                                    fundamental_version_id DESC
+                       ) AS current_rank
+                FROM company_fundamental_observation_versions AS fundamental
+            )
+        """
+        base = f"""
+            FROM current_fundamentals AS fundamental
+            JOIN company_issuers AS issuer
+              ON issuer.issuer_id=fundamental.issuer_id
+            LEFT JOIN latest_issuer_version AS issuer_version
+              ON issuer_version.issuer_id=issuer.issuer_id
+             AND issuer_version.current_rank=1
+            JOIN company_metric_definitions AS metric_definition
+              ON metric_definition.metric_id=fundamental.metric_id
+            JOIN company_metric_mappings AS mapping
+              ON mapping.mapping_id=fundamental.mapping_id
+            JOIN company_sec_filings AS filing
+              ON filing.accession_number=fundamental.accession_number
+            WHERE {' AND '.join(where)}
+        """
+        columns = (
+            "cik",
+            "legal_name",
+            "metric",
+            "metric_name",
+            "period_start",
+            "period_end",
+            "fiscal_year",
+            "fiscal_period",
+            "value",
+            "value_state",
+            "missing_reason",
+            "unit",
+            "share_semantics",
+            "filing_form",
+            "filing_date",
+            "accession_number",
+            "available_at",
+            "available_precision",
+            "version_sequence",
+            "taxonomy",
+            "source_concept",
+            "mapping_version",
+        )
+        sql = f"""
+            {common_table}
+            SELECT issuer.cik,
+                   CASE issuer_version.name_state
+                        WHEN 'present' THEN issuer_version.legal_name
+                        ELSE NULL
+                   END AS legal_name,
+                   fundamental.metric_id AS metric,
+                   metric_definition.display_name AS metric_name,
+                   fundamental.reference_period_start AS period_start,
+                   fundamental.reference_period_end AS period_end,
+                   fundamental.fiscal_year,
+                   fundamental.fiscal_period,
+                   fundamental.value_text AS value,
+                   fundamental.value_state,
+                   fundamental.missing_reason,
+                   mapping.unit,
+                   fundamental.share_semantics,
+                   filing.form_type AS filing_form,
+                   filing.filing_date,
+                   fundamental.accession_number,
+                   fundamental.available_at,
+                   fundamental.available_precision,
+                   fundamental.version_sequence,
+                   mapping.taxonomy,
+                   mapping.concept AS source_concept,
+                   mapping.mapping_version
+            {base}
+            ORDER BY fundamental.reference_period_end {direction.upper()},
+                     issuer.cik ASC,
+                     fundamental.metric_id ASC,
+                     fundamental.version_sequence DESC,
+                     fundamental.fundamental_version_id ASC
+            LIMIT ? OFFSET ?
+        """
+        with _immutable_store_connection(
+            self._stores.company, expected_role="company"
+        ) as connection:
+            total = int(
+                connection.execute(
+                    f"{common_table} SELECT COUNT(*) {base}", tuple(parameters)
+                ).fetchone()[0]
+            )
+            rows = _rows(
+                connection.execute(
+                    sql, (*parameters, limit, (page - 1) * limit)
+                ).fetchall()
+            )
+        for row in rows:
+            row["metric"] = _COMPANY_METRIC_CODES_BY_ID[str(row["metric"])]
+        return _result(
+            columns,
+            rows,
+            total,
+            page,
+            limit,
+            {"cik": cik, "metric": metric, "period_end": period_end},
         )
 
     def _macro_rows(
@@ -1793,7 +1967,7 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
         environment={},
     )
     stores = resolve_store_map(registry, project_root=root, environment={})
-    for role in (StoreRole.MARKET, StoreRole.MACRO):
+    for role in (StoreRole.MARKET, StoreRole.MACRO, StoreRole.COMPANY):
         expected = root / "data" / f"{role.value}.sqlite"
         if expected.is_symlink() or not expected.is_file():
             raise StoreUnavailableError(f"Canonical {role.value} store is unavailable")
@@ -1808,7 +1982,7 @@ def _immutable_store_connection(
 ) -> Iterator[sqlite3.Connection]:
     """Open one quiet canonical store without touching its WAL/SHM state."""
 
-    if expected_role not in {"market", "macro"}:
+    if expected_role not in {"market", "macro", "company"}:
         raise ValidationError("Canonical inspector store role is invalid")
     if path.is_symlink() or not path.is_file():
         raise StoreUnavailableError("Canonical store is unavailable")
@@ -2002,7 +2176,7 @@ def _render_page(
 <p class="shell-status"><span aria-hidden="true">●</span> Local read-only · registry {html.escape(revision)}</p></header>
 <nav class="primary-nav" aria-label="Inspector views">{navigation}</nav>
 <main id="main-content"><section class="page-intro"><p class="eyebrow">Operational data · inspection only</p>
-<h1>{html.escape(_VIEW_LABELS[view])}</h1><p>Fixed, bounded queries over the canonical market and macro databases. Database paths, SQL, writes, and provider calls are not available here.</p></section>
+<h1>{html.escape(_VIEW_LABELS[view])}</h1><p>Fixed, bounded queries over the canonical market, macro, and company databases. Database paths, SQL, writes, and provider calls are not available here.</p></section>
 {notice}<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Filters</p><h2>Choose what to inspect</h2></div></div>{form}</section>
 <section class="panel"><div class="panel-header"><div><p class="panel-kicker">Results</p><h2>{total:,} matching rows</h2></div>
 <a href="/api/rows?{html.escape(urlencode(api_query), quote=True)}">View JSON</a></div>
@@ -2048,6 +2222,24 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         fields.append(
             _input(
                 "expiration", "Exact expiration", query.get("expiration"),
+                input_type="date",
+            )
+        )
+    elif view == "company-fundamentals":
+        fields.append(
+            _input("cik", "Exact SEC CIK", query.get("cik"), placeholder="0000320193")
+        )
+        selected = str(query.get("metric", ""))
+        options = '<option value="">All reviewed metrics</option>' + "".join(
+            f'<option value="{html.escape(item, quote=True)}"'
+            + (" selected" if item == selected else "")
+            + f">{html.escape(item.replace('_', ' ').title())}</option>"
+            for item in _COMPANY_METRICS
+        )
+        fields.append(f'<label>Metric<select name="metric">{options}</select></label>')
+        fields.append(
+            _input(
+                "period_end", "Exact period end", query.get("period_end"),
                 input_type="date",
             )
         )
@@ -2302,7 +2494,9 @@ def _html_value(value: Any) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Inspect canonical market and macro data locally")
+    parser = argparse.ArgumentParser(
+        description="Inspect canonical market, macro, and company data locally"
+    )
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--port", type=int, default=8765)
     arguments = parser.parse_args(argv)

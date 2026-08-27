@@ -23,7 +23,7 @@ from quant_data.macro.fmp_release_surprises import (
     ReleaseSurprise,
 )
 from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry
-from quant_data.stores import StoreMap
+from quant_data.stores import StoreMap, stable_id
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -35,9 +35,11 @@ class CanonicalInspectorTests(unittest.TestCase):
         root = Path(self.temporary.name)
         self.market = root / "market.sqlite"
         self.macro = root / "macro.sqlite"
+        self.company = root / "company.sqlite"
         self._seed_market(self.market)
         self._seed_spy_options(self.market)
         self._seed_macro(self.macro)
+        self._seed_company(self.company)
         self.registry = load_registry(
             CANONICAL_REGISTRY_PATH,
             project_root=PROJECT_ROOT,
@@ -46,7 +48,7 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.stores = StoreMap.four_explicit(
             market=self.market,
             macro=self.macro,
-            company=root / "company.sqlite",
+            company=self.company,
             news=root / "news.sqlite",
         )
         self.application = CanonicalInspectorApplication(self.stores, self.registry)
@@ -215,6 +217,116 @@ class CanonicalInspectorTests(unittest.TestCase):
             INSERT INTO option_capture_underlying_quotes VALUES
               ('underlying-current', 'capture-current', 'present', 644.9, 645.1,
                645.0, 645.0, '2026-08-25T19:54:00.123456700Z');
+            """
+        )
+        connection.commit()
+        connection.close()
+
+    @staticmethod
+    def _seed_company(path: Path) -> None:
+        revenue_metric_id = stable_id("company_metric", "revenue")
+        assets_metric_id = stable_id("company_metric", "total_assets")
+        connection = sqlite3.connect(path)
+        connection.executescript(
+            f"""
+            CREATE TABLE store_metadata (
+                singleton INTEGER PRIMARY KEY,
+                store_role TEXT NOT NULL
+            );
+            INSERT INTO store_metadata VALUES (1, 'company');
+            CREATE TABLE company_issuers (
+                issuer_id TEXT PRIMARY KEY,
+                cik TEXT NOT NULL
+            );
+            CREATE TABLE company_issuer_versions (
+                issuer_version_id TEXT PRIMARY KEY,
+                issuer_id TEXT NOT NULL,
+                legal_name TEXT,
+                name_state TEXT NOT NULL,
+                version_sequence INTEGER NOT NULL
+            );
+            CREATE TABLE company_metric_definitions (
+                metric_id TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL
+            );
+            CREATE TABLE company_metric_mappings (
+                mapping_id TEXT PRIMARY KEY,
+                metric_id TEXT NOT NULL,
+                mapping_version TEXT NOT NULL,
+                taxonomy TEXT NOT NULL,
+                concept TEXT NOT NULL,
+                unit TEXT NOT NULL
+            );
+            CREATE TABLE company_sec_filings (
+                accession_number TEXT PRIMARY KEY,
+                form_type TEXT NOT NULL,
+                filing_date TEXT NOT NULL
+            );
+            CREATE TABLE company_fundamental_observation_versions (
+                fundamental_version_id TEXT PRIMARY KEY,
+                issuer_id TEXT NOT NULL,
+                metric_id TEXT NOT NULL,
+                mapping_id TEXT NOT NULL,
+                share_semantics TEXT NOT NULL,
+                fiscal_year INTEGER,
+                fiscal_period TEXT,
+                reference_period_start TEXT,
+                reference_period_end TEXT NOT NULL,
+                accession_number TEXT NOT NULL,
+                value_text TEXT,
+                value_state TEXT NOT NULL,
+                missing_reason TEXT,
+                available_at TEXT NOT NULL,
+                available_precision TEXT NOT NULL,
+                version_sequence INTEGER NOT NULL
+            );
+            INSERT INTO company_issuers VALUES
+              ('issuer-aapl', '0000320193'),
+              ('issuer-msft', '0000789019');
+            INSERT INTO company_issuer_versions VALUES
+              ('issuer-aapl-v1', 'issuer-aapl', 'Apple Inc.', 'present', 1),
+              ('issuer-aapl-v2', 'issuer-aapl', 'Apple Inc.', 'present', 2),
+              ('issuer-msft-v1', 'issuer-msft', 'Microsoft Corporation', 'present', 1);
+            INSERT INTO company_metric_definitions VALUES
+              ('{revenue_metric_id}', 'Revenue'),
+              ('{assets_metric_id}', 'Total assets');
+            INSERT INTO company_metric_mappings VALUES
+              (
+                'mapping-revenue', '{revenue_metric_id}', 'sec-core-v2', 'us-gaap',
+                'RevenueFromContractWithCustomerExcludingAssessedTax', 'USD'
+              ),
+              (
+                'mapping-assets', '{assets_metric_id}', 'sec-core-v2', 'us-gaap',
+                'Assets', 'USD'
+              );
+            INSERT INTO company_sec_filings VALUES
+              ('0000320193-24-000123', '10-K', '2024-11-01'),
+              ('0000789019-23-000123', '10-K', '2023-07-27');
+            INSERT INTO company_fundamental_observation_versions VALUES
+              (
+                'fundamental-revenue-v1', 'issuer-aapl', '{revenue_metric_id}',
+                'mapping-revenue', 'not_share', 2024, 'FY', '2023-10-01',
+                '2024-09-28', '0000320193-24-000123', '380000000000',
+                'present', NULL, '2024-11-01T14:00:00Z', 'datetime', 1
+              ),
+              (
+                'fundamental-revenue-v2', 'issuer-aapl', '{revenue_metric_id}',
+                'mapping-revenue', 'not_share', 2024, 'FY', '2023-10-01',
+                '2024-09-28', '0000320193-24-000123', '383285000000',
+                'present', NULL, '2024-11-01T14:00:00Z', 'datetime', 2
+              ),
+              (
+                'fundamental-assets-v1', 'issuer-aapl', '{assets_metric_id}',
+                'mapping-assets', 'not_share', 2024, 'FY', NULL,
+                '2024-09-28', '0000320193-24-000123', '364980000000',
+                'present', NULL, '2024-11-01T14:00:00Z', 'datetime', 1
+              ),
+              (
+                'fundamental-msft-revenue-v1', 'issuer-msft', '{revenue_metric_id}',
+                'mapping-revenue', 'not_share', 2023, 'FY', '2022-07-01',
+                '2023-06-30', '0000789019-23-000123', '211915000000',
+                'present', NULL, '2023-07-27T20:00:00Z', 'datetime', 1
+              );
             """
         )
         connection.commit()
@@ -1148,10 +1260,19 @@ class CanonicalInspectorTests(unittest.TestCase):
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
     def test_all_fixed_views_return_rows_without_mutating_stores(self) -> None:
-        before = (self._sha256(self.market), self._sha256(self.macro))
+        before = (
+            self._sha256(self.market),
+            self._sha256(self.macro),
+            self._sha256(self.company),
+        )
         routes = (
             ("/api/rows?view=market-prices&symbol=AAPL", "AAPL"),
             ("/api/rows?view=market-instruments&search=Apple", "Apple Inc."),
+            (
+                "/api/rows?view=company-fundamentals&metric=revenue"
+                "&period_end=2024-09-28",
+                "383285000000",
+            ),
             (
                 "/api/rows?view=macro-current&series=macro.gdp.real_qoq_saar_pct",
                 "2026Q2",
@@ -1553,7 +1674,14 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIsNone(surprise_row["official_prior_version_id"])
         self.assertEqual(surprise_row["release_stage"], "advance")
         self.assertFalse(surprise_row["is_fallback"])
-        self.assertEqual(before, (self._sha256(self.market), self._sha256(self.macro)))
+        self.assertEqual(
+            before,
+            (
+                self._sha256(self.market),
+                self._sha256(self.macro),
+                self._sha256(self.company),
+            ),
+        )
 
     def test_new_macro_series_are_visible_in_fixed_ui_views(self) -> None:
         before = (self._sha256(self.market), self._sha256(self.macro))
@@ -1690,6 +1818,77 @@ class CanonicalInspectorTests(unittest.TestCase):
             before,
             (self._sha256(self.market), self._sha256(self.macro)),
         )
+
+    def test_company_fundamentals_view_is_fixed_filterable_and_read_only(self) -> None:
+        before = self._sha256(self.company)
+        target = (
+            "/api/rows?view=company-fundamentals&metric=revenue"
+            "&period_end=2024-09-28"
+        )
+        response = self.application.handle("GET", target)
+        self.assertEqual(response.status, 200)
+        payload = loads_strict(response.body)
+        self.assertEqual(payload["execution"], "read_only")
+        result = payload["result"]
+        self.assertEqual(result["total"], 1)
+        row = result["rows"][0]
+        self.assertEqual(row["cik"], "0000320193")
+        self.assertEqual(row["legal_name"], "Apple Inc.")
+        self.assertEqual(row["metric"], "revenue")
+        self.assertEqual(row["metric_name"], "Revenue")
+        self.assertEqual(row["value"], "383285000000")
+        self.assertEqual(row["version_sequence"], 2)
+        self.assertEqual(row["filing_form"], "10-K")
+        self.assertEqual(row["filing_date"], "2024-11-01")
+        self.assertEqual(row["taxonomy"], "us-gaap")
+        self.assertEqual(
+            row["source_concept"],
+            "RevenueFromContractWithCustomerExcludingAssessedTax",
+        )
+        self.assertNotIn("380000000000", str(result["rows"]))
+
+        all_metrics = loads_strict(
+            self.application.handle(
+                "GET", "/api/rows?view=company-fundamentals&direction=asc"
+            ).body
+        )["result"]
+        self.assertEqual(all_metrics["total"], 3)
+        self.assertEqual(
+            {item["metric"] for item in all_metrics["rows"]},
+            {"revenue", "total_assets"},
+        )
+
+        document = self.application.handle(
+            "GET", "/?view=company-fundamentals"
+        ).body.decode("utf-8")
+        self.assertIn("Company fundamentals", document)
+        self.assertIn("All reviewed metrics", document)
+        self.assertIn('name="metric"', document)
+        self.assertIn('name="cik"', document)
+        self.assertIn('name="period_end"', document)
+        self.assertIn("canonical market, macro, and company databases", document)
+
+        microsoft = loads_strict(
+            self.application.handle(
+                "GET", "/api/rows?view=company-fundamentals&cik=0000789019"
+            ).body
+        )["result"]
+        self.assertEqual(microsoft["total"], 1)
+        self.assertEqual(microsoft["query"]["cik"], "0000789019")
+        self.assertEqual(microsoft["rows"][0]["legal_name"], "Microsoft Corporation")
+
+        for invalid in (
+            "/api/rows?view=company-fundamentals&metric=ebitda",
+            "/api/rows?view=company-fundamentals&metric=revenue%20OR%201=1",
+            "/api/rows?view=company-fundamentals&period_end=2024-13-28",
+            "/api/rows?view=company-fundamentals&cik=789019",
+            "/api/rows?view=company-fundamentals&relation=sqlite_master",
+        ):
+            with self.subTest(invalid=invalid):
+                invalid_response = self.application.handle("GET", invalid)
+                self.assertEqual(invalid_response.status, 400)
+
+        self.assertEqual(before, self._sha256(self.company))
 
     def test_raw_fmp_calendar_filters_lineage_and_literal_search(self) -> None:
         before = (self._sha256(self.market), self._sha256(self.macro))

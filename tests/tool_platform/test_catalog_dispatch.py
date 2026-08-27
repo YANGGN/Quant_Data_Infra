@@ -71,10 +71,10 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
         self.assertEqual(self.registry.schema_version, "1.9.0")
-        self.assertEqual(self.registry.registry_version, "2.43.0")
+        self.assertEqual(self.registry.registry_version, "2.47.0")
         self.assertEqual(
             self.registry.raw["tool_version_schema_catalog"]["schema_version"],
-            "2.8.0",
+            "2.10.0",
         )
         regression_v3 = self.registry.tool(
             "econometrics.regression",
@@ -102,6 +102,12 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
             if declaration["id"] in {
                 "market.get_available_ticker",
                 "market.get_price_series",
+                "market.get_volume_series",
+                "macro.get_release_calendar",
+                "stats.distribution_diagnostics",
+                "stats.covariance_matrix",
+                "stats.bootstrap_confidence_interval",
+                "stats.principal_components",
             }:
                 expected_status = "additive_native_v1"
             elif declaration["id"] in {"macro.get_series", "timeseries.describe"}:
@@ -116,7 +122,12 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
                 validate_schema(example, declaration["input_schema"])
         self.assertEqual(counts, CURRENT_FAMILY_COUNTS)
         self.assertEqual(
-            {**FAMILY_COUNTS, "market": FAMILY_COUNTS["market"] + 2},
+            {
+                **FAMILY_COUNTS,
+                "macro": FAMILY_COUNTS["macro"] + 1,
+                "market": FAMILY_COUNTS["market"] + 3,
+                "research": FAMILY_COUNTS["research"] + 4,
+            },
             CURRENT_FAMILY_COUNTS,
         )
         stage4 = stage4_registry_profile(self.registry)
@@ -136,7 +147,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         self.assertEqual(after[1], CATALOG_SHA256)
         self.assertEqual(after[1], self.registry.raw["tool_schema_catalog"]["sha256"])
 
-    def test_manifest_has_59_sanitized_read_only_contracts(self) -> None:
+    def test_manifest_has_65_sanitized_read_only_contracts(self) -> None:
         manifest = self.dispatcher.manifest()
         self.assertEqual(
             manifest["milestone"],
@@ -146,7 +157,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
             [item["name"] for item in manifest["tools"]],
             list(CURRENT_PUBLIC_TOOL_NAMES),
         )
-        self.assertEqual(len(manifest["tools"]), 59)
+        self.assertEqual(len(manifest["tools"]), 65)
         for item in manifest["tools"]:
             self.assertNotIn("handler", item)
             self.assertIn("operation_graph_id", item)

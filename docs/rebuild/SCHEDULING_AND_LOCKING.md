@@ -49,7 +49,11 @@ employment-vintage timer. A further explicit decision authorized the fixed FMP
 macro-calendar timer described below. On 2026-08-23 the user separately
 authorized the fixed weekday aggregate macro-current timer described below.
 On 2026-08-25 the user separately authorized the fixed Alpaca SPY option-
-surface timer. All five exceptions are active. None broadens the disabled
+surface timer. On 2026-08-25 the user also authorized scheduled SEC market-
+equity CompanyFacts fetching; the implementation fixes it to the weekday timer
+described below. The original five exceptions
+are active; the sixth is staged pending its focused activation gate. None
+broadens the disabled
 recovered job catalog or Stage 12E.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
@@ -193,6 +197,44 @@ option tables and Stage 10 SPY identity, adds no migration, and does not enable
 the recovered `options-close` or market-close jobs. Alpaca's indicative
 quotes and delayed/derived trades are inspection evidence, not an executable
 price, trading signal, or valuation input.
+
+## Authorized SEC market-equity fundamentals refresh
+
+The user explicitly authorized one longest-available historical population
+and scheduled fetching. The active implementation uses the fixed
+`quant-data-sec-company-fundamentals.timer` at 07:15 America/New_York, Monday
+through Friday, with
+`Persistent=false`. It was linked and enabled on 2026-08-25 after the bounded
+population and post-write checks passed; activation did not manually start
+the service. Its first scheduled trigger is 2026-08-26 at 07:15
+America/New_York.
+
+The zero-argument wrapper reads only the 519 Stage 10 market equities through
+a descriptor-pinned immutable market-store connection, resolves the bounded
+official SEC ticker map, deduplicates shared CIKs, and then performs one
+submissions and one CompanyFacts request per issuer. Requests are sequential,
+have no retry, and are globally paced at no more than five per second. The
+aggregate limit is one discovery plus twice the 700-equity safety ceiling and
+six hours. Each issuer is isolated to 64 MiB, 50,000 selected core rows, and a
+120-second pre-write deadline. Network and parsing complete before each short
+physical company-store publication lock; exact semantic replay writes
+nothing. One issuer failure does not prevent later independent issuers from
+running, but the aggregate service exits nonzero.
+
+The unit fixes the project root plus `data/market.sqlite` and
+`data/company.sqlite`, reuses only the established SEC User-Agent credential
+resolver, and adds no migration, public route, export, deployment, or
+authority for the frozen recovered `sec-daily` job. Unit-file presence is not
+activation evidence. Link/enable status may be recorded only after the
+focused offline gate, independent review, historical population checks, and
+host verification pass.
+
+The activating population completed inside its aggregate deadline with 476
+successful issuers, 38 isolated issuer failures, 517 matched equity symbols,
+two unmatched symbols, and one ticker-confirmation mismatch. A scheduled
+invocation processes the fixed full roster again; semantic replay makes
+unchanged successful issuers zero-write, while previously failed issuers get a
+new attempt. There is still no retry within an invocation.
 
 ## Safety principles
 

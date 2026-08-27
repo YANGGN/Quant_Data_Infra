@@ -19,7 +19,7 @@ DATASET_IDS = (
     "fixture.market.options",
 )
 CURRENT_SOURCE_SHA256 = (
-    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
+    "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
 )
 PREVIOUS_SOURCE_SHA256 = (
     "1ab956e8338b864873f25e6e41cc6a18ba9a271a1951bec0bdccf32a07b8fd2b"
@@ -34,7 +34,7 @@ class AlpacaSpyOptionsRegistryTests(unittest.TestCase):
         current = self._registry()
         self.assertEqual(
             (current.schema_version, current.revision, current.source_sha256),
-            ("1.9.0", "2.43.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.47.0", CURRENT_SOURCE_SHA256),
         )
         collector = next(item for item in current.collectors if item["id"] == COLLECTOR_ID)
         self.assertEqual(collector["handler"], "market.alpaca_spy_option_surface")

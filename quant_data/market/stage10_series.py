@@ -315,6 +315,13 @@ def _stored_decimal(row: Mapping[str, Any], name: str) -> Decimal:
     return value
 
 
+def _stored_volume(row: Mapping[str, Any]) -> int:
+    value = row["volume"]
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValidationError("Stored Stage 10 volume is invalid")
+    return value
+
+
 def _stored_temporal(
     row: Mapping[str, Any], value_name: str, precision_name: str
 ) -> TemporalValue:
@@ -679,6 +686,51 @@ class Stage10DailyPriceRepository:
             "normalization_version": str(row["normalization_version"]),
         }
 
+    @staticmethod
+    def _volume_observation(row: Mapping[str, Any]) -> Observation:
+        available = _stored_temporal(row, "available_at", "available_precision")
+        captured = _stored_temporal(row, "captured_at", "captured_precision")
+        if (
+            available.precision is not TemporalPrecision.DATETIME
+            or captured.precision is not TemporalPrecision.DATETIME
+            or available.raw != captured.raw
+        ):
+            raise ValidationError(
+                "Stage 10 volume must preserve exact local-capture timing"
+            )
+        trade_date = str(row["trade_date"])
+        parse_date(trade_date, pointer="/stored/trade_date")
+        return Observation(
+            period_start=trade_date,
+            period_end=trade_date,
+            value=Decimal(_stored_volume(row)),
+            missing_reason=None,
+            unit="provider_native_volume",
+            value_representation="volume",
+            scale="1",
+            vintage_at=str(row["captured_at"]),
+            available_at=str(row["available_at"]),
+            available_precision=str(row["available_precision"]),
+            captured_at=str(row["captured_at"]),
+            captured_precision=str(row["captured_precision"]),
+            version_id=str(row["version_id"]),
+            evidence_id=str(row["artifact_id"]),
+            snapshot_id=str(row["snapshot_id"]),
+            run_id=str(row["run_id"]),
+            dimensions={
+                "instrument_id": str(row["instrument_id"]),
+                "provider": str(row["provider"]),
+                "data_variant": str(row["price_variant"]),
+                "observation_field": "volume",
+            },
+            quality_flags=(
+                "availability_basis:local_capture",
+                "volume_adjustment_semantics:not_established",
+                "volume_unit_semantics:provider_native",
+                "session_calendar:not_established",
+            ),
+        )
+
     def _selected_rows(
         self,
         query: Stage10DailyPriceQuery,
@@ -889,6 +941,150 @@ class Stage10DailyPriceRepository:
             rows=rows,
             identity_warnings=identity_warnings,
             selection_warnings=selection_warnings,
+            truncated=truncated,
+        )
+
+    def get_volume_series(self, query: Stage10DailyPriceQuery) -> TimeSeries:
+        """Return provider-reported volume from the same immutable row selection."""
+
+        (
+            migrations,
+            instrument,
+            rows,
+            identity_warnings,
+            selection_warnings,
+            truncated,
+        ) = self._selected_rows(query)
+        instrument_id = str(instrument["instrument_id"])
+        observations = tuple(self._volume_observation(row) for row in rows)
+        series_id = stable_id(
+            "stage10_daily_volume_series",
+            instrument_id,
+            PROVIDER,
+            PRICE_VARIANT,
+            "volume",
+        )
+        receipt_material = {
+            "migrations": [
+                {
+                    "migration_id": str(row["migration_id"]),
+                    "sha256": str(row["sha256"]),
+                }
+                for row in migrations
+            ],
+            "series_contract": {
+                "series_id": series_id,
+                "instrument_id": instrument_id,
+                "provider_symbol": str(instrument["provider_symbol"]),
+                "provider": PROVIDER,
+                "data_variant": PRICE_VARIANT,
+                "observation_field": "volume",
+                "unit": "provider_native_volume",
+                "availability_basis": "local_capture",
+            },
+            "selected_instrument_identity": self._receipt_instrument(instrument),
+            "selected_immutable_versions": [
+                self._receipt_version(row) for row in rows
+            ],
+        }
+        warnings = set(identity_warnings)
+        warnings.update(selection_warnings)
+        warnings.update(
+            {
+                "local_capture_availability",
+                "session_calendar_not_established",
+                "volume_adjustment_semantics_not_established",
+                "volume_unit_semantics_provider_native",
+            }
+        )
+        if truncated:
+            warnings.add("result_truncated")
+        cutoff = query.cutoff
+        point_in_time_status = (
+            "safe" if query.mode == "as_of" else "not_applicable"
+        )
+        point_in_time_scope = (
+            "retained_local_captures"
+            if query.mode == "as_of"
+            else "current_stored_knowledge"
+        )
+        if query.mode == "as_of":
+            warnings.add("point_in_time_safe_only_for_retained_local_captures")
+        return TimeSeries(
+            series_id=series_id,
+            metadata={
+                "instrument_id": instrument_id,
+                "provider_symbol": str(instrument["provider_symbol"]),
+                "asset_type": str(instrument["asset_type"]),
+                "display_name": (
+                    None
+                    if instrument["display_name"] is None
+                    else str(instrument["display_name"])
+                ),
+                "exchange_code": (
+                    None
+                    if instrument["exchange_code"] is None
+                    else str(instrument["exchange_code"])
+                ),
+                "provider": PROVIDER,
+                "frequency": "daily",
+                "unit": "provider_native_volume",
+                "value_representation": "volume",
+                "scale": "1",
+                "data_variant": PRICE_VARIANT,
+                "observation_field": "volume",
+                "availability_basis": "local_capture",
+                "volume_unit_status": "provider_native_not_normalized",
+                "volume_adjustment_status": "not_established",
+                "session_calendar_status": "not_established",
+            },
+            observations=observations,
+            warnings=tuple(sorted(warnings)),
+            audit={
+                "mode": query.mode,
+                "requested_mode": query.mode,
+                "actual_mode": query.mode,
+                "cutoff": None if cutoff is None else cutoff.raw,
+                "cutoff_precision": (
+                    None if cutoff is None else cutoff.precision.value
+                ),
+                "date_only_policy": query.date_only_policy.value,
+                "availability_basis": "local_capture",
+                "period_range_rule": "trade_date",
+                "requested_start_date": query.start_date,
+                "requested_end_date": query.end_date,
+                "provider": PROVIDER,
+                "data_variant": PRICE_VARIANT,
+                "observation_field": "volume",
+                "volume_unit_status": "provider_native_not_normalized",
+                "volume_adjustment_status": "not_established",
+                "session_calendar_status": "not_established",
+                "point_in_time_status": point_in_time_status,
+                "point_in_time_scope": point_in_time_scope,
+                "unsafe_reasons": [],
+                "limit": query.limit,
+                "selected_count": len(observations),
+                "missing_count": 0,
+                "truncated": truncated,
+            },
+            provenance={
+                "dataset_id": DATASET_ID,
+                "evidence_dataset_id": EVIDENCE_DATASET_ID,
+                "identity_dataset_id": IDENTITY_DATASET_ID,
+                "store_role": StoreRole.MARKET.value,
+                "registry_revision": self._registry.revision,
+                "store_receipt": {
+                    "migration_ids": [
+                        str(row["migration_id"]) for row in migrations
+                    ],
+                    "selected_instrument_identity": self._receipt_instrument(
+                        instrument
+                    ),
+                    "sha256": hashlib.sha256(
+                        dumps_strict(receipt_material).encode("utf-8")
+                    ).hexdigest(),
+                },
+            },
             truncated=truncated,
         )
 

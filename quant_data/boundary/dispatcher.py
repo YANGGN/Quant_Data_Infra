@@ -43,6 +43,8 @@ from quant_data.tool_platform.arguments import (
 )
 from quant_data.tool_platform.catalog import (
     ADDITIVE_PUBLIC_TOOL_NAMES,
+    ADDITIVE_STAGE10_STATISTICS_TOOLS,
+    VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
     VERSIONED_MARKET_RETURN_TOOLS,
     VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
@@ -72,6 +74,9 @@ _STAGE5_INPUT_KINDS = {
     profile.name: profile.input_kind for profile in current_tool_profiles()
 }
 _VERSIONED_INPUT_KINDS = {
+    ("macro.search_series", "2.0.0"): "canonical_macro_search_v2",
+    ("macro.describe_series", "2.0.0"): "canonical_macro_describe_v2",
+    ("macro.get_series", "2.0.0"): "canonical_macro_series_v2",
     **{
         (name, "2.0.0"): "stage10_market_return_v2"
         for name in VERSIONED_MARKET_RETURN_TOOLS
@@ -79,6 +84,12 @@ _VERSIONED_INPUT_KINDS = {
     ("timeseries.describe", "2.0.0"): "stage10_market_describe_v2",
     ("timeseries.align", "2.0.0"): "stage10_market_align_v2",
     ("timeseries.correlation", "2.0.0"): "stage10_market_correlation_v2",
+    ("timeseries.transform", "2.0.0"): "stage10_market_transform_v2",
+    ("data.quality_audit", "2.0.0"): "stage10_data_quality_v2",
+    ("stats.distribution_diagnostics", "1.0.0"): "stage10_distribution_v1",
+    ("stats.covariance_matrix", "1.0.0"): "stage10_covariance_v1",
+    ("stats.bootstrap_confidence_interval", "1.0.0"): "stage10_bootstrap_v1",
+    ("stats.principal_components", "1.0.0"): "stage10_principal_components_v1",
     ("econometrics.regression", "2.0.0"): "stage10_market_regression_v2",
     (
         "econometrics.rolling_regression",
@@ -573,9 +584,11 @@ class ToolDispatcher:
                     declaration["version"] == "2.0.0"
                     and name in (
                         *VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+                        *VERSIONED_DATA_QUALITY_TOOLS,
                         *VERSIONED_ECONOMETRICS_TOOLS,
                     )
                 )
+                or name in ADDITIVE_STAGE10_STATISTICS_TOOLS
                 or declaration["version"] == "2.1.0"
                 or (
                     declaration["version"] == "3.0.0"
@@ -593,7 +606,7 @@ class ToolDispatcher:
             typed_material = parse_arguments(
                 input_kind, public_material, decode_series
             )
-        if name == "macro.get_series":
+        if name == "macro.get_series" and declaration["version"] == "1.0.0":
             result = self._macro_get_series(public_material)
         elif name == "timeseries.describe" and declaration["version"] == "1.0.0":
             result = self._describe(typed_material["series"])

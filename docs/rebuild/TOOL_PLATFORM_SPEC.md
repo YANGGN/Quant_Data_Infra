@@ -50,18 +50,27 @@ recorded.
 ## Compatibility decision
 
 The user accepted 57-name compatibility on 2026-08-09. All names in this
-document are reserved under eventual API version `1.0`, subject to recovered
-contract fixtures and the versioning rules below. Stage 1 validates only
-`macro.get_series` and `timeseries.describe`; that registry is explicitly a
-milestone subset and MUST NOT claim full 57-tool restoration or reuse any
-reserved name with different semantics.
+document are reserved under API version `1.0`, subject to recovered contract
+fixtures and the versioning rules below. The original Stage 1 milestone
+validated only `macro.get_series` and `timeseries.describe`; that historical
+registry was explicitly a milestone subset and did not claim full 57-tool
+restoration or reuse any reserved name with different semantics.
 
 Registry `2.41.0` adds `market.get_price_series` as one native, additive
 API `1.0` tool outside that recovered compatibility set. Registry `2.42.0`
-adds `market.get_available_ticker` as a second native additive tool. The
-reserved compatibility inventory remains exactly 57 names; the current active
-manifest therefore has 59 names. Neither additive tool claims recovered
-behavior.
+adds `market.get_available_ticker` as a second native additive tool. Registry
+`2.46.0` adds `market.get_volume_series` and
+`macro.get_release_calendar` as the third and fourth native additive tools and
+adds explicit `2.0.0` variants for the three existing macro catalog/series
+names. The reserved compatibility inventory remains exactly 57 names; the
+current active manifest builds on that increment. Registry `2.47.0` adds four
+more native tools: `stats.distribution_diagnostics`,
+`stats.covariance_matrix`, `stats.bootstrap_confidence_interval`, and
+`stats.principal_components`. It also adds explicit `2.0.0` successors for
+the reserved `data.quality_audit` and `timeseries.transform` names. The current
+manifest therefore has 65 logical names. None of the eight additive tools
+claims recovered behavior, and the two successors do not mutate their frozen
+v1 contracts.
 
 The recovered compatibility names are:
 
@@ -76,6 +85,10 @@ The recovered compatibility names are:
 | Rates | 3 | `rates.get_funding_conditions`, `rates.get_repo_facility_usage`, `rates.curve_analytics` |
 | Options | 6 | `options.search_captures`, `options.search_contracts`, `options.get_surface_snapshot`, `options.surface_diagnostics`, `options.screen_contracts`, `options.strategy_scenario` |
 | Research, diagnostics, forecast, and news | 10 | `research.point_in_time_panel`, `data.quality_audit`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate`, `news.search`, `research.liquidity_credit_state` |
+
+The current active family counts are macro 13, time series 4, econometrics 5,
+company 10, energy 2, market 8, rates 3, options 6, and research 14. Versioned
+variants do not create additional logical names.
 
 The additive `market.get_price_series` contract accepts a server-resolved
 ticker plus explicit mode, cutoff policy, and limit. `start_date` and
@@ -95,15 +108,44 @@ It is current retained-data discovery, not a live or historical point-in-time
 universe. Callers cannot provide dates, an as-of cutoff, a provider, path, SQL,
 or writable connection.
 
+The additive `market.get_volume_series` contract uses the same fixed Stage 10
+instrument identity and immutable row selection as the verified price reader.
+It returns one provider-native daily volume series, permits independently
+optional inclusive start/end bounds, preserves zero volume, and explicitly
+declares that unit normalization and adjustment semantics are not established.
+
+The explicit `2.0.0` variants of `macro.search_series`,
+`macro.describe_series`, and `macro.get_series` read the current canonical
+macro catalog. Exact describe lookup is not implemented as a bounded search.
+The ten official-vintage identifiers use only the official-vintage model; all
+other identifiers use only the generic canonical version core, with no
+cross-model fallback. `latest`, `as_of`, and `first_release` selection report
+requested and actual mode, cutoff precision, date-only policy, availability
+basis, selected versions, truncation, and point-in-time status. First release
+requires both the explicit flag and its evidence. An explicitly inclusive
+same-day date-only observation at an intraday cutoff is returned as unsafe with
+the deterministic safety warning; no timestamp is invented. Every canonical
+macro read first reconciles the store's complete macro migration ledger and the
+required dataset identity declarations against the reviewed registry.
+
+The additive `macro.get_release_calendar` contract composes immutable migration
+0016 wholesale captures with migration 0018 incremental event versions. It
+reconciles the exact provider/country/event-time/event-name/currency identity,
+ranks exact capture instants first and stored correction sequence before the
+version identifier, preserves provider JSON scalars as text, and reports the
+complete temporal request audit in deterministic diagnostics. First-release is
+not a calendar mode.
+
 The supported cross-project boundary is the fixed
 `bin/quant-data-tools` subprocess documented in
 [Local Agent Tools](../LOCAL_AGENT_TOOLS.md). It exposes `list`, `describe`,
 `manifest`, and strict-JSON stdin/stdout `call`; it derives the project root,
 registry, and store routes host-side and starts no URL or service.
 
-The manifest endpoint and call endpoint are `GET /api/agent-tools`
-and `POST /api/agent-tools/call`. Route restoration remains subject to route
-fixtures; this document does not claim that either endpoint currently exists.
+The loopback manifest endpoint and call endpoint are `GET /api/agent-tools`
+and `POST /api/agent-tools/call`; direct/HTTP parity is executable acceptance
+evidence. Cross-project agents on the same computer use the local subprocess
+boundary above and require no URL.
 
 ## Architectural boundaries
 
@@ -620,6 +662,60 @@ Their frozen independent vectors, hostile-boundary checks, direct/HTTP parity,
 and legacy-version isolation are executable acceptance evidence. The frozen v1
 catalog remains byte-identical.
 
+Registry `2.46.0` completes the first canonical-access tool increment. It keeps
+the recovered 57-name compatibility inventory intact, exposes 61 active
+logical names, 12 version-selection policies, and 16 explicit variants. The
+three existing macro catalog/series names gain explicit `2.0.0` variants;
+`market.get_volume_series` and `macro.get_release_calendar` are additive native
+names. The frozen v1 catalog remains byte-identical. The v2 catalog is version
+`2.9.0` with 40 contracts at SHA-256
+`e6fa88fa63856247ab00073a14ff1321cfafa05d5323a22c26008e81d0b1eb5c`.
+Exact projection removes only this increment and restores registry `2.45.0`.
+
+Registry `2.47.0` completes the next three store-free analytical increments.
+It exposes 65 active logical names, 14 version-selection policies, and 18
+explicit variants. The v2 catalog is version `2.10.0` with 52 contracts at
+SHA-256 `381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf`.
+Exact projection removes only this increment and restores byte-exact registry
+`2.46.0` and catalog `2.9.0`; the generated v1 catalog remains byte-identical.
+
+`data.quality_audit@2.0.0` accepts one through twenty supplied typed Stage 10
+return series. It validates lineage, reports requested and observed coverage,
+explicit missing values, absent calendar dates, duplicates, out-of-order rows,
+availability/cutoff metadata, and source truncation. Calendar discontinuities
+are observations only: the tool does not claim an exchange-session calendar or
+repair the input. A truncated input remains auditable but cannot establish
+complete coverage.
+
+`timeseries.transform@2.0.0` accepts one compatible, non-truncated trailing
+return series and one explicit operation. It supports fixed-window rolling
+mean, sample standard deviation, minimum, or maximum; full-sample-centered ACF;
+Durbin-Levinson PACF; fixed-lag Ljung-Box with zero fitted-model degrees of
+freedom; and simple- or log-return drawdown episodes inferred from the typed
+return definition. Operation-specific parameters are required and extraneous
+parameters are rejected. Terminal missingness may be trimmed and reported;
+an interior gap is never bridged or silently filled.
+
+The four native `stats.*` tools are version `1.0.0`, store-free, and accept
+only compatible, non-truncated Stage 10 trailing-return series.
+`stats.distribution_diagnostics` uses type-7 sample quantiles and declared
+population central moments. `stats.covariance_matrix` outer-aligns two through
+twenty inputs and then uses one joint-complete sample with the `n-1` sample
+denominator for covariance and correlation.
+`stats.bootstrap_confidence_interval` requires an unsigned 32-bit seed, 100
+through 5,000 IID resamples, a mean or median statistic, and a declared 90%,
+95%, or 99% type-7 percentile interval; the result echoes the seed and
+deterministic generator metadata. `stats.principal_components` uses the same
+joint-complete sample, an explicit covariance or correlation basis, and a
+bounded requested component count. Eigenvalues are descending with
+deterministic tie handling, and each eigenvector sign is canonicalized by
+making its largest-absolute loading positive. Scores are optional and bounded
+by the common workload budget.
+
+All six operations inherit and revalidate point-in-time and return-definition
+metadata from their typed inputs. They add no store, provider, credential,
+migration, scheduler, export, hosting, or deployment surface.
+
 
 Retirement requires roadmap approval, contract-fixture updates, a migration
 guide, and evidence that the local portal and other registered consumers have
@@ -655,9 +751,10 @@ until its applicable evidence is recorded.
 
 ### Registry and compatibility
 
-- The final canonical manifest test proves exactly 57 unique names and the
-  family counts above. The Stage 1 manifest separately proves exactly its two
-  declared milestone names and reports a non-active milestone status.
+- The canonical manifest test proves exactly 57 reserved compatibility names,
+  65 current active logical names, and the current active family counts above.
+  The historical Stage 1 projection separately proves exactly its two declared
+  milestone names and reports a non-active milestone status.
 - Every entry has generated input/output schemas, examples, limits, versions,
   store ownership, and one resolvable operation graph.
 - Recovered request/response fixtures pass, or each conflict is recorded and

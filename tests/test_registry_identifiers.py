@@ -96,7 +96,7 @@ class RegistryIdentifierTests(unittest.TestCase):
 
         self.assertEqual(len(registry.stores), 4)
         self.assertEqual(registry.schema_version, "1.9.0")
-        self.assertEqual(registry.registry_version, "2.43.0")
+        self.assertEqual(registry.registry_version, "2.47.0")
         predecessor = market_available_ticker_v1_registry_profile(registry)
         self.assertEqual(predecessor.registry_version, "2.41.0")
         self.assertEqual(len(predecessor.tools), 58)
@@ -125,7 +125,7 @@ class RegistryIdentifierTests(unittest.TestCase):
         )
         self.assertEqual(len(registry.migrations), 40)
         self.assertEqual(len(registry.datasets), 53)
-        self.assertEqual(len(registry.collectors), 51)
+        self.assertEqual(len(registry.collectors), 53)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
@@ -188,7 +188,7 @@ class RegistryIdentifierTests(unittest.TestCase):
             PUBLIC_TOOL_NAMES,
         )
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 59)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 65)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
             list(CURRENT_PUBLIC_TOOL_NAMES),

@@ -5,13 +5,13 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.43.0`, schema `1.9.0`. The former `2.22.0`/`validated` working candidate is
+`2.47.0`, schema `1.9.0`. The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.43.0` revisions. For any
+from the later additive `2.23.0` through `2.47.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -460,6 +460,91 @@ collector and its reciprocal bindings and restores byte-exact registry
 The current source SHA-256 is
 `841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff`.
 No public tool, catalog schema, migration, export, hosting, or deployment is added.
+
+Registry `2.44.0` adds only the private
+`sec.company.aapl_fundamentals` collector and reciprocal bindings to the five
+existing company SEC evidence, issuer, filing, filing-membership, and
+fundamentals datasets. It fixes CIK `0000320193`, makes one submissions and one
+CompanyFacts request with no retry, and names only `SEC_USER_AGENT_NAME` and
+`SEC_USER_AGENT_EMAIL`; the registry stores neither value. The operation is
+bounded to two requests, 10,000 normalized rows, 16 MiB total response bytes,
+and a monotonic 120-second pre-write deadline. Network capture and parsing
+complete before the physical
+company-store lock, and exact semantic replay produces zero persistent writes.
+An endpoint-identical response reuses its domain artifact and snapshot when
+the other endpoint changes without changing its interpreted membership. A
+material CompanyFacts response creates a new
+complete snapshot and the schema-required run-cohort fact/fundamental versions.
+The collector is `manual_only`; no company scheduler or recurring exception is
+declared. Exact projection removes only this collector and reciprocal bindings
+and restores byte-exact registry `2.43.0` at SHA-256
+`841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff`.
+The current source SHA-256 is
+`af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182`.
+No migration, public tool, catalog schema, scheduler, export, hosting, or
+deployment is added.
+
+Registry `2.45.0` adds only the private
+`sec.company.market_fundamentals` collector and reciprocal bindings to the
+same five company datasets. Its one-issuer collector contract is bounded to
+two single-attempt requests, 64 MiB, 50,000 selected core rows, and 120
+seconds. The fixed host wrapper obtains the 519 Stage 10 equity symbols by an
+immutable descriptor-pinned market-store read, makes one bounded official SEC
+ticker-map request, deduplicates shared CIKs, and invokes the collector
+sequentially at no more than five requests per second. The wrapper permits at
+most 1,401 total requests and six hours; failures are isolated by issuer and
+reported as bounded counts and digests. AAPL retains its exact `2.44.0`
+semantic/source identities. The reviewed ten-metric map adds annual 20-F/40-F
+support, and equivalent replay writes nothing. The collector remains
+`manual_only`; the authorized scheduled refresh is implemented as a fixed
+07:15 America/New_York weekday host-timer exception. Exact projection removes only this
+collector and its reciprocal bindings and restores byte-exact registry
+`2.44.0` at SHA-256
+`af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182`.
+The current source SHA-256 is
+`f151db20dd26fe2123e887415736431cfe1dcda8bf8f42d83a8b47ad3a27fec2`.
+No migration, public tool, catalog schema, export, hosting, or deployment is
+added. Registry declaration and unit-file presence do not claim that the
+authorized population or timer activation has completed.
+
+Registry `2.46.0` adds two native local read-only declarations,
+`market.get_volume_series` and `macro.get_release_calendar`, plus explicit
+`2.0.0` policies for `macro.search_series`, `macro.describe_series`, and
+`macro.get_series`. The active inventory is 61 names, 12 version policies,
+and 16 variants. Catalog `2.9.0` has 40 contracts at SHA-256
+`e6fa88fa63856247ab00073a14ff1321cfafa05d5323a22c26008e81d0b1eb5c`;
+the registry source SHA-256 is
+`b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264`.
+The macro variants route the fixed official-vintage allowlist only to the
+official model and other IDs only to the generic model. They use stored
+current pointers for `latest`, stored availability under the requested
+date-only cutoff policy for `as_of`, and explicit stored evidence for
+`first_release`. Release-calendar retrieval supports `latest` and `as_of` but
+does not claim first-release semantics; volume reuses the exact Stage 10 row
+selection and has volume-specific output semantics. Exact projection removes
+only these two names, their reciprocal bindings, and the three macro v2
+policies, restoring byte-exact registry `2.45.0` at SHA-256
+`f151db20dd26fe2123e887415736431cfe1dcda8bf8f42d83a8b47ad3a27fec2`
+and catalog `2.8.0`. This revision adds no migration, dataset, collector,
+provider request, credential, write path, scheduler, export, hosting, or
+deployment.
+
+Registry `2.47.0` adds only local, store-free `2.0.0` policies for
+`data.quality_audit` and `timeseries.transform`, plus the four native
+general-statistics tools `stats.distribution_diagnostics`,
+`stats.covariance_matrix`, `stats.bootstrap_confidence_interval`, and
+`stats.principal_components`. The active inventory is 65 names, 14 version
+policies, and 18 variants. Catalog `2.10.0` has 52 contracts at SHA-256
+`381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf`;
+the registry source SHA-256 is
+`eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8`.
+The quality and transformation variants consume caller-supplied typed return
+series, while the native statistics contracts are deterministic in-memory
+operations. Exact projection removes only the two version policies and four
+native names, restoring byte-exact registry `2.46.0` and catalog `2.9.0`.
+This revision adds no provider request, canonical-store operation, migration,
+dataset, collector, credential, write path, scheduler, export, hosting, or
+deployment.
 
 ADR 0012 defines the exact `2.40.0` topology. The legacy
 `macro.fmp.economic_calendar_evidence` dataset remains active and readable

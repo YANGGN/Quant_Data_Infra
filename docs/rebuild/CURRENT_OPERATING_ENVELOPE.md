@@ -28,13 +28,13 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.43.0`, schema `1.9.0`, with
-source SHA-256 `841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff`.
+The current accepted registry is revision `2.47.0`, schema `1.9.0`, with
+source SHA-256 `eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8`.
 The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
 authority. Because it never entered the active configuration lineage, it
-remains absent from the later additive `2.23.0` through `2.43.0` lineage,
+remains absent from the later additive `2.23.0` through `2.47.0` lineage,
 including Treasury `2.23.0`, NY Fed headline-rate `2.24.0`, NY Fed
 repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
 official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
@@ -222,6 +222,108 @@ added. The current user separately authorized the fixed 15:55 America/New_York
 weekday host timer. It was linked and enabled on 2026-08-25 after the focused
 offline gate, independent verification, and host status check passed.
 
+Revision `2.44.0` adds one private, manual-only SEC collector for the fixed
+AAPL CIK `0000320193`. It makes exactly one submissions request and one
+CompanyFacts request, with no retry, and fetches both responses before taking
+the physical company-store write lock. A monotonic 120-second pre-write
+deadline covers provider capture and parsing. It reuses the existing company SEC and
+fundamentals tables, the project credential resolver, and the established
+append/version publisher, so it adds no migration, dataset, public tool,
+scheduler, export, hosting, or deployment. `SEC_USER_AGENT_NAME` and
+`SEC_USER_AGENT_EMAIL` are user-agent components only; their values are never
+canonical data or semantic identity. The fixed normalized scope is a reviewed
+core metric map for AAPL and deliberately does not claim lossless retention of
+every dimensional SEC fact. Exact semantic replay writes nothing. Exact
+endpoint response reuses its immutable domain artifact and snapshot when the
+other endpoint changes without changing its interpreted membership; a
+material CompanyFacts response creates one new
+complete run-cohort snapshot under the existing schema. Exact projection
+removes only this collector and its reciprocal bindings and
+restores registry `2.43.0` at SHA-256
+`841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff`.
+
+The user's finite AAPL population request completed on 2026-08-25 with the
+locally configured SEC User-Agent components. Exactly two responses totaling
+3,953,538 bytes produced one successful run with 3,094 selected source rows
+and 6,734 writes: one issuer/version, 1,026 filings and filing memberships,
+two immutable complete endpoint artifacts/snapshots, 1,552 fact versions and
+memberships, 10 metric definitions/mappings, and 1,552 normalized fundamental
+versions. The current Inspector projection returns 682 latest AAPL rows across
+the 10 metrics, with retained period ends from 2007-09-29 through 2026-07-17.
+The immutable post-check reported integrity `ok`, zero foreign-key or lineage
+violations, and no SQLite sidecars. The stable post-read company-store
+SHA-256 is
+`274737e7f5426a137681e218bf70a4739a36fb5d92a5eac0fa86fdbb574b1c10`.
+
+Revision `2.45.0` adds the private
+`sec.company.market_fundamentals` collector and reciprocal bindings to those
+same five existing company datasets. It reads only the 519 canonical Stage 10
+equities, resolves exact official SEC ticker records, deduplicates shared CIKs,
+and then processes one issuer per publisher call. The host wrapper permits one
+discovery request plus at most two requests per bounded equity, no retries,
+global pacing at no more than five requests per second, a six-hour aggregate
+deadline, and per-issuer bounds of 64 MiB, 50,000 selected core rows, and 120
+seconds. Failures are isolated by issuer and produce only bounded credential-
+free aggregate counts and digests. AAPL delegates to the exact `2.44.0` pilot
+identity. The parser preserves the reviewed ten-metric core map and adds
+annual 20-F/40-F support. Exact semantic replay writes nothing. Exact
+projection removes only the new collector and reciprocal bindings and
+restores registry `2.44.0` at SHA-256
+`af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182`.
+This revision adds no migration, public tool, export, hosting, or deployment.
+
+The user's current decision explicitly authorizes exactly one bounded
+longest-available historical population through this wrapper and scheduled
+fetching. The implementation fixes that schedule to a separate hardened,
+non-persistent weekday host timer at 07:15 America/New_York. The
+registry collector remains `manual_only`; the fixed host unit is the recurring
+exception. The 2026-08-25 pass issued 1,011 requests totaling 1,974,931,254
+response bytes. Official discovery matched 517 of the 519 equity symbols to
+514 issuers, and the pass populated 476 of those issuers. It completed inside
+the aggregate deadline with 38 isolated issuer failures, two unmatched
+symbols, one submissions-ticker
+mismatch, no ambiguous symbols, and no rejected discovery records; it was not
+retried. The canonical company store contains 467,858 filings and 571,162
+fact/fundamental versions across ten metrics, with selected reference periods
+from 2006-12-31 through 2026-08-18. Immutable post-checks reported integrity
+`ok`, zero foreign-key or checked lineage violations, and stable Inspector
+reads. Its stable SHA-256 is
+`9e8765e52ee9595a94294c797d8a0641606622c03c99553fb6552c8e26c764cc`.
+After those checks, `quant-data-sec-company-fundamentals.timer` was linked and
+enabled without manually starting the service. It is active and waiting for
+2026-08-26 07:15 America/New_York; future invocations retain the same
+single-attempt/no-retry contract.
+
+Revision `2.46.0` implements the local read-only canonical-access foundation.
+It adds explicit `2.0.0` macro search, describe, and series variants while
+leaving omitted-version and explicit-v1 behavior unchanged. Official-vintage
+IDs never fall back to the generic model. Macro `latest`, `as_of`, and
+`first_release` use stored pointer, availability, and first-release evidence;
+unsupported first-release requests fail closed. It also adds native Stage 10
+volume and macro release-calendar retrieval, with independently optional date
+bounds, explicit truncation, and path-free lineage. The active manifest has
+61 names. Catalog `2.9.0` has 40 contracts at SHA-256
+`e6fa88fa63856247ab00073a14ff1321cfafa05d5323a22c26008e81d0b1eb5c`.
+Exact projection removes only the two native tools and three macro v2 policies
+and restores byte-exact registry `2.45.0` and catalog `2.8.0`. This increment
+performs no provider request or canonical-store operation and adds no
+migration, dataset, collector, credential mechanism, write path, scheduler,
+export, hosting, or deployment.
+
+Revision `2.47.0` adds only local, store-free `2.0.0` variants of
+`data.quality_audit` and `timeseries.transform`, plus the native
+distribution-diagnostics, covariance-matrix, deterministic-bootstrap, and
+principal-components contracts. They consume caller-supplied typed return
+series and perform no provider, credential, canonical-store, migration,
+scheduler, export, hosting, or deployment operation. The active manifest has
+65 names, 14 version policies, and 18 variants. Catalog `2.10.0` has 52
+contracts at SHA-256
+`381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf`.
+Exact projection removes only those two policies and four native names,
+restoring byte-exact registry `2.46.0` at SHA-256
+`b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264`
+and catalog `2.9.0`.
+
 Under [ADR 0012](../adr/0012-compact-fmp-calendar-retention.md), revision
 `2.40.0` leaves the complete migration-0016 history untouched and changes only
 future wholesale persistence. A material batch adds one immutable receipt and
@@ -323,6 +425,15 @@ scheduler, store, or historical-population action follows from the retirement.
 - Stage 12E remains closed. The presence of market-close service/timer files
   does not authorize linking, starting, enabling, testing, or scheduling them.
 - No other default-path market operation is authorized.
+
+## Canonical company boundary
+
+- The fixed two-request AAPL SEC seed completed on 2026-08-25 in
+  `data/company.sqlite`; it must not be manually repeated or broadened without
+  a new explicit request identifying the finite scope.
+- `sec.company.aapl_fundamentals` remains private and manual-only. No company
+  timer, recurring job, wider CIK universe, migration, public consumer, or
+  default-path company operation is authorized.
 
 ## Implemented and populated macro additions
 

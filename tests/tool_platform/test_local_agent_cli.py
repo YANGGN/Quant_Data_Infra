@@ -63,7 +63,7 @@ class LocalAgentCliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(stderr, "")
         self.assertEqual(payload["tool_count"], len(manifest["tools"]))
-        self.assertEqual(payload["tool_count"], 59)
+        self.assertEqual(payload["tool_count"], 65)
         self.assertIn(
             "market.get_available_ticker",
             [item["name"] for item in payload["tools"]],

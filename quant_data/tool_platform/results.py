@@ -13,6 +13,7 @@ from typing import Any, ClassVar, Iterable, Mapping, Sequence
 from quant_data.contracts import (
     ExclusionV1,
     LineageRef,
+    MacroTimeSeriesV2,
     ResearchContractV1,
     TemporalQuery,
     TimeSeries,
@@ -349,7 +350,7 @@ class QueryResult:
         ),
         default=(),
     )
-    series: tuple[TimeSeries, ...] = _result_field(
+    series: tuple[TimeSeries | MacroTimeSeriesV2, ...] = _result_field(
         _ResultField(form="series_array", max_items=20, order=6),
         default=(),
     )
@@ -415,8 +416,10 @@ class QueryResult:
         if not all(isinstance(item, RecordV1) for item in self.records):
             raise ValidationError("Query result records must use typed contracts")
         for item in self.series:
-            if not isinstance(item, TimeSeries):
-                raise ValidationError("Query result series must be typed TimeSeries values")
+            if not isinstance(item, (TimeSeries, MacroTimeSeriesV2)):
+                raise ValidationError(
+                    "Query result series must use supported typed series contracts"
+                )
             item.validate_lineage()
         if not all(isinstance(item, MatrixV1) for item in self.matrices):
             raise ValidationError("Query result matrices must use typed contracts")

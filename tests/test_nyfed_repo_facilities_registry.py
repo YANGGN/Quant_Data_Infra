@@ -25,7 +25,7 @@ PRE_REPO_SOURCE_SHA256 = (
     "62a8f72f9b565f5b81eefce3bbef6704d5c9c65bd1222c19d49e6b53f54e4779"
 )
 CURRENT_SOURCE_SHA256 = (
-    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
+    "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
 )
 
 
@@ -40,7 +40,7 @@ class NyFedRepoFacilitiesRegistryTests(unittest.TestCase):
     def test_collector_is_exact_manual_credential_free_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.43.0")
+        self.assertEqual(registry.revision, "2.47.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -48,7 +48,7 @@ class NyFedRepoFacilitiesRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (40, 53, 51),
+            (40, 53, 53),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

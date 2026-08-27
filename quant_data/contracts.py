@@ -183,6 +183,269 @@ class TimeSeries:
 
 
 @dataclass(frozen=True, slots=True)
+class MacroReleaseRefV2:
+    """Source-native release identity for one canonical macro observation."""
+
+    release_id: str
+    source_vintage_identity: str
+    source_release_order: str
+    vintage_at: str | None
+    vintage_precision: str | None
+    availability_basis: str
+    is_first_release: bool | None
+    first_release_evidence: str | None
+    release_stage: str | None
+
+    def __post_init__(self) -> None:
+        if (
+            not self.release_id
+            or not self.source_vintage_identity
+            or not self.source_release_order
+            or not self.availability_basis
+            or self.vintage_precision not in {None, "date", "datetime"}
+            or (self.vintage_at is None) != (self.vintage_precision is None)
+            or (
+                self.is_first_release is True
+                and not self.first_release_evidence
+            )
+        ):
+            raise ValidationError("Macro release reference is invalid")
+
+    def to_primitive(self) -> dict[str, Any]:
+        return {
+            "release_id": self.release_id,
+            "source_vintage_identity": self.source_vintage_identity,
+            "source_release_order": self.source_release_order,
+            "vintage_at": self.vintage_at,
+            "vintage_precision": self.vintage_precision,
+            "availability_basis": self.availability_basis,
+            "is_first_release": self.is_first_release,
+            "first_release_evidence": self.first_release_evidence,
+            "release_stage": self.release_stage,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MacroAvailabilityV2:
+    at: str
+    precision: str
+
+    def __post_init__(self) -> None:
+        if not self.at or self.precision not in {"date", "datetime"}:
+            raise ValidationError("Macro availability is invalid")
+
+    def to_primitive(self) -> dict[str, str]:
+        return {"at": self.at, "precision": self.precision}
+
+
+@dataclass(frozen=True, slots=True)
+class MacroCaptureRefV2:
+    captured_at: str
+    captured_precision: str
+
+    def __post_init__(self) -> None:
+        if not self.captured_at or self.captured_precision != "datetime":
+            raise ValidationError("Macro capture reference is invalid")
+
+    def to_primitive(self) -> dict[str, str]:
+        return {
+            "captured_at": self.captured_at,
+            "captured_precision": self.captured_precision,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MacroEvidenceRefV2:
+    """Discriminated source reference without invented snapshot/run IDs."""
+
+    kind: str
+    id: str
+    snapshot_id: str | None
+    run_id: str | None
+
+    def __post_init__(self) -> None:
+        if not self.id or self.kind not in {"artifact", "capture"}:
+            raise ValidationError("Macro evidence reference is invalid")
+        if self.kind == "artifact" and (not self.snapshot_id or not self.run_id):
+            raise ValidationError("Macro artifact evidence requires snapshot and run IDs")
+        if self.kind == "capture" and (
+            self.snapshot_id is not None or self.run_id is not None
+        ):
+            raise ValidationError("Macro capture evidence cannot invent snapshot or run IDs")
+
+    def to_primitive(self) -> dict[str, str | None]:
+        return {
+            "kind": self.kind,
+            "id": self.id,
+            "snapshot_id": self.snapshot_id,
+            "run_id": self.run_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MacroDimensionV2:
+    """One deterministic name/value dimension on a macro observation."""
+
+    name: str
+    value: str
+
+    def __post_init__(self) -> None:
+        if not self.name or not self.value:
+            raise ValidationError("Macro dimension is invalid")
+
+    def to_primitive(self) -> dict[str, str]:
+        return {"name": self.name, "value": self.value}
+
+
+@dataclass(frozen=True, slots=True)
+class MacroObservationV2:
+    """One source-native canonical macro value selected by the v2 gateway."""
+
+    period_start: str
+    period_end: str
+    source_period: str
+    value: Decimal | None
+    missing_reason: str | None
+    unit: str
+    value_representation: str
+    scale: str | None
+    dimensions: tuple[MacroDimensionV2, ...]
+    version_id: str
+    correction_sequence: int
+    source_row: int
+    release: MacroReleaseRefV2
+    availability: MacroAvailabilityV2
+    capture: MacroCaptureRefV2
+    evidence: MacroEvidenceRefV2
+
+    def __post_init__(self) -> None:
+        if (
+            not self.period_start
+            or not self.period_end
+            or self.period_end < self.period_start
+            or not self.source_period
+            or not self.unit
+            or not self.value_representation
+            or not self.version_id
+            or isinstance(self.correction_sequence, bool)
+            or self.correction_sequence < 1
+            or isinstance(self.source_row, bool)
+            or self.source_row < 1
+        ):
+            raise ValidationError("Macro observation is invalid")
+        has_value = self.value is not None
+        has_missing = self.missing_reason is not None
+        if has_value == has_missing:
+            raise ValidationError(
+                "Macro observation must have exactly one value or missing reason"
+            )
+        if self.value is not None and not self.value.is_finite():
+            raise ValidationError("Macro observation value must be finite")
+        dimensions = tuple(self.dimensions)
+        if (
+            not all(isinstance(item, MacroDimensionV2) for item in dimensions)
+            or tuple(item.name for item in dimensions)
+            != tuple(sorted(item.name for item in dimensions))
+            or len({item.name for item in dimensions}) != len(dimensions)
+        ):
+            raise ValidationError("Macro observation dimensions are invalid")
+        object.__setattr__(self, "dimensions", dimensions)
+        if not isinstance(self.release, MacroReleaseRefV2):
+            raise ValidationError("Macro observation release is invalid")
+        if not isinstance(self.availability, MacroAvailabilityV2):
+            raise ValidationError("Macro observation availability is invalid")
+        if not isinstance(self.capture, MacroCaptureRefV2):
+            raise ValidationError("Macro observation capture is invalid")
+        if not isinstance(self.evidence, MacroEvidenceRefV2):
+            raise ValidationError("Macro observation evidence is invalid")
+
+    def to_primitive(self) -> dict[str, Any]:
+        return {
+            "period_start": self.period_start,
+            "period_end": self.period_end,
+            "source_period": self.source_period,
+            "value": self.value,
+            "missing_reason": self.missing_reason,
+            "unit": self.unit,
+            "value_representation": self.value_representation,
+            "scale": self.scale,
+            "dimensions": [item.to_primitive() for item in self.dimensions],
+            "version_id": self.version_id,
+            "correction_sequence": self.correction_sequence,
+            "source_row": self.source_row,
+            "release": self.release.to_primitive(),
+            "availability": self.availability.to_primitive(),
+            "capture": self.capture.to_primitive(),
+            "evidence": self.evidence.to_primitive(),
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MacroTimeSeriesV2:
+    """Strict v2 macro series preserving nullable source-native provenance."""
+
+    series_id: str
+    metadata: Mapping[str, Any]
+    observations: tuple[MacroObservationV2, ...]
+    warnings: tuple[str, ...]
+    audit: Mapping[str, Any]
+    provenance: Mapping[str, Any]
+    truncated: bool = False
+    lineage_digest: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.series_id:
+            raise ValidationError("MacroTimeSeriesV2 series_id cannot be empty")
+        object.__setattr__(self, "observations", tuple(self.observations))
+        object.__setattr__(self, "warnings", tuple(self.warnings))
+        if not all(
+            isinstance(item, MacroObservationV2) for item in self.observations
+        ):
+            raise ValidationError("MacroTimeSeriesV2 observations are invalid")
+        if not all(isinstance(item, str) and item for item in self.warnings):
+            raise ValidationError("MacroTimeSeriesV2 warnings are invalid")
+        for field_name in ("metadata", "audit", "provenance"):
+            value = getattr(self, field_name)
+            if not isinstance(value, Mapping):
+                raise ValidationError(f"MacroTimeSeriesV2 {field_name} must be a mapping")
+            object.__setattr__(
+                self,
+                field_name,
+                _freeze_contract_value(value, field_name=f"MacroTimeSeriesV2 {field_name}"),
+            )
+        expected = self.expected_lineage_digest()
+        if self.lineage_digest and self.lineage_digest != expected:
+            raise ValidationError("MacroTimeSeriesV2 lineage digest is invalid")
+        if not self.lineage_digest:
+            object.__setattr__(self, "lineage_digest", expected)
+
+    def lineage_material(self) -> dict[str, Any]:
+        return {
+            "contract": "quant_data.macro_timeseries",
+            "contract_version": "2.0.0",
+            "series_id": self.series_id,
+            "metadata": _public_contract_value(self.metadata),
+            "observations": [item.to_primitive() for item in self.observations],
+            "warnings": list(self.warnings),
+            "audit": _public_contract_value(self.audit),
+            "provenance": _public_contract_value(self.provenance),
+            "truncated": self.truncated,
+        }
+
+    def expected_lineage_digest(self) -> str:
+        return hashlib.sha256(
+            dumps_strict(self.lineage_material()).encode("utf-8")
+        ).hexdigest()
+
+    def validate_lineage(self) -> None:
+        if self.lineage_digest != self.expected_lineage_digest():
+            raise ValidationError("MacroTimeSeriesV2 lineage digest is invalid")
+
+    def to_primitive(self) -> dict[str, Any]:
+        return {**self.lineage_material(), "lineage_digest": self.lineage_digest}
+
+
+@dataclass(frozen=True, slots=True)
 class ExecutionContext:
     store_map: Any
     registry_revision: str

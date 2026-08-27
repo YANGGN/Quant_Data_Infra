@@ -33,7 +33,7 @@ INCREMENTAL_EVIDENCE_DATASET_ID = (
 )
 INCREMENTAL_EVENT_DATASET_ID = "macro.fmp.economic_calendar_incremental_events"
 CURRENT_SOURCE_SHA256 = (
-    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
+    "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
 )
 PRE_INCREMENTAL_SOURCE_SHA256 = (
     "f7f445a3dbc991ca7b309ce306e5bc439403d929b96fb9931a22c036cb0eea85"
@@ -49,10 +49,10 @@ class FmpWholesaleCalendarRegistryTests(unittest.TestCase):
 
     def test_private_wholesale_declaration_and_exact_preimage_projection(self) -> None:
         current = self._registry()
-        self.assertEqual(current.revision, "2.43.0")
+        self.assertEqual(current.revision, "2.47.0")
         self.assertEqual(
             (len(current.migrations), len(current.datasets), len(current.collectors)),
-            (40, 53, 51),
+            (40, 53, 53),
         )
         registry = fmp_calendar_incremental_registry_profile(current)
 
@@ -134,11 +134,11 @@ class FmpWholesaleCalendarRegistryTests(unittest.TestCase):
                 current.revision,
                 current.source_sha256,
             ),
-            ("1.9.0", "2.43.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.47.0", CURRENT_SOURCE_SHA256),
         )
         self.assertEqual(
             (len(current.migrations), len(current.datasets), len(current.collectors)),
-            (40, 53, 51),
+            (40, 53, 53),
         )
 
         migration = next(
