@@ -315,10 +315,24 @@ Revision `2.63.0` adds the separate repeatable current FMP news path:
 `news.fmp.stock_latest_current_articles`, manual-only collector
 `fmp.news.stock_latest_current`, and local read-only `news.search@2.0.0`.
 The reader exposes headline metadata only; raw evidence and article bodies stay
-private. Its catalog is `2.23.0` with 128 contracts, 41 version policies, and
-56 variants across the unchanged 65 logical names. This is offline-validated
-only: no provider request, canonical news migration/population, or timer is
-authorized or installed. Exact projection restores `2.62.0`/`2.22.0`.
+private. Catalog `2.23.0` has 128 contracts, 41 version policies, and 56
+variants across the unchanged 65 logical names. The bounded 2026-08-30 proof
+applied migration 0006 and its one request retained 229 articles without retry.
+Exact projection restores `2.62.0`/`2.22.0`.
+Revision `2.64.0` adds the generic private multi-source path: migration
+`news:0007_current_multi_source`, datasets
+`news.current_multi_source_evidence` and `news.current_multi_source_articles`,
+manual-only collector `news.current_multi_source`, and host-routed
+`news.search@2.1.0`. Migration `news:0008_adopt_fmp_news_legacy` separately
+adopts `fmp_news_articles` as inactive private evidence behind an exact schema
+guard; it has no collector, tool, dashboard, export, or source ID. Version 2.0
+remains FMP stock-latest-only; v2.1 selects the fixed FMP press/general,
+Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga feeds. Raw evidence and
+bodies remain private. The bounded 2026-08-30 16:00 UTC proof completed all 20
+requests without retry and retained 1,069 generic-source articles. On
+2026-08-30 the reviewed hourly per-user timer was linked, enabled, and started;
+it is active/waiting for its first normal `:10` UTC trigger, while the service
+remains inactive/dead and activation made no provider request or store write.
 The readers and direct calculations do not infer a portfolio,
 apply weights, create an opaque score or classifier, or make an investment
 recommendation. Exact predecessor projections preserve every revision through

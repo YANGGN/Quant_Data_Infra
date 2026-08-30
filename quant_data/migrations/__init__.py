@@ -26,6 +26,18 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 ) STRICT;
 """
 
+_LEGACY_FMP_NEWS_DATASET_ID = "news.fmp.stock_latest_legacy_articles"
+_LEGACY_FMP_NEWS_COLUMNS = (
+    ("symbol", "TEXT", 1, None, 1),
+    ("published_date", "TEXT", 0, None, 0),
+    ("title", "TEXT", 1, None, 0),
+    ("body_text", "TEXT", 1, None, 0),
+    ("url", "TEXT", 1, None, 2),
+    ("site", "TEXT", 1, None, 0),
+    ("image_url", "TEXT", 0, None, 0),
+    ("fetched_at", "TEXT", 1, None, 0),
+    ("raw_json", "TEXT", 1, None, 0),
+)
 
 _REVIEWED_FTS_MIGRATION = (
     "news:0004_search_index",
@@ -292,6 +304,37 @@ def migrate_and_register_store(
     return result
 
 
+def _validate_legacy_fmp_news_schema(connection: sqlite3.Connection) -> None:
+    """Fail closed before registering the adopted private legacy relation."""
+
+    relation = connection.execute(
+        """
+        SELECT type, sql
+        FROM sqlite_master
+        WHERE name='fmp_news_articles'
+        """
+    ).fetchone()
+    columns = tuple(
+        (
+            str(row["name"]),
+            str(row["type"]).upper(),
+            int(row["notnull"]),
+            row["dflt_value"],
+            int(row["pk"]),
+        )
+        for row in connection.execute("PRAGMA table_info('fmp_news_articles')")
+    )
+    create_sql = None if relation is None else relation["sql"]
+    if (
+        relation is None
+        or relation["type"] != "table"
+        or not isinstance(create_sql, str)
+        or not create_sql.rstrip().upper().endswith("STRICT")
+        or columns != _LEGACY_FMP_NEWS_COLUMNS
+    ):
+        raise MigrationError("Adopted legacy FMP news schema is incompatible")
+
+
 def _register_datasets(
     store_map: StoreMap,
     registry: Registry,
@@ -306,6 +349,8 @@ def _register_datasets(
         connection.execute("BEGIN IMMEDIATE")
         try:
             for declaration in declarations:
+                if declaration.id == _LEGACY_FMP_NEWS_DATASET_ID:
+                    _validate_legacy_fmp_news_schema(connection)
                 for relation in declaration.relations:
                     exists = connection.execute(
                         "SELECT 1 FROM sqlite_master WHERE type IN ('table', 'view') AND name=?",

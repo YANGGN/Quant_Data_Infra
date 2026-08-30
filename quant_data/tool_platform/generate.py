@@ -114,6 +114,9 @@ _REVIEWED_REGISTRY_SOURCE_SHA256 = {
     ("1.9.0", "2.63.0"): (
         "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
     ),
+    ("1.9.0", "2.64.0"): (
+        "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
+    ),
 }
 CATALOG_RESOURCE = Path("quant_data/generated/tool_contract_schemas_v1.json")
 VERSIONED_CATALOG_RESOURCE = Path(
@@ -158,6 +161,14 @@ _CURRENT_NEWS_DATASET_IDS = (
     "news.fmp.stock_latest_current_articles",
 )
 _CURRENT_NEWS_COLLECTOR_ID = "fmp.news.stock_latest_current"
+_CURRENT_MULTI_SOURCE_MIGRATION_ID = "news:0007_current_multi_source"
+_LEGACY_FMP_NEWS_MIGRATION_ID = "news:0008_adopt_fmp_news_legacy"
+_LEGACY_FMP_NEWS_DATASET_ID = "news.fmp.stock_latest_legacy_articles"
+_CURRENT_MULTI_SOURCE_DATASET_IDS = (
+    "news.current_multi_source_evidence",
+    "news.current_multi_source_articles",
+)
+_CURRENT_MULTI_SOURCE_COLLECTOR_ID = "news.current_multi_source"
 
 
 def _add_current_news_declarations(raw: dict[str, Any]) -> None:
@@ -285,6 +296,208 @@ def _add_current_news_declarations(raw: dict[str, Any]) -> None:
     collector["schedule_eligibility"] = {"mode": "manual_only"}
     raw["collectors"].append(collector)
 
+def _add_current_multi_source_declarations(raw: dict[str, Any]) -> None:
+    """Advance exact registry 2.63 with one fixed multi-source news path."""
+
+    if (
+        any(
+            item.get("id") == _CURRENT_MULTI_SOURCE_MIGRATION_ID
+            for item in raw["migrations"]
+        )
+        or any(
+            item.get("id") == _LEGACY_FMP_NEWS_MIGRATION_ID
+            for item in raw["migrations"]
+        )
+        or any(
+            item.get("id") in _CURRENT_MULTI_SOURCE_DATASET_IDS
+            for item in raw["datasets"]
+        )
+        or any(
+            item.get("id") == _LEGACY_FMP_NEWS_DATASET_ID
+            for item in raw["datasets"]
+        )
+        or any(
+            item.get("id") == _CURRENT_MULTI_SOURCE_COLLECTOR_ID
+            for item in raw["collectors"]
+        )
+    ):
+        raise ValueError("Multi-source news declarations already exist")
+
+    news_stores = [item for item in raw["stores"] if item.get("id") == "news"]
+    migrations = [
+        item
+        for item in raw["migrations"]
+        if item.get("id") == _CURRENT_NEWS_MIGRATION_ID
+    ]
+    datasets = {
+        item["id"]: item
+        for item in raw["datasets"]
+        if item.get("id") in _CURRENT_NEWS_DATASET_IDS
+    }
+    collectors = [
+        item
+        for item in raw["collectors"]
+        if item.get("id") == _CURRENT_NEWS_COLLECTOR_ID
+    ]
+    if (
+        len(news_stores) != 1
+        or len(migrations) != 1
+        or set(datasets) != set(_CURRENT_NEWS_DATASET_IDS)
+        or len(collectors) != 1
+        or news_stores[0].get("migration_order", [])[-1:]
+        != [_CURRENT_NEWS_MIGRATION_ID]
+    ):
+        raise ValueError("Reviewed multi-source news predecessor drifted")
+
+    raw["migrations"].append(
+        {
+            "dependencies": [_CURRENT_NEWS_MIGRATION_ID],
+            "id": _CURRENT_MULTI_SOURCE_MIGRATION_ID,
+            "ordinal": 7,
+            "reconstruction_state": "fixture_validated",
+            "resource": "quant_data/migrations/news/0007_current_multi_source.sql",
+            "semantic_scope": (
+                "Repeatable bounded current FMP press/general, official RSS/Atom, "
+                "and Alpaca/Benzinga evidence with immutable article versions."
+            ),
+            "sha256": "df58936c73045ba8a382bf0a24743db5e314246e0f81d8943872b6d3e6c010c3",
+            "store": "news",
+        }
+    )
+    raw["migrations"].append(
+        {
+            "dependencies": [_CURRENT_MULTI_SOURCE_MIGRATION_ID],
+            "id": _LEGACY_FMP_NEWS_MIGRATION_ID,
+            "ordinal": 8,
+            "reconstruction_state": "fixture_validated",
+            "resource": "quant_data/migrations/news/0008_adopt_fmp_news_legacy.sql",
+            "semantic_scope": (
+                "Adopt the pre-registry FMP stock-news table as inactive private evidence."
+            ),
+            "sha256": "ea5302726758ab2bb987a525c3094885e016e4596689d26c8290808523f8327f",
+            "store": "news",
+        }
+    )
+
+    news_stores[0]["migration_order"].extend(
+        (_CURRENT_MULTI_SOURCE_MIGRATION_ID, _LEGACY_FMP_NEWS_MIGRATION_ID)
+    )
+
+    evidence = copy.deepcopy(datasets[_CURRENT_NEWS_DATASET_IDS[0]])
+    evidence["id"] = _CURRENT_MULTI_SOURCE_DATASET_IDS[0]
+    evidence["collector_ids"] = [_CURRENT_MULTI_SOURCE_COLLECTOR_ID]
+    evidence["physical"]["relations"] = [
+        {"kind": "table", "name": "current_multi_source_attempts"},
+        {"kind": "table", "name": "current_multi_source_outcomes"},
+        {"kind": "table", "name": "current_multi_source_captures"},
+    ]
+    evidence["identity"] = {
+        "stable_fields": ["collector_id", "feed_id", "request_scope_sha256"],
+        "version_fields": ["attempt_id", "outcome_id", "capture_id"],
+    }
+    evidence["quality_contract"]["rules"] = [
+        "fixed_source_catalog_only",
+        "one_intent_per_feed_scope",
+        "one_terminal_outcome",
+        "raw_response_retained_private",
+        "partial_capture_no_tombstone",
+    ]
+    evidence["tool_ids"] = []
+
+    articles = copy.deepcopy(datasets[_CURRENT_NEWS_DATASET_IDS[1]])
+    articles["id"] = _CURRENT_MULTI_SOURCE_DATASET_IDS[1]
+    articles["collector_ids"] = [_CURRENT_MULTI_SOURCE_COLLECTOR_ID]
+    articles["physical"]["relations"] = [
+        {"kind": "table", "name": "current_multi_source_articles"},
+        {"kind": "table", "name": "current_multi_source_article_versions"},
+        {"kind": "table", "name": "current_multi_source_capture_articles"},
+        {"kind": "table", "name": "current_multi_source_article_symbols"},
+    ]
+    articles["identity"] = {
+        "stable_fields": ["feed_id", "source_item_key"],
+        "version_fields": [
+            "article_version_id",
+            "mutable_content_sha256",
+            "version_sequence",
+        ],
+    }
+    articles["quality_contract"]["rules"] = [
+        "provider_id_then_url_then_timestamp_title_identity",
+        "identity_is_feed_scoped",
+        "source_precision_preserved",
+        "symbols_are_provider_native",
+        "partial_capture_no_tombstone",
+    ]
+    articles["tool_ids"] = []
+
+    legacy = copy.deepcopy(evidence)
+    legacy["active"] = False
+    legacy["collector_ids"] = []
+    legacy["id"] = _LEGACY_FMP_NEWS_DATASET_ID
+    legacy["identity"] = {
+        "stable_fields": ["symbol", "url"],
+        "version_fields": ["fetched_at"],
+    }
+    legacy["physical"] = {
+        "relations": [
+            {"kind": "table", "name": "fmp_news_articles"},
+        ]
+    }
+    legacy["quality_contract"]["missingness"] = "explicit_null"
+    legacy["quality_contract"]["rules"] = [
+        "legacy_mutable_upsert_retained",
+        "raw_json_and_body_text_are_private",
+        "not_available_to_public_tools",
+    ]
+    legacy["revision_policy"] = "current_state_capture"
+    legacy["temporal"] = {
+        "availability_fields": ["fetched_at"],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_null",
+        "observation_fields": ["published_date"],
+        "observation_precision": "mixed",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": ["latest"],
+    }
+    legacy["tool_ids"] = []
+    raw["datasets"].extend((evidence, articles, legacy))
+
+    collector = copy.deepcopy(collectors[0])
+    collector["id"] = _CURRENT_MULTI_SOURCE_COLLECTOR_ID
+    collector["handler"] = "news.current_multi_source"
+    collector["input_datasets"] = ["market.stage10.instruments"]
+    collector["output_datasets"] = list(_CURRENT_MULTI_SOURCE_DATASET_IDS)
+    collector["configuration_env"] = [
+        "FMP_API_KEY",
+        "ALPACA_API_KEY",
+        "ALPACA_API_SECRET",
+    ]
+    collector["semantic_identity"] = {
+        "includes": [
+            "request_scope",
+            "normalization_version",
+            "normalized_partial_feed",
+        ],
+        "excludes": [
+            "fmp_api_key",
+            "alpaca_api_key",
+            "alpaca_api_secret",
+            "captured_at",
+            "http_headers",
+            "source_row_order",
+        ],
+    }
+    collector["workload_bounds"] = {
+        "max_bytes": 67_108_864,
+        "max_requests": 22,
+        "max_rows": 1_000,
+        "max_seconds": 60,
+    }
+    collector["schedule_eligibility"] = {"mode": "manual_only"}
+    raw["collectors"].append(collector)
+
 
 def _render(value: Any) -> bytes:
     return (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode(
@@ -310,6 +523,8 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         raise ValueError("Tool generation requires an exact reviewed registry source")
     if source_version == ("1.9.0", "2.62.0"):
         _add_current_news_declarations(raw)
+    if source_version == ("1.9.0", "2.63.0"):
+        _add_current_multi_source_declarations(raw)
     existing = {item["id"]: item for item in raw["tools"]}
     try:
         legacy = {name: existing[name] for name in LEGACY_TOOL_NAMES}
@@ -321,6 +536,22 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version <= ("1.9.0", "2.62.0"):
+        version_policies = tuple(
+            {
+                **item,
+                "variants": [
+                    variant
+                    for variant in item["variants"]
+                    if not (
+                        item["tool"] == "news.search"
+                        and variant["version"] == "2.1.0"
+                    )
+                ],
+            }
+            for item in version_policies
+        )
+        catalog_version = "2.23.0"
     if source_version <= ("1.9.0", "2.61.0"):
         version_policies = tuple(
             item
@@ -534,6 +765,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.61.0"),
         ("1.9.0", "2.62.0"),
         ("1.9.0", "2.63.0"),
+        ("1.9.0", "2.64.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -604,7 +836,8 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.60.0"): "2.61.0",
         ("1.9.0", "2.61.0"): "2.62.0",
         ("1.9.0", "2.62.0"): "2.63.0",
-        ("1.9.0", "2.63.0"): "2.63.0",
+        ("1.9.0", "2.63.0"): "2.64.0",
+        ("1.9.0", "2.64.0"): "2.64.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

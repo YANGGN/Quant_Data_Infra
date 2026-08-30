@@ -608,10 +608,36 @@ It records route-by-route populated-data status. The
 shows the supported typed OHLCV composition and the causal SuperTrend AI,
 Swing Structure Forecast, KDJ, Williams Vix Fix, WaveTrend, Parabolic SAR,
 and rolling regression line adaptations; agents must not extract fields into
-ad hoc arrays or open the database directly. The current registry is `2.63.0`.
-It adds the offline-validated, separate current FMP news path and
-`news.search@2.0.0`; no live request, news-store population, or timer occurred.
-Its exact projection removes only that successor and restores `2.62.0`; that
+ad hoc arrays or open the database directly. Registry `2.63.0` adds
+the separate current FMP news path and `news.search@2.0.0`. The bounded
+2026-08-30 16:00 UTC proof applied migration 0006 and retained 229 articles
+from its one request, with no retry. Its exact projection removes only that
+successor and restores `2.62.0`.
+
+The current registry is `2.64.0` at SHA-256
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`;
+catalog `2.24.0` is at SHA-256
+`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
+It adds the generic current multi-source news successor: migration
+`news:0007_current_multi_source`, two private current-news datasets, and
+`news.search@2.1.0`. Forward migration
+`news:0008_adopt_fmp_news_legacy` adopts `fmp_news_articles` as an inactive
+private evidence dataset with an exact schema guard and no collector, tool,
+dashboard, export, or source ID. The fixed feeds are FMP stock latest, press
+releases, and general news; Federal Reserve, ECB, BEA, and EIA official feeds;
+and Alpaca/Benzinga company news. Credentials remain optional placeholders:
+a missing value reports `unavailable`, while raw bytes and article bodies stay
+private. The bounded 2026-08-30 16:00 UTC manual proof made 20 requests with
+no retry; all eight source steps succeeded, including 13 Alpaca/Benzinga
+batches. The batch retained 1,069 generic-source articles in addition to the
+229 FMP stock-latest articles. The manual entry point is
+`python3 scripts/refresh_current_news.py`. On 2026-08-30 the reviewed per-user
+systemd units were linked, daemon-reloaded, enabled, and started. The timer is
+`loaded`/`enabled`/`active`/`waiting` for its first normal `:10` UTC
+trigger; activation did not start the service, contact a provider, or write a
+store. Its exact projection removes
+migrations 0007/0008, the three 2.64 datasets, its collector, and v2.1, then
+restores byte-identical `2.63.0`/`2.23.0`; that
 predecessor removes only rolling regression line v2.7 and restores byte-identical
 `2.61.0`; that predecessor removes only Parabolic SAR v2.6 and
 restores byte-identical `2.60.0`; that predecessor removes only WaveTrend v2.5

@@ -221,7 +221,7 @@ class Stage10HistoryExtensionLiveTests(unittest.TestCase):
         self.registry = stage10_registry_profile(self.cohort_registry)
         self.assertEqual(
             (current_registry.schema_version, current_registry.registry_version),
-            ("1.9.0", "2.63.0"),
+            ("1.9.0", "2.64.0"),
         )
         self.assertEqual(
             (self.cohort_registry.schema_version, self.cohort_registry.registry_version),

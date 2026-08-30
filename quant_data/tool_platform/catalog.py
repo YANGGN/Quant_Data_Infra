@@ -21,7 +21,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.23.0"
+VERSIONED_CATALOG_VERSION = "2.24.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -3089,12 +3089,58 @@ def _build_news_search_policies(
         "owner": "news",
         "review_requirements": ["schema", "semantics", "read_only"],
     }
+    graph_v21 = "tool_platform.news.search.v2_1"
+    variant_v21 = copy.deepcopy(variant)
+    variant_v21.update(
+        {
+            "version": "2.1.0",
+            "operation_version": "2.1.0",
+            "compatibility": {
+                "status": "successor_additive_v2_1",
+                "predecessor": "2.0.0",
+            },
+            "description": (
+                "Search retained FMP, official-source, and Alpaca/Benzinga "
+                "headline metadata with optional source filtering."
+            ),
+            "handler": graph_v21,
+            "operation_graph_id": graph_v21,
+            "datasets": [
+                *variant["datasets"],
+                "news.current_multi_source_evidence",
+                "news.current_multi_source_articles",
+            ],
+            "input_type": "CurrentNewsSearchArgumentsV21",
+            "input_schema_id": _versioned_schema_id(
+                name, "input", "2.1.0"
+            ),
+            "input_schema": typed_input_schema(
+                "current_news_search_v2_1", {}
+            ),
+            "output_schema_id": _versioned_schema_id(
+                name, "output", "2.1.0"
+            ),
+            "examples": [
+                {**variant["examples"][0], "source_ids": []}
+            ],
+        }
+    )
+    variant_v21["assumptions"] = [
+        *variant["assumptions"],
+        "source_identity_is_scoped_to_one_fixed_feed",
+        "cross_feed_deduplication_is_not_claimed",
+        "official_feed_items_may_have_no_ticker_association",
+    ]
+    variant_v21["contracts"] = {
+        **variant["contracts"],
+        "coverage": "retained_partial_captures_across_fixed_current_sources",
+    }
     return (
         {
             "tool": name,
             "default_version": "1.0.0",
             "selector_field": "tool_version",
-            "variants": [variant],
+            "variants": [variant, variant_v21],
             "deprecations": [
                 {
                     "version": "1.0.0",
@@ -4189,6 +4235,7 @@ VERSIONED_OPERATION_GRAPH_IDS = frozenset(
         "tool_platform.energy.get_electricity_retail_sales.v2_1",
         "tool_platform.energy.get_weekly_fundamentals.v2_1",
         "tool_platform.company.get_fundamentals.v2_1",
+        "tool_platform.news.search.v2_1",
     ]
 )
 

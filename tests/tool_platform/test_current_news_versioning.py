@@ -10,6 +10,7 @@ from quant_data.registry import (
     CANONICAL_REGISTRY_PATH,
     current_news_registry_profile,
     load_registry,
+    multi_source_current_news_registry_profile,
     technical_indicators_v27_registry_profile,
 )
 from quant_data.tool_platform.generate import generated_bytes
@@ -17,15 +18,21 @@ from quant_data.tool_platform.generate import generated_bytes
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CURRENT_REGISTRY_SHA256 = (
-    "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
+    "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
 )
 CURRENT_CATALOG_SHA256 = (
+    "6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46"
+)
+REGISTRY_263_SHA256 = (
+    "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
+)
+CATALOG_223_SHA256 = (
     "05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d"
 )
-PREDECESSOR_REGISTRY_SHA256 = (
+REGISTRY_262_SHA256 = (
     "59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2"
 )
-PREDECESSOR_CATALOG_SHA256 = (
+CATALOG_222_SHA256 = (
     "18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1"
 )
 REGISTRY_261_SHA256 = (
@@ -46,23 +53,35 @@ class CurrentNewsVersioningTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.registry_version, "2.63.0")
+        self.assertEqual(registry.registry_version, "2.64.0")
         self.assertEqual(registry.source_sha256, CURRENT_REGISTRY_SHA256)
         self.assertEqual(
             registry.raw["tool_version_schema_catalog"]["sha256"],
             CURRENT_CATALOG_SHA256,
         )
 
-        predecessor = current_news_registry_profile(registry)
-        self.assertEqual(predecessor.registry_version, "2.62.0")
-        self.assertEqual(predecessor.source_sha256, PREDECESSOR_REGISTRY_SHA256)
+        registry_263 = multi_source_current_news_registry_profile(registry)
+        self.assertEqual(registry_263.registry_version, "2.63.0")
+        self.assertEqual(registry_263.source_sha256, REGISTRY_263_SHA256)
         self.assertEqual(
-            predecessor.raw["tool_version_schema_catalog"]["sha256"],
-            PREDECESSOR_CATALOG_SHA256,
+            registry_263.raw["tool_version_schema_catalog"]["sha256"],
+            CATALOG_223_SHA256,
         )
         self.assertEqual(
-            hashlib.sha256(_render(predecessor.raw)).hexdigest(),
-            PREDECESSOR_REGISTRY_SHA256,
+            hashlib.sha256(_render(registry_263.raw)).hexdigest(),
+            REGISTRY_263_SHA256,
+        )
+
+        registry_262 = current_news_registry_profile(registry)
+        self.assertEqual(registry_262.registry_version, "2.62.0")
+        self.assertEqual(registry_262.source_sha256, REGISTRY_262_SHA256)
+        self.assertEqual(
+            registry_262.raw["tool_version_schema_catalog"]["sha256"],
+            CATALOG_222_SHA256,
+        )
+        self.assertEqual(
+            hashlib.sha256(_render(registry_262.raw)).hexdigest(),
+            REGISTRY_262_SHA256,
         )
 
         registry_261 = technical_indicators_v27_registry_profile(registry)
@@ -84,7 +103,7 @@ class CurrentNewsVersioningTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        predecessor = current_news_registry_profile(registry)
+        predecessor = multi_source_current_news_registry_profile(registry)
         with tempfile.TemporaryDirectory() as directory:
             temporary_root = Path(directory)
             config = temporary_root / "config"

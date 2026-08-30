@@ -384,23 +384,36 @@ migration, scheduler, export, hosting, or deployment scope.
 
 Registry `2.63.0` keeps 65 logical names and adds the separate repeatable
 current FMP news successor: migration `news:0006_fmp_stock_latest_current`,
-datasets `news.fmp.stock_latest_current_evidence` and
-`news.fmp.stock_latest_current_articles`, manual-only collector
-`fmp.news.stock_latest_current`, and `news.search@2.0.0`. Catalog `2.23.0`
-has 128 contracts, 41 version policies, and 56 variants at SHA-256
-`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`; the
+two private datasets, manual-only collector `fmp.news.stock_latest_current`,
+and `news.search@2.0.0`. Catalog `2.23.0` has 128 contracts at SHA-256
+`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`;
 registry SHA-256 is
 `06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72`.
-Exact projection removes only this successor and restores byte-identical
-`2.62.0`/`2.22.0`. This is offline-validated only: no live request, canonical
-news-store migration/population, or recurring timer has occurred or been
-authorized.
+Exact projection restores byte-identical `2.62.0`/`2.22.0`. The bounded
+2026-08-30 proof applied migration 0006 and retained 229 articles in one
+request without retry.
 
+Registry `2.64.0` retains 65 logical names and adds
+`news:0007_current_multi_source`, two active private datasets, manual-only
+collector `news.current_multi_source`, and `news.search@2.1.0`. Forward
+migration `news:0008_adopt_fmp_news_legacy` owns `fmp_news_articles` as an
+inactive private evidence dataset behind an exact schema guard; it has no
+collector, tool, dashboard, export, or source ID. Catalog `2.24.0` is
+SHA-256 `6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`;
+registry SHA-256 is
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`.
+The 2026-08-30 16:00 UTC manual proof completed all 20 fixed requests without
+retry; all eight steps succeeded and retained 1,069 generic-source articles.
+Raw evidence and bodies remain private. On 2026-08-30 the reviewed per-user
+timer was linked, enabled, and started; it is active/waiting for its first
+normal `:10` UTC trigger, and activation did not run the service or write a
+store. Exact projection removes both 2.64 migrations, all three 2.64 datasets,
+its collector, and v2.1, restoring byte-identical
+`2.63.0`/`2.23.0`.
 
-
-For any provider, credential, scheduler, canonical-store, migration,
-promotion, retirement, deployment, public-exposure, or destructive task, read
-the [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) before the
+For any provider, credential, scheduler, canonical-store, migration, promotion,
+retirement, deployment, public-exposure, or destructive task, read the
+[current operating envelope](CURRENT_OPERATING_ENVELOPE.md) before the
 specialized contract. The envelope consolidates current boundaries but grants
 no new authority.
 

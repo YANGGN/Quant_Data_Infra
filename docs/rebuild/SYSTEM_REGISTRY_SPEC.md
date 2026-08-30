@@ -5,17 +5,17 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.63.0`, schema `1.9.0`, with registry SHA-256
-`06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72` and
-catalog `2.23.0` SHA-256
-`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`.
+`2.64.0`, schema `1.9.0`, with registry SHA-256
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4` and
+catalog `2.24.0` SHA-256
+`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
 The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.63.0` revisions. For any
+from the later additive `2.23.0` through `2.64.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -25,10 +25,16 @@ local-private dashboard exposures, eight disabled
 Atlas export. It also declares the isolated Stage 9, private Stage 10
 market-history, private Stage 11 BEA/EIA candidate, and bounded
 fixture-validated FMP stock-latest news resources. Those earlier private
-datasets have no tool, dashboard, or Atlas exposure.  The separate `2.63.0`
+datasets have no tool, dashboard, or Atlas exposure. The `2.63.0`
 current-news datasets are exposed only through local read-only
 `news.search@2.0.0`; they do not expose bodies or raw evidence. Registry
-`2.13.0` also
+`2.64.0` adds the generic active current-news datasets and separately adopts
+`news.fmp.stock_latest_legacy_articles` as inactive private evidence with no
+collector, tool, dashboard, export, or source ID. Version 2.1 reads only the
+fixed source IDs declared by the registry. Neither public version exposes
+article bodies or raw evidence, performs a provider request, or reads the
+legacy relation. Registry `2.13.0` also
+
 declares only the offline fixture collector
 `market.stage12b.fmp_daily_incremental_fixture` with handler
 `market.stage12b_fmp_daily_incremental_fixture`, as defined by the
@@ -765,6 +771,27 @@ projection removes only this successor and reproduces registry `2.62.0` at
 SHA-256 `59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2`
 and catalog `2.22.0` exactly.  Registry declaration and offline validation do
 not authorize a provider request, canonical application/population, or timer.
+
+Registry `2.64.0` adds `news:0007_current_multi_source` (SHA-256
+`df58936c73045ba8a382bf0a24743db5e314246e0f81d8943872b6d3e6c010c3`),
+private datasets `news.current_multi_source_evidence` and
+`news.current_multi_source_articles`, manual-only collector
+`news.current_multi_source`, and `news.search@2.1.0`. It also adds
+`news:0008_adopt_fmp_news_legacy` (SHA-256
+`ea5302726758ab2bb987a525c3094885e016e4596689d26c8290808523f8327f`)
+and inactive dataset `news.fmp.stock_latest_legacy_articles`. The latter
+relation is schema-checked private evidence with no collector, tool, dashboard,
+export, or source ID. The v2.1 source IDs remain the fixed FMP stock/press/
+general, Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga set; callers cannot
+supply endpoints or database paths. Raw evidence and bodies remain private.
+
+The bounded 2026-08-30 16:00 UTC batch completed all eight source steps and all
+20 requests without retry, retaining 229 FMP-current and 1,069 generic-source
+articles. On 2026-08-30 the reviewed hourly per-user timer was linked, enabled,
+and started; it is active/waiting for its first normal `:10` UTC trigger, and
+activation did not run the service or write a store. Exact
+projection removes migrations 0007/0008, the three added datasets, the
+collector, and v2.1, reproducing `2.63.0`/`2.23.0` byte-for-byte.
 
 
 

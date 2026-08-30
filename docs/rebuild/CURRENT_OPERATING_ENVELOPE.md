@@ -1,7 +1,7 @@
 # Current Operating Envelope
 
 Status: Current operational routing snapshot; non-authorizing
-Reconciled: 2026-08-29
+Reconciled: 2026-08-30
 
 ## Purpose
 
@@ -28,18 +28,18 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.63.0`, schema `1.9.0`, with
-source SHA-256 `06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72`.
-The active versioned catalog is `2.23.0` at SHA-256
-`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`.
-Its immediate `2.62.0` predecessor remains byte-identical at registry SHA-256
-`59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2` and
-catalog `2.22.0` SHA-256 `18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1`.
+The current accepted registry is revision `2.64.0`, schema `1.9.0`, with
+source SHA-256 `b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`.
+The active versioned catalog is `2.24.0` at SHA-256
+`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
+Its immediate `2.63.0` predecessor remains byte-identical at registry SHA-256
+`06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72` and
+catalog `2.23.0` SHA-256 `05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`.
 The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
 authority. Because it never entered the active configuration lineage, it
-remains absent from the later additive `2.23.0` through `2.63.0` lineage,
+remains absent from the later additive `2.23.0` through `2.64.0` lineage,
 including Treasury `2.23.0`, NY Fed headline-rate `2.24.0`, NY Fed
 repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
 official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
@@ -524,15 +524,32 @@ has 65 logical names, 40 version policies, 55 variants, and 126 contracts;
 its exact projection restores byte-identical `2.61.0`/`2.21.0`.
 
 Revision `2.63.0` adds the separate current FMP stock-news successor:
-`news:0006_fmp_stock_latest_current`, two private current-news datasets,
-manual-only collector `fmp.news.stock_latest_current`, and host-routed
-`news.search@2.0.0`.  The manifest remains 65 logical names and now has 41
-version policies, 56 variants, and catalog `2.23.0` with 128 contracts.  This
-is offline-validated implementation only: no FMP request, canonical
-`data/news.sqlite` migration or population, or recurring timer has been
-authorized or performed.  The exact projection removes only this successor
-and restores byte-identical `2.62.0`/`2.22.0`.
+migration 0006, two private datasets, manual-only collector
+`fmp.news.stock_latest_current`, and host-routed `news.search@2.0.0`. The
+manifest remains 65 logical names with catalog `2.23.0`. The bounded
+2026-08-30 proof applied migration 0006 and retained 229 articles from one
+request without retry. Exact projection restores byte-identical
+`2.62.0`/`2.22.0`.
 
+Revision `2.64.0` adds migration `news:0007_current_multi_source` (SHA-256
+`df58936c73045ba8a382bf0a24743db5e314246e0f81d8943872b6d3e6c010c3`),
+private datasets `news.current_multi_source_evidence` and
+`news.current_multi_source_articles`, manual-only collector
+`news.current_multi_source`, and host-routed `news.search@2.1.0`. Migration
+`news:0008_adopt_fmp_news_legacy` (SHA-256
+`ea5302726758ab2bb987a525c3094885e016e4596689d26c8290808523f8327f`)
+adopts `fmp_news_articles` as inactive private evidence behind an exact schema
+guard, with no collector, tool, dashboard, export, or source ID. Version 2.0
+remains FMP-only; v2.1 merges the fixed FMP press/general, Federal Reserve,
+ECB, BEA, EIA, and Alpaca/Benzinga feeds. The bounded 2026-08-30 16:00 UTC
+proof completed all 20 requests without retry; all eight steps succeeded and
+retained 1,069 generic-source articles. Raw evidence and bodies stay private.
+On 2026-08-30 the reviewed per-user hourly units were linked, daemon-reloaded,
+enabled, and started. The timer is `loaded`/`enabled`/`active`/`waiting`
+for its first normal `:10` UTC trigger; activation did not run the service,
+contact a provider, or write a store. Exact
+projection removes both migrations, all three datasets, the collector, and
+v2.1, restoring byte-identical `2.63.0`/`2.23.0`.
 
 
 Under [ADR 0012](../adr/0012-compact-fmp-calendar-retention.md), revision
@@ -675,15 +692,25 @@ scheduler, store, or historical-population action follows from the retirement.
 ## Canonical news boundary
 
 - The frozen `news:0005_fmp_stock_latest` one-shot contract remains historical
-  and is not reopened by the current-feed successor.
-- The `news:0006_fmp_stock_latest_current` implementation is available only
-  for offline validation.  No live provider request, canonical migration,
-  canonical population, or recurring timer is authorized or installed.
-- `news.search@2.0.0` is a local read-only tool for retained headline metadata
-  only.  It is unavailable against the canonical store until migration 0006 is
-  separately authorized and applied.  Once the relations exist, no successful
-  capture is represented by an honest empty result; raw response bytes and
-  article bodies are never exposed through that tool.
+  and is not reopened by either current-feed successor.
+- Migration `news:0006_fmp_stock_latest_current` is applied to the canonical
+  news store. Its 2026-08-30 proof retained 229 articles from one request with
+  no retry. `news.search@2.0.0` remains a local read-only headline-metadata
+  reader; raw response bytes and bodies are private.
+- Migrations `news:0007_current_multi_source` and
+  `news:0008_adopt_fmp_news_legacy` are applied. Version 2.1 reads the fixed
+  multi-source captures; 0008 owns the 22,910-row legacy relation as inactive
+  private evidence behind a schema guard and provides no source ID or consumer.
+- The bounded 2026-08-30 16:00 UTC batch completed all eight source steps and
+  all 20 requests without retry, retaining 1,069 generic-source articles.
+  Future missing credentials still produce source-local `unavailable`; a
+  source with no retained capture may honestly return no records.
+- On 2026-08-30 the hourly per-user service/timer units were linked,
+  daemon-reloaded, enabled, and started under the user's explicit decision.
+  The timer is active/waiting for its first normal trigger at 17:10 EDT
+  (21:10 UTC); `LastTrigger` is empty and the service remains inactive/dead
+  with no execution timestamps. Activation made no provider request or store
+  write. It is non-persistent and has no retry or catch-up.
 
 ## Implemented and populated macro additions
 
@@ -717,7 +744,7 @@ new unit, timer cadence, public route, or export was added.
 
 ## Recurring exceptions
 
-Six recurring scheduler exceptions are recorded as installed and active. The
+Eight recurring scheduler exceptions are recorded as installed and active. The
 Stage 12E daily-market timer is enabled and waiting for its first normal
 trigger. Normal clock-driven execution is the boundary; agents must not
 manually trigger, change, retry, broaden, reinstall, disable, or repurpose any
@@ -730,7 +757,9 @@ recurring unit.
 | `quant-data-fmp-macro-calendar.timer` | 08:15 and 08:45 America/New_York on weekdays. One bounded current-window FMP calendar request with no retry. The response is retained as wholesale raw evidence before independent GDP/CPI and employment normalization. |
 | `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twenty-three established macro collector operations run sequentially with a total provider-request cap of 31, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; NY Fed overnight rates including SOFR distribution, volume, index, and compounded averages; Federal Reserve IORB, target bounds, H.4.1, and INDPRO; repo facilities and SOMA; Chicago Fed NFCI/ANFCI components and CFNAI; BIS credit conditions; CMDI; Treasury cash, Debt to the Penny, and Monthly Treasury Statement receipts, outlays, and deficit/surplus; EIA gas storage, weekly crude-oil stocks, weekly gasoline and distillate stocks, finished-gasoline product supplied, and monthly electricity retail; NBER recession chronology; BLS PPI, earnings, productivity, and ECI; and BEA personal income, disposable personal income, and personal consumption expenditures. |
 | `quant-data-alpaca-spy-options.timer` | 15:55 America/New_York on weekdays, with an in-process OPRA trading-calendar gate. It targets only `data/market.sqlite`, makes at most four single-attempt requests, enforces 10,000 rows, 8 MiB, and 120 seconds, uses the paper account and indicative option feed with an IEX SPY spot reference, and writes nothing on exact semantic replay. |
+| `quant-data-sec-company-fundamentals.timer` | 07:15 America/New_York on weekdays. It reads the fixed Stage 10 equity roster, performs one bounded SEC ticker discovery, processes sequential submissions/CompanyFacts pairs without retry, and targets only `data/company.sqlite`. |
 | `quant-data-market-close.timer` | Enabled and active/waiting. On 2026-08-29 it was daemon-reloaded, enabled, and started; `LastTrigger` is empty, the service is `inactive/dead` with no execution timestamps, and activation made no state directory, provider request, or canonical write. Its next trigger is Monday 2026-08-31 18:00:00 EDT. On weekdays at 18:00 America/New_York, it snapshots every current FMP provider-native Stage 10 `equity`/`etf`/`index` identity. The 2026-08-29 preflight contained 630 (519 equity, 96 ETF, and 15 index); the dynamic batch is bounded to 800 and begins with `AAPL`. It makes one current-session daily-OHLCV request per symbol. An empty `AAPL` stops the batch. Pinned historical noncoverage symbols remain eligible; only their reviewed empty/HTTP 402 outcomes are terminal and other errors fail closed. It is non-persistent, has no retry or catch-up, targets only `data/market.sqlite`, retains per-unit private evidence, and writes nothing on exact semantic replay. |
+| `quant-data-current-news-refresh.timer` | Hourly at `:10` UTC. It runs the fixed eight-source current-news batch over FMP stock/press/general, Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga feeds. Coverage derives from the bounded current market universe, requests have no retry, missing credentials are source-local unavailable outcomes, exact replay writes nothing, and the timer is non-persistent with no catch-up. |
 
 These exceptions do not enable any recovered Stage 7 job, provider or series
 beyond the exact scope above, a different cadence, catch-up run, or historical

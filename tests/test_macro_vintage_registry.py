@@ -25,11 +25,11 @@ class MacroVintageRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             (registry.schema_version, registry.registry_version),
-            ("1.9.0", "2.63.0"),
+            ("1.9.0", "2.64.0"),
         )
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (41, 55, 57),
+            (43, 58, 58),
         )
 
         migration = next(item for item in registry.migrations if item.id == MIGRATION_ID)

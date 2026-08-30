@@ -314,10 +314,35 @@ evidence exposure.
 
 | ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
 | --- | --- | ---: | --- | --- | --- | --- |
-| `news:0006_fmp_stock_latest_current` | news | 6 | `quant_data/migrations/news/0006_fmp_stock_latest_current.sql` | `bf8757bcc7679d1bd57408978eed996c9f4dad9c89339a52ca8adbeedbf83d30` | `fixture_validated` | Offline implementation/validation only; no canonical application, population, or live request |
+| `news:0006_fmp_stock_latest_current` | news | 6 | `quant_data/migrations/news/0006_fmp_stock_latest_current.sql` | `bf8757bcc7679d1bd57408978eed996c9f4dad9c89339a52ca8adbeedbf83d30` | `fixture_validated` | Applied; one successful 2026-08-30 bounded request retained 229 articles; no timer |
 
-The current collector is manual-only until a separately authorized recurring
-schedule exists.  No timer is authorized or installed by this allocation.
+The current collector remains manual-only until a separately authorized
+recurring schedule exists.
+
+## Current multi-source news allocation
+
+Registry `2.64.0` adds a forward current-news successor without reopening the
+frozen one-shot 0005 scope. Migration 0007 owns the generic immutable evidence,
+article-version, symbol, and capture-membership relations for the fixed FMP
+press/general, Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga sources.
+Migration 0008 adopts the pre-registry `fmp_news_articles` table without
+rewriting its 22,910 rows. The corresponding dataset is inactive private
+evidence; a fail-closed schema guard verifies its exact columns before
+registration, and no collector or public consumer binds to it.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `news:0007_current_multi_source` | news | 7 | `quant_data/migrations/news/0007_current_multi_source.sql` | `df58936c73045ba8a382bf0a24743db5e314246e0f81d8943872b6d3e6c010c3` | `fixture_validated` | Applied; all 20 bounded requests succeeded at 2026-08-30 16:00 UTC, retaining 1,069 generic-source articles |
+| `news:0008_adopt_fmp_news_legacy` | news | 8 | `quant_data/migrations/news/0008_adopt_fmp_news_legacy.sql` | `ea5302726758ab2bb987a525c3094885e016e4596689d26c8290808523f8327f` | `fixture_validated` | Applied; existing rows preserved; inactive/private/no consumer |
+
+Coverage derives from retained market equity, ETF, and index symbols. Alpaca
+receives only equity and ETF symbols. FMP uses `FMP_API_KEY`; Alpaca uses
+`ALPACA_API_KEY` and `ALPACA_API_SECRET`. A future missing credential yields
+source-local `unavailable`. The manual batch is
+`scripts/refresh_current_news.py`. On 2026-08-30 its reviewed hourly per-user
+service/timer units were linked, enabled, and started. The timer is
+active/waiting for its first normal `:10` UTC trigger; activation did not run
+the service or write a store.
 
 ## Legacy semantic cross-reference
 
@@ -352,7 +377,9 @@ schedule exists.  No timer is authorized or installed by this allocation.
 | `macro:0015_live_macro_history_extension` | Explicit one-time macro-history authorization plus sealed-response adoption, source-native series, provider-alias lineage, and exact registry projection | Seven fixed BLS CPI windows and four Philadelphia Fed GDP/GNP/CPI matrices; no repeat, scheduler, public consumer, or BEA-series reinterpretation |
 | `macro:0016_fmp_calendar_wholesale_evidence` | Explicit `2.21.0` FMP wholesale-calendar authorization plus immutable raw-evidence, local-replay, no-write, and physical-lock contracts | One-time retained FMP calendar response/row evidence supporting local replays; no original-release archive, public consumer, scheduler, or repeat provider request |
 | `news:0005_fmp_stock_latest` | Explicit bounded FMP stock-news authorization plus accepted news evidence, version, and physical-lock contracts | One private page-zero/page-limit-1000 capture only; no historical completeness, tombstone inference, public consumer, or live-success claim |
-| `news:0006_fmp_stock_latest_current` | Separate forward current-feed migration, immutable local-capture availability, article-version lineage, and physical-lock contracts | Repeatable UTC-hour-slot capture only after separate live authority; no canonical application/population yet, timer, raw/body public exposure, or history rewrite |
+| `news:0006_fmp_stock_latest_current` | Separate forward current-feed migration, immutable local-capture availability, article-version lineage, and physical-lock contracts | Applied repeatable UTC-hour-slot capture; first bounded request retained 229 articles; no timer or public raw/body exposure |
+| `news:0007_current_multi_source` | Forward current multi-source evidence/article migration, fixed feed identities, local-capture availability, and private body/raw boundary | Applied manual batch; all 20 bounded requests succeeded; no timer or public raw/body exposure |
+| `news:0008_adopt_fmp_news_legacy` | Tracked pre-registry FMP table schema plus explicit inactive private ownership | Existing 22,910 rows preserved behind an exact schema guard; no collector, tool, dashboard, export, or source ID |
 
 Except for the explicitly authorized Stage 9, Stage 10, Stage 11, official
 macro-vintage, FMP wholesale-evidence, and bounded FMP stock-news rows above,

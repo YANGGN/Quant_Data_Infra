@@ -96,7 +96,7 @@ class RegistryIdentifierTests(unittest.TestCase):
 
         self.assertEqual(len(registry.stores), 4)
         self.assertEqual(registry.schema_version, "1.9.0")
-        self.assertEqual(registry.registry_version, "2.63.0")
+        self.assertEqual(registry.registry_version, "2.64.0")
         predecessor = market_available_ticker_v1_registry_profile(registry)
         self.assertEqual(predecessor.registry_version, "2.41.0")
         self.assertEqual(len(predecessor.tools), 58)
@@ -123,9 +123,9 @@ class RegistryIdentifierTests(unittest.TestCase):
             ("stage1.overview", "stage6.gdp_vintages",
              "stage6.table_inspector", "stage6.agent_tools"),
         )
-        self.assertEqual(len(registry.migrations), 41)
-        self.assertEqual(len(registry.datasets), 55)
-        self.assertEqual(len(registry.collectors), 57)
+        self.assertEqual(len(registry.migrations), 43)
+        self.assertEqual(len(registry.datasets), 58)
+        self.assertEqual(len(registry.collectors), 58)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")

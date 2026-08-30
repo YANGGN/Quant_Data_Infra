@@ -36,14 +36,17 @@ this package to the consuming project's imports. Use this sequence:
 6. Keep the complete response, receipt, warnings, truncation, and lineage with
    any downstream result.
 
-At the current news-v2 checkpoint, registry `2.63.0` exposes 65 logical names
-and 56 explicit successors: 121 callable public routes in total. Catalog
-`2.23.0` contains 128 generated contracts. This snapshot is informative;
-`manifest` and `describe` remain the runtime authority if the project advances.
+At the current multi-source-news checkpoint, registry `2.64.0` exposes the
+same 65 logical names. Its source SHA-256 is
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`;
+catalog `2.24.0` has SHA-256
+`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
+This snapshot is informative; `manifest` and `describe` remain the runtime
+authority if the project advances.
 
 The linked [actual-data audit](rebuild/CURRENT_TOOL_ACTUAL_DATA_AUDIT_2026-08-28.md)
 is a pre-v2.7, 119-route checkpoint: it called all 119 routes separately. All
-54 successors completed successfully; the current manifest has 120 routes.
+54 successors completed successfully; consult `manifest` for the current route count.
 49 were semantically exercised with retained canonical data or typed series
 derived from it. Five research/forecast routes were interface-validated only
 because genuine retained event, signal, prediction, model-design, or strategy
@@ -101,6 +104,7 @@ tools:
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.6.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.1.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.search_filings --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_share_count_history --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar
@@ -193,6 +197,9 @@ printf '%s\n' '{"api_version":"1.0","tool":"company.get_share_count_history","to
 
 printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.0.0","arguments":{"query":"","symbols":["AAPL"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.1.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ```
 
 `company.search_filings@2.0.0` requires one exact ten-digit SEC CIK. Follow
@@ -206,26 +213,50 @@ weighted-average diluted share metrics. Instant and weighted-average facts
 remain distinct; the tool does not split-adjust values or infer missing
 metrics.
 
-### Current FMP news v2 quick start
+### Current news v2 quick start
 
-Use the general `manifest` command above, then inspect the selected version:
-`news.search@2.0.0` is separate from the frozen fixture default.
-Its optional arguments are `query`, `symbols`, `start_date`, `end_date`,
+Use the general `manifest` command above, then inspect the selected version.
+`news.search@2.0.0` remains the separate FMP stock-latest reader; it does not
+silently widen to other sources. `news.search@2.1.0` searches the retained
+fixed feeds together and adds optional `source_ids` (up to eight values).
+Both versions accept optional `query`, `symbols`, `start_date`, `end_date`,
 `mode`, `as_of`, `date_only_policy`, and `limit`; `as_of` is required only
 when `mode` is `as_of`, while `limit` is 1 through 500.
 
 ~~~bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools manifest
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.1.0
 printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.0.0","arguments":{"query":"","symbols":["AAPL"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.1.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ~~~
+
+The supported v2.1 source IDs are `fmp_stock_latest`, `fmp_press_releases`,
+`fmp_general`, `fed_press`, `ecb_press`, `bea_news`, `eia_press`, and
+`alpaca_benzinga`. The current market-coverage selection uses retained
+equities, ETFs, and indexes from the local market database. Alpaca receives
+only equity and ETF symbols; indexes are explicitly unsupported there. The
+inactive legacy `fmp_news_articles` relation is private evidence only: it is
+not a supported `source_id`, public reader, tool input, collector output,
+dashboard input, or export.
 
 The result exposes only retained headline metadata, capture availability,
 lineage, warnings, and truncation. It never returns provider raw bytes or
-article bodies. Today the canonical news store has not received migration 0006,
-so the call is unavailable there. After that migration is separately authorized,
-an empty result is valid until a successful capture exists. The CLI stays
-read-only and never fetches from FMP.
+article bodies. The CLI stays read-only and never fetches from a provider. For
+a source with no retained capture, `unavailable` or an empty result is an
+honest outcome.
+
+The operator-only manual batch is
+`python3 scripts/refresh_current_news.py`. It uses `FMP_API_KEY` for FMP and
+`ALPACA_API_KEY` plus `ALPACA_API_SECRET` for Alpaca; absent credentials yield
+an `unavailable` source outcome without a prompt. The official RSS feeds need
+no credential. The bounded 2026-08-30 16:00 UTC proof made 20 requests with no
+retry: all eight source steps succeeded, including 13 Alpaca/Benzinga symbol
+batches. The corresponding per-user systemd service and timer were linked,
+enabled, and started on 2026-08-30. The timer runs hourly at `:10` UTC with no
+retry or catch-up. Other agents may inspect it with `systemctl --user status`
+or `list-timers`, but must not manually trigger, retry, broaden, reinstall,
+disable, or repurpose it.
 
 ### Investment-analysis v2 quick start
 

@@ -152,7 +152,7 @@ def invoke_operation(
         and name in VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS
     )
     versioned_news = (
-        context.tool_version == "2.0.0"
+        context.tool_version in {"2.0.0", "2.1.0"}
         and name in VERSIONED_NEWS_TOOLS
     )
     if name not in REGISTERED_STAGE5_OPERATIONS and not (
@@ -211,14 +211,19 @@ def invoke_operation(
             name, arguments, context, registry
         )
     if versioned_news:
-        expected_graph = "tool_platform.news.search.v2"
+        expected_graph = {
+            "2.0.0": "tool_platform.news.search.v2",
+            "2.1.0": "tool_platform.news.search.v2_1",
+        }[context.tool_version]
         if context.operation_graph_id != expected_graph:
             raise LookupError("Selected current-news operation graph is invalid")
-        from .news_access import invoke_news_search_v2
+        from .news_access import invoke_news_search_v2, invoke_news_search_v21
 
-        return invoke_news_search_v2(
-            name, arguments, context, registry
-        )
+        if context.tool_version == "2.1.0":
+            return invoke_news_search_v21(
+                name, arguments, context, registry
+            )
+        return invoke_news_search_v2(name, arguments, context, registry)
     if context.tool_version == "2.0.0" and name == "macro.get_release_calendar":
         expected_graph = "tool_platform.macro.get_release_calendar.v2"
         if context.operation_graph_id != expected_graph:

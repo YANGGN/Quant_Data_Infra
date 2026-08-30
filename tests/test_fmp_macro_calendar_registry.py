@@ -32,10 +32,10 @@ class FmpMacroCalendarRegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.revision, "2.63.0")
+        self.assertEqual(registry.revision, "2.64.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (41, 55, 57),
+            (43, 58, 58),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

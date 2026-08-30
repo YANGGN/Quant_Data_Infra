@@ -515,6 +515,12 @@ _CURRENT_NEWS_REGISTRY_SOURCE_SHA256 = (
 _CURRENT_NEWS_CATALOG_SOURCE_SHA256 = (
     "05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d"
 )
+_CURRENT_MULTI_SOURCE_REGISTRY_SOURCE_SHA256 = (
+    "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
+)
+_CURRENT_MULTI_SOURCE_CATALOG_SOURCE_SHA256 = (
+    "6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46"
+)
 _INVESTMENT_ANALYSIS_V2_CATALOG_SOURCE_SHA256 = (
     "5c0ea96b9aba9d73f8f89aea20a052c858691e10a1047f22594f027d8f893101"
 )
@@ -868,6 +874,32 @@ _FMP_STOCK_LATEST_CURRENT_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
         "fmp_stock_latest_current_article_versions",
         "fmp_stock_latest_current_capture_articles",
     ),
+}
+_CURRENT_MULTI_SOURCE_COLLECTOR_ID = "news.current_multi_source"
+_CURRENT_MULTI_SOURCE_DATASET_IDS = frozenset(
+    {
+        "news.current_multi_source_evidence",
+        "news.current_multi_source_articles",
+    }
+)
+_CURRENT_MULTI_SOURCE_MIGRATION_ID = "news:0007_current_multi_source"
+_LEGACY_FMP_NEWS_MIGRATION_ID = "news:0008_adopt_fmp_news_legacy"
+_LEGACY_FMP_NEWS_DATASET_ID = "news.fmp.stock_latest_legacy_articles"
+_CURRENT_MULTI_SOURCE_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "news.current_multi_source_evidence": (
+        "current_multi_source_attempts",
+        "current_multi_source_outcomes",
+        "current_multi_source_captures",
+    ),
+    "news.current_multi_source_articles": (
+        "current_multi_source_articles",
+        "current_multi_source_article_versions",
+        "current_multi_source_capture_articles",
+        "current_multi_source_article_symbols",
+    ),
+}
+_LEGACY_FMP_NEWS_DATASET_RELATIONS = {
+    _LEGACY_FMP_NEWS_DATASET_ID: ("fmp_news_articles",),
 }
 _STAGE7_JOB_IDS = (
     "news-hourly",
@@ -1807,7 +1839,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.63.0"
+        or raw["registry_version"] != "2.64.0"
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2601,7 +2633,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=128,
+        expected_count=130,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3371,6 +3403,7 @@ def load_registry(
                             "energy.get_electricity_retail_sales",
                             "energy.get_weekly_fundamentals",
                             "company.get_fundamentals",
+                            "news.search",
                         }
                         else 1
                     )
@@ -3602,6 +3635,7 @@ def load_registry(
                     "energy.get_electricity_retail_sales",
                     "energy.get_weekly_fundamentals",
                     "company.get_fundamentals",
+                    "news.search",
                 }
                 or additional_variant.get("id") != policy["tool"]
                 or additional_variant.get("version") != expected_version
@@ -3654,7 +3688,22 @@ def load_registry(
                 "energy.get_weekly_fundamentals",
                 "company.get_fundamentals",
             }
-            if store_backed_successor:
+            if policy["tool"] == "news.search":
+                expected_news_datasets = (
+                    *tuple(variant["datasets"]),
+                    "news.current_multi_source_evidence",
+                    "news.current_multi_source_articles",
+                )
+                if (
+                    additional_datasets != expected_news_datasets
+                    or additional_stores != tuple(variant["stores"])
+                ):
+                    raise _error(
+                        f"{variant_pointer}/datasets",
+                        "routing",
+                        "Current-news successor routing is invalid",
+                    )
+            elif store_backed_successor:
                 if (
                     additional_datasets != tuple(variant["datasets"])
                     or additional_stores != tuple(variant["stores"])
@@ -3776,6 +3825,7 @@ def load_registry(
         fmp_stock_latest_collector = collector_id in {
             _FMP_STOCK_LATEST_COLLECTOR_ID,
             _FMP_STOCK_LATEST_CURRENT_COLLECTOR_ID,
+            _CURRENT_MULTI_SOURCE_COLLECTOR_ID,
         }
         max_workload_bytes = (
             268_435_456
@@ -4382,6 +4432,63 @@ def load_registry(
                     pointer,
                     "fmp_stock_latest_current",
                     "FMP current stock-latest collector drifted",
+                )
+        elif collector_id == _CURRENT_MULTI_SOURCE_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "news.current_multi_source"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs
+                != (
+                    "news.current_multi_source_evidence",
+                    "news.current_multi_source_articles",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_partial_feed",
+                )
+                or excludes
+                != (
+                    "fmp_api_key",
+                    "alpaca_api_key",
+                    "alpaca_api_secret",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_capture_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 22,
+                    "max_rows": 1_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != (
+                    "FMP_API_KEY",
+                    "ALPACA_API_KEY",
+                    "ALPACA_API_SECRET",
+                )
+            ):
+                raise _error(
+                    pointer,
+                    "current_multi_source_news",
+                    "Current multi-source news collector drifted",
                 )
         elif collector_id == _STAGE12B_COLLECTOR_ID:
             if (
@@ -5444,6 +5551,18 @@ _REGISTRY_259_ADDITIVE_VARIANTS = frozenset(
 )
 
 
+def _pre_registry_264_policies() -> tuple[dict[str, Any], ...]:
+    policies: list[dict[str, Any]] = []
+    for policy in build_tool_version_policies():
+        projected = copy.deepcopy(dict(policy))
+        if projected["tool"] == "news.search":
+            projected["variants"] = [
+                variant
+                for variant in projected["variants"]
+                if variant["version"] != "2.1.0"
+            ]
+        policies.append(projected)
+    return tuple(policies)
 def _pre_registry_262_policies() -> tuple[dict[str, Any], ...]:
     policies: list[dict[str, Any]] = []
     for policy in (
@@ -5526,8 +5645,241 @@ def _pre_investment_analysis_policies() -> tuple[dict[str, Any], ...]:
     )
 
 
+def multi_source_current_news_registry_profile(
+    registry: Registry,
+) -> Registry:
+    """Project multi-source current news 2.64 back to exact registry 2.63."""
+
+    version = (registry.schema_version, registry.registry_version)
+    if version not in {("1.9.0", "2.64.0"), ("1.9.0", "2.63.0")}:
+        return registry
+    payload = (
+        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        + "\n"
+    ).encode("utf-8")
+    predecessor_catalog = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": "2.23.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _CURRENT_NEWS_CATALOG_SOURCE_SHA256,
+    }
+    predecessor_policies = _pre_registry_264_policies()
+    predecessor_inventory = tuple(
+        (
+            str(policy["tool"]),
+            tuple(str(item["version"]) for item in policy["variants"]),
+        )
+        for policy in predecessor_policies
+    )
+    if version == ("1.9.0", "2.63.0"):
+        if (
+            registry.source_sha256 != _CURRENT_NEWS_REGISTRY_SOURCE_SHA256
+            or hashlib.sha256(payload).hexdigest()
+            != _CURRENT_NEWS_REGISTRY_SOURCE_SHA256
+            or _tool_policy_variant_inventory(registry)
+            != predecessor_inventory
+            or registry.raw.get("tool_version_schema_catalog")
+            != predecessor_catalog
+        ):
+            raise RegistryError(
+                "Registry 2.63 multi-source-news predecessor identity drifted"
+            )
+        return registry
+
+    current_catalog = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": VERSIONED_CATALOG_VERSION,
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _CURRENT_MULTI_SOURCE_CATALOG_SOURCE_SHA256,
+    }
+    current_inventory = tuple(
+        (
+            str(policy["tool"]),
+            tuple(str(item["version"]) for item in policy["variants"]),
+        )
+        for policy in build_tool_version_policies()
+    )
+    migration_by_id = {item.id: item for item in registry.migrations}
+    dataset_by_id = {item.id: item for item in registry.datasets}
+    collector_by_id = {str(item["id"]): item for item in registry.collectors}
+    migration = migration_by_id.get(_CURRENT_MULTI_SOURCE_MIGRATION_ID)
+    legacy_migration = migration_by_id.get(_LEGACY_FMP_NEWS_MIGRATION_ID)
+    legacy_dataset = dataset_by_id.get(_LEGACY_FMP_NEWS_DATASET_ID)
+    collector = collector_by_id.get(_CURRENT_MULTI_SOURCE_COLLECTOR_ID)
+    if (
+        registry.source_sha256
+        != _CURRENT_MULTI_SOURCE_REGISTRY_SOURCE_SHA256
+        or hashlib.sha256(payload).hexdigest()
+        != _CURRENT_MULTI_SOURCE_REGISTRY_SOURCE_SHA256
+        or _tool_policy_variant_inventory(registry) != current_inventory
+        or registry.raw.get("tool_version_schema_catalog") != current_catalog
+        or migration is None
+        or migration.store != "news"
+        or migration.ordinal != 7
+        or migration.resource
+        != "quant_data/migrations/news/0007_current_multi_source.sql"
+        or migration.sha256
+        != "df58936c73045ba8a382bf0a24743db5e314246e0f81d8943872b6d3e6c010c3"
+        or migration.dependencies
+        != (_FMP_STOCK_LATEST_CURRENT_MIGRATION_ID,)
+        or legacy_migration is None
+        or legacy_migration.store != "news"
+        or legacy_migration.ordinal != 8
+        or legacy_migration.resource
+        != "quant_data/migrations/news/0008_adopt_fmp_news_legacy.sql"
+        or legacy_migration.sha256
+        != "ea5302726758ab2bb987a525c3094885e016e4596689d26c8290808523f8327f"
+        or legacy_migration.dependencies
+        != (_CURRENT_MULTI_SOURCE_MIGRATION_ID,)
+        or legacy_dataset is None
+        or legacy_dataset.relations
+        != _LEGACY_FMP_NEWS_DATASET_RELATIONS[_LEGACY_FMP_NEWS_DATASET_ID]
+        or not _CURRENT_MULTI_SOURCE_DATASET_IDS.issubset(dataset_by_id)
+        or {
+            dataset_id: dataset_by_id[dataset_id].relations
+            for dataset_id in _CURRENT_MULTI_SOURCE_DATASET_IDS
+        }
+        != dict(_CURRENT_MULTI_SOURCE_DATASET_RELATIONS)
+        or any(
+            dataset_by_id[dataset_id].store != "news"
+            or dataset_by_id[dataset_id].collector_ids
+            != (_CURRENT_MULTI_SOURCE_COLLECTOR_ID,)
+            or dataset_by_id[dataset_id].tool_ids != ("news.search",)
+            for dataset_id in _CURRENT_MULTI_SOURCE_DATASET_IDS
+        )
+        or collector is None
+        or collector["handler"] != _CURRENT_MULTI_SOURCE_COLLECTOR_ID
+        or legacy_dataset.store != "news"
+        or legacy_dataset.layer != "evidence"
+        or legacy_dataset.collector_ids
+        or legacy_dataset.tool_ids
+        or legacy_dataset.dashboard_ids
+        or legacy_dataset.export_ids
+        or collector["network"] is not True
+        or collector["input_datasets"] != ["market.stage10.instruments"]
+        or set(collector["output_datasets"])
+        != set(_CURRENT_MULTI_SOURCE_DATASET_IDS)
+        or collector["schedule_eligibility"] != {"mode": "manual_only"}
+        or collector["configuration_env"]
+        != ["FMP_API_KEY", "ALPACA_API_KEY", "ALPACA_API_SECRET"]
+        or legacy_dataset.active
+        or registry.store("news").migration_order[-2:]
+        != (
+            _CURRENT_MULTI_SOURCE_MIGRATION_ID,
+            _LEGACY_FMP_NEWS_MIGRATION_ID,
+        )
+    ):
+        raise RegistryError("Current multi-source-news identity drifted")
+
+    retained_policies: list[Mapping[str, Any]] = []
+    removed: list[tuple[str, str]] = []
+    for policy in registry.tool_version_policies:
+        projected_policy = copy.deepcopy(dict(policy))
+        if projected_policy["tool"] == "news.search":
+            projected_variants = []
+            for variant in projected_policy["variants"]:
+                if variant["version"] == "2.1.0":
+                    removed.append(("news.search", "2.1.0"))
+                else:
+                    projected_variants.append(variant)
+            projected_policy["variants"] = projected_variants
+        retained_policies.append(projected_policy)
+    if (
+        tuple(removed) != (("news.search", "2.1.0"),)
+        or _tool_policy_variant_inventory(
+            replace(
+                registry,
+                tool_version_policies=tuple(retained_policies),
+            )
+        )
+        != predecessor_inventory
+    ):
+        raise RegistryError("Current multi-source-news tool inventory drifted")
+
+    release_migration_ids = frozenset(
+        (_CURRENT_MULTI_SOURCE_MIGRATION_ID, _LEGACY_FMP_NEWS_MIGRATION_ID)
+    )
+    release_dataset_ids = frozenset(
+        (*_CURRENT_MULTI_SOURCE_DATASET_IDS, _LEGACY_FMP_NEWS_DATASET_ID)
+    )
+
+    migrations = tuple(
+        item
+        for item in registry.migrations
+        if item.id not in release_migration_ids
+    )
+    datasets = tuple(
+        item
+        for item in registry.datasets
+        if item.id not in release_dataset_ids
+    )
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if item["id"] != _CURRENT_MULTI_SOURCE_COLLECTOR_ID
+    )
+    stores = tuple(
+        replace(
+            store,
+            migration_order=tuple(
+                migration_id
+                for migration_id in store.migration_order
+                if migration_id not in release_migration_ids
+            ),
+        )
+        for store in registry.stores
+    )
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.63.0"
+    raw["tool_version_schema_catalog"] = predecessor_catalog
+    raw["tool_versions"] = copy.deepcopy(retained_policies)
+    raw["migrations"] = [
+        item
+        for item in raw["migrations"]
+        if item["id"] not in release_migration_ids
+    ]
+    raw["datasets"] = [
+        item
+        for item in raw["datasets"]
+        if item["id"] not in release_dataset_ids
+    ]
+    raw["collectors"] = [
+        item
+        for item in raw["collectors"]
+        if item["id"] != _CURRENT_MULTI_SOURCE_COLLECTOR_ID
+    ]
+    for store in raw["stores"]:
+        store["migration_order"] = [
+            migration_id
+            for migration_id in store["migration_order"]
+            if migration_id not in release_migration_ids
+        ]
+    projected_payload = (
+        json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n"
+    ).encode("utf-8")
+    if (
+        hashlib.sha256(projected_payload).hexdigest()
+        != _CURRENT_NEWS_REGISTRY_SOURCE_SHA256
+    ):
+        raise RegistryError("Multi-source current-news projection drifted")
+    return replace(
+        registry,
+        registry_version="2.63.0",
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+        tool_version_policies=tuple(retained_policies),
+        raw=raw,
+        source_sha256=_CURRENT_NEWS_REGISTRY_SOURCE_SHA256,
+    )
+
+
 def current_news_registry_profile(registry: Registry) -> Registry:
     """Project current-news registry 2.63 back to exact registry 2.62."""
+
+    registry = multi_source_current_news_registry_profile(registry)
 
     version = (registry.schema_version, registry.registry_version)
     if version not in {("1.9.0", "2.63.0"), ("1.9.0", "2.62.0")}:
@@ -5568,7 +5920,7 @@ def current_news_registry_profile(registry: Registry) -> Registry:
 
     current_catalog = {
         "schema_id": VERSIONED_CATALOG_ID,
-        "schema_version": VERSIONED_CATALOG_VERSION,
+        "schema_version": "2.23.0",
         "resource": "quant_data/generated/tool_contract_schemas_v2.json",
         "sha256": _CURRENT_NEWS_CATALOG_SOURCE_SHA256,
     }
@@ -5577,7 +5929,7 @@ def current_news_registry_profile(registry: Registry) -> Registry:
             str(policy["tool"]),
             tuple(str(item["version"]) for item in policy["variants"]),
         )
-        for policy in build_tool_version_policies()
+        for policy in _pre_registry_264_policies()
     )
     if (
         registry.source_sha256 != _CURRENT_NEWS_REGISTRY_SOURCE_SHA256

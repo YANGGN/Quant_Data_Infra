@@ -564,13 +564,25 @@ The following decisions apply to every stage:
   byte-identical registry `2.61.0` and catalog `2.21.0`.
 
 - Registry `2.63.0` adds the separate repeatable current FMP news successor:
-  migration `news:0006_fmp_stock_latest_current`, datasets
-  `news.fmp.stock_latest_current_evidence` and
-  `news.fmp.stock_latest_current_articles`, manual-only collector
-  `fmp.news.stock_latest_current`, and local read-only `news.search@2.0.0`.
-  Catalog `2.23.0` has 128 contracts, 41 version policies, and 56 variants;
-  exact projection restores `2.62.0`/`2.22.0`. It is offline-validated only:
-  no live provider request, canonical news migration/population, or timer.
+  migration `news:0006_fmp_stock_latest_current`, two private datasets,
+  manual-only collector `fmp.news.stock_latest_current`, and local read-only
+  `news.search@2.0.0`. Catalog `2.23.0` has 128 contracts, 41 version
+  policies, and 56 variants; exact projection restores `2.62.0`/`2.22.0`.
+  The bounded 2026-08-30 proof applied migration 0006 and retained 229 articles
+  from one request without retry.
+
+- Registry `2.64.0` adds migration `news:0007_current_multi_source`, two
+  active private datasets, collector `news.current_multi_source`, and read-only
+  `news.search@2.1.0`. Forward migration
+  `news:0008_adopt_fmp_news_legacy` owns the pre-existing
+  `fmp_news_articles` relation as inactive private evidence behind an exact
+  schema guard, with no consumer or source ID. The bounded 2026-08-30 16:00 UTC
+  proof completed all 20 requests without retry and retained 1,069 generic
+  articles; all eight source steps succeeded. On 2026-08-30 the reviewed
+  hourly per-user timer was linked, enabled, and started. It is active/waiting
+  for its first normal `:10` UTC trigger; activation did not run the service,
+  contact a provider, or write a store.
+
 - On 2026-08-23 the user separately authorized a fourth host-level recurring
   exception, `quant-data-macro-current-refresh.timer`, at 18:30
   America/New_York on weekdays. On 2026-08-24 the user expanded it to

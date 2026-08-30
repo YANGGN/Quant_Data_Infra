@@ -57,9 +57,28 @@ on 2026-08-29; it does not broaden the disabled recovered job catalog.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
 
+## Active current multi-source news refresh
+
+`scripts/refresh_current_news.py` is the manual, zero-argument batch for the
+fixed current-news feeds. The matching
+`quant-data-current-news-refresh.service` and `.timer` run on an hourly
+`:10` UTC cadence with `Persistent=false`. On 2026-08-30 the reviewed
+per-user units were linked, daemon-reloaded, enabled, and started. The timer is
+`loaded`/`enabled`/`active`/`waiting`; `LastTrigger` is empty, and the
+service remains inactive/dead with no execution timestamps. Activation made no
+provider request or canonical-store write.
+
+The batch uses optional `FMP_API_KEY` and
+`ALPACA_API_KEY`/`ALPACA_API_SECRET`; a missing credential yields a source-local
+`unavailable` outcome without prompting. Official RSS feeds need no credential.
+The 2026-08-30 16:00 UTC proof completed all eight source steps and all 20
+requests without retry, including 13 bounded Alpaca/Benzinga batches. It has no
+retry or catch-up behavior. Future work must not manually trigger, retry,
+broaden, reinstall, disable, or repurpose the active unit.
+
 ## Active GDP/CPI vintage refresh
 
-`quant-data-macro-vintages.timer` is one of five authorized recurring scheduling
+`quant-data-macro-vintages.timer` is an authorized recurring scheduling
 exceptions in this document. It runs the fixed zero-argument refresh wrapper at
 09:05 America/New_York, Monday through Friday, with `Persistent=false`.
 Each invocation makes exactly one BEA workbook request and one BLS current API

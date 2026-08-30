@@ -396,11 +396,12 @@ def _validate_registry(registry: Registry) -> None:
         raise ValidationError("FMP current stock-latest importer requires a registry")
     migrations = tuple(sorted(registry.migrations_for(StoreRole.NEWS.value), key=lambda item: item.ordinal))
     if (
-        tuple(item.id for item in migrations) != expected_migrations
-        or tuple(item.ordinal for item in migrations) != (1, 2, 3, 4, 5, 6)
-        or migrations[-1].store != StoreRole.NEWS.value
-        or migrations[-1].reconstruction_state != "fixture_validated"
-        or registry.store(StoreRole.NEWS.value).migration_order != expected_migrations
+        tuple(item.id for item in migrations[:6]) != expected_migrations
+        or tuple(item.ordinal for item in migrations[:6]) != (1, 2, 3, 4, 5, 6)
+        or migrations[5].store != StoreRole.NEWS.value
+        or migrations[5].reconstruction_state != "fixture_validated"
+        or registry.store(StoreRole.NEWS.value).migration_order[:6]
+        != expected_migrations
     ):
         raise ValidationError("FMP current stock-latest registry ledger is invalid")
     collector_matches = [

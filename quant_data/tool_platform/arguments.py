@@ -159,6 +159,24 @@ class CurrentNewsSearchArgumentsV2(_ArgumentMapping):
 
 
 @dataclass(frozen=True, slots=True)
+class CurrentNewsSearchArgumentsV21(CurrentNewsSearchArgumentsV2):
+    """Search retained current news across the approved source set."""
+
+    INPUT_KIND: ClassVar[str] = "current_news_search_v2_1"
+
+    source_ids: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=8,
+            item=_InputField(types=("string",), min_length=1, max_length=64),
+            form="array",
+        ),
+        default=(),
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class CompanyFilingSearchArgumentsV2(_ArgumentMapping):
     """Typed keyset-paginated filing search over one exact SEC CIK."""
 
@@ -2106,6 +2124,7 @@ class ResearchSeriesArguments(_ArgumentMapping):
 _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     SearchArguments,
     CurrentNewsSearchArgumentsV2,
+    CurrentNewsSearchArgumentsV21,
     CompanyFilingSearchArgumentsV2,
     CompanyShareCountHistoryArgumentsV2,
     Stage10MarketInstrumentSearchArgumentsV2,
@@ -2480,7 +2499,10 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             MappingProxyType({"query": query, "as_of": as_of, "limit": limit}),
         )
 
-    if argument_type is CurrentNewsSearchArgumentsV2:
+    if argument_type in {
+        CurrentNewsSearchArgumentsV2,
+        CurrentNewsSearchArgumentsV21,
+    }:
         query = _validated_string(
             mapping.get("query", ""),
             _field_contract(argument_type, "query"),
@@ -2526,6 +2548,44 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 "unique",
                 "News symbols must be unique",
             )
+        source_ids: tuple[str, ...] = ()
+        if argument_type is CurrentNewsSearchArgumentsV21:
+            source_contract = _field_contract(argument_type, "source_ids")
+            raw_source_ids = mapping.get("source_ids", ())
+            if not isinstance(raw_source_ids, (list, tuple)):
+                raise _validation_error(
+                    "/source_ids", "type", "Expected an array"
+                )
+            if (
+                source_contract.max_items is not None
+                and len(raw_source_ids) > source_contract.max_items
+            ):
+                raise _validation_error(
+                    "/source_ids",
+                    "max_items",
+                    "Array exceeds the supported item limit",
+                )
+            assert source_contract.item is not None  # module invariant
+            source_ids = tuple(
+                _validated_string(
+                    item,
+                    source_contract.item,
+                    f"/source_ids/{index}",
+                ).strip()
+                for index, item in enumerate(raw_source_ids)
+            )
+            if any(not source_id for source_id in source_ids):
+                raise _validation_error(
+                    "/source_ids",
+                    "min_length",
+                    "News source identifiers cannot be blank",
+                )
+            if len(set(source_ids)) != len(source_ids):
+                raise _validation_error(
+                    "/source_ids",
+                    "unique",
+                    "News source identifiers must be unique",
+                )
         mode_contract = _field_contract(argument_type, "mode")
         mode = _validated_string(
             mapping.get("mode", "latest"),
@@ -2598,6 +2658,11 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     "start_date": start_date,
                     "end_date": end_date,
                     "limit": limit,
+                    **(
+                        {"source_ids": source_ids}
+                        if argument_type is CurrentNewsSearchArgumentsV21
+                        else {}
+                    ),
                 }
             ),
         )
@@ -4488,6 +4553,8 @@ def parse_arguments(
         return SearchArguments(**dict(values))
     if prepared.argument_type is CurrentNewsSearchArgumentsV2:
         return CurrentNewsSearchArgumentsV2(**dict(values))
+    if prepared.argument_type is CurrentNewsSearchArgumentsV21:
+        return CurrentNewsSearchArgumentsV21(**dict(values))
     if prepared.argument_type is CompanyFilingSearchArgumentsV2:
         return CompanyFilingSearchArgumentsV2(**dict(values))
     if prepared.argument_type is CompanyShareCountHistoryArgumentsV2:
@@ -4716,6 +4783,10 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         item.name
         for item, _ in _declared_fields(CurrentNewsSearchArgumentsV2)
     }
+    current_news_v21_names = {
+        item.name
+        for item, _ in _declared_fields(CurrentNewsSearchArgumentsV21)
+    }
     available_ticker_names = {
         item.name
         for item, _ in _declared_fields(Stage10AvailableTickerArgumentsV1)
@@ -4859,6 +4930,8 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         return SingleSeriesArguments.INPUT_KIND
     if names == query_names:
         return QueryArguments.INPUT_KIND
+    if names <= current_news_v21_names and "source_ids" in names:
+        return CurrentNewsSearchArgumentsV21.INPUT_KIND
     if names <= current_news_names and (
         "symbols" in names
         or "mode" in names
@@ -5125,6 +5198,7 @@ __all__ = [
     "ArgumentParameter",
     "SearchArguments",
     "CurrentNewsSearchArgumentsV2",
+    "CurrentNewsSearchArgumentsV21",
     "CompanyShareCountHistoryArgumentsV2",
     "CompanyFilingSearchArgumentsV2",
     "Stage10MarketInstrumentSearchArgumentsV2",

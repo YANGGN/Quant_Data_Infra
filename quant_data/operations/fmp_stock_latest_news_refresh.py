@@ -145,16 +145,17 @@ def _expected_news_ledger(registry: Registry) -> tuple[tuple[object, ...], ...]:
         for item in declarations
     )
     if (
-        len(expected) != 6
-        or tuple(item[0] for item in expected)[-1] != FMP_STOCK_LATEST_CURRENT_MIGRATION_ID
-        or tuple(item[2] for item in expected) != (1, 2, 3, 4, 5, 6)
+        len(expected) < 6
+        or tuple(item[0] for item in expected)[:6][-1]
+        != FMP_STOCK_LATEST_CURRENT_MIGRATION_ID
+        or tuple(item[2] for item in expected)[:6] != (1, 2, 3, 4, 5, 6)
     ):
         raise _ConfigurationFailure
     return expected
 
 
 def _preflight_existing_news_target(root: Path, target: Path, registry: Registry) -> None:
-    """Accept only the exact reviewed 0001--0005 prefix or current 0001--0006 ledger."""
+    """Accept only exact reviewed prefixes from 0001--0005 onward."""
 
     connection: sqlite3.Connection | None = None
     try:
@@ -196,7 +197,8 @@ def _preflight_existing_news_target(root: Path, target: Path, registry: Registry
             )
         )
         expected = _expected_news_ledger(registry)
-        if actual not in (expected[:-1], expected):
+        allowed = tuple(expected[:length] for length in range(5, len(expected) + 1))
+        if actual not in allowed:
             raise _ConfigurationFailure
     except _ConfigurationFailure:
         raise
@@ -216,7 +218,7 @@ def refresh_fmp_stock_latest_news(
     transport: FmpStockLatestCurrentTransport | None = None,
     clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
 ) -> FmpStockLatestCurrentRefreshResult:
-    """Apply only 0006 when needed, then issue one fixed current-news request."""
+    """Apply approved additive news migrations, then issue one fixed request."""
 
     root, target = _require_canonical_target()
     try:

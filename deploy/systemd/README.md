@@ -11,6 +11,26 @@ market-close timer is enabled and waiting as recorded below. Agents may inspect
 status read-only, but must not manually trigger, retry, broaden, disable,
 update, remove, or repurpose any unit.
 
+## Active current-news refresh timer
+
+On 2026-08-30 the reviewed `quant-data-current-news-refresh.service` and
+`.timer` were linked into the per-user manager, daemon-reloaded, enabled, and
+started. The timer is active/waiting at the hourly `:10` UTC cadence with
+`Persistent=false`; activation left `LastTrigger` empty and the service
+inactive/dead with no execution timestamps, provider request, or store write.
+
+The fixed zero-argument service runs the eight-source FMP, official RSS, and
+Alpaca/Benzinga batch, has no retry or catch-up, and uses the current bounded
+market-database universe. Missing credentials remain source-local unavailable
+outcomes. These commands are read-only:
+
+    systemctl --user status quant-data-current-news-refresh.service
+    systemctl --user status quant-data-current-news-refresh.timer
+    systemctl --user list-timers quant-data-current-news-refresh.timer --all
+
+Do not manually start the service or retry, broaden, reinstall, disable,
+update, remove, or repurpose the timer.
+
 ## Active: market-close timer
 
 On 2026-08-29 the reviewed project-local

@@ -1,12 +1,20 @@
-"""Typed v2 adapter for the retained current FMP stock-news feed."""
+"""Typed v2 adapters for retained current news."""
 
 from __future__ import annotations
 
+import hashlib
+from datetime import datetime, timezone
 from typing import Final, Mapping
 
 from quant_data.contracts import LineageRef, TruncationV1, WarningV1
 from quant_data.errors import ResourceLimitError, ValidationError
 from quant_data.json_codec import dumps_strict
+from quant_data.news.current_multi_source import CURRENT_MULTI_SOURCE_FEED_IDS
+from quant_data.news.current_multi_source_repository import (
+    CURRENT_MULTI_SOURCE_REPOSITORY_ARTICLES_DATASET_ID,
+    CURRENT_MULTI_SOURCE_REPOSITORY_EVIDENCE_DATASET_ID,
+    CurrentMultiSourceNewsRepository,
+)
 from quant_data.news.current_repository import (
     CURRENT_NEWS_ARTICLES_DATASET_ID,
     CURRENT_NEWS_EVIDENCE_DATASET_ID,
@@ -16,7 +24,10 @@ from quant_data.news.current_repository import (
 )
 from quant_data.registry import Registry
 
-from .arguments import CurrentNewsSearchArgumentsV2
+from .arguments import (
+    CurrentNewsSearchArgumentsV2,
+    CurrentNewsSearchArgumentsV21,
+)
 from .context import ToolExecutionContext
 from .results import DiagnosticV1, QueryResult, Scalar, fields_from_mapping, records_from_mappings
 
@@ -172,8 +183,323 @@ def invoke_news_search_v2(
     return _result(name=name, query=query, selection=selection)
 
 
+FMP_CURRENT_SOURCE_ID: Final = "fmp_stock_latest"
+MULTI_SOURCE_OPERATION_VERSION: Final = "2.1.0"
+_V21_SOURCE_IDS: Final = frozenset(
+    (FMP_CURRENT_SOURCE_ID, *CURRENT_MULTI_SOURCE_FEED_IDS)
+)
+
+
+def _source_ids_v21(arguments: CurrentNewsSearchArgumentsV21) -> tuple[str, ...]:
+    source_ids = arguments.source_ids
+    if len(source_ids) != len(set(source_ids)):
+        raise ValidationError("Current-news source_ids must be distinct")
+    if any(source_id not in _V21_SOURCE_IDS for source_id in source_ids):
+        raise ValidationError("Current-news source_ids contain an unsupported feed")
+    return source_ids
+
+
+def _instant_v21(value: object, *, label: str) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise ValidationError(f"Current-news {label} is invalid")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValidationError(f"Current-news {label} is invalid") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValidationError(f"Current-news {label} must include an offset")
+    return parsed.astimezone(timezone.utc)
+
+
+def _normalize_fmp_v21(row: Mapping[str, object]) -> dict[str, object]:
+    symbol = row["symbol"]
+    return {
+        **row,
+        "feed_id": FMP_CURRENT_SOURCE_ID,
+        "provider": "fmp",
+        "published_offset_status": row["published_offset_status"],
+        "summary": "",
+        "symbols": [symbol],
+        "_family": "fmp",
+    }
+
+
+def _sort_v21(records: list[dict[str, object]]) -> None:
+    records.sort(key=lambda row: str(row["article_id"]))
+    records.sort(
+        key=lambda row: _instant_v21(
+            row["available_at"], label="availability"
+        ),
+        reverse=True,
+    )
+    records.sort(
+        key=lambda row: (
+            row["published_normalized_at"] is not None,
+            _instant_v21(
+                row["published_normalized_at"], label="publication"
+            )
+            if row["published_normalized_at"] is not None
+            else datetime.min.replace(tzinfo=timezone.utc),
+        ),
+        reverse=True,
+    )
+
+
+def _record_fields_v21(row: Mapping[str, object]) -> dict[str, Scalar]:
+    return {
+        "article_id": row["article_id"],
+        "article_version_id": row["article_version_id"],
+        "available_at": row["available_at"],
+        "capture_id": row["capture_id"],
+        "feed_id": row["feed_id"],
+        "headline": row["headline"],
+        "provider": row["provider"],
+        "published_date_raw": row["published_date_raw"],
+        "published_normalized_at": row["published_normalized_at"],
+        "published_offset_status": row["published_offset_status"],
+        "published_precision": row["published_precision"],
+        "source_name": row["source_name"],
+        "source_row": row["source_row"],
+        "source_url": row["source_url"],
+        "summary": row["summary"],
+        "symbol": row["symbol"],
+        "symbols": dumps_strict(row["symbols"]),
+        "version_sequence": row["version_sequence"],
+    }
+
+
+def _lineage_v21(
+    records: tuple[dict[str, object], ...],
+) -> tuple[LineageRef, ...]:
+    evidence_keys: set[tuple[str, str]] = set()
+    article_keys: set[tuple[str, str, str]] = set()
+    for row in records:
+        if row["_family"] == "fmp":
+            evidence_dataset = CURRENT_NEWS_EVIDENCE_DATASET_ID
+            articles_dataset = CURRENT_NEWS_ARTICLES_DATASET_ID
+        else:
+            evidence_dataset = (
+                CURRENT_MULTI_SOURCE_REPOSITORY_EVIDENCE_DATASET_ID
+            )
+            articles_dataset = (
+                CURRENT_MULTI_SOURCE_REPOSITORY_ARTICLES_DATASET_ID
+            )
+        capture_id = str(row["capture_id"])
+        version_id = str(row["article_version_id"])
+        evidence_keys.add((evidence_dataset, capture_id))
+        article_keys.add((articles_dataset, capture_id, version_id))
+    evidence = tuple(
+        LineageRef(
+            dataset_id=dataset_id,
+            store_role="news",
+            semantic_id=capture_id,
+            evidence_id=capture_id,
+            snapshot_id=capture_id,
+        )
+        for dataset_id, capture_id in sorted(evidence_keys)
+    )
+    articles = tuple(
+        LineageRef(
+            dataset_id=dataset_id,
+            store_role="news",
+            semantic_id=version_id,
+            evidence_id=capture_id,
+            snapshot_id=capture_id,
+            canonical_version_id=version_id,
+        )
+        for dataset_id, capture_id, version_id in sorted(article_keys)
+    )
+    return evidence + articles
+
+
+def _result_v21(
+    *,
+    name: str,
+    query: CurrentNewsQuery,
+    source_ids: tuple[str, ...],
+    records: tuple[dict[str, object], ...],
+    total_selected_count: int,
+    migration_ids: tuple[str, ...],
+    receipt_sha256: str,
+    warnings: tuple[str, ...],
+) -> QueryResult:
+    rendered = records_from_mappings(
+        "current_news_headline_v2_1",
+        tuple(_record_fields_v21(row) for row in records),
+    )
+    truncated = total_selected_count > query.limit
+    cutoff_precision = (
+        None if query.cutoff is None else query.cutoff.precision.value
+    )
+    return QueryResult(
+        tool=name,
+        status="ok",
+        records=rendered,
+        diagnostics=(
+            DiagnosticV1(
+                code="current_multi_source_news_selection",
+                message=(
+                    "Retained fixed-source headline metadata was selected "
+                    "without provider access."
+                ),
+                metrics=fields_from_mapping(
+                    {
+                        "availability_basis": "local_capture",
+                        "cutoff": query.as_of,
+                        "cutoff_precision": cutoff_precision,
+                        "date_only_policy": query.date_only_policy.value,
+                        "migration_ids": dumps_strict(list(migration_ids)),
+                        "mode": query.mode,
+                        "receipt_sha256": receipt_sha256,
+                        "returned_count": len(rendered),
+                        "source_ids": dumps_strict(list(source_ids)),
+                        "total_selected_count": total_selected_count,
+                        "truncated": truncated,
+                    }
+                ),
+            ),
+        ),
+        warnings=tuple(
+            WarningV1(
+                code=code,
+                message=f"Current multi-source news warning: {code}.",
+            )
+            for code in warnings
+        ),
+        lineage=_lineage_v21(records),
+        truncation=TruncationV1(
+            applied=truncated,
+            limit=query.limit,
+            returned_count=len(rendered),
+            total_known_count=total_selected_count,
+            has_more=truncated,
+        ),
+    )
+
+
+def invoke_news_search_v21(
+    name: str,
+    arguments: object,
+    context: ToolExecutionContext,
+    registry: Registry,
+) -> QueryResult:
+    """Select retained fixed-source headline metadata through the news store."""
+
+    if name != TOOL_NAME:
+        raise LookupError("Current multi-source news operation is not registered")
+    if not isinstance(arguments, CurrentNewsSearchArgumentsV21):
+        raise ValidationError(
+            "Current multi-source news search requires typed v2.1 arguments"
+        )
+    if not isinstance(registry, Registry):
+        raise ValidationError("Current multi-source news registry is invalid")
+
+    source_ids = _source_ids_v21(arguments)
+    query = _query(arguments)
+    context.checkpoint()
+    context.budget.require(
+        rows=query.limit,
+        series=0,
+        operations=query.limit * 2,
+    )
+
+    include_fmp = not source_ids or FMP_CURRENT_SOURCE_ID in source_ids
+    selected_multi_ids = tuple(
+        source_id
+        for source_id in source_ids
+        if source_id != FMP_CURRENT_SOURCE_ID
+    )
+    include_multi = not source_ids or bool(selected_multi_ids)
+    fmp_selection = (
+        CurrentNewsRepository(context.store_map, registry).search(query)
+        if include_fmp
+        else None
+    )
+    multi_selection = (
+        CurrentMultiSourceNewsRepository(
+            context.store_map, registry
+        ).search(
+            query,
+            source_ids=selected_multi_ids if source_ids else (),
+        )
+        if include_multi
+        else None
+    )
+
+    records: list[dict[str, object]] = []
+    if fmp_selection is not None:
+        records.extend(
+            _normalize_fmp_v21(row) for row in fmp_selection.records
+        )
+    if multi_selection is not None:
+        records.extend(
+            {**row, "_family": "multi"}
+            for row in multi_selection.records
+        )
+    _sort_v21(records)
+    selected_records = tuple(records[: query.limit])
+    total_selected_count = sum(
+        selection.total_selected_count
+        for selection in (fmp_selection, multi_selection)
+        if selection is not None
+    )
+    migration_ids = tuple(
+        sorted(
+            {
+                migration_id
+                for selection in (fmp_selection, multi_selection)
+                if selection is not None
+                for migration_id in selection.migration_ids
+            }
+        )
+    )
+    warnings = tuple(
+        sorted(
+            {
+                warning
+                for selection in (fmp_selection, multi_selection)
+                if selection is not None
+                for warning in selection.warnings
+            }
+        )
+    )
+    subreceipts = [
+        selection.receipt_sha256
+        for selection in (fmp_selection, multi_selection)
+        if selection is not None
+    ]
+    receipt_sha256 = hashlib.sha256(
+        dumps_strict(
+            {
+                "request": query.receipt_mapping(),
+                "selected_article_versions": [
+                    str(row["article_version_id"])
+                    for row in selected_records
+                ],
+                "source_ids": list(source_ids),
+                "subreceipts": subreceipts,
+                "total_selected_count": total_selected_count,
+            }
+        ).encode("utf-8")
+    ).hexdigest()
+    context.checkpoint()
+    return _result_v21(
+        name=name,
+        query=query,
+        source_ids=source_ids,
+        records=selected_records,
+        total_selected_count=total_selected_count,
+        migration_ids=migration_ids,
+        receipt_sha256=receipt_sha256,
+        warnings=warnings,
+    )
+
+
 __all__ = (
+    "FMP_CURRENT_SOURCE_ID",
+    "MULTI_SOURCE_OPERATION_VERSION",
     "OPERATION_VERSION",
     "TOOL_NAME",
     "invoke_news_search_v2",
+    "invoke_news_search_v21",
 )

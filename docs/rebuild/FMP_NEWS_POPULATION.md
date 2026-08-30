@@ -80,7 +80,7 @@ of project data.  Only after those checks and independent verification may a
 separate explicit live authorization be considered.  A live run remains out of
 scope for this reconstruction document.
 
-## Repeatable current-feed successor -- offline only
+## Repeatable current-feed successor -- bounded manual proof
 
 Registry `2.63.0` adds a separate current-news path, not a change to the
 frozen one-shot contract: migration
@@ -100,8 +100,9 @@ private evidence.  The public `news.search@2.0.0` reader returns only retained
 headline metadata with local-capture availability, lineage, warnings, and
 truncation information.
 
-This is offline-validated implementation only.  No live provider request has
-been made, `data/news.sqlite` has not been migrated or populated by this
-successor, and no recurring timer has been authorized or installed.  A future
-explicit bounded live decision must cover the first request and canonical
-application; a separate user decision is required before any recurring timer.
+The bounded 2026-08-30 16:00 UTC proof applied migration 0006 to
+`data/news.sqlite`, made its one fixed page-zero request with no retry, and
+retained 229 current articles. The immutable receipt and raw response remain
+private. The broader eight-source successor's reviewed per-user timer was
+linked, enabled, and started on 2026-08-30 at the hourly `:10` UTC cadence.
+Activation did not run the service, contact a provider, or write a store.

@@ -89,10 +89,10 @@ seasonality, and normalized company-ratio successors. Registry `2.60.0`
 advances it to `2.20.0` with WaveTrend with Crosses v2.5. Registry `2.61.0`
 advances it to `2.21.0` with Parabolic SAR v2.6. Registry `2.62.0` advances
 it to `2.22.0` with rolling regression line v2.7. Registry `2.63.0` advances
-it to `2.23.0` with the current FMP `news.search@2.0.0` successor. The current
-manifest still has 65 logical names; it has 41 version policies, 56 variants,
-and 128 versioned contracts. Every omitted selector retains the frozen v1
-default.
+it to `2.23.0` with the current FMP `news.search@2.0.0` successor. Registry
+`2.64.0` advances it to `2.24.0` with multi-source `news.search@2.1.0`. The
+same 65 logical names and frozen v1 defaults remain; every omitted selector
+retains the frozen v1 default.
 
 The recovered compatibility names are:
 
@@ -234,21 +234,29 @@ Its exact predecessor projection removes only this batch and restores registry
 `2.56.0`, catalog `2.16.0`, and registry SHA-256
 `9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`.
 
-### Current FMP news search v2
+### Current news search v2
 
 `news.search@2.0.0` is a host-routed, read-only selection over the separate
-current FMP news relations.  It accepts optional `query`, up to 50 distinct
-`symbols`, optional inclusive `start_date` and `end_date`, `latest` or `as_of`
-mode, the required `as_of` cutoff for the latter, `date_only_policy`, and a
-bounded `limit` from 1 through 500.  It uses local capture availability for
-cutoff selection and publication dates only for date filtering.
+current FMP stock-latest relations. It accepts optional `query`, up to 50
+distinct `symbols`, optional inclusive `start_date` and `end_date`, `latest` or
+`as_of` mode, the required `as_of` cutoff for the latter, `date_only_policy`,
+and a bounded `limit` from 1 through 500. It uses local capture availability
+for cutoff selection and publication dates only for date filtering.
 
-It returns only retained headline metadata, lineage, warnings, and truncation;
-raw provider bytes and article bodies are private.  The tool makes no provider
-request.  It is unavailable against the canonical store until migration 0006 is
-separately authorized and applied; after the relations exist, it may validly
-return no records until a successful capture occurs.  Version 1 remains the
+`news.search@2.1.0` uses the same filters and adds optional `source_ids` to
+select from the fixed current feeds: FMP stock latest, press releases, and
+general news; Federal Reserve, ECB, BEA, EIA; and Alpaca/Benzinga. It reads
+the generic current multi-source relations; source IDs cannot supply arbitrary
+endpoints. Current coverage uses the retained market equity/ETF/index set,
+with Alpaca limited to equity and ETF symbols.
+
+Both versions return only retained headline metadata, lineage, warnings, and
+truncation; raw provider bytes and article bodies are private. The tools make
+no provider request. The inactive legacy `fmp_news_articles` relation is not a
+source ID or input for either public version. For a source with no retained
+capture, `unavailable` or no records remains valid. Version 1 remains the
 frozen fixture contract.
+
 
 The supported cross-project boundary is the fixed
 `bin/quant-data-tools` subprocess documented in

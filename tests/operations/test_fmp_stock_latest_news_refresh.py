@@ -9,6 +9,14 @@ from pathlib import Path
 from unittest import mock
 
 from quant_data.migrations import migrate_and_register_store
+from quant_data.news.current_multi_source import (
+    CURRENT_MULTI_SOURCE_ARTICLES_DATASET_ID,
+    CURRENT_MULTI_SOURCE_COLLECTOR_ID,
+    CURRENT_MULTI_SOURCE_EVIDENCE_DATASET_ID,
+    CURRENT_MULTI_SOURCE_MIGRATION_ID,
+    LEGACY_FMP_NEWS_DATASET_ID,
+    LEGACY_FMP_NEWS_MIGRATION_ID,
+)
 from quant_data.news.fmp_stock_latest_current import (
     CapturedFmpStockLatestCurrentResponse,
     FMP_STOCK_LATEST_CURRENT_ARTICLES_DATASET_ID,
@@ -109,30 +117,53 @@ def _successor_registry():
 
 
 def _prefix_registry(registry):
+    removed_migrations = {
+        FMP_STOCK_LATEST_CURRENT_MIGRATION_ID,
+        CURRENT_MULTI_SOURCE_MIGRATION_ID,
+        LEGACY_FMP_NEWS_MIGRATION_ID,
+    }
+    removed_datasets = {
+        FMP_STOCK_LATEST_CURRENT_EVIDENCE_DATASET_ID,
+        FMP_STOCK_LATEST_CURRENT_ARTICLES_DATASET_ID,
+        CURRENT_MULTI_SOURCE_EVIDENCE_DATASET_ID,
+        CURRENT_MULTI_SOURCE_ARTICLES_DATASET_ID,
+        LEGACY_FMP_NEWS_DATASET_ID,
+    }
+    removed_collectors = {
+        FMP_STOCK_LATEST_CURRENT_COLLECTOR_ID,
+        CURRENT_MULTI_SOURCE_COLLECTOR_ID,
+    }
     migrations = tuple(
-        item for item in registry.migrations if item.id != FMP_STOCK_LATEST_CURRENT_MIGRATION_ID
+        item for item in registry.migrations if item.id not in removed_migrations
     )
     datasets = tuple(
-        item
-        for item in registry.datasets
-        if item.id
-        not in {
-            FMP_STOCK_LATEST_CURRENT_EVIDENCE_DATASET_ID,
-            FMP_STOCK_LATEST_CURRENT_ARTICLES_DATASET_ID,
-        }
+        item for item in registry.datasets if item.id not in removed_datasets
     )
     collectors = tuple(
         item
         for item in registry.collectors
-        if item.get("id") != FMP_STOCK_LATEST_CURRENT_COLLECTOR_ID
+        if item.get("id") not in removed_collectors
     )
     stores = tuple(
-        replace(item, migration_order=item.migration_order[:-1])
+        replace(
+            item,
+            migration_order=tuple(
+                migration_id
+                for migration_id in item.migration_order
+                if migration_id not in removed_migrations
+            ),
+        )
         if item.id == StoreRole.NEWS.value
         else item
         for item in registry.stores
     )
-    return replace(registry, stores=stores, migrations=migrations, datasets=datasets, collectors=collectors)
+    return replace(
+        registry,
+        stores=stores,
+        migrations=migrations,
+        datasets=datasets,
+        collectors=collectors,
+    )
 
 
 def _body() -> bytes:
@@ -196,7 +227,7 @@ class FmpStockLatestCurrentRefreshTests(unittest.TestCase):
             APPROVED_NEWS_TARGET=self.target,
         )
 
-    def test_exact_target_applies_only_0006_and_does_not_open_default_stores(self) -> None:
+    def test_exact_target_applies_approved_news_successors_without_other_stores(self) -> None:
         transport = _Transport()
         with self._patches(), mock.patch.object(
             operation,
@@ -230,7 +261,14 @@ class FmpStockLatestCurrentRefreshTests(unittest.TestCase):
                     "SELECT migration_id FROM schema_migrations ORDER BY ordinal"
                 )
             )
-            self.assertEqual(migrations[-1], FMP_STOCK_LATEST_CURRENT_MIGRATION_ID)
+            self.assertEqual(
+                migrations[-3:],
+                (
+                    FMP_STOCK_LATEST_CURRENT_MIGRATION_ID,
+                    CURRENT_MULTI_SOURCE_MIGRATION_ID,
+                    LEGACY_FMP_NEWS_MIGRATION_ID,
+                ),
+            )
             self.assertEqual(
                 connection.execute(
                     "SELECT count(*) FROM fmp_stock_latest_current_attempts"
