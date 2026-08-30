@@ -1,7 +1,7 @@
 # Current Operating Envelope
 
 Status: Current operational routing snapshot; non-authorizing
-Reconciled: 2026-08-27
+Reconciled: 2026-08-29
 
 ## Purpose
 
@@ -28,13 +28,18 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.49.0`, schema `1.9.0`, with
-source SHA-256 `6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1`.
+The current accepted registry is revision `2.63.0`, schema `1.9.0`, with
+source SHA-256 `06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72`.
+The active versioned catalog is `2.23.0` at SHA-256
+`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`.
+Its immediate `2.62.0` predecessor remains byte-identical at registry SHA-256
+`59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2` and
+catalog `2.22.0` SHA-256 `18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1`.
 The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
 authority. Because it never entered the active configuration lineage, it
-remains absent from the later additive `2.23.0` through `2.49.0` lineage,
+remains absent from the later additive `2.23.0` through `2.63.0` lineage,
 including Treasury `2.23.0`, NY Fed headline-rate `2.24.0`, NY Fed
 repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
 official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
@@ -371,13 +376,164 @@ expiry-model inputs. The existing `spy-options` view and the separately authoriz
 SPY host timer remain unchanged and SPY-only. The broad collector has no job,
 timer, scheduler, public tool, migration, new dataset, export, hosting, or
 deployment scope. Its zero-argument live entry point is
-`python3 -m quant_data.operations.alpaca_etf_options_refresh`; implementation
-and offline validation did not invoke it, access Alpaca credentials, issue a
-provider request, or write `data/market.sqlite`. No live-completion receipt
-exists for the broad grid. Exact projection removes only the collector and its
+`python3 -m quant_data.operations.alpaca_etf_options_refresh`. On 2026-08-27
+the one authorized manual attempt issued 17 requests: one OPRA calendar
+request, one shared underlying-snapshot request, and one contract-catalog
+request for each of the 15 ETFs. It failed closed as `incomplete_universe`
+before any chain request or publication; all underlyings failed and captures,
+contracts, surfaces, and writes were zero. It was not retried. See the
+[additive IWM evidence](STAGE10_IWM_EXTENSION_EVIDENCE.md). Exact projection
+removes only the collector and its
 three reciprocal dataset bindings and restores byte-exact registry `2.48.0`
 at SHA-256
 `3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524`.
+Revision `2.50.0` implements the user's 2026-08-27 decision to add IWM as
+an ETF price identity without changing the frozen Stage 10 single-name rule
+or historical 629-instrument evidence. The private
+`fmp.market.iwm_etf_daily_history` collector derives exactly one
+96-member `curated_etfs` successor from the reviewed 95-member snapshot plus
+IWM and publishes one complete FMP IWM history through the existing Stage 10
+evidence, instrument, universe, and versioned-price relations. It is
+`manual_only`, has one request and one attempt, and is bounded by 30,000
+rows, 16 MiB, and 45 seconds. Frozen-base and exact-successor checks occur
+before credential or provider access; provider work occurs outside the
+market-store write lock; publication is atomic and exact semantic replay is a
+no-write. The fixed zero-argument operation uses the existing FMP credential
+resolver and reserves private attempt state before provider access so a
+post-attempt failure cannot silently issue a second request. It adds no
+migration, dataset, registry job, timer, tool, dashboard, export, hosting, or
+deployment surface. The one authorized live operation completed on
+2026-08-27 with 1,254 daily IWM rows from 2021-08-30 through 2026-08-27 and
+one complete 96-member successor. Immutable postchecks returned integrity
+`ok`, zero foreign-key violations, exact version/current lineage, unchanged
+frozen Stage 12C counts, and 1,254 read-only Inspector-visible IWM rows. The
+private attempt reservation and completion receipt prohibit another invocation.
+See the [additive IWM evidence](STAGE10_IWM_EXTENSION_EVIDENCE.md).
+Exact projection removes only the IWM collector and its four reciprocal
+dataset bindings and restores byte-exact registry `2.49.0` at SHA-256
+`6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1`.
+
+Revision `2.51.0` adds only a private, manual-only one-request collector for
+the fixed missing IWM interval. Its declaration authorizes no provider call or
+canonical write; exact projection restores registry `2.50.0` at SHA-256
+`0adc78cbe419b18ece989c9cdd6d918ef13113fa5f573d6f5fbe045b9eca8259`.
+
+Revision `2.52.0` adds explicit `2.0.0` successors for seven analytical
+names: point-in-time panels, event studies, signal diagnostics, walk-forward
+backtests, robustness suites, multiple-testing correction, and forecast
+evaluation. They consume caller-supplied compatible Stage 10 return series and
+open no store. Catalog `2.12.0` has SHA-256
+`3c15ebcbf145d188681a49016dc621ffc96a48f6480f7ff9067d962c8fa29693`.
+Exact projection restores registry `2.51.0`.
+
+Revision `2.53.0` adds the read-only
+`company.search_filings@2.0.0` successor for exact-CIK, query-bound cursor
+pagination. It removes the legacy 500-row dead end without changing the
+frozen v1 default. Catalog `2.13.0` has SHA-256
+`b313cc2c4e4fd39311c00a5c18ae3ef8aa4de157f58f23c0837b52a51d601ac5`.
+Exact projection restores registry `2.52.0`.
+
+Revision `2.54.0` adds read-only `2.0.0` successors for
+`market.search_instruments` and `company.get_share_count_history`. The
+former searches retained Stage 10 FMP identities with bound cursor pagination;
+the latter exposes only reviewed SEC outstanding, basic weighted-average, and
+diluted weighted-average share facts while preserving instant versus weighted
+semantics. At that revision the inventory remained 65 logical names, with 25
+version policies, 29 variants, and 74 catalog contracts. Catalog `2.14.0` has SHA-256
+`a70903e9ba65fd71d5d79775698174dafea630c58c435bb4d8fcc504320aa05b`.
+Exact projection restores registry `2.53.0` at SHA-256
+`c201524e4e4a72b5377d36390e0cc5c746d392674b598ac1499ab818b418d238`.
+
+Revision `2.55.0` adds only the explicit, store-free
+`market.technical_indicators@2.1.0` successor with the causal
+`supertrend_ai` calculation over caller-supplied typed OHLC series. The
+inventory remains 65 logical names and 25 version policies, with 30 variants
+and 76 catalog contracts. Catalog `2.15.0` has SHA-256
+`65311bb28efe62651ecb3420f0be13fd413df468487141cca0972d45e7684c85`.
+Exact projection removes only v2.1 and restores byte-identical registry
+`2.54.0`; no provider, credential, store access, canonical write, or live
+operation is introduced.
+Revision `2.56.0` adds only the explicit, store-free
+`market.technical_indicators@2.2.0` successor with the causal
+`swing_structure_forecast` calculation over caller-supplied typed high, low,
+and close series. The current inventory remains 65 logical names and 25
+version policies, with 31 variants and 78 catalog contracts. Catalog `2.16.0`
+has SHA-256
+`cb1c6965582b90eaeec27054eda0d66e7a4c603aefa69f9b453ae342d779302b`.
+Exact projection removes only v2.2 and restores byte-identical registry
+`2.55.0`; no provider, credential, store access, canonical write, or live
+operation is introduced.
+These revisions add no provider, credential, migration, write, scheduler,
+Atlas/export, hosting, or deployment authority.
+
+Revision `2.57.0` adds fifteen explicit local read-only
+investment-analysis v2 successors: paginated macro calendar access,
+explicit-symbol cross-sectional endpoint returns, retained revision/surprise
+readers, direct rates/liquidity/credit/regime vectors, two retained Stage 11
+energy readers, and normalized reviewed SEC fact access. They preserve frozen
+v1 defaults, add no logical tool name, and retain no portfolio semantics,
+opaque composite score, classifier, or investment recommendation. Results are
+data-dependent and may be empty or not established under the requested
+selection. Inputs and the calendar cursor are bounded; the cursor is query and
+cutoff bound.
+
+This revision introduces no provider request, credential access, canonical
+write, migration, scheduler, Atlas/export, hosting, deployment, or new
+operational authority. Its exact projection restores the previous `2.56.0`
+registry and `2.16.0` catalog.
+
+Revision `2.58.0` adds only the explicit, store-free
+`market.technical_indicators@2.3.0` KDJ calculation over caller-supplied
+typed high, low, and close series. It preserves every predecessor, adds no
+logical name, and has no provider, credential, store, write, migration,
+scheduler, Atlas/export, hosting, deployment, or operational authority. Its
+exact projection removes only v2.3 and restores byte-identical registry
+`2.57.0` and catalog `2.17.0`.
+Revision `2.59.0` adds five explicit tool variants: Williams Vix Fix v2.4,
+market breadth/risk analytics v2.1, fixed-lag seasonality for both retained
+energy readers v2.1, and normalized company ratios v2.1. It also corrects the
+stationarity and declared structural-break adapters to exclude only expected
+incomplete return edges while rejecting interior gaps. The inventory remains
+65 logical names with 40 version policies, 52 variants, and 120 contracts.
+Its exact projection removes only those five variants and restores
+byte-identical registry `2.58.0` and catalog `2.18.0`. It adds no provider,
+credential, store-write, migration, scheduler, Atlas/export, hosting,
+deployment, portfolio, or investment-recommendation authority.
+
+Revision `2.60.0` adds only the explicit, store-free
+`market.technical_indicators@2.5.0` WaveTrend-with-crosses calculation over
+caller-supplied typed high, low, and close series. The inventory remains 65
+logical names with 40 version policies, 53 variants, and 122 contracts. Its
+exact projection removes only v2.5 and restores byte-identical registry
+`2.59.0` and catalog `2.19.0`. It adds no provider, credential, store-write,
+migration, scheduler, Atlas/export, hosting, deployment, portfolio, or
+investment-recommendation authority.
+
+Revision `2.61.0` adds only the explicit, store-free
+`market.technical_indicators@2.6.0` Parabolic SAR calculation over
+caller-supplied typed high, low, and close series. The inventory remains 65
+logical names with 40 version policies, 54 variants, and 124 contracts. Its
+exact projection removes only v2.6 and restores byte-identical registry
+`2.60.0` and catalog `2.20.0`. It adds no provider, credential, store-write,
+migration, scheduler, Atlas/export, hosting, deployment, portfolio, or
+investment-recommendation authority.
+
+Revision `2.62.0` adds only the store-free
+`market.technical_indicators@2.7.0` rolling-regression-line successor.  It
+has 65 logical names, 40 version policies, 55 variants, and 126 contracts;
+its exact projection restores byte-identical `2.61.0`/`2.21.0`.
+
+Revision `2.63.0` adds the separate current FMP stock-news successor:
+`news:0006_fmp_stock_latest_current`, two private current-news datasets,
+manual-only collector `fmp.news.stock_latest_current`, and host-routed
+`news.search@2.0.0`.  The manifest remains 65 logical names and now has 41
+version policies, 56 variants, and catalog `2.23.0` with 128 contracts.  This
+is offline-validated implementation only: no FMP request, canonical
+`data/news.sqlite` migration or population, or recurring timer has been
+authorized or performed.  The exact projection removes only this successor
+and restores byte-identical `2.62.0`/`2.22.0`.
+
+
 
 Under [ADR 0012](../adr/0012-compact-fmp-calendar-retention.md), revision
 `2.40.0` leaves the complete migration-0016 history untouched and changes only
@@ -469,17 +625,43 @@ scheduler, store, or historical-population action follows from the retirement.
   `data/market.sqlite` must not be repeated or broadened.
   See the [contract](STAGE12C_MARKET_GAP_V1.md) and
   [evidence](STAGE12C_EVIDENCE.md).
-- On 2026-08-25 the user separately authorized only the fixed Alpaca SPY
+- On 2026-08-25 the user separately authorized the fixed Alpaca SPY
   option-surface collector and its 15:55 host timer to append new capture
-  cohorts to the existing options schema. This does not reopen Stage 12E.
+  cohorts to the existing options schema. It is separate from Stage 12E.
+- On 2026-08-27 the user separately authorized exactly one fixed FMP IWM
+  full-history attempt into the additive 96-ETF successor in
+  `data/market.sqlite`. That attempt completed with 1,254 rows and passed
+  immutable postchecks. The dependent manual fixed 15-ETF, ten-DTE Alpaca
+  attempt then issued 17 requests and failed closed for all underlyings before
+  publication, with zero writes. Neither completed attempt may be repeated
+  without a new explicit decision; no timer changed and no completed Stage 10
+  or Stage 12C provider unit was reopened.
 - Stage 12D is complete as a no-transfer, read-only adoption/freeze proof. It
   authorizes no provider, credential, write, copy, backup, promotion, public
   consumer, or scheduler action. See the
   [contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md) and
   [evidence](STAGE12D_EVIDENCE.md).
-- Stage 12E remains closed. The presence of market-close service/timer files
-  does not authorize linking, starting, enabling, testing, or scheduling them.
-- No other default-path market operation is authorized.
+- On 2026-08-29 the reviewed Stage 12E timer was daemon-reloaded, enabled, and
+  started. It is `loaded`/`enabled`/`active`/`waiting`, with its first
+  next trigger Monday 2026-08-31 18:00:00 EDT and an empty `LastTrigger`.
+  The service remains `inactive/dead`, with no start or exit timestamp; no
+  state directory, provider request, or canonical write occurred during
+  activation. Each normal clock-driven run snapshots every current
+  FMP provider-native `stage10_instruments` identity whose `asset_type` is
+  `equity`, `etf`, or `index`. The 2026-08-29 preflight contained 630
+  identities (519 equities, 96 ETFs, and 15 indexes); the dynamic batch is
+  bounded to 800 and ordered `AAPL` first. It then makes one
+  current-session FMP daily-OHLCV request per symbol. An empty `AAPL` stops
+  the batch as a no-market-session sentinel; the ten pinned historical
+  noncoverage symbols remain in scope, valid 200 data is published if
+  available, and only their exact reviewed empty/HTTP 402 outcomes are
+  terminal. Other missing or error outcomes fail closed. The timer is
+  non-persistent, has no retry or catch-up, targets only
+  `data/market.sqlite`, retains per-unit private evidence, and writes
+  nothing on exact semantic replay. It does not repeat historical Stage 10 or
+  Stage 12C work and does not enable the frozen Stage 7 `market-close` job.
+- No other default-path market operation is authorized beyond the exact SPY,
+  one-attempt IWM/broad-grid, and Stage 12E daily-refresh exceptions above.
 
 ## Canonical company boundary
 
@@ -489,6 +671,19 @@ scheduler, store, or historical-population action follows from the retirement.
 - `sec.company.aapl_fundamentals` remains private and manual-only. No company
   timer, recurring job, wider CIK universe, migration, public consumer, or
   default-path company operation is authorized.
+
+## Canonical news boundary
+
+- The frozen `news:0005_fmp_stock_latest` one-shot contract remains historical
+  and is not reopened by the current-feed successor.
+- The `news:0006_fmp_stock_latest_current` implementation is available only
+  for offline validation.  No live provider request, canonical migration,
+  canonical population, or recurring timer is authorized or installed.
+- `news.search@2.0.0` is a local read-only tool for retained headline metadata
+  only.  It is unavailable against the canonical store until migration 0006 is
+  separately authorized and applied.  Once the relations exist, no successful
+  capture is represented by an honest empty result; raw response bytes and
+  article bodies are never exposed through that tool.
 
 ## Implemented and populated macro additions
 
@@ -522,9 +717,11 @@ new unit, timer cadence, public route, or export was added.
 
 ## Recurring exceptions
 
-Five recurring scheduler exceptions are recorded as installed and active.
-Normal clock-driven execution is their boundary; agents must not manually
-trigger, change, retry, broaden, reinstall, disable, or repurpose them.
+Six recurring scheduler exceptions are recorded as installed and active. The
+Stage 12E daily-market timer is enabled and waiting for its first normal
+trigger. Normal clock-driven execution is the boundary; agents must not
+manually trigger, change, retry, broaden, reinstall, disable, or repurpose any
+recurring unit.
 
 | Timer | Fixed scope |
 | --- | --- |
@@ -533,11 +730,13 @@ trigger, change, retry, broaden, reinstall, disable, or repurpose them.
 | `quant-data-fmp-macro-calendar.timer` | 08:15 and 08:45 America/New_York on weekdays. One bounded current-window FMP calendar request with no retry. The response is retained as wholesale raw evidence before independent GDP/CPI and employment normalization. |
 | `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twenty-three established macro collector operations run sequentially with a total provider-request cap of 31, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; NY Fed overnight rates including SOFR distribution, volume, index, and compounded averages; Federal Reserve IORB, target bounds, H.4.1, and INDPRO; repo facilities and SOMA; Chicago Fed NFCI/ANFCI components and CFNAI; BIS credit conditions; CMDI; Treasury cash, Debt to the Penny, and Monthly Treasury Statement receipts, outlays, and deficit/surplus; EIA gas storage, weekly crude-oil stocks, weekly gasoline and distillate stocks, finished-gasoline product supplied, and monthly electricity retail; NBER recession chronology; BLS PPI, earnings, productivity, and ECI; and BEA personal income, disposable personal income, and personal consumption expenditures. |
 | `quant-data-alpaca-spy-options.timer` | 15:55 America/New_York on weekdays, with an in-process OPRA trading-calendar gate. It targets only `data/market.sqlite`, makes at most four single-attempt requests, enforces 10,000 rows, 8 MiB, and 120 seconds, uses the paper account and indicative option feed with an IEX SPY spot reference, and writes nothing on exact semantic replay. |
+| `quant-data-market-close.timer` | Enabled and active/waiting. On 2026-08-29 it was daemon-reloaded, enabled, and started; `LastTrigger` is empty, the service is `inactive/dead` with no execution timestamps, and activation made no state directory, provider request, or canonical write. Its next trigger is Monday 2026-08-31 18:00:00 EDT. On weekdays at 18:00 America/New_York, it snapshots every current FMP provider-native Stage 10 `equity`/`etf`/`index` identity. The 2026-08-29 preflight contained 630 (519 equity, 96 ETF, and 15 index); the dynamic batch is bounded to 800 and begins with `AAPL`. It makes one current-session daily-OHLCV request per symbol. An empty `AAPL` stops the batch. Pinned historical noncoverage symbols remain eligible; only their reviewed empty/HTTP 402 outcomes are terminal and other errors fail closed. It is non-persistent, has no retry or catch-up, targets only `data/market.sqlite`, retains per-unit private evidence, and writes nothing on exact semantic replay. |
 
-These exceptions do not enable any recovered Stage 7 job, market-close timer,
-provider or series beyond the exact scope above, different cadence, catch-up
-run, or historical backfill. The aggregate current refresh leaves the underlying registry
-collectors manual-only and is a separate fixed host-level exception. See
+These exceptions do not enable any recovered Stage 7 job, provider or series
+beyond the exact scope above, a different cadence, catch-up run, or historical
+backfill. The aggregate current refresh and the active Stage 12E timer leave
+the underlying registry collectors manual-only and are separate fixed
+host-level exceptions. See
 [scheduling and locking](SCHEDULING_AND_LOCKING.md) and the read-only
 [unit inspection guide](../../deploy/systemd/README.md).
 

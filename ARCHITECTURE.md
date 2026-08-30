@@ -55,11 +55,13 @@ and seven narrowly authorized HTTP 402 outcomes. Stage 12D then completed the
 [no-transfer adoption proof](docs/rebuild/STAGE12D_EVIDENCE.md): exactly two
 immutable, query-only canonical proofs produced distinct receipts with the
 same semantic result and left the main database, WAL, SHM, and rollback-journal
-stamps unchanged. It made no copy, migration, or registry change. Stage 12E
-remains closed; it authorizes no market scheduler or public exposure. The four
-separately authorized macro recurring exceptions remain governed by the
-[current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md) and
-[scheduling specification](docs/rebuild/SCHEDULING_AND_LOCKING.md).
+stamps unchanged. It made no copy, migration, or registry change. Stage 12E's
+bounded daily-market timer was enabled and started on 2026-08-29; it is active
+and waiting for its first normal trigger, with no service run, provider request,
+or canonical write during activation. It adds no public exposure. The
+separately authorized recurring exceptions remain governed
+by the [current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
+and [scheduling specification](docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
 The principal decisions are recorded in:
 
@@ -216,7 +218,7 @@ Every Stage 2 store carries the same ten control-plane relations:
   published work.
 
 The system registry is declarative source configuration. The current accepted
-revision is `2.49.0` with schema version `1.9.0`. It preserves the bounded
+revision is `2.63.0` with schema version `1.9.0`. It preserves the bounded
 Stage 8 declaration and its 57-name recovered compatibility target, while the
 active manifest contains eight additive native tools for 65 total names.
 Revision `2.43.0` also adds one private Alpaca collector with no public tool.
@@ -239,9 +241,92 @@ Revision `2.48.0` adds only the store-free
 10 OHLCV series. Revision `2.49.0` adds the private, manual-only fixed ETF
 option-surface grid over the existing identities and option schema plus a
 fixed local read-only Inspector view. The broad collector has no registry job
-or host timer; the separately authorized SPY timer remains SPY-only. Its
-implementation evidence is offline and does not claim a provider request or
-canonical population.
+or host timer; the separately authorized SPY timer remains SPY-only. The one
+authorized 2026-08-27 attempt issued 17 requests, failed closed for all 15
+underlyings before any option-chain request, and wrote zero canonical rows. It
+was not retried.
+Revision `2.50.0` adds the private, manual-only FMP IWM history collector
+over the existing Stage 10 relations. It derives one exact 96-member ETF
+successor from the frozen 95-member snapshot plus IWM, without rewriting the
+sealed 629-instrument cohort or its receipts. One run is bounded to one
+request, one attempt, 30,000 rows, 16 MiB, and 45 seconds; it has no migration,
+new dataset, registry job, host timer, public tool, dashboard, or export.
+The one authorized live operation completed with 1,254 daily rows and an
+exact 96-member successor; immutable integrity, foreign-key, lineage, frozen-
+cohort, and Inspector checks passed. The private completion state blocks a
+second invocation.
+Revision `2.51.0` adds only the fixed, manual-only IWM missing-interval
+collector declaration; it grants no live-run authority. Revision `2.52.0`
+adds seven explicit store-free analytical successors over typed Stage 10
+returns. Revision `2.53.0` adds
+`company.search_filings@2.0.0` with exact-CIK, cutoff-bound keyset
+pagination. Revision `2.54.0` adds
+`market.search_instruments@2.0.0` for retained Stage 10 FMP identities and
+`company.get_share_count_history@2.0.0` for reviewed SEC outstanding and
+weighted-average share facts. Revision `2.55.0` adds only the explicit,
+store-free `market.technical_indicators@2.1.0` successor. It preserves the
+frozen v1 default and the exact `2.0.0` contract while adding the causal
+clustering-based `supertrend_ai` calculation over caller-supplied typed OHLC
+series. Revision `2.56.0` adds only the explicit, store-free
+`market.technical_indicators@2.2.0` successor. It preserves the frozen v1,
+v2.0, and v2.1 contracts while adding the causal
+`swing_structure_forecast` calculation over caller-supplied typed high, low,
+and close series. At that revision catalog `2.16.0` had 78 contracts; the
+65 logical names and all frozen defaults and predecessors remained unchanged.
+Revision `2.57.0` adds fifteen explicit `2.0.0` investment-analysis
+successors: release-calendar pagination, cross-sectional endpoint
+performance, revision and surprise readers, direct rates/liquidity/credit and
+regime vectors, raw research state, retained energy readers, and normalized
+company fundamentals. They retain the frozen defaults and use only the
+host-routed read-only boundary; callers cannot choose paths, SQL, providers,
+or connections. Revision `2.58.0` adds only the explicit, store-free
+`market.technical_indicators@2.3.0` KDJ calculation over caller-supplied
+typed high, low, and close series. At that revision catalog `2.18.0` had 110
+contracts, 40 version policies, and 47 variants across the unchanged 65
+logical names.
+Revision `2.59.0` adds five additive successors: the pre-existing store-free
+Williams Vix Fix v2.4 variant plus the requested v2.1 market breadth/risk,
+fixed-lag energy seasonality, and normalized company-ratio calculations.
+It also makes stationarity and fixed-break adapters exclude only contiguous
+incomplete return edges while interior gaps still fail closed. Catalog
+`2.19.0` has 120 contracts, 40 version policies, and 52 variants across the
+unchanged 65 logical names; the exact projection restores registry `2.58.0`
+and catalog `2.18.0` byte-for-byte.
+Revision `2.60.0` adds only the explicit, store-free
+`market.technical_indicators@2.5.0` WaveTrend-with-crosses calculation over
+caller-supplied typed high, low, and close series. Catalog `2.20.0` has 122
+contracts, 40 version policies, and 53 variants across the unchanged 65
+logical names. Its exact projection removes only v2.5 and restores registry
+`2.59.0` and catalog `2.19.0` byte-for-byte.
+Revision `2.61.0` adds only the explicit, store-free
+`market.technical_indicators@2.6.0` Parabolic SAR calculation over
+caller-supplied typed high, low, and close series. It accepts finite Decimal
+`start`, `increment`, and `maximum` parameters with Pine-equivalent defaults
+of `0.02`, `0.02`, and `0.2`, and returns one `parabolic_sar` series. Catalog
+`2.21.0` has 124 contracts, 40 version policies, and 54 variants across the
+unchanged 65 logical names. Its exact projection removes only v2.6 and
+restores registry `2.60.0` and catalog `2.20.0` byte-for-byte.
+Revision `2.62.0` adds only the store-free
+`market.technical_indicators@2.7.0` rolling-regression-line successor; its
+exact projection restores registry `2.61.0` and catalog `2.21.0` byte-for-byte.
+Revision `2.63.0` adds the separate repeatable current FMP news path:
+`news:0006_fmp_stock_latest_current`, private datasets
+`news.fmp.stock_latest_current_evidence` and
+`news.fmp.stock_latest_current_articles`, manual-only collector
+`fmp.news.stock_latest_current`, and local read-only `news.search@2.0.0`.
+The reader exposes headline metadata only; raw evidence and article bodies stay
+private. Its catalog is `2.23.0` with 128 contracts, 41 version policies, and
+56 variants across the unchanged 65 logical names. This is offline-validated
+only: no provider request, canonical news migration/population, or timer is
+authorized or installed. Exact projection restores `2.62.0`/`2.22.0`.
+The readers and direct calculations do not infer a portfolio,
+apply weights, create an opaque score or classifier, or make an investment
+recommendation. Exact predecessor projections preserve every revision through
+`2.62.0`. The technical revisions add no migration, dataset ownership, provider
+authorization, canonical write, scheduler, export, hosting, or deployment
+scope.
+
+
 It preserves four local-private dashboard
 exposures, eight disabled `manual_fixture_only` jobs, and one fixture-only
 manual JSON Atlas export. It adds isolated private declarations for the Stage 9
@@ -367,6 +452,19 @@ the existing replay-safe option relations. A fixed local read-only
 is manual-only and bounded to 362 requests, 900,016 rows, 256 MiB, and 900
 seconds; it has no timer or registry job. Exact projection restores registry
 `2.48.0`. The implementation did not call Alpaca or write the canonical store.
+Registry `2.50.0` retains catalog `2.11.0` and adds only
+`fmp.market.iwm_etf_daily_history`. The collector binds to the existing
+Stage 10 evidence, instrument, universe, and daily-price datasets, fixes IWM
+as an FMP/provider-native ETF, and derives the exact frozen-95-plus-IWM
+successor membership. Store and membership preflight precedes provider
+access; the single FMP full-history response is fetched outside the write lock
+and is published atomically through immutable capture, correction-version,
+and current-pointer relations. The zero-argument host operation reserves
+private attempt state before the provider call. It is manual-only and bounded
+to one request, one attempt, 30,000 rows, 16 MiB, and 45 seconds. Exact
+projection restores byte-identical registry `2.49.0`; no migration,
+dataset, job, timer, tool, dashboard, export, or public surface is added.
+
 
 Registry `2.40.0` implements
 [ADR 0012](docs/adr/0012-compact-fmp-calendar-retention.md) as a forward-only
@@ -700,6 +798,20 @@ dated windows as 3,970 complete, 1,004 successful empty responses, and 58
 authorized terminal outcomes across nine tickers. Both receipts remain private,
 non-production, and candidate-only. Their provider requests must not be
 repeated; see [Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md).
+### Additive IWM ETF successor — live population complete
+
+The 2026-08-27 user decision does not change the frozen 629-instrument roster
+or its completed provider history. It created a separate additive
+`curated_etfs` successor containing the exact reviewed 95 ETF identities
+plus IWM. The isolated collector reuses migration
+`market:0010_stage10_market_history` and existing Stage 10 ownership; it
+adds no table or migration. Its one authorized live request published 1,254
+daily IWM rows from 2021-08-30 through 2026-08-27 and the exact 96-member
+successor. Immutable integrity, foreign-key, lineage, frozen-cohort, and
+Inspector checks passed; the private completion state prohibits another
+invocation. See
+[the additive IWM evidence](docs/rebuild/STAGE10_IWM_EXTENSION_EVIDENCE.md).
+
 
 ### Bounded Stage 11 BEA/EIA macro candidate — retained population complete
 
@@ -721,8 +833,11 @@ candidate populations are complete; Stage 11 is complete only as a retained
 private candidate. Stage 12C is complete and its provider exception is closed;
 none of its requests may be repeated. Stage 12D completed only the no-transfer,
 immutable/query-only adoption proof for `data/market.sqlite`, with no copy,
-migration, registry bump, scheduler, or public exposure. Stage 12E remains
-closed. Stage 7 rebuilds the accepted
+migration, registry bump, scheduler, or public exposure. Stage 12E is a
+separately authorized weekday current-session market refresh whose timer is
+enabled, active, and waiting for the first normal trigger; it is not a public
+surface or a replay of historical population. The service has not run. Stage 7
+rebuilds the accepted
 Stage 6 synthetic fixture cohort under explicit temporary roots, then validates
 eight disabled manual fixture plans, injected outcome cases, real fixture
 replay, ordered physical locking, retries, active timeouts, private receipt-last

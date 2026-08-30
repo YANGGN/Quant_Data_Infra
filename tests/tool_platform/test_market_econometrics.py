@@ -1460,5 +1460,138 @@ class Stage10MarketEconometricsTests(unittest.TestCase):
         )
         self.assertFalse(any(self.root.iterdir()))
 
+    def test_stationarity_trims_terminal_missing_edges_only(self) -> None:
+        edge_series = _series("EDGEADF", (None, *_ADF_VALUES, None))
+        interior_series = _series(
+            "INTERIORADF",
+            (None, *_ADF_VALUES[:10], None, *_ADF_VALUES[10:]),
+        )
+        legacy_arguments = {
+            "series": edge_series.to_primitive(),
+            "deterministic": "constant",
+            "lag": 1,
+            "significance": "0.05",
+            "limit": 100,
+        }
+        combined_arguments = {
+            "series": edge_series.to_primitive(),
+            "deterministic": "constant",
+            "adf_lag": 1,
+            "kpss_lag": 2,
+            "significance": "0.05",
+            "limit": 100,
+        }
+        with patch("sqlite3.connect", side_effect=AssertionError("store open")):
+            legacy = self._call("econometrics.stationarity", legacy_arguments)
+            combined = self._call_v21(
+                "econometrics.stationarity", combined_arguments
+            )
+            interior = self._call(
+                "econometrics.stationarity",
+                {
+                    **legacy_arguments,
+                    "series": interior_series.to_primitive(),
+                },
+            )
+
+        legacy_fields = _fields(legacy["records"][0])
+        self.assertEqual(legacy["status"], "ok")
+        self.assertEqual(legacy_fields["sample_size"], len(_ADF_VALUES))
+        self.assertEqual(legacy_fields["excluded_count"], 2)
+        self.assertIn(
+            "terminal_missing_observations_trimmed",
+            {item["code"] for item in legacy["warnings"]},
+        )
+        self.assertEqual(
+            legacy["exclusions"][0]["code"],
+            "terminal_missing_observations_trimmed",
+        )
+
+        self.assertEqual(combined["status"], "ok")
+        self.assertEqual(
+            _fields(combined["records"][1])["excluded_count"],
+            2,
+        )
+        self.assertIn(
+            "terminal_missing_observations_trimmed",
+            {item["code"] for item in combined["warnings"]},
+        )
+
+        interior_fields = _fields(interior["records"][0])
+        self.assertEqual(interior["status"], "not_established")
+        self.assertEqual(
+            interior_fields["reason"],
+            "missing_observations_prevent_contiguous_test",
+        )
+        self.assertNotIn(
+            "terminal_missing_observations_trimmed",
+            {item["code"] for item in interior["warnings"]},
+        )
+        self.assertFalse(any(self.root.iterdir()))
+
+    def test_structural_break_trims_common_edge_and_preserves_break_row(
+        self,
+    ) -> None:
+        predictor_values = tuple(Decimal(index) for index in range(12))
+        dependent_values = tuple(
+            Decimal(value)
+            for value in (
+                "1.0",
+                "3.2",
+                "5.1",
+                "7.4",
+                "8.9",
+                "11.0",
+                "16.3",
+                "18.8",
+                "22.2",
+                "24.6",
+                "27.3",
+                "29.5",
+            )
+        )
+        with patch("sqlite3.connect", side_effect=AssertionError("store open")):
+            result = self._call(
+                "econometrics.structural_breaks",
+                {
+                    "series": [
+                        _series(
+                            "EDGEBREAKY", (None, *dependent_values)
+                        ).to_primitive(),
+                        _series(
+                            "EDGEBREAKX", (None, *predictor_values)
+                        ).to_primitive(),
+                    ],
+                    "intercept": True,
+                    "break_index": 7,
+                    "significance": "0.05",
+                    "limit": 100,
+                },
+            )
+
+        summary = _fields(result["records"][0])
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(summary["break_index"], 7)
+        self.assertEqual(summary["excluded_count"], 1)
+        self.assertEqual(summary["pre_break_sample_size"], 6)
+        self.assertEqual(summary["post_break_sample_size"], 6)
+        self.assertEqual(summary["pre_break_end_period"], "2026-07-07")
+        self.assertEqual(summary["post_break_start_period"], "2026-07-08")
+        self.assertIn(
+            "common_incomplete_edge_rows_trimmed",
+            {item["code"] for item in result["warnings"]},
+        )
+        self.assertEqual(
+            result["exclusions"][0]["code"],
+            "common_incomplete_edge_rows_trimmed",
+        )
+        sample = {
+            item["name"]: item["value"]
+            for item in result["research_contract"]["contract"]["sample"]
+        }
+        self.assertEqual(sample["excluded_count"], 1)
+        self.assertFalse(any(self.root.iterdir()))
+
+
 if __name__ == "__main__":
     unittest.main()

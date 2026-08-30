@@ -25,7 +25,7 @@ PRE_NYFED_SOURCE_SHA256 = (
     "1c672f602735af44d19abb5d678492c053fac7d001b17e0aba2d6ed398689c08"
 )
 CURRENT_SOURCE_SHA256 = (
-    "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
+    "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
 )
 
 
@@ -40,11 +40,11 @@ class NyFedOvernightRatesRegistryTests(unittest.TestCase):
     def test_collector_is_exact_manual_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.49.0")
+        self.assertEqual(registry.revision, "2.63.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (40, 53, 54),
+            (41, 55, 57),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

@@ -12,6 +12,17 @@ from .errors import ValidationError
 from .json_codec import dumps_strict
 
 
+EXACT_DECIMAL_QUALITY_FLAG_PREFIX = "exact_decimal_value:"
+
+
+def exact_decimal_quality_flag(value: Decimal) -> str:
+    """Encode an exact finite Decimal in existing observation metadata."""
+
+    if not isinstance(value, Decimal) or not value.is_finite():
+        raise ValidationError("Exact decimal metadata requires a finite Decimal")
+    return EXACT_DECIMAL_QUALITY_FLAG_PREFIX + dumps_strict(value)
+
+
 def _freeze_contract_value(value: Any, *, field_name: str) -> Any:
     """Return a detached, recursively immutable JSON-contract value."""
 

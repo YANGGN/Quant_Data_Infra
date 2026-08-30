@@ -34,7 +34,7 @@ from ..ingestion import (
 )
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection, stable_id
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection, read_connection, stable_id
 
 
 CALENDAR_DATASET_ID: Final = "fixture.macro.economic_calendar"
@@ -247,6 +247,10 @@ class ReleaseSurprise:
     release_stage: str | None = None
     is_fallback: bool = False
     coalesced_event_version_ids: tuple[str, ...] = ()
+    event_evidence_id: str | None = None
+    event_snapshot_id: str | None = None
+    official_evidence_id: str | None = None
+    coalesced_event_lineage: tuple[tuple[str, str | None, str | None], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -1812,6 +1816,13 @@ class MacroReleaseSurpriseRepository:
         )
         if not companion_ids or len(set(companion_ids)) != len(companion_ids):
             raise ConflictError("FMP CPI complementary lineage is invalid")
+        companion_lineage = tuple(
+            (row.event_version_id, row.event_evidence_id, row.event_snapshot_id)
+            for row in sorted(
+                rows, key=lambda row: (row.event_at, row.event_id, row.event_version_id)
+            )
+            if row.event_version_id != primary.event_version_id
+        )
         return (
             replace(
                 primary,
@@ -1822,6 +1833,7 @@ class MacroReleaseSurpriseRepository:
                 surprise=actual - consensus,
                 status="ok",
                 coalesced_event_version_ids=companion_ids,
+                coalesced_event_lineage=companion_lineage,
             ),
         )
 
@@ -2169,6 +2181,25 @@ class MacroReleaseSurpriseRepository:
                 first_missing = candidate
         return first_missing
 
+    @staticmethod
+    def _official_evidence_id(
+        connection: sqlite3.Connection, version_id: str | None
+    ) -> str | None:
+        if version_id is None:
+            return None
+        row = connection.execute(
+            """
+            SELECT capture_id
+            FROM macro_live_vintage_observation_versions
+            WHERE version_id=?
+            """,
+            (version_id,),
+        ).fetchone()
+        if row is None:
+            raise ConflictError("Official surprise version lineage is unavailable")
+        capture_id = row["capture_id"]
+        return None if capture_id is None else str(capture_id)
+
     def query(
         self,
         *,
@@ -2198,7 +2229,8 @@ class MacroReleaseSurpriseRepository:
             SELECT event.event_id, event.provider_event_id,
                    event.name, event.event_at,
                    version.event_version_id, version.actual_value,
-                   version.consensus_value, version.unit
+                   version.consensus_value, version.unit, version.artifact_id,
+                   version.source_snapshot_id
             FROM economic_calendar AS event
             JOIN economic_calendar_event_versions AS version
               ON version.event_id=event.event_id
@@ -2220,7 +2252,7 @@ class MacroReleaseSurpriseRepository:
         ] = {}
         payroll_candidates: dict[str, list[ReleaseSurprise]] = {}
         unemployment_candidates: dict[str, list[ReleaseSurprise]] = {}
-        with read_connection(self._stores, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._stores, StoreRole.MACRO) as connection:
             rows = connection.execute(sql, selected).fetchall()
             for row in rows:
                 kind = str(row["name"])
@@ -2310,6 +2342,9 @@ class MacroReleaseSurpriseRepository:
                     and consensus is not None
                     else None
                 )
+                official_evidence_id = self._official_evidence_id(
+                    connection, official_version_id
+                )
                 item = ReleaseSurprise(
                     event_id=str(row["event_id"]),
                     event_version_id=str(row["event_version_id"]),
@@ -2329,6 +2364,17 @@ class MacroReleaseSurpriseRepository:
                     official_prior_version_id=official_prior_version_id,
                     release_stage=release_stage,
                     is_fallback=is_fallback,
+                    event_evidence_id=(
+                        None
+                        if row["artifact_id"] is None
+                        else str(row["artifact_id"])
+                    ),
+                    event_snapshot_id=(
+                        None
+                        if row["source_snapshot_id"] is None
+                        else str(row["source_snapshot_id"])
+                    ),
+                    official_evidence_id=official_evidence_id,
                 )
                 if kind == GDP_ADVANCE_KIND:
                     gdp_candidates.setdefault(reference_period, []).append(item)

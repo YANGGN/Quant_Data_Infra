@@ -5,13 +5,17 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.49.0`, schema `1.9.0`. The former `2.22.0`/`validated` working candidate is
+`2.63.0`, schema `1.9.0`, with registry SHA-256
+`06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72` and
+catalog `2.23.0` SHA-256
+`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`.
+The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.49.0` revisions. For any
+from the later additive `2.23.0` through `2.63.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -20,8 +24,11 @@ local-private dashboard exposures, eight disabled
 `manual_fixture_only` jobs, and one bounded `manual_only`/fixture-only JSON
 Atlas export. It also declares the isolated Stage 9, private Stage 10
 market-history, private Stage 11 BEA/EIA candidate, and bounded
-fixture-validated FMP stock-latest news resources. None of those private
-datasets has a tool, dashboard, or Atlas exposure. Registry `2.13.0` also
+fixture-validated FMP stock-latest news resources. Those earlier private
+datasets have no tool, dashboard, or Atlas exposure.  The separate `2.63.0`
+current-news datasets are exposed only through local read-only
+`news.search@2.0.0`; they do not expose bodies or raw evidence. Registry
+`2.13.0` also
 declares only the offline fixture collector
 `market.stage12b.fmp_daily_incremental_fixture` with handler
 `market.stage12b_fmp_daily_incremental_fixture`, as defined by the
@@ -585,6 +592,181 @@ restores byte-exact registry `2.48.0` at SHA-256
 This revision adds no migration, dataset ownership, public tool, scheduler,
 export, hosting, or deployment, and registry presence is not a live-run
 receipt.
+Registry `2.50.0` adds only the private
+`fmp.market.iwm_etf_daily_history` collector and reciprocal bindings to the
+four existing Stage 10 evidence, instrument, universe, and daily-price
+datasets. It derives an exact 96-member `curated_etfs` successor from the
+frozen 95-member snapshot plus IWM, then publishes one complete IWM history
+through the existing replay-safe correction model. The collector is
+`manual_only`, uses the existing FMP credential resolver and physical
+market-store lock, performs no network work while that lock is held, and is
+bounded to one single-attempt request, 30,000 rows, 16 MiB, and 45 seconds.
+The inventory is 40 migrations, 53 datasets, 55 collectors, 8 jobs, 65
+tools, 15 tool-version policies, 4 dashboards, and 1 export. The tool catalog
+remains `2.11.0` with 54 contracts at SHA-256
+`864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757`;
+the registry source SHA-256 is
+`0adc78cbe419b18ece989c9cdd6d918ef13113fa5f573d6f5fbe045b9eca8259`.
+Exact projection removes only this collector and its four reciprocal dataset
+bindings and restores byte-exact registry `2.49.0` at SHA-256
+`6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1`.
+It adds no migration, dataset, public tool, registry job, scheduler, export,
+hosting, or deployment, and registry presence is not a live-run receipt.
+
+Registry `2.51.0` adds only the private, manual-only
+`fmp.market.iwm_etf_daily_history_backfill` collector and reciprocal bindings
+to the existing Stage 10 evidence, instrument, universe, and price datasets.
+It is fixed to the reviewed missing interval and one request; declaration is
+not authority to run it. Exact projection restores byte-exact registry
+`2.50.0` at SHA-256
+`0adc78cbe419b18ece989c9cdd6d918ef13113fa5f573d6f5fbe045b9eca8259`.
+
+Registry `2.52.0` adds only seven explicit, store-free analytical
+`2.0.0` successors. The tool catalog advances to `2.12.0` at SHA-256
+`3c15ebcbf145d188681a49016dc621ffc96a48f6480f7ff9067d962c8fa29693`;
+exact projection restores registry `2.51.0` at SHA-256
+`1d8485bd1df5351d94f0b13f2264828640d40c756c6241503f40a7b7f4e46c43`.
+
+Registry `2.53.0` adds only
+`company.search_filings@2.0.0`, a read-only exact-CIK filing search with
+opaque keyset pagination bound to the query and optional cutoff. Catalog
+`2.13.0` has SHA-256
+`b313cc2c4e4fd39311c00a5c18ae3ef8aa4de157f58f23c0837b52a51d601ac5`;
+exact projection restores registry `2.52.0` at SHA-256
+`87c74bbc26ce6101ff6136eefe9fdab0d9616f06d714d049d4c30287eda78323`.
+
+Registry `2.54.0` adds only explicit `2.0.0` successors for
+`market.search_instruments` and `company.get_share_count_history`, plus the
+market-instrument dataset's reciprocal tool binding. No logical tool name is
+added. The current inventory is 40 migrations, 53 datasets, 56 collectors, 8
+jobs, 65 tools, 25 version policies, 29 variants, 4 dashboards, and 1 export.
+Catalog `2.14.0` has 74 contracts at SHA-256
+`a70903e9ba65fd71d5d79775698174dafea630c58c435bb4d8fcc504320aa05b`;
+the registry source SHA-256 is
+`f40c4d2e0cad90f686bffe52116d138f3b578f33f4844245682387d398a19e01`.
+Exact projection removes only those two policies and the reciprocal tool
+binding and restores byte-exact registry `2.53.0` at SHA-256
+`c201524e4e4a72b5377d36390e0cc5c746d392674b598ac1499ab818b418d238`.
+
+Registry `2.55.0` adds only the explicit
+`market.technical_indicators@2.1.0` variant. It retains v1 as the default,
+preserves the exact v2.0 contract, opens no store, and adds no dataset or
+collector binding. At that revision, the inventory was 40 migrations, 53
+datasets, 56
+collectors, 8 jobs, 65 tools, 25 version policies, 30 variants, 4 dashboards,
+and 1 export. Catalog `2.15.0` has 76 contracts at SHA-256
+`65311bb28efe62651ecb3420f0be13fd413df468487141cca0972d45e7684c85`;
+the registry source SHA-256 is
+`cec35d5cfed9f25c40f5adfa2f2581b0de8d442a75202e687f791b3a16dc3d7f`.
+Exact projection removes only the v2.1 variant and restores byte-exact
+registry `2.54.0` at SHA-256
+`f40c4d2e0cad90f686bffe52116d138f3b578f33f4844245682387d398a19e01`
+and catalog `2.14.0` at SHA-256
+`a70903e9ba65fd71d5d79775698174dafea630c58c435bb4d8fcc504320aa05b`.
+
+Registry `2.56.0` adds only the explicit
+`market.technical_indicators@2.2.0` variant. It retains v1 as the default,
+preserves the exact v2.0 and v2.1 contracts, opens no store, and adds no
+dataset or collector binding. The current inventory is 40 migrations, 53
+datasets, 56 collectors, 8 jobs, 65 tools, 25 version policies, 31 variants,
+4 dashboards, and 1 export. Catalog `2.16.0` has 78 contracts at SHA-256
+`cb1c6965582b90eaeec27054eda0d66e7a4c603aefa69f9b453ae342d779302b`;
+the registry source SHA-256 is
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`.
+Exact projection removes only the v2.2 variant and restores byte-exact
+registry `2.55.0` and catalog `2.15.0`; their exact predecessor projection
+then restores byte-exact registry `2.54.0` and catalog `2.14.0`.
+These revisions add no migration, dataset ownership, provider authorization,
+canonical write, registry job, scheduler, export, hosting, or deployment.
+
+Registry `2.57.0` adds fifteen explicit `2.0.0` investment-analysis
+successors while retaining every frozen v1 default and prior v2 contract. The
+batch comprises query-bound pagination for
+`macro.get_release_calendar`, explicit-symbol endpoint performance for
+`market.cross_sectional_performance`, macro revision and surprise
+standardization, direct funding/repo/curve readers, raw liquidity/credit/regime
+and research-state readers, two retained Stage 11 energy readers, and the
+normalized reviewed SEC fact reader `company.get_fundamentals`. It adds no
+logical name: at that revision the inventory remained 65 logical tools with 40
+version policies, 46 variants, and 108 catalog contracts. Its registry source SHA-256
+is `1d36ddd20494cfc0ae9e6172f662c5dfe04b905319c0f83b439446f44fd29b5e`;
+catalog `2.17.0` has SHA-256
+`5c0ea96b9aba9d73f8f89aea20a052c858691e10a1047f22594f027d8f893101`.
+
+The batch's exact predecessor projection removes only those fifteen explicit
+v2 policies and restores registry `2.56.0`, catalog `2.16.0`, and registry
+SHA-256
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`.
+It adds no migration, dataset ownership, provider authorization, canonical
+write, registry job, scheduler, export, hosting, or deployment.
+
+Registry `2.58.0` adds only
+`market.technical_indicators@2.3.0` with the Pine-equivalent KDJ calculation
+over caller-supplied typed high, low, and close series. The unchanged 65
+logical tools now have 40 version policies, 47 variants, and 110 catalog
+contracts. Its registry SHA-256 is
+`02a4aeb34632c5ae194622b7de77ec31145135bdf399620e45af461132134d43`;
+catalog `2.18.0` has SHA-256
+`4803071d5cb2ababa2710ac4c0e3eb1e1640b06aa0b6071e14c2f40be68fec72`.
+Exact projection removes only v2.3 and restores byte-identical registry
+`2.57.0` and catalog `2.17.0`. It adds no provider, credential, store,
+migration, write, registry job, scheduler, export, hosting, or deployment.
+Registry `2.59.0` adds five explicit variants across the unchanged 65 logical
+tools: Williams Vix Fix v2.4, market breadth/risk v2.1, fixed-lag seasonality
+for each retained energy reader v2.1, and normalized company ratios v2.1.
+The current inventory has 40 version policies, 52 variants, and 120 catalog
+contracts. Its registry SHA-256 is
+`0457910706181d7f4d9bb07efbf18845dd86335999b55c5d5a8d203041d315a1`;
+catalog `2.19.0` has SHA-256
+`e4fdb9d9b6783ec131838762d8e2ae4b1c6833cc37c0292e1ceed09e0d919474`.
+Exact projection removes only those five variants and restores byte-identical
+registry `2.58.0` and catalog `2.18.0`. It adds no provider, credential,
+store, migration, write, registry job, scheduler, export, hosting, or
+deployment.
+
+Registry `2.60.0` adds only
+`market.technical_indicators@2.5.0` with the WaveTrend-with-crosses
+calculation over caller-supplied typed high, low, and close series. The current
+inventory has 40 version policies, 53 variants, and 122 catalog contracts. Its
+registry SHA-256 is
+`563c4294c47d534754014dc77a4a1b39e84749cc4d8165636bafd82feff679b0`;
+catalog `2.20.0` has SHA-256
+`cebc1ca58257fed167db36973be1ce37e6e01162c2bc072c24591a673b0aedb4`.
+Exact projection removes only v2.5 and restores byte-identical registry
+`2.59.0` and catalog `2.19.0`. It adds no provider, credential, store,
+migration, write, registry job, scheduler, export, hosting, or deployment.
+
+Registry `2.61.0` adds only
+`market.technical_indicators@2.6.0` with the Parabolic SAR calculation over
+caller-supplied typed high, low, and close series. The current inventory has
+40 version policies, 54 variants, and 124 catalog contracts. Its registry
+SHA-256 is
+`0f43045c1dcc46b0f9d5ecb0aaf98aa3e9ad61a43e250afc389408602a8615ea`;
+catalog `2.21.0` has SHA-256
+`b70798594de6149b7710b36d3b735b3d24ff81eb23277ba54dfdc697aceb0efc`.
+Exact projection removes only v2.6 and restores byte-identical registry
+`2.60.0` and catalog `2.20.0`. It adds no provider, credential, store,
+migration, write, registry job, scheduler, export, hosting, or deployment.
+
+Registry `2.62.0` adds only the store-free
+`market.technical_indicators@2.7.0` rolling-regression-line successor.  It
+has 40 version policies, 55 variants, and catalog `2.22.0` with 126 contracts
+at SHA-256
+`18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1`; its
+exact projection restores byte-identical `2.61.0`/`2.21.0`.
+
+Registry `2.63.0` adds migration `news:0006_fmp_stock_latest_current`
+(SHA-256 `bf8757bcc7679d1bd57408978eed996c9f4dad9c89339a52ca8adbeedbf83d30`),
+private datasets `news.fmp.stock_latest_current_evidence` and
+`news.fmp.stock_latest_current_articles`, manual-only collector
+`fmp.news.stock_latest_current`, and `news.search@2.0.0`.  It has 65 logical
+names, 41 version policies, 56 variants, and 128 catalog contracts.  Its exact
+projection removes only this successor and reproduces registry `2.62.0` at
+SHA-256 `59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2`
+and catalog `2.22.0` exactly.  Registry declaration and offline validation do
+not authorize a provider request, canonical application/population, or timer.
+
+
 
 ADR 0012 defines the exact `2.40.0` topology. The legacy
 `macro.fmp.economic_calendar_evidence` dataset remains active and readable

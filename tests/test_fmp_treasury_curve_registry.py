@@ -26,7 +26,7 @@ PRE_TREASURY_SOURCE_SHA256 = (
     "b16724532234c3c1082326bdd2f0957c8518508849bcc5d090728fcfd2e3a8cd"
 )
 CURRENT_SOURCE_SHA256 = (
-    "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
+    "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
 )
 EXPECTED_COLLECTOR = {
     "configuration_env": ["FMP_API_KEY"],
@@ -82,11 +82,11 @@ class FmpTreasuryCurveRegistryTests(unittest.TestCase):
     def test_canonical_treasury_collector_is_exact_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.49.0")
+        self.assertEqual(registry.revision, "2.63.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (40, 53, 54),
+            (41, 55, 57),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

@@ -12,7 +12,7 @@ from ..contracts import Observation, TimeSeries
 from ..errors import ResourceLimitError, ValidationError
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -88,7 +88,7 @@ class MacroSeriesRepository:
             raise ValidationError("Macro repository is not bound to the canonical RTDSM dataset")
 
     def get_series(self, query: MacroSeriesQuery) -> TimeSeries:
-        with read_connection(self._store_map, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.MACRO) as connection:
             series = connection.execute(
                 """
                 SELECT series_id, provider, title, frequency, unit,

@@ -57,7 +57,11 @@ full-database hash; this is not backup or recovery evidence. Stage 12D created
 no second database, copy, move, replacement, backup, migration, registry bump,
 promotion pointer, provider/network access, public exposure, or scheduler
 change. Registry `2.14.0`/schema `1.8.0` and `data/market.sqlite` remain
-authoritative. Stage 12E remains closed.
+authoritative. Stage 12E's reviewed daily-market timer was daemon-reloaded,
+enabled, and started on 2026-08-29. It is active and waiting for its first
+normal trigger, Monday 2026-08-31 18:00:00 EDT; the service has not run and no
+provider request or canonical write occurred during activation. It does not
+create public exposure or repeat historical market population.
 
 ### FMP credentials for future authorized runs
 
@@ -581,12 +585,43 @@ projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
 deterministic evidence remains reproducible.
 
 The frozen compatibility inventory remains all 57 reviewed public tool names.
-The active registry exposes 59 read-only tools: that frozen surface plus
-`market.get_available_ticker` and `market.get_price_series`. The original
-`macro.get_series` and `timeseries.describe` contracts retain their Stage 1
-projection; the other 55 frozen tools are explicit forward reconstructions.
-Agents in another local project should use the fixed subprocess interface in
-[Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md), not direct SQLite access.
+The active registry exposes 65 read-only logical tools: that frozen surface
+plus eight native data/statistics names. Explicit successors, including
+`market.technical_indicators@2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`,
+`2.5.0`, `2.6.0`, and `2.7.0`,
+`company.search_filings@2.0.0`,
+`market.search_instruments@2.0.0`, and
+`company.get_share_count_history@2.0.0`, preserve their frozen v1 defaults
+and do not create additional logical names. Registry `2.57.0` also adds the
+explicit v2 investment-analysis successors for macro release-calendar
+pagination, market cross-sectional performance, macro revisions and
+surprises, raw rates/liquidity/credit/regime views, retained EIA energy facts,
+and normalized SEC company fundamentals. The original `macro.get_series` and
+`timeseries.describe` contracts retain their Stage 1 projection; the other 55
+frozen tools are explicit forward reconstructions. Agents in another local
+project should use the fixed subprocess interface in
+[Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md), not direct SQLite access. The
+[current public-tool actual-data audit](docs/rebuild/CURRENT_TOOL_ACTUAL_DATA_AUDIT_2026-08-28.md)
+is the pre-v2.7, 119-route checkpoint, not an audit of the current manifest.
+It records route-by-route populated-data status. The
+[technical-indicator quick start](docs/LOCAL_AGENT_TOOLS.md#technical-indicator-quick-start)
+shows the supported typed OHLCV composition and the causal SuperTrend AI,
+Swing Structure Forecast, KDJ, Williams Vix Fix, WaveTrend, Parabolic SAR,
+and rolling regression line adaptations; agents must not extract fields into
+ad hoc arrays or open the database directly. The current registry is `2.63.0`.
+It adds the offline-validated, separate current FMP news path and
+`news.search@2.0.0`; no live request, news-store population, or timer occurred.
+Its exact projection removes only that successor and restores `2.62.0`; that
+predecessor removes only rolling regression line v2.7 and restores byte-identical
+`2.61.0`; that predecessor removes only Parabolic SAR v2.6 and
+restores byte-identical `2.60.0`; that predecessor removes only WaveTrend v2.5
+and restores byte-identical `2.59.0`;
+that predecessor removes the five additive 2.59 variants and restores
+byte-identical `2.58.0`, which
+removes only KDJ v2.3 and
+restores byte-identical `2.57.0`. The next projection removes only the 15
+investment successors and restores byte-identical `2.56.0`; later projections
+remove only v2.2 and then v2.1, restoring `2.55.0` and `2.54.0` respectively.
 Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all
@@ -616,4 +651,5 @@ consumer, or authorize a scheduler. The final neutral source check used
 [no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
 and [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Its two read-only
 proofs were filesystem-neutral and created only their immutable private
-receipts. Stage 12E remains closed.
+receipts. Stage 12E's bounded daily-market timer is enabled and waiting for
+its first normal clock-driven run; no live daily-batch receipt is claimed.

@@ -6,6 +6,7 @@ import hashlib
 import math
 import os
 import sqlite3
+import stat
 import time
 import weakref
 from contextlib import contextmanager
@@ -299,6 +300,189 @@ def writer_connection(
 def _readonly_uri(path: Path) -> str:
     # SQLite URI syntax requires the slash characters to remain visible.
     return "file:" + quote(path.as_posix(), safe="/") + "?mode=ro"
+
+
+_FileStamp = tuple[int, int, int, int, int, int, int]
+
+
+def _stable_file_stamp(value: os.stat_result) -> _FileStamp:
+    return (
+        value.st_dev,
+        value.st_ino,
+        value.st_mode,
+        value.st_nlink,
+        value.st_size,
+        value.st_mtime_ns,
+        value.st_ctime_ns,
+    )
+
+
+def _regular_file_stamp(
+    path: Path,
+    *,
+    role: StoreRole,
+    allow_absent: bool,
+) -> _FileStamp | None:
+    try:
+        value = os.stat(path, follow_symlinks=False)
+    except FileNotFoundError:
+        if allow_absent:
+            return None
+        raise StoreUnavailableError(f"{role.value} store is unavailable") from None
+    except OSError as exc:
+        raise StoreUnavailableError(f"{role.value} store is unavailable") from exc
+    if not stat.S_ISREG(value.st_mode) or value.st_nlink != 1:
+        raise StoreUnavailableError(f"{role.value} store identity is invalid")
+    return _stable_file_stamp(value)
+
+
+def _immutable_store_snapshot(
+    path: Path,
+    role: StoreRole,
+) -> dict[str, _FileStamp | None]:
+    snapshot = {
+        "main": _regular_file_stamp(path, role=role, allow_absent=False),
+        "wal": _regular_file_stamp(
+            Path(f"{path}-wal"), role=role, allow_absent=True
+        ),
+        "shm": _regular_file_stamp(
+            Path(f"{path}-shm"), role=role, allow_absent=True
+        ),
+        "journal": _regular_file_stamp(
+            Path(f"{path}-journal"), role=role, allow_absent=True
+        ),
+    }
+    for name in ("wal", "journal"):
+        value = snapshot[name]
+        if value is not None and value[4] != 0:
+            raise StoreUnavailableError(f"{role.value} store is not quiet")
+    return snapshot
+
+
+@contextmanager
+def quiet_immutable_read_connection(
+    store_map: StoreMap,
+    role: StoreRole | str,
+    *,
+    expected_anchor: str = "store_metadata",
+) -> Iterator[sqlite3.Connection]:
+    """Read a quiet store through one pinned descriptor without file mutation.
+
+    This gateway is for fixed public consumers. Operational readers that must
+    observe an active WAL continue to use read_connection.
+    """
+
+    if not isinstance(store_map, StoreMap):
+        raise ValidationError("Immutable reads require an explicit store map")
+    if not isinstance(expected_anchor, str) or not expected_anchor:
+        raise ValidationError("Immutable reads require a domain anchor")
+    normalized = StoreRole(role)
+    path = store_map.path(normalized)
+    store_map.validate_distinct()
+    before = _immutable_store_snapshot(path, normalized)
+
+    close_on_exec = getattr(os, "O_CLOEXEC", None)
+    no_follow = getattr(os, "O_NOFOLLOW", None)
+    if close_on_exec is None or no_follow is None:
+        raise StoreUnavailableError(
+            f"{normalized.value} store immutable reads are unavailable"
+        )
+    try:
+        descriptor = os.open(path, os.O_RDONLY | close_on_exec | no_follow)
+    except OSError as exc:
+        raise StoreUnavailableError(
+            f"{normalized.value} store is unavailable"
+        ) from exc
+
+    connection: sqlite3.Connection | None = None
+    cleanup_error: StoreUnavailableError | None = None
+    try:
+        try:
+            descriptor_stamp = _stable_file_stamp(os.fstat(descriptor))
+        except OSError as exc:
+            raise StoreUnavailableError(
+                f"{normalized.value} store is unavailable"
+            ) from exc
+        if not stat.S_ISREG(descriptor_stamp[2]) or descriptor_stamp[3] != 1:
+            raise StoreUnavailableError(
+                f"{normalized.value} store identity is invalid"
+            )
+        if descriptor_stamp != before["main"]:
+            raise StoreUnavailableError(
+                f"{normalized.value} store identity changed"
+            )
+
+        connection = sqlite3.connect(
+            f"file:/proc/self/fd/{descriptor}?mode=ro&immutable=1",
+            uri=True,
+            timeout=0.0,
+            isolation_level=None,
+        )
+        _configure_connection(connection, writer=False)
+        if connection.execute("PRAGMA query_only").fetchone()[0] != 1:
+            raise StoreUnavailableError(
+                f"{normalized.value} store reader is not query-only"
+            )
+        connection.execute("BEGIN")
+        anchor = connection.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            (expected_anchor,),
+        ).fetchone()
+        if anchor is None:
+            raise StoreUnavailableError(
+                f"{normalized.value} store has the wrong role"
+            )
+        role_row = connection.execute(
+            "SELECT store_role FROM store_metadata WHERE singleton=1"
+        ).fetchone()
+        if role_row is None or role_row["store_role"] != normalized.value:
+            raise StoreUnavailableError(
+                f"{normalized.value} store has the wrong role"
+            )
+        if _immutable_store_snapshot(path, normalized) != before:
+            raise StoreUnavailableError(
+                f"{normalized.value} store changed while opening the reader"
+            )
+        yield connection
+    except sqlite3.Error as exc:
+        raise StoreUnavailableError(
+            f"{normalized.value} store is unavailable"
+        ) from exc
+    finally:
+        if connection is not None:
+            try:
+                if connection.in_transaction:
+                    connection.rollback()
+            except sqlite3.Error:
+                cleanup_error = StoreUnavailableError(
+                    f"{normalized.value} store reader cleanup failed"
+                )
+            try:
+                connection.close()
+            except sqlite3.Error:
+                if cleanup_error is None:
+                    cleanup_error = StoreUnavailableError(
+                        f"{normalized.value} store reader cleanup failed"
+                    )
+        try:
+            try:
+                after_descriptor = _stable_file_stamp(os.fstat(descriptor))
+            except OSError as exc:
+                raise StoreUnavailableError(
+                    f"{normalized.value} store identity changed during the read"
+                ) from exc
+            if after_descriptor != before["main"]:
+                raise StoreUnavailableError(
+                    f"{normalized.value} store changed during the read"
+                )
+            if _immutable_store_snapshot(path, normalized) != before:
+                raise StoreUnavailableError(
+                    f"{normalized.value} store path or sidecar changed during the read"
+                )
+        finally:
+            os.close(descriptor)
+        if cleanup_error is not None:
+            raise cleanup_error
 
 
 @contextmanager

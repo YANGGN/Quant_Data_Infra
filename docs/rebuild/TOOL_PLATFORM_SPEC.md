@@ -72,7 +72,27 @@ manifest therefore has 65 logical names. None of the eight additive tools
 claims recovered behavior, and the two successors do not mutate their frozen
 v1 contracts. Registry `2.48.0` additionally provides an explicit `2.0.0`
 successor for reserved `market.technical_indicators`; the logical-name count
-therefore remains 65 and the frozen v1 contract is unchanged.
+therefore remains 65 and the frozen v1 contract is unchanged. Registry
+`2.51.0` retains catalog `2.11.0`. Registry `2.52.0` advances the catalog
+to `2.12.0` with seven explicit analytical successors for the Stage 10
+return-series schema. Registry `2.53.0` advances it to `2.13.0` with
+`company.search_filings@2.0.0`. Registry `2.54.0` advances it to `2.14.0`
+with `market.search_instruments@2.0.0` and
+`company.get_share_count_history@2.0.0`. Registry `2.55.0` advances it to
+`2.15.0` with `market.technical_indicators@2.1.0`, and registry `2.56.0`
+advances it to `2.16.0` with `market.technical_indicators@2.2.0`. Registry
+`2.57.0` advances it to `2.17.0` with fifteen explicit source-native
+investment-analysis v2 successors. Registry `2.58.0` advances it to `2.18.0`
+with `market.technical_indicators@2.3.0`. Registry `2.59.0` advances it to
+`2.19.0` with Williams Vix Fix v2.4 and v2.1 market breadth/risk, energy
+seasonality, and normalized company-ratio successors. Registry `2.60.0`
+advances it to `2.20.0` with WaveTrend with Crosses v2.5. Registry `2.61.0`
+advances it to `2.21.0` with Parabolic SAR v2.6. Registry `2.62.0` advances
+it to `2.22.0` with rolling regression line v2.7. Registry `2.63.0` advances
+it to `2.23.0` with the current FMP `news.search@2.0.0` successor. The current
+manifest still has 65 logical names; it has 41 version policies, 56 variants,
+and 128 versioned contracts. Every omitted selector retains the frozen v1
+default.
 
 The recovered compatibility names are:
 
@@ -116,6 +136,24 @@ It returns one provider-native daily volume series, permits independently
 optional inclusive start/end bounds, preserves zero volume, and explicitly
 declares that unit normalization and adjustment semantics are not established.
 
+
+`market.search_instruments@2.0.0` searches retained current Stage 10 FMP
+identities by a literal provider-symbol or display-name substring, supports an
+optional exact asset-type filter, and uses an opaque cursor bound to the query
+and filter. Empty query lists the bounded retained identity universe. Identity
+does not imply price coverage, and historical point-in-time universe search is
+not established.
+
+`company.search_filings@2.0.0` requires one exact ten-digit CIK and orders
+filings by filing date then accession. Its opaque keyset cursor is bound to the
+CIK and optional cutoff, so histories longer than 500 records can be consumed
+without an unbounded total-count query. Version 1 remains frozen and bounded.
+
+`company.get_share_count_history@2.0.0` requires one exact ten-digit CIK and
+returns only reviewed SEC outstanding, weighted-average basic, and
+weighted-average diluted share-count facts. Instant and weighted-average
+semantics remain distinct. The tool applies no split adjustment and infers no
+missing metric.
 The explicit `2.0.0` variants of `macro.search_series`,
 `macro.describe_series`, and `macro.get_series` read the current canonical
 macro catalog. Exact describe lookup is not implemented as a bounded search.
@@ -137,6 +175,80 @@ ranks exact capture instants first and stored correction sequence before the
 version identifier, preserves provider JSON scalars as text, and reports the
 complete temporal request audit in deterministic diagnostics. First-release is
 not a calendar mode.
+
+### Investment-analysis v2 successors
+
+The explicit `macro.get_release_calendar@2.0.0` successor adds opaque
+keyset pagination. Its cursor is bound to the full calendar query and declared
+availability cutoff; callers continue only with the returned cursor and the
+same query fields. It does not alter the source-native event values or create
+a first-release calendar mode.
+
+`market.cross_sectional_performance@2.0.0` accepts two through fifty
+explicit retained Stage 10 symbols and returns each endpoint close-to-close
+simple return, rank, percentile, and coverage status. Incomplete symbols are
+reported rather than ranked. It does not infer a universe, create weights, or
+introduce portfolio or position semantics.
+
+`macro.revision_analysis@2.0.0` compares retained evidenced first and latest
+official-vintage values for one reviewed series. It is a current retained
+first-versus-latest comparison, not a historical as-of replay.
+`macro.standardize_surprises@2.0.0` applies an ex-post population z-score to
+one reviewed retained surprise kind and unit; it is not a real-time signal.
+
+`rates.get_funding_conditions@2.0.0`,
+`rates.get_repo_facility_usage@2.0.0`, and
+`rates.curve_analytics@2.0.0` return direct retained observed components.
+The funding and curve tools may add one same-date, same-unit left-minus-right
+spread. They do not interpolate a curve, infer policy, or issue a funding
+score.
+
+`macro.get_liquidity_snapshot@2.0.0`,
+`macro.get_liquidity_impulse@2.0.0`, and
+`macro.get_credit_conditions@2.0.0` return raw retained components.
+Liquidity impulse is a comparable component end-minus-start change, not an
+aggregate. `macro.regime_snapshot@2.0.0` returns the direct retained NBER
+indicator with optional raw context, while
+`research.liquidity_credit_state@2.0.0` returns a raw research vector. None
+of these tools applies opaque weights, emits a composite score or classifier,
+or makes an investment recommendation.
+
+`energy.get_electricity_retail_sales@2.0.0` reads one retained Stage 11 U.S.
+all-sector electricity-retail metric, and
+`energy.get_weekly_fundamentals@2.0.0` reads retained Stage 11 U.S.
+petroleum-fundamentals history. They preserve source-native units and do not
+interpolate or convert units. `company.get_fundamentals@2.0.0` reads
+normalized reviewed SEC facts for one exact ten-digit CIK and preserves
+period, unit, mapping, and source semantics; it computes no ratios, TTM
+values, calendarization, or inferred adjustments.
+
+All fifteen successors are host-routed, read-only, and input-bounded. They may
+validly return an empty or not-established result when retained evidence does
+not cover the requested selection. They add no provider request, canonical
+write, migration, scheduler, export, hosting, or deployment authority.
+
+Registry `2.57.0` and catalog `2.17.0` bind this batch at SHA-256
+`1d36ddd20494cfc0ae9e6172f662c5dfe04b905319c0f83b439446f44fd29b5e`
+and `5c0ea96b9aba9d73f8f89aea20a052c858691e10a1047f22594f027d8f893101`.
+Its exact predecessor projection removes only this batch and restores registry
+`2.56.0`, catalog `2.16.0`, and registry SHA-256
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`.
+
+### Current FMP news search v2
+
+`news.search@2.0.0` is a host-routed, read-only selection over the separate
+current FMP news relations.  It accepts optional `query`, up to 50 distinct
+`symbols`, optional inclusive `start_date` and `end_date`, `latest` or `as_of`
+mode, the required `as_of` cutoff for the latter, `date_only_policy`, and a
+bounded `limit` from 1 through 500.  It uses local capture availability for
+cutoff selection and publication dates only for date filtering.
+
+It returns only retained headline metadata, lineage, warnings, and truncation;
+raw provider bytes and article bodies are private.  The tool makes no provider
+request.  It is unavailable against the canonical store until migration 0006 is
+separately authorized and applied; after the relations exist, it may validly
+return no records until a successful capture occurs.  Version 1 remains the
+frozen fixture contract.
 
 The supported cross-project boundary is the fixed
 `bin/quant-data-tools` subprocess documented in
@@ -366,6 +478,19 @@ Every SQLite read connection MUST:
   temporary persistent tables;
 - use bounded busy and statement timeouts; and
 - validate a domain anchor before serving a query.
+
+Canonical public tool reads MUST additionally use the shared quiet immutable
+gateway. That gateway MUST:
+
+- pin an `O_RDONLY|O_CLOEXEC|O_NOFOLLOW` descriptor for the complete read;
+- require the WAL and rollback journal to be absent or zero-byte;
+- connect only through `/proc/self/fd/<fd>` with `mode=ro&immutable=1`;
+- verify `query_only=1` plus the requested anchor and store role; and
+- prove that the held file, configured path, WAL, SHM, and rollback-journal
+  stamps are identical before and after the read.
+
+Operational readers used by writers, health checks, backup, and fingerprints
+remain WAL-aware and MUST NOT be silently routed through the quiet gateway.
 
 Composed analyses MUST close or release all store readers deterministically.
 When one cutoff must govern several company or cross-store components, the
@@ -703,6 +828,154 @@ Rolling dispersion uses sample standard deviation; EMA and MACD use SMA
 seeds; ATR, RSI, and ADX use Wilder smoothing. The outputs are descriptive
 transformations and establish no trading signal, portfolio, or position
 semantics.
+
+The explicit `market.technical_indicators@2.1.0` successor preserves all
+fifteen v2.0 calculations and adds `supertrend_ai`. That calculation requires
+compatible high, low, and close series plus `window`, `minimum_factor`,
+`maximum_factor`, `factor_step`, `performance_memory`, and `cluster`. The
+factor grid includes each step from the minimum without crossing the maximum
+and MUST contain 3 through 101 candidates. `cluster` is exactly `best`,
+`average`, or `worst`.
+
+For every bar, v2.1 updates all candidate SuperTrend states, clusters their
+smoothed performance with deterministic one-dimensional Lloyd assignments
+seeded by the 25th, 50th, and 75th percentiles, and averages the factors in the
+selected cluster. Ties select the first centroid; an empty cluster retains its
+prior centroid. The selected factor drives a second adaptive SuperTrend whose
+trend tests the newly updated bands. Its five aligned components are
+`trailing_stop`, `adaptive_moving_average`, `trend`, `performance_index`, and
+`target_factor`. ATR uses Wilder smoothing, recursive state resets after a
+missing input, and each prefix result is independent of future bars.
+
+The Pine `maxData` control is intentionally replaced by the public input
+`limit`: all supplied bars are processed causally, with the existing workload
+preflight rejecting an excessive factor/bar combination. Pine's default
+inclusive `0..1000` clustering loop is retained as a fixed 1,001-assignment
+cap rather than a caller control. TradingView colors, candle gradients,
+labels, signals, tables, and dashboard placement are presentation behavior and
+are not public tool outputs. This successor opens no store and establishes no
+execution, position, or recommendation semantics.
+
+Registry `2.55.0` and catalog `2.15.0` bind the v2.1 successor at SHA-256
+`cec35d5cfed9f25c40f5adfa2f2581b0de8d442a75202e687f791b3a16dc3d7f`
+and `65311bb28efe62651ecb3420f0be13fd413df468487141cca0972d45e7684c85`,
+respectively.
+
+The explicit `market.technical_indicators@2.2.0` successor preserves v2.0
+and v2.1 and adds `swing_structure_forecast`. It requires compatible high,
+low, and close series, `window` from 10 through 5,000, `sample_count` from 3
+through 20, and `aggregation_method` exactly `weighted`, `average`, or
+`median`. The calculation retains the source's rolling-extreme direction
+state, including the low-test win when both current extremes match; confirms
+a pivot one bar after its extreme; retains the newest completed-leg samples;
+and uses fixed Wilder ATR(200) for the minimum forecast-band width. The pure
+calculation resets recursive state on missing OHLC, but the public adapter
+inherits v2's stricter contract and rejects missing input observations before
+the calculation runs.
+
+Its ten causal, source-grid-aligned components are `confirmed_swing_high`,
+`confirmed_swing_low`, `swing_direction`, `forecast_origin`,
+`forecast_target`, `forecast_percent`, `forecast_duration_bars`,
+`forecast_standard_deviation`, `forecast_band_half`, and
+`forecast_origin_age_bars`. The Pine source computes the forecast only on the
+latest chart bar; the public tool causally unrolls that calculation so each
+row is the result for exactly that input prefix. It does not invent a future
+trading date. Forward chart coordinates, beams, boxes, path markers,
+Fibonacci lines, support/resistance object lifecycle, alerts, colors, and
+labels remain excluded presentation behavior.
+
+Registry `2.56.0` and catalog `2.16.0` bind v2.2 at SHA-256
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`
+and `cb1c6965582b90eaeec27054eda0d66e7a4c603aefa69f9b453ae342d779302b`,
+respectively. Exact projection removes only v2.2 and restores byte-identical
+registry `2.55.0` and catalog `2.15.0`; that predecessor removes only v2.1
+and restores byte-identical registry `2.54.0`, catalog `2.14.0`, and the sole
+v2.0 indicator variant.
+
+The explicit `market.technical_indicators@2.3.0` successor preserves v2.0
+through v2.2 and adds `kdj`. It requires compatible high, low, and close
+series plus `window` and `signal_window`. RSV is 100 times close minus the
+rolling low divided by rolling high minus rolling low. K and D each use the
+Pine BCWSMA recurrence with weight 1 and an `nz` previous value of zero; J is
+`3 * K - 2 * D` and is not clamped. Its three aligned components are
+`percent_k`, `percent_d`, and `percent_j`. A flat rolling price range is
+explicit `zero_price_range` missingness, and recursive state restarts from
+zero after missing input. Plot colors, background shading, and the 20/80 guide
+lines are excluded presentation behavior.
+
+Registry `2.58.0` and catalog `2.18.0` bind v2.3 at SHA-256
+`02a4aeb34632c5ae194622b7de77ec31145135bdf399620e45af461132134d43`
+and `4803071d5cb2ababa2710ac4c0e3eb1e1640b06aa0b6071e14c2f40be68fec72`,
+respectively. Exact projection removes only v2.3 and restores byte-identical
+registry `2.57.0` and catalog `2.17.0`.
+Registry `2.59.0` and catalog `2.19.0` add five variants without adding a
+logical name. `market.technical_indicators@2.4.0` adds Williams Vix Fix over
+typed high, low, and close input. `market.cross_sectional_performance@2.1.0`
+adds equal-observation breadth, annualized sample realized volatility,
+benchmark-relative cumulative return, and rolling beta over explicit bounded
+tickers. The two energy v2.1 variants add exact retained-observation lags of 12
+monthly or 52 weekly observations. `company.get_fundamentals@2.1.0` exposes
+only same-period, same-unit net margin and liabilities-to-assets ratios.
+Stationarity and declared-break adapters trim only contiguous incomplete
+return edges; interior gaps remain invalid. Exact projection removes only the
+five variants and restores byte-identical registry `2.58.0` and catalog
+`2.18.0`.
+
+The explicit `market.technical_indicators@2.5.0` successor preserves v2.0
+through v2.4 and adds `wavetrend_crosses`. It requires compatible high, low,
+and close series plus `window` for the Pine channel length and
+`signal_window` for the Pine average length. The calculation uses HLC3,
+SMA-seeded EMAs, fixed `0.015` channel scaling, and a fixed four-observation
+SMA signal. Its aligned components are `wavetrend`, `wavetrend_signal`,
+`wavetrend_difference`, and `wavetrend_cross_signal`; the cross component is
+`1` for bullish, `-1` for bearish, and `0` otherwise. Zero smoothed channel
+deviation is explicit `zero_channel_deviation` missingness. Overbought and
+oversold guide levels, colors, area fills, cross markers, and bar colors are
+excluded presentation behavior.
+
+Registry `2.60.0` and catalog `2.20.0` bind v2.5 at SHA-256
+`563c4294c47d534754014dc77a4a1b39e84749cc4d8165636bafd82feff679b0`
+and `cebc1ca58257fed167db36973be1ce37e6e01162c2bc072c24591a673b0aedb4`,
+respectively. Exact projection removes only v2.5 and restores byte-identical
+registry `2.59.0` and catalog `2.19.0`.
+
+The explicit `market.technical_indicators@2.6.0` successor preserves v2.0
+through v2.5 and adds `parabolic_sar`. It requires compatible high, low, and
+close series plus finite `start`, `increment`, and `maximum` acceleration
+parameters. The causal recurrence establishes its initial direction from two
+consecutive closes, advances the stop toward the current extreme, increments
+acceleration at new extremes up to the supplied maximum, resets acceleration
+and the extreme on reversal, and clamps the stop against the prior two lows or
+highs. Missing OHLC resets recursive state. Its one aligned component is
+`parabolic_sar`; the first bar is explicit `insufficient_sar_history`
+missingness. Plot crosses, colors, timeframe controls, and chart-gap behavior
+are excluded presentation behavior.
+
+Registry `2.61.0` and catalog `2.21.0` bind v2.6 at SHA-256
+`0f43045c1dcc46b0f9d5ecb0aaf98aa3e9ad61a43e250afc389408602a8615ea`
+and `b70798594de6149b7710b36d3b735b3d24ff81eb23277ba54dfdc697aceb0efc`,
+respectively. Exact projection removes only v2.6 and restores byte-identical
+registry `2.60.0` and catalog `2.20.0`.
+
+The explicit `market.technical_indicators@2.7.0` successor preserves v2.0
+through v2.6 and adds `rolling_regression_line`. It accepts one compatible
+close series and a caller-supplied integer `window` from 2 through 10,000;
+all other nullable indicator parameters are inapplicable. At each bar it fits
+ordinary least squares over exactly the trailing complete window, including
+the current close, using x = 0 through `window - 1`, and emits the fitted
+value at x = `window - 1`. The one aligned price component is
+`rolling_regression_line`. It is full-grid and causal: warm-up rows are
+`insufficient_history`, any null close in the trailing window is
+`rolling_window_input_missing`, and the next complete trailing window
+recovers immediately. Presentation behavior is excluded.
+
+Registry `2.62.0` and catalog `2.22.0` bind v2.7 at SHA-256
+`59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2`
+and `18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1`.
+Exact projection removes only v2.7 and restores byte-identical registry
+`2.61.0` and catalog `2.21.0`.
+
+
 
 `data.quality_audit@2.0.0` accepts one through twenty supplied typed Stage 10
 return series. It validates lineage, reports requested and observed coverage,

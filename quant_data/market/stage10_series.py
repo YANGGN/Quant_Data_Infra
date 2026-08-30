@@ -3,20 +3,17 @@
 from __future__ import annotations
 
 import hashlib
-import os
 import sqlite3
-import stat
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
-from pathlib import Path
 from typing import Any, Iterator, Mapping
 
 from ..contracts import Observation, TimeSeries
 from ..errors import ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, stable_id
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection, stable_id
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -178,91 +175,129 @@ class Stage10AvailableTickerSelection:
             raise ValidationError("Stage 10 available-ticker selection is invalid")
 
 
-def _sidecar_stamp(path: Path, name: str) -> tuple[int, ...] | None:
-    suffix = {"wal": "-wal", "shm": "-shm", "journal": "-journal"}[name]
-    candidate = Path(str(path) + suffix)
-    try:
-        value = os.stat(candidate, follow_symlinks=False)
-    except FileNotFoundError:
-        return None
-    return (
-        value.st_dev,
-        value.st_ino,
-        value.st_mode,
-        value.st_nlink,
-        value.st_size,
-        value.st_mtime_ns,
-        value.st_ctime_ns,
-    )
+@dataclass(frozen=True, slots=True)
+class Stage10InstrumentSearchQuery:
+    """One bounded current FMP-identity search with a keyset anchor."""
+
+    query: str
+    asset_type: str | None
+    limit: int
+    after: tuple[str, str] | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.query, str):
+            raise ValidationError("Stage 10 instrument search query is invalid")
+        normalized = self.query.strip()
+        if len(normalized) > 64 or any(
+            ord(character) < 32 for character in normalized
+        ):
+            raise ValidationError("Stage 10 instrument search query is invalid")
+        object.__setattr__(self, "query", normalized)
+        if self.asset_type not in {None, "equity", "etf", "index"}:
+            raise ValidationError("Stage 10 instrument search asset type is invalid")
+        if (
+            isinstance(self.limit, bool)
+            or not isinstance(self.limit, int)
+            or not 1 <= self.limit <= 100
+        ):
+            raise ResourceLimitError(
+                "Stage 10 instrument search limit must be from 1 through 100"
+            )
+        if self.after is not None:
+            if (
+                not isinstance(self.after, tuple)
+                or len(self.after) != 2
+                or any(
+                    not isinstance(value, str)
+                    or not value
+                    or len(value) > 200
+                    for value in self.after
+                )
+            ):
+                raise ValidationError(
+                    "Stage 10 instrument search cursor key is invalid"
+                )
 
 
-def _stable_stat(value: os.stat_result) -> tuple[int, ...]:
-    return (
-        value.st_dev,
-        value.st_ino,
-        value.st_mode,
-        value.st_nlink,
-        value.st_size,
-        value.st_mtime_ns,
-        value.st_ctime_ns,
-    )
+@dataclass(frozen=True, slots=True)
+class Stage10InstrumentSearchRecord:
+    """One current FMP identity, whether or not it has price rows."""
+
+    ticker: str
+    instrument_id: str
+    asset_type: str
+    display_name: str | None
+    exchange_code: str | None
+    first_trade_date: str | None
+    provider: str
+    currency_segment: str
+
+    def __post_init__(self) -> None:
+        if (
+            not isinstance(self.ticker, str)
+            or not self.ticker
+            or not isinstance(self.instrument_id, str)
+            or not self.instrument_id
+            or self.asset_type not in {"equity", "etf", "index"}
+            or self.provider != PROVIDER
+            or self.currency_segment != CURRENCY_SEGMENT
+            or any(
+                value is not None and not isinstance(value, str)
+                for value in (
+                    self.display_name,
+                    self.exchange_code,
+                    self.first_trade_date,
+                )
+            )
+        ):
+            raise ValidationError("Stage 10 instrument search identity is invalid")
+        if self.first_trade_date is not None:
+            parse_date(
+                self.first_trade_date,
+                pointer="/stored/first_trade_date",
+            )
+
+    def receipt_mapping(self) -> dict[str, str | None]:
+        return {
+            "asset_type": self.asset_type,
+            "currency_segment": self.currency_segment,
+            "display_name": self.display_name,
+            "exchange_code": self.exchange_code,
+            "first_trade_date": self.first_trade_date,
+            "instrument_id": self.instrument_id,
+            "provider": self.provider,
+            "ticker": self.ticker,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10InstrumentSearchSelection:
+    """Immutable FMP identity page with path-free selection provenance."""
+
+    instruments: tuple[Stage10InstrumentSearchRecord, ...]
+    migration_ids: tuple[str, ...]
+    semantic_id: str
+    truncated: bool
+
+    def __post_init__(self) -> None:
+        if (
+            not self.semantic_id
+            or not isinstance(self.truncated, bool)
+            or any(
+                not isinstance(item, Stage10InstrumentSearchRecord)
+                for item in self.instruments
+            )
+        ):
+            raise ValidationError("Stage 10 instrument search selection is invalid")
 
 
 @contextmanager
 def _quiet_market_connection(store_map: StoreMap) -> Iterator[sqlite3.Connection]:
-    """Open one held-descriptor immutable reader and prove no file-state change."""
+    """Retain Stage 10 model checks over the shared immutable reader."""
 
-    if not isinstance(store_map, StoreMap):
-        raise ValidationError("Stage 10 reader requires an explicit store map")
-    store_map.validate_distinct()
-    path = store_map.market
-    if path.is_symlink() or not path.is_file():
-        raise StoreUnavailableError("Market store is unavailable")
-    before_sidecars = {
-        name: _sidecar_stamp(path, name) for name in ("wal", "shm", "journal")
-    }
-    for value in before_sidecars.values():
-        if value is not None and (
-            not stat.S_ISREG(value[2]) or value[3] != 1
-        ):
-            raise StoreUnavailableError("Market store sidecar identity is invalid")
-    for name in ("wal", "journal"):
-        value = before_sidecars[name]
-        if value is not None and value[4] != 0:
-            raise StoreUnavailableError("Market store is not quiet")
-
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        descriptor = os.open(path, flags)
-    except OSError as exc:
-        raise StoreUnavailableError("Market store is unavailable") from exc
-    connection: sqlite3.Connection | None = None
-    before: os.stat_result | None = None
-    before_path: os.stat_result | None = None
-    try:
-        before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
-            raise StoreUnavailableError("Market store identity is invalid")
-        current = os.stat(path, follow_symlinks=False)
-        if (current.st_dev, current.st_ino) != (before.st_dev, before.st_ino):
-            raise StoreUnavailableError("Market store identity changed")
-        before_path = current
-        connection = sqlite3.connect(
-            f"file:/proc/self/fd/{descriptor}?mode=ro&immutable=1",
-            uri=True,
-            timeout=0.0,
-            isolation_level=None,
-        )
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA query_only=ON")
-        if connection.execute("PRAGMA query_only").fetchone()[0] != 1:
-            raise StoreUnavailableError("Market store reader is not query-only")
-        connection.execute("BEGIN")
-        role = connection.execute(
-            "SELECT store_role FROM store_metadata WHERE singleton=1"
-        ).fetchone()
-        if role is None or role[0] != StoreRole.MARKET.value:
-            raise StoreUnavailableError("Market store has the wrong role")
+    with quiet_immutable_read_connection(
+        store_map, StoreRole.MARKET
+    ) as connection:
         relations = {
             str(row[0])
             for row in connection.execute(
@@ -274,35 +309,10 @@ def _quiet_market_connection(store_map: StoreMap) -> Iterator[sqlite3.Connection
             )
         }
         if relations != _REQUIRED_RELATIONS:
-            raise StoreUnavailableError("Market store lacks the Stage 10 price model")
+            raise StoreUnavailableError(
+                "Market store lacks the Stage 10 price model"
+            )
         yield connection
-    except sqlite3.Error as exc:
-        raise StoreUnavailableError("Market store is unavailable") from exc
-    finally:
-        if connection is not None:
-            if connection.in_transaction:
-                connection.rollback()
-            connection.close()
-        try:
-            if before is not None and _stable_stat(os.fstat(descriptor)) != _stable_stat(before):
-                raise StoreUnavailableError("Market store changed during the read")
-            try:
-                after_path = os.stat(path, follow_symlinks=False)
-            except OSError as exc:
-                raise StoreUnavailableError(
-                    "Market store path changed during the read"
-                ) from exc
-            if before_path is not None and _stable_stat(after_path) != _stable_stat(
-                before_path
-            ):
-                raise StoreUnavailableError("Market store path changed during the read")
-            if any(
-                _sidecar_stamp(path, name) != before_sidecars[name]
-                for name in before_sidecars
-            ):
-                raise StoreUnavailableError("Market store sidecar changed during the read")
-        finally:
-            os.close(descriptor)
 
 
 def _stored_decimal(row: Mapping[str, Any], name: str) -> Decimal:
@@ -1118,6 +1128,114 @@ class Stage10DailyPriceRepository:
         )
         return series[0], series[1], series[2], series[3]
 
+    def search_instruments(
+        self,
+        query: Stage10InstrumentSearchQuery,
+    ) -> Stage10InstrumentSearchSelection:
+        """Search fixed FMP identities without requiring any price history."""
+
+        if not isinstance(query, Stage10InstrumentSearchQuery):
+            raise ValidationError("Stage 10 instrument search requires a typed query")
+        where = [
+            "instrument.provider=?",
+            "instrument.currency_segment=?",
+        ]
+        parameters: list[object] = [PROVIDER, CURRENCY_SEGMENT]
+        if query.query:
+            escaped = (
+                query.query.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
+            pattern = f"%{escaped}%"
+            where.append(
+                "(instrument.provider_symbol LIKE ? ESCAPE '\\' "
+                "OR instrument.display_name LIKE ? ESCAPE '\\')"
+            )
+            parameters.extend((pattern, pattern))
+        if query.asset_type is not None:
+            where.append("instrument.asset_type=?")
+            parameters.append(query.asset_type)
+        if query.after is not None:
+            ticker, instrument_id = query.after
+            where.append(
+                "(instrument.provider_symbol COLLATE BINARY > ? "
+                "OR (instrument.provider_symbol COLLATE BINARY = ? "
+                "AND instrument.instrument_id COLLATE BINARY > ?))"
+            )
+            parameters.extend((ticker, ticker, instrument_id))
+        sql = f"""
+            SELECT instrument.instrument_id,
+                   instrument.provider_symbol,
+                   instrument.asset_type,
+                   instrument.display_name,
+                   instrument.exchange_code,
+                   instrument.first_trade_date,
+                   instrument.provider,
+                   instrument.currency_segment
+            FROM stage10_instruments AS instrument
+            WHERE {' AND '.join(where)}
+            ORDER BY instrument.provider_symbol COLLATE BINARY ASC,
+                     instrument.instrument_id COLLATE BINARY ASC
+            LIMIT ?
+        """
+        with _quiet_market_connection(self._store_map) as connection:
+            migrations = _reconcile_store_contract(connection, self._registry)
+            rows = list(connection.execute(sql, (*parameters, query.limit + 1)))
+        truncated = len(rows) > query.limit
+        instruments = tuple(
+            Stage10InstrumentSearchRecord(
+                ticker=str(row["provider_symbol"]),
+                instrument_id=str(row["instrument_id"]),
+                asset_type=str(row["asset_type"]),
+                display_name=(
+                    None
+                    if row["display_name"] is None
+                    else str(row["display_name"])
+                ),
+                exchange_code=(
+                    None
+                    if row["exchange_code"] is None
+                    else str(row["exchange_code"])
+                ),
+                first_trade_date=(
+                    None
+                    if row["first_trade_date"] is None
+                    else str(row["first_trade_date"])
+                ),
+                provider=str(row["provider"]),
+                currency_segment=str(row["currency_segment"]),
+            )
+            for row in rows[: query.limit]
+        )
+        receipt_material = {
+            "asset_type": query.asset_type,
+            "cursor_after": None if query.after is None else list(query.after),
+            "migrations": [
+                {
+                    "migration_id": str(row["migration_id"]),
+                    "sha256": str(row["sha256"]),
+                }
+                for row in migrations
+            ],
+            "provider": PROVIDER,
+            "query": query.query,
+            "selected": [item.receipt_mapping() for item in instruments],
+            "truncated": truncated,
+        }
+        semantic_id = stable_id(
+            "stage10_instrument_search",
+            hashlib.sha256(
+                dumps_strict(receipt_material).encode("utf-8")
+            ).hexdigest(),
+        )
+        return Stage10InstrumentSearchSelection(
+            instruments=instruments,
+            migration_ids=tuple(str(row["migration_id"]) for row in migrations),
+            semantic_id=semantic_id,
+            truncated=truncated,
+        )
+
 
     def list_available_tickers(
         self, query: Stage10AvailableTickerQuery
@@ -1228,4 +1346,7 @@ __all__ = (
     "Stage10AvailableTicker",
     "Stage10AvailableTickerQuery",
     "Stage10AvailableTickerSelection",
+    "Stage10InstrumentSearchQuery",
+    "Stage10InstrumentSearchRecord",
+    "Stage10InstrumentSearchSelection",
 )

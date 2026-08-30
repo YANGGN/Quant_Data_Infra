@@ -29,7 +29,7 @@ from ..ingestion import (
 )
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import HeldWriteLocks, StoreMap, StoreRole, read_connection, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, quiet_immutable_read_connection, read_connection, stable_id
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -2890,7 +2890,7 @@ class OptionsStage4Repository:
         """Return a finite, read-only snapshot from one capture cohort only."""
 
         warnings: set[str] = set()
-        with read_connection(self._store_map, StoreRole.MARKET) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.MARKET) as connection:
             capture = self._select_capture(connection, query, warnings)
             capture_id = str(capture["capture_id"])
             surface_rows = self._surface_rows(connection, capture_id, query, warnings)

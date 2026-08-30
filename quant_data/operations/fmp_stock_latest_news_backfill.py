@@ -30,7 +30,7 @@ from ..news.fmp_stock_latest import (
     FmpStockLatestTransport,
     StdlibFmpStockLatestTransport,
 )
-from ..registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from ..registry import CANONICAL_REGISTRY_PATH, Registry, current_news_registry_profile, load_registry
 from ..stores import StoreMap, StoreRole
 
 
@@ -167,6 +167,14 @@ def _registry_preflight(registry: Registry) -> None:
             ("1.9.0", "2.47.0"),
             ("1.9.0", "2.48.0"),
             ("1.9.0", "2.49.0"),
+            ("1.9.0", "2.50.0"),
+            ("1.9.0", "2.51.0"),
+            ("1.9.0", "2.52.0"),
+            ("1.9.0", "2.53.0"),
+            ("1.9.0", "2.54.0"),
+            ("1.9.0", "2.56.0"),
+            ("1.9.0", "2.57.0"),
+            ("1.9.0", "2.62.0"),
         }
         or len(collector) != 1
         or len(migration) != 1
@@ -308,6 +316,7 @@ def populate_fmp_stock_latest_news(
         project_root=root,
         environment={},
     )
+    registry = current_news_registry_profile(registry)
     _registry_preflight(registry)
     _preflight_existing_news_target(root, target_path, registry)
     stores = _store_map(root, target_path)

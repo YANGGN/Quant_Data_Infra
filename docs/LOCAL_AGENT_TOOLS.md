@@ -10,9 +10,45 @@ Use the launcher from WSL/Linux:
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools list
 ```
 
+An agent running from a Windows-native project must still execute the same
+Ubuntu/WSL launcher rather than using Windows Python or opening the stores:
+
+```powershell
+wsl.exe -d Ubuntu -- /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools list
+```
+
 The command derives this project's root itself. Do not copy its database paths,
 set database-related environment variables, or invoke it with a registry,
 project-root, store, SQL, provider, or credential option; none are supported.
+
+## Cross-project quick start
+
+The absolute launcher path above is the complete integration boundary. An
+agent does not need this repository as its working directory and must not add
+this package to the consuming project's imports. Use this sequence:
+
+1. Run `manifest` to obtain the machine-readable inventory and schemas.
+2. Run `list` for a compact logical-tool inventory.
+3. Run `describe TOOL --tool-version VERSION` before constructing a new
+   request.
+4. Send one strict JSON envelope to `call` on standard input.
+5. Parse standard output as JSON even when the process exits nonzero.
+6. Keep the complete response, receipt, warnings, truncation, and lineage with
+   any downstream result.
+
+At the current news-v2 checkpoint, registry `2.63.0` exposes 65 logical names
+and 56 explicit successors: 121 callable public routes in total. Catalog
+`2.23.0` contains 128 generated contracts. This snapshot is informative;
+`manifest` and `describe` remain the runtime authority if the project advances.
+
+The linked [actual-data audit](rebuild/CURRENT_TOOL_ACTUAL_DATA_AUDIT_2026-08-28.md)
+is a pre-v2.7, 119-route checkpoint: it called all 119 routes separately. All
+54 successors completed successfully; the current manifest has 120 routes.
+49 were semantically exercised with retained canonical data or typed series
+derived from it. Five research/forecast routes were interface-validated only
+because genuine retained event, signal, prediction, model-design, or strategy
+inputs are not yet available. Empty and `not_established` results remain valid
+data-dependent outcomes.
 
 ## Consumer authority
 
@@ -42,16 +78,51 @@ the manifest advertises:
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_returns --tool-version 2.0.0
 ```
 
+When a workflow requires v2 behavior, always send the exact advertised
+`tool_version`; do not infer that omission selects the numerically highest
+version. Most reconstructed logical names intentionally retain their frozen
+v1 default when the selector is omitted.
+
 The active inventory is intentionally read from the manifest rather than
 hard-coded here. The canonical-access foundation includes these native data
 tools:
 
 ```bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_available_ticker
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.search_instruments --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_volume_series
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.1.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.2.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.3.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.4.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.5.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.6.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.search_filings --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_share_count_history --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.cross_sectional_performance --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.cross_sectional_performance --tool-version 2.1.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.revision_analysis --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.standardize_surprises --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe rates.get_funding_conditions --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe rates.get_repo_facility_usage --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe rates.curve_analytics --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_liquidity_snapshot --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_liquidity_impulse --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_credit_conditions --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.regime_snapshot --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe research.liquidity_credit_state --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_electricity_retail_sales --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_electricity_retail_sales --tool-version 2.1.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_weekly_fundamentals --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_weekly_fundamentals --tool-version 2.1.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_fundamentals --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_fundamentals --tool-version 2.1.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.search_series --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.describe_series --tool-version 2.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_series --tool-version 2.0.0
@@ -93,6 +164,9 @@ request filename or command-line arguments.
 printf '%s\n' '{"api_version":"1.0","tool":"market.get_available_ticker","arguments":{}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
+printf '%s\n' '{"api_version":"1.0","tool":"market.search_instruments","tool_version":"2.0.0","arguments":{"query":"Apple","asset_type":"equity","cursor":null,"limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
 printf '%s\n' '{"api_version":"1.0","tool":"market.get_price_series","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
@@ -110,7 +184,128 @@ printf '%s\n' '{"api_version":"1.0","tool":"macro.get_series","tool_version":"2.
 
 printf '%s\n' '{"api_version":"1.0","tool":"macro.get_release_calendar","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"company.search_filings","tool_version":"2.0.0","arguments":{"query":"0000320193","as_of":null,"cursor":null,"limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"company.get_share_count_history","tool_version":"2.0.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.0.0","arguments":{"query":"","symbols":["AAPL"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' \
+  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ```
+
+`company.search_filings@2.0.0` requires one exact ten-digit SEC CIK. Follow
+its opaque `cursor` until the result is terminal; cursors are bound to the CIK
+and cutoff and cannot be reused for another search. This avoids the legacy
+500-row dead end without computing an unbounded total count.
+
+`company.get_share_count_history@2.0.0` also requires one exact ten-digit CIK.
+It returns only the reviewed SEC outstanding, weighted-average basic, and
+weighted-average diluted share metrics. Instant and weighted-average facts
+remain distinct; the tool does not split-adjust values or infer missing
+metrics.
+
+### Current FMP news v2 quick start
+
+Use the general `manifest` command above, then inspect the selected version:
+`news.search@2.0.0` is separate from the frozen fixture default.
+Its optional arguments are `query`, `symbols`, `start_date`, `end_date`,
+`mode`, `as_of`, `date_only_policy`, and `limit`; `as_of` is required only
+when `mode` is `as_of`, while `limit` is 1 through 500.
+
+~~~bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools manifest
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.0.0
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.0.0","arguments":{"query":"","symbols":["AAPL"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+~~~
+
+The result exposes only retained headline metadata, capture availability,
+lineage, warnings, and truncation. It never returns provider raw bytes or
+article bodies. Today the canonical news store has not received migration 0006,
+so the call is unavailable there. After that migration is separately authorized,
+an empty result is valid until a successful capture exists. The CLI stays
+read-only and never fetches from FMP.
+
+### Investment-analysis v2 quick start
+
+The following read-only successors must be selected explicitly with
+`"tool_version":"2.0.0"`; omitting the selector retains the frozen v1
+behavior. Each example is one complete strict-JSON envelope that can be sent
+to the same `call` command shown above.
+
+~~~bash
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_release_calendar","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null,"event_name":null,"cursor":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"market.cross_sectional_performance","tool_version":"2.0.0","arguments":{"tickers":["AAPL","MSFT"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"macro.revision_analysis","tool_version":"2.0.0","arguments":{"series_id":"macro.gdp.real_qoq_saar_pct","start_date":null,"end_date":null,"limit":500}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"macro.standardize_surprises","tool_version":"2.0.0","arguments":{"kind":"us_cpi_headline_mom","release_stage":null,"start_date":null,"end_date":null,"limit":500}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"rates.get_funding_conditions","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"spread_left":"EFFR","spread_right":"SOFR","limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"rates.get_repo_facility_usage","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"rates.curve_analytics","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"spread_left_tenor":"10Y","spread_right_tenor":"2Y","limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_liquidity_snapshot","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_liquidity_impulse","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":"2026-01-01","end_date":"2026-08-01","limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_credit_conditions","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"macro.regime_snapshot","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"include_context":true,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"research.liquidity_credit_state","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"include_context":true,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"energy.get_electricity_retail_sales","tool_version":"2.0.0","arguments":{"metric":"sales","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"energy.get_weekly_fundamentals","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"company.get_fundamentals","tool_version":"2.0.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"metric_codes":[],"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+~~~
+### Analytics v2.1 quick start
+
+Select these additive successors explicitly; the unchanged logical tool
+names still default to their frozen v1 behavior.
+
+~~~bash
+printf '%s\n' '{"api_version":"1.0","tool":"market.cross_sectional_performance","tool_version":"2.1.0","arguments":{"tickers":["AAPL","MSFT"],"benchmark_ticker":"MSFT","window":20,"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":"2026-07-01","end_date":"2026-08-20"}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"energy.get_electricity_retail_sales","tool_version":"2.1.0","arguments":{"metric":"sales","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"energy.get_weekly_fundamentals","tool_version":"2.1.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"company.get_fundamentals","tool_version":"2.1.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","ratio_codes":["net_margin","liabilities_to_assets"],"limit":1000,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+~~~
+
+The market successor uses explicit tickers and an included benchmark. It
+returns cumulative return, breadth counts, annualized sample daily-return
+volatility, benchmark-relative cumulative return, and trailing rolling beta.
+It has no weights, positions, portfolio, prediction, or imputation semantics.
+The energy successors compare each retained observation with the same series
+12 monthly or 52 weekly observations earlier. They preserve source-native
+units; unavailable history and a zero reference level remain explicit.
+Company v2.1 computes only `net_margin` and `liabilities_to_assets` from
+reviewed normalized SEC facts. It requires compatible same-duration or
+same-instant periods and the same base unit; it does not calculate TTM,
+calendarized, averaged-balance, or imputed ratios.
+
+
+The calendar successor pages a retained release-calendar query. Follow only
+the opaque `truncation.next_cursor` returned by the immediately preceding
+response, keeping every other query field unchanged. The cursor is bound to
+the selected filters and availability cutoff and cannot be reused for another
+calendar query.
+
+Cross-sectional performance accepts two through fifty explicit retained
+tickers. It reports endpoint close-to-close simple return, rank, percentile,
+and each ticker's coverage status. It does not infer a universe, construct a
+portfolio, apply weights, or imply a position.
+
+Revision analysis compares current retained first and latest official-vintage
+values for one reviewed series; it is not a historical as-of replay.
+Standardized surprises use the selected retained ex-post population mean and
+population standard deviation, so they are also not real-time signals.
+Funding and curve tools return source-native observed components and, when
+both fields are supplied, one direct left-minus-right same-date spread.
+Liquidity, credit, regime, and research-state tools return raw retained
+components: liquidity impulse is comparable component end-minus-start change,
+the regime is the direct retained NBER indicator, and the research state has
+no score, weights, classifier, or investment recommendation.
+
+The energy readers expose only the retained Stage 11 U.S. all-sector
+electricity-retail metrics and weekly petroleum-fundamentals history. The
+company v2.0 reader exposes only normalized reviewed SEC facts for one exact
+ten-digit CIK; it does not calculate ratios, TTM values, calendarized facts,
+or inferred adjustments. The two v2.1 ratios are described above. All fifteen
+v2.0 requests are bounded. A valid request
+can return no records or a typed not-established outcome when the requested
+data is not retained or not available under its declared cutoff.
 
 `start_date` and `end_date` are independently optional for
 `market.get_price_series`. Omitting both selects the bounded result available
@@ -119,30 +314,45 @@ under the stated mode and limit. The returned typed series are ordered `open`,
 session-calendar semantics are not established, so do not label them adjusted
 or derive an unstated session policy.
 
+When starting from a company name or partial symbol, use
+`market.search_instruments@2.0.0` first. It searches retained current Stage 10
+FMP identities by a literal substring of provider symbol or display name,
+supports an optional exact `asset_type`, and returns opaque cursor pagination
+in deterministic symbol order. It is not point-in-time search, and an identity
+match does not imply that price rows are available. Confirm the selected
+symbol with `market.get_available_ticker` before requesting OHLC data.
+
 `market.get_volume_series` accepts the same ticker, mode, cutoff, optional
 inclusive date bounds, date-only policy, and limit shape. It returns one
 provider-native volume series selected from the exact same Stage 10 rows. Its
 unit is not normalized, and volume-adjustment and session-calendar semantics
 are explicitly not established.
 
-`market.technical_indicators` must be selected explicitly at version
-`2.0.0`; omitted version selection preserves the reconstructed v1
-`not_established` behavior. Version 2 is store-free. Pass its `series`
-array the complete typed scalar series taken from the `series` fields of the
-price and, when required, volume responses. Do not strip or alter their
+`market.technical_indicators` must be selected explicitly at version `2.0.0`,
+`2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `2.5.0`, `2.6.0`, or `2.7.0`;
+omitted version selection preserves the reconstructed v1
+`not_established` behavior. All eight successors are store-free. Version 2.1 adds `supertrend_ai`, version
+2.2 adds `swing_structure_forecast`, version 2.3 adds `kdj`, version 2.4 adds
+`williams_vix_fix`, version 2.5 adds `wavetrend_crosses`, and version 2.6 adds
+`parabolic_sar`; version 2.7 adds `rolling_regression_line`. Pass its
+`series` array the complete typed scalar series taken from the `series` fields
+of the price and, when required, volume responses. Do not strip or alter their
 metadata, audit, observations, provenance, or lineage digests. Supplying the
 full four-series OHLC response is supported even for a close-only calculation.
 
-Version 2 calculates exactly one indicator specification per call and returns
+Version 2.0 calculates exactly one indicator specification per call and returns
 one through three aligned scalar series. The required source fields are:
 
 - `close` for every indicator;
 - `high`, `low`, and `close` for true range, ATR, Donchian,
-  stochastic, ADX, and accumulation/distribution; and
+  stochastic, ADX, accumulation/distribution, v2.1 SuperTrend AI, v2.2
+  Swing Structure Forecast, v2.3 KDJ, v2.5 WaveTrend with Crosses, and v2.6
+  Parabolic SAR;
+- `low` and `close` for v2.4 Williams Vix Fix; and
 - `volume` as well as `close` for OBV, or as well as high/low/close for
   accumulation/distribution.
 
-The `indicator` value is one of `sma`, `ema`,
+For v2.0, the `indicator` value is one of `sma`, `ema`,
 `rolling_standard_deviation`, `rolling_z_score`, `true_range`,
 `average_true_range`, `rate_of_change`,
 `relative_strength_index`, `macd`, `bollinger_bands`,
@@ -163,6 +373,460 @@ reported on a 0-to-100 percentage scale, flat RSI is defined as 50, OBV starts
 at zero, and accumulation/distribution treats a zero high-low range as zero
 money-flow volume. These are descriptive transformations, not buy/sell
 signals.
+
+### Technical-indicator quick start
+
+Pin the explicit successor and inspect it before integrating:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.0.0
+```
+
+The API envelope remains version `1.0`; the separately selected tool version
+is `2.0.0` through `2.7.0`. Every v2 call must therefore contain
+`"api_version":"1.0"` and the exact `"tool_version"` returned by
+`describe`. Omitting `tool_version` selects the reconstructed v1 contract
+instead.
+
+The table below is a navigation aid; the current `describe` result remains
+the machine-readable authority. `close` is required in every call, even when
+the formula primarily uses high and low. `open` is accepted but no formula
+requires it. The `limit` field is also required, must be between 1 and 10,000,
+and must be at least the supplied bar count; it is a resource ceiling, not a
+request to trim an input. Supply at most five source series. Every nullable
+parameter not listed for the chosen indicator must still be present as
+`null`.
+
+`ema` is close-only and requires its caller-supplied `window`; use runtime
+`describe` for the selected version's schema and limits.
+
+| `indicator` | Required input fields | Non-null parameters | Output components |
+| --- | --- | --- | --- |
+| `sma` | close | `window` | `sma` |
+| `ema` | close | `window` | `ema` |
+| `rolling_regression_line` | close | `window` (2 through 10,000) | `rolling_regression_line` |
+| `rolling_standard_deviation` | close | `window` (at least 2) | `rolling_standard_deviation` |
+| `rolling_z_score` | close | `window` (at least 2) | `rolling_z_score` |
+| `true_range` | high, low, close | none | `true_range` |
+| `average_true_range` | high, low, close | `window` | `average_true_range` |
+| `rate_of_change` | close | `window` | `rate_of_change` |
+| `relative_strength_index` | close | `window` | `relative_strength_index` |
+| `macd` | close | `fast_window`, `slow_window`, `signal_window`; fast must be below slow | `macd_line`, `signal_line`, `histogram` |
+| `bollinger_bands` | close | `window` (at least 2), `standard_deviation_multiplier` (greater than 0 and at most 10) | `middle_band`, `upper_band`, `lower_band` |
+| `donchian_channels` | high, low, close | `window` | `upper_channel`, `middle_channel`, `lower_channel` |
+| `stochastic_oscillator` | high, low, close | `window`, `signal_window` | `percent_k`, `percent_d` |
+| `average_directional_index` | high, low, close | `window` | `plus_di`, `minus_di`, `adx` |
+| `on_balance_volume` | close, volume | none | `on_balance_volume` |
+| `accumulation_distribution` | high, low, close, volume | none | `accumulation_distribution` |
+
+#### SuperTrend AI at v2.1
+
+Inspect and pin the additive successor for this calculation:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.1.0
+```
+
+`supertrend_ai` requires high, low, and close plus these non-null fields:
+
+| Field | Pine-equivalent default | Contract |
+| --- | ---: | --- |
+| `window` | 10 | ATR length, integer from 1 through 10,000 |
+| `minimum_factor` | 1 | finite number from 0 through 100 |
+| `maximum_factor` | 5 | finite number from the minimum through 100 |
+| `factor_step` | 0.5 | finite number greater than 0 and at most 100 |
+| `performance_memory` | 10 | finite number from 2 through 10,000 |
+| `cluster` | `best` | exactly `best`, `average`, or `worst` |
+
+The factor grid must contain 3 through 101 candidates. Set `fast_window`,
+`slow_window`, `signal_window`, and `standard_deviation_multiplier` to `null`.
+The five output components are `trailing_stop`,
+`adaptive_moving_average`, `trend`, `performance_index`, and `target_factor`.
+`trend` is the numeric regime state 0 or 1; it is not a buy/sell event.
+
+The conversion deliberately uses the request's causal input range. The
+required `limit` replaces Pine's last-bar-relative `maxData`; it must cover the
+supplied observations, and the host rejects an excessive bars-by-factor-grid
+workload. Pine's default inclusive `0..1000` clustering loop is fixed as a
+1,001-assignment cap. Empty clusters retain their prior centroids. Colors,
+candle gradients, labels, signals, tables, and dashboard settings are not part
+of the analytical result.
+
+#### Swing Structure Forecast at v2.2
+
+Inspect and pin the additive successor for this calculation:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.2.0
+```
+
+`swing_structure_forecast` requires high, low, and close plus these non-null
+fields:
+
+| Field | Pine-equivalent default | Contract |
+| --- | ---: | --- |
+| `window` | 16 | swing length, integer from 10 through 5,000 |
+| `sample_count` | 20 | newest completed swing legs retained, integer from 3 through 20 |
+| `aggregation_method` | `weighted` | exactly `weighted`, `average`, or `median` |
+
+Set `fast_window`, `slow_window`, `signal_window`,
+`standard_deviation_multiplier`, `minimum_factor`, `maximum_factor`,
+`factor_step`, `performance_memory`, and `cluster` to `null`. The ten output
+components, in order, are `confirmed_swing_high`, `confirmed_swing_low`,
+`swing_direction`, `forecast_origin`, `forecast_target`,
+`forecast_percent`, `forecast_duration_bars`,
+`forecast_standard_deviation`, `forecast_band_half`, and
+`forecast_origin_age_bars`. Direction is `1` for bullish and `-1` for bearish
+after warm-up; duration and age are bar counts.
+
+The conversion preserves one-bar pivot confirmation, the source's low-test
+win when the current bar is both rolling extremes, newest-sample retention,
+population forecast dispersion, and fixed Wilder ATR(200) as the minimum band
+width. The underlying calculation resets state on a missing value, while the
+public call inherits v2's stricter rule and rejects any missing input
+observation before calculation. Because Pine draws
+its forecast only on the latest chart bar, the tool causally unrolls the
+calculation: every output row is the latest-bar result for exactly that input
+prefix. It does not invent a future trading date. Forecast-bar placement,
+beams, target boxes, dots, Fibonacci drawings, support/resistance objects,
+alerts, colors, and labels are excluded presentation behavior.
+
+#### KDJ at v2.3
+
+Inspect and pin the additive successor for this calculation:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.3.0
+```
+
+`kdj` requires high, low, and close plus these non-null fields:
+
+| Field | Pine-equivalent default | Contract |
+| --- | ---: | --- |
+| `window` | 9 | Pine `ilong`: rolling high/low period, integer from 1 through 10,000 |
+| `signal_window` | 3 | Pine `isig`: BCWSMA length for K and D, integer from 1 through 10,000 |
+
+Set every other indicator field to `null`. The outputs are `percent_k`,
+`percent_d`, and `percent_j`; before the complete `window`, all three report
+`insufficient_history`. RSV uses the complete rolling high/low window. K and
+D use the Pine BCWSMA recurrence with weight 1 and an `nz` previous value of
+zero; J is `3 * K - 2 * D` and is not clamped. A flat high/low window reports
+`zero_price_range`; at the next valid RSV, both recurrences restart from zero.
+Public calls reject source observations containing null or missing values.
+Plot colors, background shading, and the 20/80 guide lines are presentation
+behavior and are excluded.
+
+#### Williams Vix Fix at v2.4
+
+Inspect and pin the additive successor for this calculation:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.4.0
+```
+
+`williams_vix_fix` requires low and close plus these non-null fields. The
+contract has no implicit parameter defaults; the values below are a common
+Pine-compatible request and must be sent explicitly.
+
+| Field | Example value | Contract |
+| --- | ---: | --- |
+| `window` | 22 | highest-close lookback, integer from 1 through 10,000 |
+| `signal_window` | 20 | Bollinger lookback, integer from 1 through 10,000 |
+| `standard_deviation_multiplier` | 2 | finite number from 1 through 5 |
+| `percentile_window` | 50 | percentile lookback, integer from 1 through 10,000 |
+| `percentile_high_factor` | 0.85 | finite number greater than 0 and at most 1 |
+| `percentile_low_factor` | 1.01 | finite number from 1 through 10 |
+
+Set every other indicator parameter field to `null`. The four outputs are
+`williams_vix_fix`, `upper_band`, `range_high`, and `range_low`. The
+Bollinger threshold uses population standard deviation, and every threshold
+uses a full rolling window. A zero highest close is explicit missingness.
+Display toggles, colors, and plot styles are excluded presentation behavior.
+
+#### WaveTrend with Crosses at v2.5
+
+Inspect and pin the additive successor for this calculation:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.5.0
+```
+
+`wavetrend_crosses` requires high, low, and close plus these non-null fields:
+
+| Field | Pine-equivalent default | Contract |
+| --- | ---: | --- |
+| `window` | 10 | channel length, integer from 1 through 10,000 |
+| `signal_window` | 21 | average length, integer from 1 through 10,000 |
+
+Set every other indicator parameter field to `null`. The four outputs are
+`wavetrend`, `wavetrend_signal`, `wavetrend_difference`, and
+`wavetrend_cross_signal`. The calculation uses HLC3, SMA-seeded EMAs, fixed
+`0.015` channel scaling, and the source's fixed four-bar SMA signal. The cross
+component is `1` for a bullish cross, `-1` for a bearish cross, and `0`
+otherwise. A zero smoothed channel deviation is explicit
+`zero_channel_deviation` missingness. Overbought and oversold levels, plot
+colors, area fill, cross circles, and bar colors are presentation behavior and
+are excluded.
+
+#### Parabolic SAR at v2.6
+
+Inspect and pin the additive successor for this calculation:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.6.0
+```
+
+`parabolic_sar` requires high, low, and close plus finite `start`,
+`increment`, and `maximum` numbers. The contract has no implicit parameter
+defaults; a conventional Pine-compatible request sends `0.02`, `0.02`, and
+`0.2`, respectively. Set every other indicator parameter field to `null`.
+
+The single output is `parabolic_sar`. The first bar has explicit
+`insufficient_sar_history` missingness. The causal recurrence initializes
+trend from consecutive closes, increments acceleration only at new extremes,
+resets acceleration and the extreme on reversal, and clamps the stop against
+the prior two lows or highs. Missing OHLC resets recursive state. Plot crosses,
+colors, timeframe controls, and chart-gap presentation are excluded.
+
+
+#### Rolling regression line at v2.7
+
+Inspect the explicit successor before constructing a request; runtime
+`describe` is the schema authority:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+```
+
+`rolling_regression_line` requires close plus an explicit integer `window`
+from 2 through 10,000; every other nullable indicator parameter must be
+`null`. At each bar it fits ordinary least squares over exactly the trailing
+complete window including the current close, with x values 0 through
+`window - 1`, and emits the fitted value at x = `window - 1`.
+
+The output is a single aligned `rolling_regression_line` price series. It is
+causal and retains the full input grid: warm-up rows report
+`insufficient_history`; any null close inside the trailing window reports
+`rolling_window_input_missing`; and valid output resumes immediately when
+that gap leaves the trailing window.
+
+
+This standard-library v2.0 example is suitable for an agent running from another
+local project. It reads a bounded, non-truncated SPY window and passes the
+complete typed OHLC series to Bollinger Bands without reconstructing or
+editing any series metadata:
+
+```python
+import json
+import subprocess
+
+TOOLS = "/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools"
+
+
+def call(tool, arguments, *, tool_version=None):
+    envelope = {
+        "api_version": "1.0",
+        "tool": tool,
+        "arguments": arguments,
+    }
+    if tool_version is not None:
+        envelope["tool_version"] = tool_version
+    completed = subprocess.run(
+        [TOOLS, "call"],
+        input=json.dumps(envelope, allow_nan=False, separators=(",", ":")),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=False,
+    )
+    response = json.loads(completed.stdout)
+    if completed.returncode != 0:
+        error = response.get("error", {})
+        raise RuntimeError(
+            f"{error.get('code', 'tool_error')}: "
+            f"{error.get('message', 'local tool call failed')}"
+        )
+    return response
+
+
+selection = {
+    "ticker": "SPY",
+    "start_date": "2025-01-01",
+    "end_date": "2025-12-31",
+    "mode": "latest",
+    "as_of": None,
+    "date_only_policy": "completed_date",
+    "limit": 10_000,
+}
+price_response = call("market.get_price_series", selection)
+price_result = price_response["result"]
+if price_result["truncation"]["applied"]:
+    raise RuntimeError("Choose a smaller date range; indicator inputs cannot be truncated")
+
+indicator_response = call(
+    "market.technical_indicators",
+    {
+        "series": price_result["series"],
+        "indicator": "bollinger_bands",
+        "window": 20,
+        "fast_window": None,
+        "slow_window": None,
+        "signal_window": None,
+        "standard_deviation_multiplier": 2,
+        "limit": 10_000,
+    },
+    tool_version="2.0.0",
+)
+
+for output in indicator_response["result"]["series"]:
+    print(output["metadata"]["component"], len(output["observations"]))
+```
+
+Using the same `call`, `price_result`, and truncation check, the Pine-equivalent
+default SuperTrend AI calculation is:
+
+```python
+supertrend_response = call(
+    "market.technical_indicators",
+    {
+        "series": price_result["series"],
+        "indicator": "supertrend_ai",
+        "window": 10,
+        "fast_window": None,
+        "slow_window": None,
+        "signal_window": None,
+        "standard_deviation_multiplier": None,
+        "minimum_factor": 1,
+        "maximum_factor": 5,
+        "factor_step": 0.5,
+        "performance_memory": 10,
+        "cluster": "best",
+        "limit": 10_000,
+    },
+    tool_version="2.1.0",
+)
+
+for output in supertrend_response["result"]["series"]:
+    print(output["metadata"]["component"], len(output["observations"]))
+```
+
+The Pine-equivalent default Swing Structure Forecast calculation is:
+
+```python
+swing_response = call(
+    "market.technical_indicators",
+    {
+        "series": price_result["series"],
+        "indicator": "swing_structure_forecast",
+        "window": 16,
+        "fast_window": None,
+        "slow_window": None,
+        "signal_window": None,
+        "standard_deviation_multiplier": None,
+        "minimum_factor": None,
+        "maximum_factor": None,
+        "factor_step": None,
+        "performance_memory": None,
+        "cluster": None,
+        "sample_count": 20,
+        "aggregation_method": "weighted",
+        "limit": 10_000,
+    },
+    tool_version="2.2.0",
+)
+
+for output in swing_response["result"]["series"]:
+    print(output["metadata"]["component"], len(output["observations"]))
+```
+
+The Pine-equivalent default KDJ calculation is:
+
+```python
+kdj_response = call(
+    "market.technical_indicators",
+    {
+        "series": price_result["series"],
+        "indicator": "kdj",
+        "window": 9,
+        "fast_window": None,
+        "slow_window": None,
+        "signal_window": 3,
+        "standard_deviation_multiplier": None,
+        "minimum_factor": None,
+        "maximum_factor": None,
+        "factor_step": None,
+        "performance_memory": None,
+        "cluster": None,
+        "sample_count": None,
+        "aggregation_method": None,
+        "limit": 10_000,
+    },
+    tool_version="2.3.0",
+)
+
+for output in kdj_response["result"]["series"]:
+    print(output["metadata"]["component"], len(output["observations"]))
+```
+
+Using the same unmodified `price_result`, a conventional Parabolic SAR
+request is:
+
+```python
+psar_response = call(
+    "market.technical_indicators",
+    {
+        "series": price_result["series"],
+        "indicator": "parabolic_sar",
+        "window": None,
+        "fast_window": None,
+        "slow_window": None,
+        "signal_window": None,
+        "standard_deviation_multiplier": None,
+        "minimum_factor": None,
+        "maximum_factor": None,
+        "factor_step": None,
+        "performance_memory": None,
+        "cluster": None,
+        "sample_count": None,
+        "aggregation_method": None,
+        "percentile_window": None,
+        "percentile_high_factor": None,
+        "percentile_low_factor": None,
+        "start": 0.02,
+        "increment": 0.02,
+        "maximum": 0.2,
+        "limit": 10_000,
+    },
+    tool_version="2.6.0",
+)
+
+for output in psar_response["result"]["series"]:
+    print(output["metadata"]["component"], len(output["observations"]))
+```
+
+
+
+For OBV or accumulation/distribution, call `market.get_volume_series` with
+the exact same `selection`, reject a truncated result, and concatenate its
+unchanged `result.series` array to `price_result["series"]`. Preserve both
+source receipts with the indicator receipt. If any source selection differs
+in instrument, dates, mode, cutoff, capture identity, or period grid, the
+indicator call correctly fails closed. Do not trim, merge, or synthesize
+source metadata, audits, observations, provenance, or lineage.
+
+A successful technical-indicator successor call returns the wrapper fields
+`api_version`, `execution`, `tool`, `result`, and `receipt`. The result is a
+`QueryResultV1` with one to
+three derived `result.series` entries for v2.0, one to five for v2.1, one to
+ten for v2.2, three for v2.3 KDJ, four for v2.4 Williams Vix Fix, four for v2.5
+WaveTrend, one for v2.6 Parabolic SAR, or one for the v2.7 rolling regression
+line, in the component order shown above,
+one `technical_indicator_component` record per series, diagnostics, warnings,
+lineage, and `truncation.applied: false`. Each derived series identifies its
+indicator, component, parameters, and source fields in metadata. Its
+observations retain the complete input grid; warm-up and undefined points use
+`value: null` plus `missing_reason`. Keep the full wrapper and receipt with
+downstream work rather than retaining only the numeric values.
 
 The canonical macro interface is explicit version `2.0.0`. Start with
 `macro.search_series`, then `macro.describe_series`, and pass the returned
@@ -263,18 +927,21 @@ identifiers without exposing local paths or source payloads.
 
 Use tools as a sequence of validated typed results:
 
-1. Discover symbols with `market.get_available_ticker`.
-2. Retrieve raw OHLC with `market.get_price_series` for one returned ticker.
-3. Retrieve provider-native volume with `market.get_volume_series` when the
+1. If starting from a name or partial symbol, search retained identities with
+   `market.search_instruments@2.0.0`.
+2. Confirm retrievable price coverage with `market.get_available_ticker`.
+3. Retrieve raw OHLC with `market.get_price_series` for one returned ticker.
+4. Retrieve provider-native volume with `market.get_volume_series` when the
    analysis needs it.
-4. For descriptive technical analysis, pass those unmodified typed series to
-   `market.technical_indicators@2.0.0`, one indicator specification per call.
-5. Use the selected return tool version to produce compatible return series.
-6. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
+5. For descriptive technical analysis, pass those unmodified typed series to
+   the explicitly described `market.technical_indicators` successor version,
+   one indicator specification per call.
+6. Use the selected return tool version to produce compatible return series.
+7. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
    limitation before inference.
-7. Feed compatible, non-truncated series into the explicitly selected
+8. Feed compatible, non-truncated series into the explicitly selected
    transformation, general-statistics, or econometrics contract.
-8. Preserve each response's receipt, lineage, point-in-time policy, and
+9. Preserve each response's receipt, lineage, point-in-time policy, and
    warnings with the final research artifact.
 
 For macro work, search and describe with explicit v2 first, retrieve the

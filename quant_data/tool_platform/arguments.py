@@ -96,6 +96,153 @@ class SearchArguments(_ArgumentMapping):
 
 
 @dataclass(frozen=True, slots=True)
+class CurrentNewsSearchArgumentsV2(_ArgumentMapping):
+    """Search the retained current FMP stock-news feed."""
+
+    INPUT_KIND: ClassVar[str] = "current_news_search_v2"
+
+    query: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            max_length=500,
+        ),
+        default="",
+    )
+    symbols: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=50,
+            item=_InputField(types=("string",), min_length=1, max_length=64),
+            form="array",
+        ),
+        default=(),
+    )
+    mode: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            enum=("latest", "as_of"),
+        ),
+        default="latest",
+    )
+    as_of: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False),
+        default=None,
+    )
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            enum=("completed_date", "calendar_date_inclusive"),
+        ),
+        default="completed_date",
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False),
+        default=None,
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False),
+        default=None,
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=1,
+            maximum=500,
+        ),
+        default=100,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CompanyFilingSearchArgumentsV2(_ArgumentMapping):
+    """Typed keyset-paginated filing search over one exact SEC CIK."""
+
+    INPUT_KIND: ClassVar[str] = "company_filing_search_v2"
+
+    query: str = _typed_field(
+        _InputField(types=("string",), min_length=10, max_length=10)
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    cursor: str | None = _typed_field(
+        _InputField(types=("string", "null"), max_length=1_024)
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=500)
+    )
+
+
+
+@dataclass(frozen=True, slots=True)
+class CompanyShareCountHistoryArgumentsV2(_ArgumentMapping):
+    """Read the reviewed SEC share-count metric family for one exact CIK."""
+
+    INPUT_KIND: ClassVar[str] = "company_share_count_history_v2"
+
+    cik: str = _typed_field(
+        _InputField(types=("string",), min_length=10, max_length=10)
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10MarketInstrumentSearchArgumentsV2(_ArgumentMapping):
+    """Search the retained current Stage 10 FMP instrument universe."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_market_instrument_search_v2"
+
+    query: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            max_length=64,
+        ),
+        default="",
+    )
+    asset_type: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            required=False,
+            enum=("equity", "etf", "index"),
+        ),
+        default=None,
+    )
+    cursor: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            required=False,
+            max_length=1_024,
+        ),
+        default=None,
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=1,
+            maximum=100,
+        ),
+        default=100,
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class QueryArguments(_ArgumentMapping):
     """Typed contract for a generic registered query."""
 
@@ -259,6 +406,627 @@ class Stage10TechnicalIndicatorArgumentsV2(_ArgumentMapping):
 
 
 @dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV21(_ArgumentMapping):
+    """Add clustered SuperTrend AI to the typed OHLCV indicator contract."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_1"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV22(_ArgumentMapping):
+    """Add the causal BOSWaves swing-structure forecast contract."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_2"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+                "swing_structure_forecast",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    sample_count: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=3, maximum=20)
+    )
+    aggregation_method: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("weighted", "average", "median"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV23(_ArgumentMapping):
+    """Add KDJ to the typed OHLCV indicator contract."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_3"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+                "swing_structure_forecast",
+                "kdj",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    sample_count: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=3, maximum=20)
+    )
+    aggregation_method: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("weighted", "average", "median"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV24(_ArgumentMapping):
+    """Add Williams Vix Fix and its percentile thresholds."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_4"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+                "swing_structure_forecast",
+                "kdj",
+                "williams_vix_fix",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    sample_count: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=3, maximum=20)
+    )
+    aggregation_method: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("weighted", "average", "median"),
+        )
+    )
+    percentile_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    percentile_high_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=1)
+    )
+    percentile_low_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=1, maximum=10)
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV25(_ArgumentMapping):
+    """Add the WaveTrend oscillator and signed cross events."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_5"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+                "swing_structure_forecast",
+                "kdj",
+                "williams_vix_fix",
+                "wavetrend_crosses",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    sample_count: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=3, maximum=20)
+    )
+    aggregation_method: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("weighted", "average", "median"),
+        )
+    )
+    percentile_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    percentile_high_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=1)
+    )
+    percentile_low_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=1, maximum=10)
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV26(_ArgumentMapping):
+    """Add the Pine-compatible Parabolic SAR price overlay."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_6"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+                "swing_structure_forecast",
+                "kdj",
+                "williams_vix_fix",
+                "wavetrend_crosses",
+                "parabolic_sar",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    sample_count: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=3, maximum=20)
+    )
+    aggregation_method: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("weighted", "average", "median"),
+        )
+    )
+    percentile_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    percentile_high_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=1)
+    )
+    percentile_low_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=1, maximum=10)
+    )
+    start: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    increment: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    maximum: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10TechnicalIndicatorArgumentsV27(_ArgumentMapping):
+    """Add a caller-windowed rolling ordinary-least-squares regression line."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_technical_indicator_v2_7"
+
+    series: tuple[TimeSeries, ...] = _typed_field(
+        _InputField(min_items=1, max_items=5, form="series_array")
+    )
+    indicator: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "sma",
+                "ema",
+                "rolling_regression_line",
+                "rolling_standard_deviation",
+                "rolling_z_score",
+                "true_range",
+                "average_true_range",
+                "rate_of_change",
+                "relative_strength_index",
+                "macd",
+                "bollinger_bands",
+                "donchian_channels",
+                "stochastic_oscillator",
+                "average_directional_index",
+                "on_balance_volume",
+                "accumulation_distribution",
+                "supertrend_ai",
+                "swing_structure_forecast",
+                "kdj",
+                "williams_vix_fix",
+                "wavetrend_crosses",
+                "parabolic_sar",
+            ),
+        )
+    )
+    window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    fast_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    slow_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    signal_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    standard_deviation_multiplier: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    minimum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    maximum_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    factor_step: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=100)
+    )
+    performance_memory: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=2, maximum=10_000)
+    )
+    cluster: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("best", "average", "worst"),
+        )
+    )
+    sample_count: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=3, maximum=20)
+    )
+    aggregation_method: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            enum=("weighted", "average", "median"),
+        )
+    )
+    percentile_window: int | None = _typed_field(
+        _InputField(types=("integer", "null"), minimum=1, maximum=10_000)
+    )
+    percentile_high_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=0, maximum=1)
+    )
+    percentile_low_factor: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"), minimum=1, maximum=10)
+    )
+    start: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    increment: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    maximum: Decimal | None = _typed_field(
+        _InputField(types=("number", "null"))
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class CanonicalMacroSearchArgumentsV2(_ArgumentMapping):
     """Search the current retained canonical macro catalog."""
 
@@ -367,6 +1135,493 @@ class MacroReleaseCalendarArgumentsV1(_ArgumentMapping):
             types=("string",), required=False, max_length=256
         ),
         default=None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MacroReleaseCalendarArgumentsV2(_ArgumentMapping):
+    """Continue the retained release calendar with a query-bound cursor."""
+
+    INPUT_KIND: ClassVar[str] = "macro_release_calendar_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=10_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    event_name: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False, max_length=256),
+        default=None,
+    )
+    cursor: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False, max_length=2_048),
+        default=None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10CrossSectionalPerformanceArgumentsV2(_ArgumentMapping):
+    """Compare endpoint returns for an explicit bounded ticker list."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_cross_sectional_performance_v2"
+
+    tickers: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            min_items=2,
+            max_items=50,
+            item=_InputField(types=("string",), min_length=1, max_length=32),
+            form="array",
+        )
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=2, maximum=10_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class Stage10CrossSectionalAnalyticsArgumentsV21(_ArgumentMapping):
+    """Compute bounded breadth and benchmark-relative risk diagnostics."""
+
+    INPUT_KIND: ClassVar[str] = "stage10_cross_sectional_analytics_v2_1"
+
+    tickers: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            min_items=2,
+            max_items=50,
+            item=_InputField(types=("string",), min_length=1, max_length=32),
+            form="array",
+        )
+    )
+    benchmark_ticker: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=32)
+    )
+    window: int = _typed_field(
+        _InputField(types=("integer",), minimum=2, maximum=252)
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=3, maximum=10_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class EnergyElectricityRetailArgumentsV2(_ArgumentMapping):
+    """Read one populated U.S. all-sector electricity retail metric."""
+
+    INPUT_KIND: ClassVar[str] = "energy_electricity_retail_v2"
+
+    metric: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("sales", "revenue", "price", "customers"),
+        )
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=1_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class EnergyWeeklyFundamentalsArgumentsV2(_ArgumentMapping):
+    """Read the populated weekly U.S. petroleum-stock series."""
+
+    INPUT_KIND: ClassVar[str] = "energy_weekly_fundamentals_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=5_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CompanyFundamentalsArgumentsV2(_ArgumentMapping):
+    """Read normalized reviewed company facts without derived ratios."""
+
+    INPUT_KIND: ClassVar[str] = "company_fundamentals_v2"
+
+    cik: str = _typed_field(
+        _InputField(types=("string",), min_length=10, max_length=10)
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=1_000)
+    )
+    metric_codes: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=50,
+            item=_InputField(types=("string",), min_length=1, max_length=200),
+            form="array",
+        ),
+        default=(),
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CompanyFundamentalRatiosArgumentsV21(_ArgumentMapping):
+    """Compute only reviewed same-period SEC fundamental ratios."""
+
+    INPUT_KIND: ClassVar[str] = "company_fundamental_ratios_v2_1"
+
+    cik: str = _typed_field(
+        _InputField(types=("string",), min_length=10, max_length=10)
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    ratio_codes: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            min_items=1,
+            max_items=2,
+            item=_InputField(
+                types=("string",),
+                enum=("net_margin", "liabilities_to_assets"),
+            ),
+            form="array",
+        )
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), minimum=1, maximum=1_000)
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MacroRevisionArgumentsV2(_ArgumentMapping):
+    """Compare evidenced first releases with current retained latest vintages."""
+
+    INPUT_KIND: ClassVar[str] = "macro_revision_v2"
+
+    series_id: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "macro.gdp.real_qoq_saar_pct",
+                "macro.gdp.nominal_billions",
+                "macro.gdi.real_qoq_saar_pct",
+                "macro.gdi.nominal_billions",
+                "macro.bls.cpi_u_all_items_sa",
+                "macro.bls.cpi_u_core_sa",
+                "macro.bls.total_nonfarm_payrolls_sa",
+                "macro.bls.unemployment_rate_sa",
+                "macro.philadelphia_fed.nominal_output",
+                "macro.philadelphia_fed.real_output",
+            ),
+        )
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=10_000
+        ),
+        default=500,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MacroSurpriseStandardizationArgumentsV2(_ArgumentMapping):
+    """Standardize one reviewed release-surprise kind ex post."""
+
+    INPUT_KIND: ClassVar[str] = "macro_surprise_standardization_v2"
+
+    kind: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=(
+                "us_gdp_real_qoq_saar_advance",
+                "us_cpi_headline_mom",
+                "us_cpi_headline_yoy",
+                "us_cpi_core_mom",
+                "us_cpi_core_yoy",
+                "us_nonfarm_payrolls_change_thousands",
+                "us_unemployment_rate",
+            ),
+        )
+    )
+    release_stage: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            required=False,
+            enum=("advance", "initial", "second", "third"),
+        ),
+        default=None,
+    )
+    start_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    end_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=2, maximum=2_000
+        ),
+        default=500,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MacroObservedSnapshotArgumentsV2(_ArgumentMapping):
+    """Select raw observed macro components with explicit availability mode."""
+
+    INPUT_KIND: ClassVar[str] = "macro_observed_snapshot_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    observation_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=100
+        ),
+        default=20,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class FundingConditionsArgumentsV2(_ArgumentMapping):
+    """Select observed funding rates and an optional direct spread."""
+
+    INPUT_KIND: ClassVar[str] = "funding_conditions_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    observation_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    spread_left: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False, max_length=100),
+        default=None,
+    )
+    spread_right: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False, max_length=100),
+        default=None,
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=100
+        ),
+        default=20,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CurveAnalyticsArgumentsV2(_ArgumentMapping):
+    """Select observed Treasury tenors and an optional direct spread."""
+
+    INPUT_KIND: ClassVar[str] = "curve_analytics_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    observation_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    spread_left_tenor: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False, max_length=20),
+        default=None,
+    )
+    spread_right_tenor: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False, max_length=20),
+        default=None,
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=100
+        ),
+        default=20,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class LiquidityImpulseArgumentsV2(_ArgumentMapping):
+    """Compare raw liquidity components between two explicit period bounds."""
+
+    INPUT_KIND: ClassVar[str] = "liquidity_impulse_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    start_date: str = _typed_field(_InputField(types=("string",)))
+    end_date: str = _typed_field(_InputField(types=("string",)))
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=100
+        ),
+        default=20,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class MacroRegimeArgumentsV2(_ArgumentMapping):
+    """Read direct NBER state and optionally raw contextual components."""
+
+    INPUT_KIND: ClassVar[str] = "macro_regime_v2"
+
+    mode: str = _typed_field(
+        _InputField(types=("string",), enum=("latest", "as_of"))
+    )
+    as_of: str | None = _typed_field(_InputField(types=("string", "null")))
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            enum=("completed_date", "calendar_date_inclusive"),
+        )
+    )
+    observation_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    include_context: bool = _typed_field(
+        _InputField(types=("boolean",), required=False), default=False
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=100
+        ),
+        default=20,
     )
 
 
@@ -850,15 +2105,40 @@ class ResearchSeriesArguments(_ArgumentMapping):
 
 _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     SearchArguments,
+    CurrentNewsSearchArgumentsV2,
+    CompanyFilingSearchArgumentsV2,
+    CompanyShareCountHistoryArgumentsV2,
+    Stage10MarketInstrumentSearchArgumentsV2,
     QueryArguments,
     Stage10AvailableTickerArgumentsV1,
     Stage10MarketPriceArgumentsV1,
     Stage10MarketVolumeArgumentsV1,
     Stage10TechnicalIndicatorArgumentsV2,
+    Stage10TechnicalIndicatorArgumentsV21,
+    Stage10TechnicalIndicatorArgumentsV22,
+    Stage10TechnicalIndicatorArgumentsV23,
+    Stage10TechnicalIndicatorArgumentsV25,
+    Stage10TechnicalIndicatorArgumentsV26,
+    Stage10TechnicalIndicatorArgumentsV27,
+    Stage10TechnicalIndicatorArgumentsV24,
     CanonicalMacroSearchArgumentsV2,
     CanonicalMacroDescribeArgumentsV2,
     CanonicalMacroSeriesArgumentsV2,
     MacroReleaseCalendarArgumentsV1,
+    MacroReleaseCalendarArgumentsV2,
+    Stage10CrossSectionalPerformanceArgumentsV2,
+    Stage10CrossSectionalAnalyticsArgumentsV21,
+    EnergyElectricityRetailArgumentsV2,
+    EnergyWeeklyFundamentalsArgumentsV2,
+    CompanyFundamentalsArgumentsV2,
+    CompanyFundamentalRatiosArgumentsV21,
+    MacroRevisionArgumentsV2,
+    MacroSurpriseStandardizationArgumentsV2,
+    MacroObservedSnapshotArgumentsV2,
+    FundingConditionsArgumentsV2,
+    CurveAnalyticsArgumentsV2,
+    LiquidityImpulseArgumentsV2,
+    MacroRegimeArgumentsV2,
     Stage10MarketReturnArgumentsV2,
     Stage10MarketDescribeArgumentsV2,
     Stage10MarketAlignArgumentsV2,
@@ -1200,6 +2480,270 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             MappingProxyType({"query": query, "as_of": as_of, "limit": limit}),
         )
 
+    if argument_type is CurrentNewsSearchArgumentsV2:
+        query = _validated_string(
+            mapping.get("query", ""),
+            _field_contract(argument_type, "query"),
+            "/query",
+        ).strip()
+        if any(ord(character) < 32 or ord(character) == 127 for character in query):
+            raise _validation_error(
+                "/query",
+                "control_character",
+                "News search query cannot contain control characters",
+            )
+        symbols_contract = _field_contract(argument_type, "symbols")
+        raw_symbols = mapping.get("symbols", ())
+        if not isinstance(raw_symbols, (list, tuple)):
+            raise _validation_error("/symbols", "type", "Expected an array")
+        if (
+            symbols_contract.max_items is not None
+            and len(raw_symbols) > symbols_contract.max_items
+        ):
+            raise _validation_error(
+                "/symbols",
+                "max_items",
+                "Array exceeds the supported item limit",
+            )
+        assert symbols_contract.item is not None  # module invariant
+        symbols = tuple(
+            _validated_string(
+                item,
+                symbols_contract.item,
+                f"/symbols/{index}",
+            ).strip().upper()
+            for index, item in enumerate(raw_symbols)
+        )
+        if any(not symbol for symbol in symbols):
+            raise _validation_error(
+                "/symbols",
+                "min_length",
+                "News symbols cannot be blank",
+            )
+        if len(set(symbols)) != len(symbols):
+            raise _validation_error(
+                "/symbols",
+                "unique",
+                "News symbols must be unique",
+            )
+        mode_contract = _field_contract(argument_type, "mode")
+        mode = _validated_string(
+            mapping.get("mode", "latest"),
+            mode_contract,
+            "/mode",
+        )
+        if mode not in mode_contract.enum:
+            raise _validation_error("/mode", "enum", "Unsupported news mode")
+        as_of = _optional_temporal(mapping.get("as_of"), "/as_of")
+        if mode == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of",
+                "required_for_as_of",
+                "as_of mode requires a cutoff",
+            )
+        if mode != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of",
+                "only_for_as_of",
+                "Only as_of mode may provide a cutoff",
+            )
+        date_only_policy_contract = _field_contract(
+            argument_type,
+            "date_only_policy",
+        )
+        date_only_policy = _validated_string(
+            mapping.get("date_only_policy", "completed_date"),
+            date_only_policy_contract,
+            "/date_only_policy",
+        )
+        if date_only_policy not in date_only_policy_contract.enum:
+            raise _validation_error(
+                "/date_only_policy",
+                "enum",
+                "Unsupported date-only policy",
+            )
+        start_date = _optional_calendar_date(
+            mapping.get("start_date"),
+            "/start_date",
+        )
+        end_date = _optional_calendar_date(
+            mapping.get("end_date"),
+            "/end_date",
+        )
+        if (
+            start_date is not None
+            and end_date is not None
+            and parse_date(end_date, pointer="/end_date")
+            < parse_date(start_date, pointer="/start_date")
+        ):
+            raise _validation_error(
+                "/end_date",
+                "range",
+                "end_date cannot precede start_date",
+            )
+        limit = _validated_limit(
+            mapping.get("limit", 100),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "query": query,
+                    "symbols": symbols,
+                    "mode": mode,
+                    "as_of": as_of,
+                    "date_only_policy": date_only_policy,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "limit": limit,
+                }
+            ),
+        )
+
+    if argument_type is CompanyFilingSearchArgumentsV2:
+        query = _validated_string(
+            mapping["query"],
+            _field_contract(argument_type, "query"),
+            "/query",
+        )
+        if len(query) != 10 or not query.isdigit():
+            raise _validation_error(
+                "/query",
+                "identity",
+                "Filing search requires one exact ten-digit SEC CIK",
+            )
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        cursor = _optional_bounded_string(
+            mapping["cursor"],
+            _field_contract(argument_type, "cursor"),
+            "/cursor",
+        )
+        limit = _validated_limit(
+            mapping["limit"],
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "query": query,
+                    "as_of": as_of,
+                    "cursor": cursor,
+                    "limit": limit,
+                }
+            ),
+        )
+
+    if argument_type is CompanyShareCountHistoryArgumentsV2:
+        cik = _validated_string(
+            mapping["cik"],
+            _field_contract(argument_type, "cik"),
+            "/cik",
+        )
+        if len(cik) != 10 or not cik.isdigit():
+            raise _validation_error(
+                "/cik",
+                "identity",
+                "Share-count history requires one exact ten-digit SEC CIK",
+            )
+        enum_values: dict[str, str] = {}
+        for field_name in ("mode", "date_only_policy"):
+            contract = _field_contract(argument_type, field_name)
+            value = _validated_string(
+                mapping[field_name],
+                contract,
+                f"/{field_name}",
+            )
+            if value not in contract.enum:
+                raise _validation_error(
+                    f"/{field_name}",
+                    "enum",
+                    f"Unsupported {field_name}",
+                )
+            enum_values[field_name] = value
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        if enum_values["mode"] == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of",
+                "required_for_as_of",
+                "as_of mode requires a cutoff",
+            )
+        if enum_values["mode"] != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of",
+                "only_for_as_of",
+                "Only as_of mode may provide a cutoff",
+            )
+        limit = _validated_limit(
+            mapping["limit"],
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "cik": cik,
+                    "mode": enum_values["mode"],
+                    "as_of": as_of,
+                    "date_only_policy": enum_values["date_only_policy"],
+                    "limit": limit,
+                }
+            ),
+        )
+
+    if argument_type is Stage10MarketInstrumentSearchArgumentsV2:
+        query = _validated_string(
+            mapping.get("query", ""),
+            _field_contract(argument_type, "query"),
+            "/query",
+        )
+        if any(ord(character) < 32 or ord(character) == 127 for character in query):
+            raise _validation_error(
+                "/query",
+                "control_character",
+                "Instrument search query cannot contain control characters",
+            )
+        asset_type = _optional_bounded_string(
+            mapping.get("asset_type"),
+            _field_contract(argument_type, "asset_type"),
+            "/asset_type",
+        )
+        if asset_type is not None and asset_type not in {
+            "equity",
+            "etf",
+            "index",
+        }:
+            raise _validation_error(
+                "/asset_type",
+                "enum",
+                "Instrument asset_type is not supported",
+            )
+        cursor = _optional_bounded_string(
+            mapping.get("cursor"),
+            _field_contract(argument_type, "cursor"),
+            "/cursor",
+        )
+        limit = _validated_limit(
+            mapping.get("limit", 100),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "query": query.strip(),
+                    "asset_type": asset_type,
+                    "cursor": cursor,
+                    "limit": limit,
+                }
+            ),
+        )
+
     if argument_type is QueryArguments:
         identifiers_contract = _field_contract(argument_type, "identifiers")
         raw_identifiers = mapping["identifiers"]
@@ -1398,6 +2942,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
     if argument_type in {
         CanonicalMacroSeriesArgumentsV2,
         MacroReleaseCalendarArgumentsV1,
+        MacroReleaseCalendarArgumentsV2,
     }:
         enum_values: dict[str, str] = {}
         for field_name in ("mode", "date_only_policy"):
@@ -1460,8 +3005,499 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 _field_contract(argument_type, "event_name"),
                 "/event_name",
             )
+            if argument_type is MacroReleaseCalendarArgumentsV2:
+                values["cursor"] = _optional_bounded_string(
+                    mapping.get("cursor"),
+                    _field_contract(argument_type, "cursor"),
+                    "/cursor",
+                )
         return _PreparedArguments(
             argument_type, MappingProxyType(values)
+        )
+
+    if argument_type in {
+        Stage10CrossSectionalPerformanceArgumentsV2,
+        Stage10CrossSectionalAnalyticsArgumentsV21,
+    }:
+        contract = _field_contract(argument_type, "tickers")
+        raw_tickers = mapping["tickers"]
+        if not isinstance(raw_tickers, (list, tuple)):
+            raise _validation_error("/tickers", "type", "Expected an array")
+        if (
+            contract.min_items is not None
+            and len(raw_tickers) < contract.min_items
+        ):
+            raise _validation_error(
+                "/tickers", "min_items", "At least two tickers are required"
+            )
+        if (
+            contract.max_items is not None
+            and len(raw_tickers) > contract.max_items
+        ):
+            raise _validation_error(
+                "/tickers", "max_items", "Ticker array exceeds the supported limit"
+            )
+        assert contract.item is not None
+        tickers = tuple(
+            _validated_string(
+                item, contract.item, f"/tickers/{index}"
+            ).strip().upper()
+            for index, item in enumerate(raw_tickers)
+        )
+        if any(not ticker for ticker in tickers):
+            raise _validation_error(
+                "/tickers", "min_length", "Tickers cannot be blank"
+            )
+        if len(set(tickers)) != len(tickers):
+            raise _validation_error(
+                "/tickers", "duplicate", "Tickers must be unique"
+            )
+        enum_values: dict[str, str] = {}
+        for field_name in ("mode", "date_only_policy"):
+            field_contract = _field_contract(argument_type, field_name)
+            value = _validated_string(
+                mapping[field_name], field_contract, f"/{field_name}"
+            )
+            if value not in field_contract.enum:
+                raise _validation_error(
+                    f"/{field_name}", "enum", f"Unsupported {field_name}"
+                )
+            enum_values[field_name] = value
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        if enum_values["mode"] == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of", "required_for_as_of", "as_of mode requires a cutoff"
+            )
+        if enum_values["mode"] != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of", "only_for_as_of", "Only as_of mode may provide a cutoff"
+            )
+        start_date = _optional_calendar_date(
+            mapping.get("start_date"), "/start_date"
+        )
+        end_date = _optional_calendar_date(mapping.get("end_date"), "/end_date")
+        if (
+            start_date is not None
+            and end_date is not None
+            and parse_date(end_date, pointer="/end_date")
+            < parse_date(start_date, pointer="/start_date")
+        ):
+            raise _validation_error(
+                "/end_date", "range", "end_date cannot precede start_date"
+            )
+        limit = _validated_limit(
+            mapping["limit"], _field_contract(argument_type, "limit"), "/limit"
+        )
+        if len(tickers) * limit > 10_000:
+            raise _validation_error(
+                "/limit",
+                "resource_limit",
+                "Ticker count multiplied by limit cannot exceed 10000",
+            )
+        analytics_values: dict[str, Any] = {}
+        if argument_type is Stage10CrossSectionalAnalyticsArgumentsV21:
+            benchmark_ticker = _validated_string(
+                mapping["benchmark_ticker"],
+                _field_contract(argument_type, "benchmark_ticker"),
+                "/benchmark_ticker",
+            ).strip().upper()
+            if benchmark_ticker not in tickers:
+                raise _validation_error(
+                    "/benchmark_ticker",
+                    "membership",
+                    "benchmark_ticker must be included in tickers",
+                )
+            window = _validated_limit(
+                mapping["window"],
+                _field_contract(argument_type, "window"),
+                "/window",
+            )
+            analytics_values = {
+                "benchmark_ticker": benchmark_ticker,
+                "window": window,
+            }
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "tickers": tickers,
+                    "mode": enum_values["mode"],
+                    "as_of": as_of,
+                    "date_only_policy": enum_values["date_only_policy"],
+                    "limit": limit,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    **analytics_values,
+                }
+            ),
+        )
+
+    if argument_type in {
+        EnergyElectricityRetailArgumentsV2,
+        EnergyWeeklyFundamentalsArgumentsV2,
+        CompanyFundamentalsArgumentsV2,
+        CompanyFundamentalRatiosArgumentsV21,
+    }:
+        enum_values: dict[str, str] = {}
+        for field_name in ("mode", "date_only_policy"):
+            contract = _field_contract(argument_type, field_name)
+            value = _validated_string(
+                mapping[field_name], contract, f"/{field_name}"
+            )
+            if value not in contract.enum:
+                raise _validation_error(
+                    f"/{field_name}", "enum", f"Unsupported {field_name}"
+                )
+            enum_values[field_name] = value
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        if enum_values["mode"] == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of", "required_for_as_of", "as_of mode requires a cutoff"
+            )
+        if enum_values["mode"] != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of", "only_for_as_of", "Only as_of mode may provide a cutoff"
+            )
+        start_date = _optional_calendar_date(
+            mapping.get("start_date"), "/start_date"
+        )
+        end_date = _optional_calendar_date(mapping.get("end_date"), "/end_date")
+        if (
+            start_date is not None
+            and end_date is not None
+            and parse_date(end_date, pointer="/end_date")
+            < parse_date(start_date, pointer="/start_date")
+        ):
+            raise _validation_error(
+                "/end_date", "range", "end_date cannot precede start_date"
+            )
+        limit = _validated_limit(
+            mapping["limit"], _field_contract(argument_type, "limit"), "/limit"
+        )
+        values: dict[str, Any] = {
+            "mode": enum_values["mode"],
+            "as_of": as_of,
+            "date_only_policy": enum_values["date_only_policy"],
+            "limit": limit,
+            "start_date": start_date,
+            "end_date": end_date,
+        }
+        if argument_type is EnergyElectricityRetailArgumentsV2:
+            metric_contract = _field_contract(argument_type, "metric")
+            metric = _validated_string(
+                mapping["metric"], metric_contract, "/metric"
+            )
+            if metric not in metric_contract.enum:
+                raise _validation_error(
+                    "/metric", "enum", "Unsupported electricity retail metric"
+                )
+            values["metric"] = metric
+        elif argument_type is CompanyFundamentalsArgumentsV2:
+            cik = _validated_string(
+                mapping["cik"], _field_contract(argument_type, "cik"), "/cik"
+            )
+            if len(cik) != 10 or not cik.isdigit():
+                raise _validation_error(
+                    "/cik",
+                    "identity",
+                    "Company fundamentals require one exact ten-digit SEC CIK",
+                )
+            metric_contract = _field_contract(argument_type, "metric_codes")
+            raw_metrics = mapping.get("metric_codes", ())
+            if isinstance(raw_metrics, (str, bytes)) or not isinstance(
+                raw_metrics, (list, tuple)
+            ):
+                raise _validation_error(
+                    "/metric_codes", "type", "Expected an array"
+                )
+            if (
+                metric_contract.max_items is not None
+                and len(raw_metrics) > metric_contract.max_items
+            ):
+                raise _validation_error(
+                    "/metric_codes",
+                    "max_items",
+                    "Metric-code array exceeds the supported limit",
+                )
+            assert metric_contract.item is not None
+            metric_codes = tuple(
+                _validated_string(
+                    item,
+                    metric_contract.item,
+                    f"/metric_codes/{index}",
+                ).strip()
+                for index, item in enumerate(raw_metrics)
+            )
+            if any(not item for item in metric_codes):
+                raise _validation_error(
+                    "/metric_codes", "min_length", "Metric codes cannot be blank"
+                )
+            if len(set(metric_codes)) != len(metric_codes):
+                raise _validation_error(
+                    "/metric_codes", "duplicate", "Metric codes must be unique"
+                )
+            values["cik"] = cik
+            values["metric_codes"] = metric_codes
+        elif argument_type is CompanyFundamentalRatiosArgumentsV21:
+            cik = _validated_string(
+                mapping["cik"],
+                _field_contract(argument_type, "cik"),
+                "/cik",
+            )
+            if len(cik) != 10 or not cik.isdigit():
+                raise _validation_error(
+                    "/cik",
+                    "identity",
+                    "Company ratios require one exact ten-digit SEC CIK",
+                )
+            ratio_contract = _field_contract(argument_type, "ratio_codes")
+            raw_ratios = mapping["ratio_codes"]
+            if not isinstance(raw_ratios, (list, tuple)):
+                raise _validation_error("/ratio_codes", "type", "Expected an array")
+            assert ratio_contract.item is not None
+            ratio_codes = tuple(
+                _validated_string(
+                    item,
+                    ratio_contract.item,
+                    f"/ratio_codes/{index}",
+                ).strip()
+                for index, item in enumerate(raw_ratios)
+            )
+            if not (
+                int(ratio_contract.min_items or 0)
+                <= len(ratio_codes)
+                <= int(ratio_contract.max_items or len(ratio_codes))
+            ):
+                raise _validation_error(
+                    "/ratio_codes",
+                    "item_count",
+                    "Ratio-code array must contain one or two items",
+                )
+            if any(
+                not code or code not in ratio_contract.item.enum
+                for code in ratio_codes
+            ):
+                raise _validation_error(
+                    "/ratio_codes",
+                    "enum",
+                    "Unsupported company ratio code",
+                )
+            if len(set(ratio_codes)) != len(ratio_codes):
+                raise _validation_error(
+                    "/ratio_codes",
+                    "duplicate",
+                    "Ratio codes must be unique",
+                )
+            values["cik"] = cik
+            values["ratio_codes"] = ratio_codes
+        return _PreparedArguments(argument_type, MappingProxyType(values))
+
+    if argument_type in {
+        MacroRevisionArgumentsV2,
+        MacroSurpriseStandardizationArgumentsV2,
+    }:
+        identity_field = (
+            "series_id"
+            if argument_type is MacroRevisionArgumentsV2
+            else "kind"
+        )
+        identity_contract = _field_contract(argument_type, identity_field)
+        identity = _validated_string(
+            mapping[identity_field],
+            identity_contract,
+            f"/{identity_field}",
+        )
+        if identity not in identity_contract.enum:
+            raise _validation_error(
+                f"/{identity_field}",
+                "enum",
+                f"Unsupported {identity_field}",
+            )
+        start_date = _optional_calendar_date(
+            mapping.get("start_date"), "/start_date"
+        )
+        end_date = _optional_calendar_date(mapping.get("end_date"), "/end_date")
+        if (
+            start_date is not None
+            and end_date is not None
+            and parse_date(end_date, pointer="/end_date")
+            < parse_date(start_date, pointer="/start_date")
+        ):
+            raise _validation_error(
+                "/end_date", "range", "end_date cannot precede start_date"
+            )
+        limit = _validated_limit(
+            mapping.get("limit", 500),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        values: dict[str, Any] = {
+            identity_field: identity,
+            "start_date": start_date,
+            "end_date": end_date,
+            "limit": limit,
+        }
+        if argument_type is MacroSurpriseStandardizationArgumentsV2:
+            stage_contract = _field_contract(argument_type, "release_stage")
+            release_stage = _optional_bounded_string(
+                mapping.get("release_stage"),
+                stage_contract,
+                "/release_stage",
+            )
+            if release_stage is not None and release_stage not in stage_contract.enum:
+                raise _validation_error(
+                    "/release_stage", "enum", "Unsupported release stage"
+                )
+            if (
+                release_stage is not None
+                and identity != "us_gdp_real_qoq_saar_advance"
+            ):
+                raise _validation_error(
+                    "/release_stage",
+                    "not_applicable",
+                    "release_stage applies only to GDP advance events",
+                )
+            values["release_stage"] = release_stage
+        return _PreparedArguments(argument_type, MappingProxyType(values))
+
+    if argument_type in {
+        MacroObservedSnapshotArgumentsV2,
+        FundingConditionsArgumentsV2,
+        CurveAnalyticsArgumentsV2,
+        MacroRegimeArgumentsV2,
+    }:
+        enum_values: dict[str, str] = {}
+        for field_name in ("mode", "date_only_policy"):
+            contract = _field_contract(argument_type, field_name)
+            value = _validated_string(
+                mapping[field_name], contract, f"/{field_name}"
+            )
+            if value not in contract.enum:
+                raise _validation_error(
+                    f"/{field_name}", "enum", f"Unsupported {field_name}"
+                )
+            enum_values[field_name] = value
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        if enum_values["mode"] == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of", "required_for_as_of", "as_of mode requires a cutoff"
+            )
+        if enum_values["mode"] != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of", "only_for_as_of", "Only as_of mode may provide a cutoff"
+            )
+        observation_date = _optional_calendar_date(
+            mapping.get("observation_date"), "/observation_date"
+        )
+        limit = _validated_limit(
+            mapping.get("limit", 20),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        values = {
+            "mode": enum_values["mode"],
+            "as_of": as_of,
+            "date_only_policy": enum_values["date_only_policy"],
+            "observation_date": observation_date,
+            "limit": limit,
+        }
+        if argument_type is FundingConditionsArgumentsV2:
+            left = _optional_bounded_string(
+                mapping.get("spread_left"),
+                _field_contract(argument_type, "spread_left"),
+                "/spread_left",
+            )
+            right = _optional_bounded_string(
+                mapping.get("spread_right"),
+                _field_contract(argument_type, "spread_right"),
+                "/spread_right",
+            )
+            if (left is None) != (right is None):
+                raise _validation_error(
+                    "/spread_right",
+                    "paired",
+                    "Both funding spread components are required together",
+                )
+            values["spread_left"] = left
+            values["spread_right"] = right
+        elif argument_type is CurveAnalyticsArgumentsV2:
+            left = _optional_bounded_string(
+                mapping.get("spread_left_tenor"),
+                _field_contract(argument_type, "spread_left_tenor"),
+                "/spread_left_tenor",
+            )
+            right = _optional_bounded_string(
+                mapping.get("spread_right_tenor"),
+                _field_contract(argument_type, "spread_right_tenor"),
+                "/spread_right_tenor",
+            )
+            if (left is None) != (right is None):
+                raise _validation_error(
+                    "/spread_right_tenor",
+                    "paired",
+                    "Both curve spread tenors are required together",
+                )
+            values["spread_left_tenor"] = left
+            values["spread_right_tenor"] = right
+        elif argument_type is MacroRegimeArgumentsV2:
+            include_context = mapping.get("include_context", False)
+            if not isinstance(include_context, bool):
+                raise _validation_error(
+                    "/include_context", "type", "Expected a boolean"
+                )
+            values["include_context"] = include_context
+        return _PreparedArguments(argument_type, MappingProxyType(values))
+
+    if argument_type is LiquidityImpulseArgumentsV2:
+        enum_values: dict[str, str] = {}
+        for field_name in ("mode", "date_only_policy"):
+            contract = _field_contract(argument_type, field_name)
+            value = _validated_string(
+                mapping[field_name], contract, f"/{field_name}"
+            )
+            if value not in contract.enum:
+                raise _validation_error(
+                    f"/{field_name}", "enum", f"Unsupported {field_name}"
+                )
+            enum_values[field_name] = value
+        as_of = _optional_temporal(mapping["as_of"], "/as_of")
+        if enum_values["mode"] == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of", "required_for_as_of", "as_of mode requires a cutoff"
+            )
+        if enum_values["mode"] != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of", "only_for_as_of", "Only as_of mode may provide a cutoff"
+            )
+        start_date = _optional_calendar_date(mapping["start_date"], "/start_date")
+        end_date = _optional_calendar_date(mapping["end_date"], "/end_date")
+        if start_date is None or end_date is None:
+            raise _validation_error(
+                "/start_date", "required", "Both impulse dates are required"
+            )
+        if parse_date(end_date, pointer="/end_date") < parse_date(
+            start_date, pointer="/start_date"
+        ):
+            raise _validation_error(
+                "/end_date", "range", "end_date cannot precede start_date"
+            )
+        limit = _validated_limit(
+            mapping.get("limit", 20),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "mode": enum_values["mode"],
+                    "as_of": as_of,
+                    "date_only_policy": enum_values["date_only_policy"],
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "limit": limit,
+                }
+            ),
         )
 
     if argument_type is Stage10MarketReturnArgumentsV2:
@@ -1540,6 +3576,13 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
         Stage10MarketCorrelationArgumentsV2,
         Stage10DataQualityArgumentsV2,
         Stage10TechnicalIndicatorArgumentsV2,
+        Stage10TechnicalIndicatorArgumentsV21,
+        Stage10TechnicalIndicatorArgumentsV22,
+        Stage10TechnicalIndicatorArgumentsV23,
+        Stage10TechnicalIndicatorArgumentsV24,
+        Stage10TechnicalIndicatorArgumentsV25,
+        Stage10TechnicalIndicatorArgumentsV26,
+        Stage10TechnicalIndicatorArgumentsV27,
         Stage10MarketTransformArgumentsV2,
         Stage10DistributionArgumentsV1,
         Stage10BootstrapArgumentsV1,
@@ -1571,7 +3614,16 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 "minimum",
                 "limit must retain one quality summary per supplied series",
             )
-        if argument_type is Stage10TechnicalIndicatorArgumentsV2:
+        if argument_type in {
+            Stage10TechnicalIndicatorArgumentsV2,
+            Stage10TechnicalIndicatorArgumentsV21,
+            Stage10TechnicalIndicatorArgumentsV22,
+            Stage10TechnicalIndicatorArgumentsV23,
+            Stage10TechnicalIndicatorArgumentsV24,
+            Stage10TechnicalIndicatorArgumentsV25,
+            Stage10TechnicalIndicatorArgumentsV26,
+            Stage10TechnicalIndicatorArgumentsV27,
+        }:
             indicator_contract = _field_contract(argument_type, "indicator")
             indicator = _validated_string(
                 mapping["indicator"], indicator_contract, "/indicator"
@@ -1620,9 +3672,168 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                         "Multiplier must be greater than zero and at most ten",
                     )
             values["standard_deviation_multiplier"] = multiplier
+            supertrend_parameter_names: tuple[str, ...] = ()
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV21,
+                Stage10TechnicalIndicatorArgumentsV22,
+                Stage10TechnicalIndicatorArgumentsV23,
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                supertrend_parameter_names = (
+                    "minimum_factor",
+                    "maximum_factor",
+                    "factor_step",
+                    "performance_memory",
+                    "cluster",
+                )
+                for field_name in supertrend_parameter_names[:-1]:
+                    raw_value = mapping[field_name]
+                    decimal_value: Decimal | None = None
+                    if raw_value is not None:
+                        validated = _validated_scalar(
+                            raw_value, f"/{field_name}"
+                        )
+                        if (
+                            isinstance(validated, bool)
+                            or not isinstance(validated, (int, Decimal))
+                        ):
+                            raise _validation_error(
+                                f"/{field_name}",
+                                "type",
+                                "Expected a finite number or null",
+                            )
+                        decimal_value = (
+                            validated
+                            if isinstance(validated, Decimal)
+                            else Decimal(validated)
+                        )
+                    values[field_name] = decimal_value
+                raw_cluster = mapping["cluster"]
+                cluster: str | None = None
+                if raw_cluster is not None:
+                    cluster = _validated_string(
+                        raw_cluster,
+                        _field_contract(argument_type, "cluster"),
+                        "/cluster",
+                    )
+                    if cluster not in {"best", "average", "worst"}:
+                        raise _validation_error(
+                            "/cluster",
+                            "enum",
+                            "Unsupported SuperTrend cluster",
+                        )
+                values["cluster"] = cluster
+            swing_parameter_names: tuple[str, ...] = ()
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV22,
+                Stage10TechnicalIndicatorArgumentsV23,
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                swing_parameter_names = (
+                    "sample_count",
+                    "aggregation_method",
+                )
+                values["sample_count"] = _validated_optional_limit(
+                    mapping["sample_count"],
+                    _field_contract(argument_type, "sample_count"),
+                    "/sample_count",
+                )
+                raw_method = mapping["aggregation_method"]
+                aggregation_method: str | None = None
+                if raw_method is not None:
+                    aggregation_method = _validated_string(
+                        raw_method,
+                        _field_contract(argument_type, "aggregation_method"),
+                        "/aggregation_method",
+                    )
+                    if aggregation_method not in {
+                        "weighted",
+                        "average",
+                        "median",
+                    }:
+                        raise _validation_error(
+                            "/aggregation_method",
+                            "enum",
+                            "Unsupported swing-forecast aggregation method",
+                        )
+                values["aggregation_method"] = aggregation_method
+            percentile_parameter_names: tuple[str, ...] = ()
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                percentile_parameter_names = (
+                    "percentile_window",
+                    "percentile_high_factor",
+                    "percentile_low_factor",
+                )
+                values["percentile_window"] = _validated_optional_limit(
+                    mapping["percentile_window"],
+                    _field_contract(argument_type, "percentile_window"),
+                    "/percentile_window",
+                )
+                for field_name in percentile_parameter_names[1:]:
+                    raw_value = mapping[field_name]
+                    decimal_value: Decimal | None = None
+                    if raw_value is not None:
+                        validated = _validated_scalar(
+                            raw_value, f"/{field_name}"
+                        )
+                        if (
+                            isinstance(validated, bool)
+                            or not isinstance(validated, (int, Decimal))
+                        ):
+                            raise _validation_error(
+                                f"/{field_name}",
+                                "type",
+                                "Expected a finite number or null",
+                            )
+                        decimal_value = (
+                            validated
+                            if isinstance(validated, Decimal)
+                            else Decimal(validated)
+                        )
+                    values[field_name] = decimal_value
+            sar_parameter_names: tuple[str, ...] = ()
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                sar_parameter_names = ("start", "increment", "maximum")
+                for field_name in sar_parameter_names:
+                    raw_value = mapping[field_name]
+                    decimal_value: Decimal | None = None
+                    if raw_value is not None:
+                        validated = _validated_scalar(
+                            raw_value, f"/{field_name}"
+                        )
+                        if (
+                            isinstance(validated, bool)
+                            or not isinstance(validated, (int, Decimal))
+                        ):
+                            raise _validation_error(
+                                f"/{field_name}",
+                                "type",
+                                "Expected a finite number or null",
+                            )
+                        decimal_value = (
+                            validated
+                            if isinstance(validated, Decimal)
+                            else Decimal(validated)
+                        )
+                    values[field_name] = decimal_value
             required_parameters = {
                 "sma": ("window",),
                 "ema": ("window",),
+                "rolling_regression_line": ("window",),
                 "rolling_standard_deviation": ("window",),
                 "rolling_z_score": ("window",),
                 "true_range": (),
@@ -1640,12 +3851,74 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 "on_balance_volume": (),
                 "accumulation_distribution": (),
             }
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV21,
+                Stage10TechnicalIndicatorArgumentsV22,
+                Stage10TechnicalIndicatorArgumentsV23,
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                required_parameters["supertrend_ai"] = (
+                    "window",
+                    *supertrend_parameter_names,
+                )
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV22,
+                Stage10TechnicalIndicatorArgumentsV23,
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                required_parameters["swing_structure_forecast"] = (
+                    "window",
+                    *swing_parameter_names,
+                )
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV23,
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                required_parameters["kdj"] = ("window", "signal_window")
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                required_parameters["williams_vix_fix"] = (
+                    "window",
+                    "signal_window",
+                    "standard_deviation_multiplier",
+                    *percentile_parameter_names,
+                )
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                required_parameters["wavetrend_crosses"] = (
+                    "window", "signal_window"
+                )
+            if argument_type in {
+                Stage10TechnicalIndicatorArgumentsV26,
+                Stage10TechnicalIndicatorArgumentsV27,
+            }:
+                required_parameters["parabolic_sar"] = sar_parameter_names
             active = set(required_parameters[indicator])
             supplied = {
                 name
                 for name in (
                     *parameter_names,
                     "standard_deviation_multiplier",
+                    *supertrend_parameter_names,
+                    *swing_parameter_names,
+                    *percentile_parameter_names,
+                    *sar_parameter_names,
                 )
                 if values[name] is not None
             }
@@ -1671,6 +3944,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     "rolling_standard_deviation",
                     "rolling_z_score",
                     "bollinger_bands",
+                    "rolling_regression_line",
                 }
                 and int(values["window"]) < 2
             ):
@@ -1679,6 +3953,39 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     "minimum",
                     f"{indicator} requires a window of at least two",
                 )
+            if indicator == "swing_structure_forecast" and not (
+                10 <= int(values["window"]) <= 5_000
+            ):
+                raise _validation_error(
+                    "/window",
+                    "range",
+                    "swing_structure_forecast requires a window from 10 through 5,000",
+                )
+            if indicator == "williams_vix_fix":
+                multiplier = values["standard_deviation_multiplier"]
+                percentile_high_factor = values["percentile_high_factor"]
+                percentile_low_factor = values["percentile_low_factor"]
+                assert isinstance(multiplier, Decimal)
+                assert isinstance(percentile_high_factor, Decimal)
+                assert isinstance(percentile_low_factor, Decimal)
+                if not Decimal("1") <= multiplier <= Decimal("5"):
+                    raise _validation_error(
+                        "/standard_deviation_multiplier",
+                        "range",
+                        "Williams Vix Fix multiplier must be from one through five",
+                    )
+                if not Decimal("0") < percentile_high_factor <= Decimal("1"):
+                    raise _validation_error(
+                        "/percentile_high_factor",
+                        "range",
+                        "percentile_high_factor must be greater than zero and at most one",
+                    )
+                if not Decimal("1") <= percentile_low_factor <= Decimal("10"):
+                    raise _validation_error(
+                        "/percentile_low_factor",
+                        "range",
+                        "percentile_low_factor must be from one through ten",
+                    )
             if (
                 indicator == "macd"
                 and int(values["fast_window"]) >= int(values["slow_window"])
@@ -1688,6 +3995,60 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     "ordering",
                     "MACD fast_window must be smaller than slow_window",
                 )
+            if indicator == "supertrend_ai":
+                minimum_factor = values["minimum_factor"]
+                maximum_factor = values["maximum_factor"]
+                factor_step = values["factor_step"]
+                performance_memory = values["performance_memory"]
+                assert isinstance(minimum_factor, Decimal)
+                assert isinstance(maximum_factor, Decimal)
+                assert isinstance(factor_step, Decimal)
+                assert isinstance(performance_memory, Decimal)
+                if not Decimal("0") <= minimum_factor <= Decimal("100"):
+                    raise _validation_error(
+                        "/minimum_factor",
+                        "range",
+                        "minimum_factor must be from zero through 100",
+                    )
+                if not Decimal("0") <= maximum_factor <= Decimal("100"):
+                    raise _validation_error(
+                        "/maximum_factor",
+                        "range",
+                        "maximum_factor must be from zero through 100",
+                    )
+                if minimum_factor > maximum_factor:
+                    raise _validation_error(
+                        "/minimum_factor",
+                        "ordering",
+                        "minimum_factor must not exceed maximum_factor",
+                    )
+                if not Decimal("0") < factor_step <= Decimal("100"):
+                    raise _validation_error(
+                        "/factor_step",
+                        "range",
+                        "factor_step must be greater than zero and at most 100",
+                    )
+                if not Decimal("2") <= performance_memory <= Decimal("10000"):
+                    raise _validation_error(
+                        "/performance_memory",
+                        "range",
+                        "performance_memory must be from two through 10,000",
+                    )
+                factor_count = int(
+                    (maximum_factor - minimum_factor) // factor_step
+                ) + 1
+                if factor_count < 3:
+                    raise _validation_error(
+                        "/factor_step",
+                        "minimum_candidates",
+                        "supertrend_ai requires at least three factor candidates",
+                    )
+                if factor_count > 101:
+                    raise _validation_error(
+                        "/factor_step",
+                        "maximum_candidates",
+                        "supertrend_ai supports at most 101 factor candidates",
+                    )
         if argument_type is Stage10MarketAlignArgumentsV2:
             join_contract = _field_contract(argument_type, "join")
             join = _validated_string(mapping["join"], join_contract, "/join")
@@ -2125,6 +4486,14 @@ def parse_arguments(
     values = prepared.values
     if prepared.argument_type is SearchArguments:
         return SearchArguments(**dict(values))
+    if prepared.argument_type is CurrentNewsSearchArgumentsV2:
+        return CurrentNewsSearchArgumentsV2(**dict(values))
+    if prepared.argument_type is CompanyFilingSearchArgumentsV2:
+        return CompanyFilingSearchArgumentsV2(**dict(values))
+    if prepared.argument_type is CompanyShareCountHistoryArgumentsV2:
+        return CompanyShareCountHistoryArgumentsV2(**dict(values))
+    if prepared.argument_type is Stage10MarketInstrumentSearchArgumentsV2:
+        return Stage10MarketInstrumentSearchArgumentsV2(**dict(values))
     if prepared.argument_type is QueryArguments:
         return QueryArguments(**dict(values))
     if prepared.argument_type is Stage10AvailableTickerArgumentsV1:
@@ -2141,6 +4510,30 @@ def parse_arguments(
         return CanonicalMacroSeriesArgumentsV2(**dict(values))
     if prepared.argument_type is MacroReleaseCalendarArgumentsV1:
         return MacroReleaseCalendarArgumentsV1(**dict(values))
+    if prepared.argument_type is MacroReleaseCalendarArgumentsV2:
+        return MacroReleaseCalendarArgumentsV2(**dict(values))
+    if prepared.argument_type is Stage10CrossSectionalPerformanceArgumentsV2:
+        return Stage10CrossSectionalPerformanceArgumentsV2(**dict(values))
+    if prepared.argument_type is Stage10CrossSectionalAnalyticsArgumentsV21:
+        return Stage10CrossSectionalAnalyticsArgumentsV21(**dict(values))
+    if prepared.argument_type is EnergyElectricityRetailArgumentsV2:
+        return EnergyElectricityRetailArgumentsV2(**dict(values))
+    if prepared.argument_type is EnergyWeeklyFundamentalsArgumentsV2:
+        return EnergyWeeklyFundamentalsArgumentsV2(**dict(values))
+    if prepared.argument_type is CompanyFundamentalsArgumentsV2:
+        return CompanyFundamentalsArgumentsV2(**dict(values))
+    if prepared.argument_type is CompanyFundamentalRatiosArgumentsV21:
+        return CompanyFundamentalRatiosArgumentsV21(**dict(values))
+    if prepared.argument_type in {
+        MacroRevisionArgumentsV2,
+        MacroSurpriseStandardizationArgumentsV2,
+        MacroObservedSnapshotArgumentsV2,
+        FundingConditionsArgumentsV2,
+        CurveAnalyticsArgumentsV2,
+        LiquidityImpulseArgumentsV2,
+        MacroRegimeArgumentsV2,
+    }:
+        return prepared.argument_type(**dict(values))
     if prepared.argument_type is Stage10MarketReturnArgumentsV2:
         return Stage10MarketReturnArgumentsV2(**dict(values))
 
@@ -2155,6 +4548,12 @@ def parse_arguments(
                 Stage10MarketCorrelationArgumentsV2,
                 Stage10DataQualityArgumentsV2,
                 Stage10TechnicalIndicatorArgumentsV2,
+                Stage10TechnicalIndicatorArgumentsV21,
+                Stage10TechnicalIndicatorArgumentsV22,
+                Stage10TechnicalIndicatorArgumentsV23,
+                Stage10TechnicalIndicatorArgumentsV24,
+                Stage10TechnicalIndicatorArgumentsV25,
+                Stage10TechnicalIndicatorArgumentsV26,
                 Stage10CovarianceArgumentsV1,
                 Stage10PrincipalComponentsArgumentsV1,
                 Stage10MarketRegressionArgumentsV2,
@@ -2184,6 +4583,34 @@ def parse_arguments(
         return Stage10DataQualityArgumentsV2(series=decoded, **dict(values))
     if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV2:
         return Stage10TechnicalIndicatorArgumentsV2(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV21:
+        return Stage10TechnicalIndicatorArgumentsV21(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV22:
+        return Stage10TechnicalIndicatorArgumentsV22(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV23:
+        return Stage10TechnicalIndicatorArgumentsV23(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV24:
+        return Stage10TechnicalIndicatorArgumentsV24(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV25:
+        return Stage10TechnicalIndicatorArgumentsV25(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV26:
+        return Stage10TechnicalIndicatorArgumentsV26(
+            series=decoded, **dict(values)
+        )
+    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV27:
+        return Stage10TechnicalIndicatorArgumentsV27(
             series=decoded, **dict(values)
         )
     if prepared.argument_type is Stage10MarketTransformArgumentsV2:
@@ -2285,6 +4712,10 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
     multi_names = {item.name for item, _ in _declared_fields(MultiSeriesArguments)}
     single_names = {item.name for item, _ in _declared_fields(SingleSeriesArguments)}
     query_names = {item.name for item, _ in _declared_fields(QueryArguments)}
+    current_news_names = {
+        item.name
+        for item, _ in _declared_fields(CurrentNewsSearchArgumentsV2)
+    }
     available_ticker_names = {
         item.name
         for item, _ in _declared_fields(Stage10AvailableTickerArgumentsV1)
@@ -2308,6 +4739,34 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         item.name
         for item, _ in _declared_fields(MacroReleaseCalendarArgumentsV1)
     }
+    macro_calendar_v2_names = {
+        item.name
+        for item, _ in _declared_fields(MacroReleaseCalendarArgumentsV2)
+    }
+    cross_sectional_names = {
+        item.name
+        for item, _ in _declared_fields(Stage10CrossSectionalPerformanceArgumentsV2)
+    }
+    cross_sectional_analytics_names = {
+        item.name
+        for item, _ in _declared_fields(Stage10CrossSectionalAnalyticsArgumentsV21)
+    }
+    energy_retail_names = {
+        item.name
+        for item, _ in _declared_fields(EnergyElectricityRetailArgumentsV2)
+    }
+    energy_weekly_names = {
+        item.name
+        for item, _ in _declared_fields(EnergyWeeklyFundamentalsArgumentsV2)
+    }
+    company_fundamental_names = {
+        item.name
+        for item, _ in _declared_fields(CompanyFundamentalsArgumentsV2)
+    }
+    company_ratio_names = {
+        item.name
+        for item, _ in _declared_fields(CompanyFundamentalRatiosArgumentsV21)
+    }
     market_return_names = {
         item.name for item, _ in _declared_fields(Stage10MarketReturnArgumentsV2)
     }
@@ -2324,6 +4783,30 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
     technical_indicator_names = {
         item.name
         for item, _ in _declared_fields(Stage10TechnicalIndicatorArgumentsV2)
+    }
+    technical_indicator_v21_names = {
+        item.name
+        for item, _ in _declared_fields(
+            Stage10TechnicalIndicatorArgumentsV21
+        )
+    }
+    technical_indicator_v22_names = {
+        item.name
+        for item, _ in _declared_fields(
+            Stage10TechnicalIndicatorArgumentsV22
+        )
+    }
+    technical_indicator_v24_names = {
+        item.name
+        for item, _ in _declared_fields(
+            Stage10TechnicalIndicatorArgumentsV24
+        )
+    }
+    technical_indicator_v26_names = {
+        item.name
+        for item, _ in _declared_fields(
+            Stage10TechnicalIndicatorArgumentsV26
+        )
     }
     market_regression_names = {
         item.name
@@ -2376,6 +4859,14 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         return SingleSeriesArguments.INPUT_KIND
     if names == query_names:
         return QueryArguments.INPUT_KIND
+    if names <= current_news_names and (
+        "symbols" in names
+        or "mode" in names
+        or "date_only_policy" in names
+        or "start_date" in names
+        or "end_date" in names
+    ):
+        return CurrentNewsSearchArgumentsV2.INPUT_KIND
     if names and names <= canonical_macro_search_names:
         return CanonicalMacroSearchArgumentsV2.INPUT_KIND
     if names <= canonical_macro_describe_names and "series_id" in names:
@@ -2388,6 +4879,47 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         "limit",
     } <= names:
         return CanonicalMacroSeriesArgumentsV2.INPUT_KIND
+    if (
+        "cursor" in names
+        and names <= macro_calendar_v2_names
+        and {"mode", "as_of", "date_only_policy", "limit"} <= names
+    ):
+        return MacroReleaseCalendarArgumentsV2.INPUT_KIND
+    if names <= cross_sectional_names and {
+        "tickers",
+        "mode",
+        "as_of",
+        "date_only_policy",
+        "limit",
+    } <= names:
+        return Stage10CrossSectionalPerformanceArgumentsV2.INPUT_KIND
+    if names == cross_sectional_analytics_names:
+        return Stage10CrossSectionalAnalyticsArgumentsV21.INPUT_KIND
+    if names <= energy_retail_names and {
+        "metric",
+        "mode",
+        "as_of",
+        "date_only_policy",
+        "limit",
+    } <= names:
+        return EnergyElectricityRetailArgumentsV2.INPUT_KIND
+    if names <= energy_weekly_names and {
+        "mode",
+        "as_of",
+        "date_only_policy",
+        "limit",
+    } <= names:
+        return EnergyWeeklyFundamentalsArgumentsV2.INPUT_KIND
+    if names <= company_fundamental_names and {
+        "cik",
+        "mode",
+        "as_of",
+        "date_only_policy",
+        "limit",
+    } <= names:
+        return CompanyFundamentalsArgumentsV2.INPUT_KIND
+    if names == company_ratio_names:
+        return CompanyFundamentalRatiosArgumentsV21.INPUT_KIND
     if names <= macro_calendar_names and {
         "mode",
         "as_of",
@@ -2414,6 +4946,26 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         return Stage10MarketCorrelationArgumentsV2.INPUT_KIND
     if names == technical_indicator_names:
         return Stage10TechnicalIndicatorArgumentsV2.INPUT_KIND
+    if names == technical_indicator_v21_names:
+        return Stage10TechnicalIndicatorArgumentsV21.INPUT_KIND
+    if names == technical_indicator_v26_names:
+        return (
+            Stage10TechnicalIndicatorArgumentsV27.INPUT_KIND
+            if mapping.get("indicator") == "rolling_regression_line"
+            else Stage10TechnicalIndicatorArgumentsV26.INPUT_KIND
+        )
+    if names == technical_indicator_v24_names:
+        return (
+            Stage10TechnicalIndicatorArgumentsV25.INPUT_KIND
+            if mapping.get("indicator") == "wavetrend_crosses"
+            else Stage10TechnicalIndicatorArgumentsV24.INPUT_KIND
+        )
+    if names == technical_indicator_v22_names:
+        return (
+            Stage10TechnicalIndicatorArgumentsV23.INPUT_KIND
+            if mapping.get("indicator") == "kdj"
+            else Stage10TechnicalIndicatorArgumentsV22.INPUT_KIND
+        )
     if names == market_regression_names:
         return Stage10MarketRegressionArgumentsV2.INPUT_KIND
     if names == market_rolling_regression_names:
@@ -2450,6 +5002,15 @@ def preflight_dimensions(
     series = len(prepared.raw_series)
     operations = rows * max(series, 1) ** 2
     if prepared.argument_type in {
+        Stage10CrossSectionalPerformanceArgumentsV2,
+        Stage10CrossSectionalAnalyticsArgumentsV21,
+    }:
+        rows = len(prepared.values["tickers"]) * int(
+            prepared.values["limit"]
+        )
+        series = 1
+        operations = rows
+    if prepared.argument_type in {
         Stage10MarketRollingRegressionArgumentsV2,
         Stage10MarketRollingRegressionArgumentsV21,
     }:
@@ -2467,13 +5028,26 @@ def preflight_dimensions(
         operations += rows * int(prepared.values["kpss_lag"])
     if prepared.argument_type is Stage10MarketStructuralBreakArgumentsV2:
         operations *= 3
-    if prepared.argument_type is Stage10TechnicalIndicatorArgumentsV2:
+    if prepared.argument_type in {
+        Stage10TechnicalIndicatorArgumentsV2,
+        Stage10TechnicalIndicatorArgumentsV21,
+        Stage10TechnicalIndicatorArgumentsV22,
+        Stage10TechnicalIndicatorArgumentsV23,
+        Stage10TechnicalIndicatorArgumentsV24,
+        Stage10TechnicalIndicatorArgumentsV25,
+        Stage10TechnicalIndicatorArgumentsV26,
+    }:
         output_count = {
             "macd": 3,
             "bollinger_bands": 3,
             "donchian_channels": 3,
             "stochastic_oscillator": 2,
+            "kdj": 3,
+            "williams_vix_fix": 4,
+            "wavetrend_crosses": 4,
             "average_directional_index": 3,
+            "supertrend_ai": 5,
+            "swing_structure_forecast": 10,
         }.get(str(prepared.values["indicator"]), 1)
         effective_window = max(
             (
@@ -2483,14 +5057,38 @@ def preflight_dimensions(
                     "fast_window",
                     "slow_window",
                     "signal_window",
+                    "percentile_window",
                 )
-                if prepared.values[name] is not None
+                if prepared.values.get(name) is not None
             ),
             default=1,
         )
-        operations = rows * (
-            series + output_count * effective_window
-        )
+        if prepared.values["indicator"] == "wavetrend_crosses":
+            effective_window = max(effective_window, 4)
+        if prepared.values["indicator"] == "supertrend_ai":
+            minimum_factor = Decimal(prepared.values["minimum_factor"])
+            maximum_factor = Decimal(prepared.values["maximum_factor"])
+            factor_step = Decimal(prepared.values["factor_step"])
+            factor_count = int(
+                (maximum_factor - minimum_factor) // factor_step
+            ) + 1
+            partition_bound = (
+                (factor_count + 1) * (factor_count + 2) // 2
+            )
+            assignment_count = min(1_001, partition_bound)
+            operations = rows * (
+                output_count + factor_count * assignment_count
+            )
+        elif prepared.values["indicator"] == "swing_structure_forecast":
+            operations = rows * (
+                series
+                + output_count
+                + int(prepared.values["sample_count"])
+            )
+        else:
+            operations = rows * (
+                series + output_count * effective_window
+            )
     if prepared.argument_type is Stage10MarketTransformArgumentsV2:
         if prepared.values["operation"] == "rolling_statistic":
             operations *= int(prepared.values["window"])
@@ -2526,15 +5124,40 @@ def preflight_dimensions(
 __all__ = [
     "ArgumentParameter",
     "SearchArguments",
+    "CurrentNewsSearchArgumentsV2",
+    "CompanyShareCountHistoryArgumentsV2",
+    "CompanyFilingSearchArgumentsV2",
+    "Stage10MarketInstrumentSearchArgumentsV2",
     "QueryArguments",
     "Stage10AvailableTickerArgumentsV1",
     "Stage10MarketPriceArgumentsV1",
     "Stage10MarketVolumeArgumentsV1",
     "Stage10TechnicalIndicatorArgumentsV2",
+    "Stage10TechnicalIndicatorArgumentsV21",
+    "Stage10TechnicalIndicatorArgumentsV22",
+    "Stage10TechnicalIndicatorArgumentsV23",
+    "Stage10TechnicalIndicatorArgumentsV24",
+    "Stage10TechnicalIndicatorArgumentsV25",
+    "Stage10TechnicalIndicatorArgumentsV26",
+    "Stage10TechnicalIndicatorArgumentsV27",
     "CanonicalMacroSearchArgumentsV2",
     "CanonicalMacroDescribeArgumentsV2",
     "CanonicalMacroSeriesArgumentsV2",
     "MacroReleaseCalendarArgumentsV1",
+    "MacroReleaseCalendarArgumentsV2",
+    "Stage10CrossSectionalPerformanceArgumentsV2",
+    "Stage10CrossSectionalAnalyticsArgumentsV21",
+    "EnergyElectricityRetailArgumentsV2",
+    "EnergyWeeklyFundamentalsArgumentsV2",
+    "CompanyFundamentalsArgumentsV2",
+    "CompanyFundamentalRatiosArgumentsV21",
+    "MacroRevisionArgumentsV2",
+    "MacroSurpriseStandardizationArgumentsV2",
+    "MacroObservedSnapshotArgumentsV2",
+    "FundingConditionsArgumentsV2",
+    "CurveAnalyticsArgumentsV2",
+    "LiquidityImpulseArgumentsV2",
+    "MacroRegimeArgumentsV2",
     "Stage10MarketReturnArgumentsV2",
     "Stage10MarketDescribeArgumentsV2",
     "Stage10MarketAlignArgumentsV2",

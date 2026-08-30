@@ -21,6 +21,7 @@ from zoneinfo import ZoneInfo
 from ..credentials import read_project_credential
 from ..errors import ConflictError, ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict, loads_strict
+from ..market.stage10_series import _quiet_market_connection, _reconcile_store_contract
 from ..market.stage12_incremental import (
     Stage12BFixtureRequest,
     Stage12BFixtureResponse,
@@ -29,18 +30,13 @@ from ..market.stage12_incremental import (
 )
 from ..market.stage12_scope import load_stage12_market_v1_scope
 from ..market.stage12b_scope import load_stage12b_incremental_market_v1_scope
+from ..registry import CANONICAL_REGISTRY_PATH, load_registry
+from ..stores import StoreMap
 
 
 PROJECT_ROOT: Final = Path("/home/volatility/Python_Projects/Quant_Data_Infra")
 MARKET_STORE: Final = PROJECT_ROOT / "data" / "market.sqlite"
 STATE_ROOT: Final = PROJECT_ROOT / "data" / ".stage12" / "market-v1" / "stage12e-market-close"
-STAGE12C_COMPLETION: Final = (
-    PROJECT_ROOT / "data" / ".stage12" / "market-v1"
-    / "stage12c-20260813-20260814" / "completion.json"
-)
-STAGE12C_COMPLETION_SHA256: Final = (
-    "0b598c7f5df93cb21104bcf6a45ae3e798a56eda7682474d59b2a81def683f88"
-)
 FMP_HOST: Final = "financialmodelingprep.com"
 FMP_PATH: Final = "/stable/historical-price-eod/full"
 TIMEZONE: Final = "America/New_York"
@@ -48,13 +44,14 @@ MARKET_CLOSE_TIME: Final = "18:00"
 MINIMUM_REQUEST_INTERVAL_SECONDS: Final = 1.0
 TIMEOUT_SECONDS: Final = 45
 MAX_RESPONSE_BYTES: Final = 65_536
-EXPECTED_SYMBOL_COUNT: Final = 619
+MAX_SYMBOL_COUNT: Final = 800
 _MODE_DIR: Final = 0o700
 _MODE_FILE: Final = 0o600
 _MAX_JSON_BYTES: Final = 256 * 1024
 _MAX_COMPLETION_BYTES: Final = 1024 * 1024
 _CONTRACT_PREFIX: Final = "quant_data.stage12e_market_close"
-_VERSION: Final = "1.0.0"
+_VERSION: Final = "1.1.0"
+_SCHEDULED_ASSET_TYPES: Final = frozenset({"equity", "etf", "index"})
 _FIXTURE_CAPABILITY = object()
 _CANONICAL_CAPABILITY = object()
 _TERMINAL_BINDINGS: Final = (
@@ -70,6 +67,11 @@ _TERMINAL_BINDINGS: Final = (
     ("^TWII", "noncoverage_http_402_authorized", 402),
 )
 
+_TERMINAL_RESPONSE_POLICY: Final = {
+    symbol: (outcome, status)
+    for symbol, outcome, status in _TERMINAL_BINDINGS
+}
+
 
 def _sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
@@ -80,14 +82,13 @@ def _sha256_json(value: object) -> str:
 
 
 _AUTHORITY: Final = {
-    "completion_receipt_sha256": STAGE12C_COMPLETION_SHA256,
     "credential": "FMP_API_KEY",
     "endpoint_path": FMP_PATH,
     "max_attempts": 1,
     "minimum_request_interval_seconds": MINIMUM_REQUEST_INTERVAL_SECONDS,
     "schedule": "Mon..Fri 18:00",
-    "symbol_count": EXPECTED_SYMBOL_COUNT,
-    "symbol_policy": "stage12c_published_complete_only",
+    "max_symbol_count": MAX_SYMBOL_COUNT,
+    "symbol_policy": "current_stage10_fmp_provider_native_equity_etf_index",
     "timezone": TIMEZONE,
     "version": _VERSION,
 }
@@ -249,6 +250,78 @@ def _write_json(path: Path, value: Mapping[str, object]) -> None:
     _write_exclusive(path, dumps_strict(dict(value)).encode("utf-8"))
 
 
+def _failure_kind(error: Exception) -> str:
+    if isinstance(error, ValidationError):
+        return "invalid_request"
+    if isinstance(error, StoreUnavailableError):
+        return "store_unavailable"
+    if isinstance(error, ConflictError):
+        return "temporary_conflict"
+    if isinstance(error, ResourceLimitError):
+        return "resource_limit"
+    if isinstance(error, OSError):
+        return "local_io"
+    return "internal_failure"
+
+
+def _failure_path(root: Path) -> Path:
+    return root / "failure.json"
+
+
+def _raise_if_prior_failure(
+    root: Path,
+    *,
+    authority_sha256: str,
+    session_date: str,
+) -> None:
+    path = _failure_path(root)
+    if not (path.exists() or path.is_symlink()):
+        return
+    receipt = _validate_envelope(
+        _read_json(path, maximum=_MAX_COMPLETION_BYTES),
+        contract=f"{_CONTRACT_PREFIX}_failure",
+    )
+    if (
+        receipt.get("authority_sha256") != authority_sha256
+        or receipt.get("session_date") != session_date
+    ):
+        raise ConflictError("Stage 12E failure receipt binding is invalid")
+    raise ConflictError("Stage 12E prior failed attempt is not retried")
+
+
+def _write_failure_receipt(
+    root: Path,
+    *,
+    authority_sha256: str,
+    session_date: str,
+    plan_sha256: str | None,
+    failed_at: str,
+    error: Exception,
+) -> None:
+    path = _failure_path(root)
+    if path.exists() or path.is_symlink():
+        _raise_if_prior_failure(
+            root,
+            authority_sha256=authority_sha256,
+            session_date=session_date,
+        )
+    _write_json(
+        path,
+        _envelope(
+            f"{_CONTRACT_PREFIX}_failure",
+            {
+                "attempt": 1,
+                "authority_sha256": authority_sha256,
+                "error": _failure_kind(error),
+                "plan_sha256": plan_sha256,
+                "failed_at": failed_at,
+                "session_date": session_date,
+                "version": _VERSION,
+            },
+        ),
+    )
+
+
 @contextmanager
 def _held_run_lock(root: Path):
     path = root / "run.lock"
@@ -279,6 +352,35 @@ def _held_run_lock(root: Path):
         assert descriptor is not None
         fcntl.flock(descriptor, fcntl.LOCK_UN)
         os.close(descriptor)
+
+
+@contextmanager
+def _held_run_attempt(
+    root: Path,
+    *,
+    authority_sha256: str,
+    session_date: str,
+    plan_sha256: str,
+    utcnow: Callable[[], datetime],
+):
+    with _held_run_lock(root):
+        _raise_if_prior_failure(
+            root,
+            authority_sha256=authority_sha256,
+            session_date=session_date,
+        )
+        try:
+            yield
+        except Exception as error:
+            _write_failure_receipt(
+                root,
+                authority_sha256=authority_sha256,
+                session_date=session_date,
+                plan_sha256=plan_sha256,
+                failed_at=_utc_text(utcnow()),
+                error=error,
+            )
+            raise
 
 
 @dataclass(frozen=True, slots=True)
@@ -347,9 +449,23 @@ class _StdlibTransport:
 
 
 @dataclass(frozen=True, slots=True)
+class _ScheduledInstrument:
+    symbol: str
+    instrument_id: str
+    asset_type: str
+
+
+@dataclass(frozen=True, slots=True)
+class _ScheduledUniverse:
+    instruments: tuple[_ScheduledInstrument, ...]
+    sha256: str
+
+@dataclass(frozen=True, slots=True)
 class _Unit:
     ordinal: int
     symbol: str
+    instrument_id: str | None
+    asset_type: str | None
     identifier: str
 
 
@@ -410,36 +526,95 @@ def _unit_paths(root: Path, unit: _Unit) -> dict[str, Path]:
     }
 
 
-def _canonical_symbols() -> tuple[str, ...]:
-    receipt = _validate_envelope(
-        _read_json(STAGE12C_COMPLETION, maximum=_MAX_COMPLETION_BYTES),
-        contract="quant_data.stage12c_market_gap_completion",
+
+def _scheduled_universe_from_rows(
+    rows: tuple[Mapping[str, object], ...],
+) -> _ScheduledUniverse:
+    if len(rows) > MAX_SYMBOL_COUNT:
+        raise ResourceLimitError("Stage 12E scheduled universe exceeds its symbol bound")
+    instruments: list[_ScheduledInstrument] = []
+    symbols: set[str] = set()
+    instrument_ids: set[str] = set()
+    for row in rows:
+        if not isinstance(row, Mapping):
+            raise ValidationError("Stage 12E scheduled universe row is invalid")
+        symbol = row.get("provider_symbol")
+        instrument_id = row.get("instrument_id")
+        asset_type = row.get("asset_type")
+        if (
+            not isinstance(symbol, str)
+            or not symbol
+            or len(symbol) > 32
+            or symbol != symbol.upper()
+            or any(character.isspace() for character in symbol)
+            or not isinstance(instrument_id, str)
+            or not instrument_id
+            or len(instrument_id) > 256
+            or any(character.isspace() for character in instrument_id)
+            or not isinstance(asset_type, str)
+            or asset_type not in _SCHEDULED_ASSET_TYPES
+        ):
+            raise ValidationError("Stage 12E scheduled universe identity is invalid")
+        if symbol in symbols or instrument_id in instrument_ids:
+            raise ConflictError("Stage 12E scheduled universe identity is ambiguous")
+        symbols.add(symbol)
+        instrument_ids.add(instrument_id)
+        instruments.append(
+            _ScheduledInstrument(
+                symbol=symbol,
+                instrument_id=instrument_id,
+                asset_type=asset_type,
+            )
+        )
+    if not instruments or "AAPL" not in symbols:
+        raise ValidationError("Stage 12E scheduled universe lacks the AAPL sentinel")
+    ordered = tuple(
+        sorted(
+            instruments,
+            key=lambda item: (item.symbol != "AAPL", item.symbol, item.instrument_id),
+        )
     )
-    if (
-        receipt.get("sha256") != STAGE12C_COMPLETION_SHA256
-        or receipt.get("published_unit_count") != 619
-        or receipt.get("terminal_noncoverage_count") != 10
-    ):
-        raise ConflictError("Stage 12E Stage 12C completion binding is invalid")
-    terminal = receipt.get("terminal_outcomes")
-    if not isinstance(terminal, list):
-        raise ConflictError("Stage 12E Stage 12C terminal ledger is invalid")
-    observed = tuple(
-        (item.get("symbol"), item.get("outcome"), item.get("http_status"))
-        for item in terminal
-        if isinstance(item, Mapping)
+    material = [
+        {
+            "asset_type": item.asset_type,
+            "instrument_id": item.instrument_id,
+            "symbol": item.symbol,
+        }
+        for item in ordered
+    ]
+    return _ScheduledUniverse(instruments=ordered, sha256=_sha256_json(material))
+
+
+def _canonical_scheduled_universe() -> _ScheduledUniverse:
+    registry = load_registry(
+        CANONICAL_REGISTRY_PATH,
+        project_root=PROJECT_ROOT,
+        environment={},
     )
-    if observed != _TERMINAL_BINDINGS:
-        raise ConflictError("Stage 12E Stage 12C terminal ledger changed")
-    stage12a = load_stage12_market_v1_scope(
-        PROJECT_ROOT / "config" / "stage12_market_v1_scope.json"
+    stores = StoreMap.four_explicit(
+        market=MARKET_STORE,
+        macro=PROJECT_ROOT / "data" / "macro.sqlite",
+        company=PROJECT_ROOT / "data" / "company.sqlite",
+        news=PROJECT_ROOT / "data" / "news.sqlite",
     )
-    excluded = {symbol for symbol, _, _ in _TERMINAL_BINDINGS}
-    roster = tuple(item.symbol for item in stage12a.roster if item.symbol not in excluded)
-    symbols = ("AAPL", *tuple(sorted(symbol for symbol in roster if symbol != "AAPL")))
-    if len(symbols) != EXPECTED_SYMBOL_COUNT or len(set(symbols)) != len(symbols):
-        raise ConflictError("Stage 12E covered roster is invalid")
-    return symbols
+    with _quiet_market_connection(stores) as connection:
+        _reconcile_store_contract(connection, registry)
+        rows = tuple(
+            dict(row)
+            for row in connection.execute(
+                """
+                SELECT instrument_id, provider_symbol, asset_type
+                FROM stage10_instruments
+                WHERE provider='fmp'
+                  AND currency_segment='provider_native'
+                  AND asset_type IN ('equity', 'etf', 'index')
+                ORDER BY provider_symbol COLLATE BINARY, instrument_id COLLATE BINARY
+                LIMIT ?
+                """,
+                (MAX_SYMBOL_COUNT + 1,),
+            )
+        )
+    return _scheduled_universe_from_rows(rows)
 
 
 class _Runner:
@@ -451,6 +626,8 @@ class _Runner:
         state_root: Path,
         session_date: str,
         symbols: tuple[str, ...],
+        scheduled_instruments: tuple[_ScheduledInstrument, ...] | None,
+        universe_sha256: str | None,
         collector: Stage12BIncrementalCollector,
         transport: Stage12ETransport,
         environment: Mapping[str, str],
@@ -467,6 +644,35 @@ class _Runner:
         self._state_root = state_root
         self._session = _date_text(session_date)
         self._symbols = symbols
+        if scheduled_instruments is None:
+            if universe_sha256 is not None:
+                raise ValidationError("Stage 12E universe digest requires scheduled instruments")
+            self._scheduled_instruments = None
+            self._universe_sha256 = None
+        else:
+            if not isinstance(scheduled_instruments, tuple) or any(
+                not isinstance(item, _ScheduledInstrument)
+                for item in scheduled_instruments
+            ):
+                raise ValidationError("Stage 12E scheduled universe is invalid")
+            validated_universe = _scheduled_universe_from_rows(
+                tuple(
+                    {
+                        "asset_type": item.asset_type,
+                        "instrument_id": item.instrument_id,
+                        "provider_symbol": item.symbol,
+                    }
+                    for item in scheduled_instruments
+                )
+            )
+            if (
+                validated_universe.instruments != scheduled_instruments
+                or universe_sha256 != validated_universe.sha256
+                or tuple(item.symbol for item in scheduled_instruments) != symbols
+            ):
+                raise ValidationError("Stage 12E scheduled universe binding is invalid")
+            self._scheduled_instruments = scheduled_instruments
+            self._universe_sha256 = validated_universe.sha256
         self._collector = collector
         self._transport = transport
         self._environment = environment
@@ -475,7 +681,9 @@ class _Runner:
         self._sleeper = sleeper
         self._utcnow = utcnow
         if (
-            not symbols
+            not isinstance(symbols, tuple)
+            or not symbols
+            or len(symbols) > MAX_SYMBOL_COUNT
             or symbols[0] != "AAPL"
             or len(set(symbols)) != len(symbols)
             or any(
@@ -517,31 +725,56 @@ class _Runner:
             project_root != PROJECT_ROOT
             or market_store != MARKET_STORE
             or state_root != STATE_ROOT
-            or len(symbols) != EXPECTED_SYMBOL_COUNT
+            or self._scheduled_instruments is None
+            or self._universe_sha256 is None
             or authority_sha256 != STAGE12E_AUTHORITY_SHA256
         ):
             raise ValidationError("Stage 12E canonical runner binding is invalid")
 
     def _plan(self) -> tuple[tuple[_Unit, ...], Mapping[str, object]]:
-        units = tuple(
-            _Unit(
-                ordinal=index,
-                symbol=symbol,
-                identifier="stage12e-" + hashlib.sha256(
-                    f"{self._authority}\\0{self._session}\\0{index}\\0{symbol}".encode()
-                ).hexdigest()[:32],
+        units_list: list[_Unit] = []
+        for index, symbol in enumerate(self._symbols, start=1):
+            scheduled = (
+                None
+                if self._scheduled_instruments is None
+                else self._scheduled_instruments[index - 1]
             )
-            for index, symbol in enumerate(self._symbols, start=1)
-        )
+            instrument_id = None if scheduled is None else scheduled.instrument_id
+            asset_type = None if scheduled is None else scheduled.asset_type
+            units_list.append(
+                _Unit(
+                    ordinal=index,
+                    symbol=symbol,
+                    instrument_id=instrument_id,
+                    asset_type=asset_type,
+                    identifier="stage12e-" + hashlib.sha256(
+                        (
+                            f"{self._authority}\\0{self._session}\\0{index}\\0{symbol}"
+                            f"\\0{instrument_id or ''}\\0{asset_type or ''}"
+                        ).encode()
+                    ).hexdigest()[:32],
+                )
+            )
+        units = tuple(units_list)
+        unit_material: list[dict[str, object]] = []
+        for unit in units:
+            item: dict[str, object] = {
+                "identifier": unit.identifier,
+                "ordinal": unit.ordinal,
+                "symbol": unit.symbol,
+            }
+            if unit.instrument_id is not None:
+                item["instrument_id"] = unit.instrument_id
+                item["asset_type"] = unit.asset_type
+            unit_material.append(item)
         material = {
             "authority_sha256": self._authority,
             "session_date": self._session,
-            "units": [
-                {"identifier": unit.identifier, "ordinal": unit.ordinal, "symbol": unit.symbol}
-                for unit in units
-            ],
+            "units": unit_material,
             "version": _VERSION,
         }
+        if self._universe_sha256 is not None:
+            material["universe_sha256"] = self._universe_sha256
         return units, _envelope(f"{_CONTRACT_PREFIX}_plan", material)
 
     def _validate_target(self) -> None:
@@ -575,6 +808,12 @@ class _Runner:
         ):
             if intent.get(key) != expected:
                 raise ConflictError("Stage 12E intent binding is invalid")
+        if unit.instrument_id is not None and (
+            intent.get("instrument_id") != unit.instrument_id
+            or intent.get("asset_type") != unit.asset_type
+            or intent.get("universe_sha256") != self._universe_sha256
+        ):
+            raise ConflictError("Stage 12E scheduled intent identity is invalid")
         body = _read_bytes(paths["body"], maximum=MAX_RESPONSE_BYTES)
         response = _validate_envelope(
             _read_json(paths["response"]), contract=f"{_CONTRACT_PREFIX}_response"
@@ -597,21 +836,31 @@ class _Runner:
             or result.get("symbol") != unit.symbol
         ):
             raise ConflictError("Stage 12E result binding is invalid")
+        if unit.instrument_id is not None and (
+            result.get("instrument_id") != unit.instrument_id
+            or result.get("asset_type") != unit.asset_type
+            or result.get("universe_sha256") != self._universe_sha256
+        ):
+            raise ConflictError("Stage 12E scheduled result identity is invalid")
         return result, body, response
 
-    def _write_intent(self, root: Path, unit: _Unit, plan_sha256: str) -> Mapping[str, object]:
-        intent = _envelope(
-            f"{_CONTRACT_PREFIX}_intent",
-            {
-                "identifier": unit.identifier,
-                "issued_at": _utc_text(self._utcnow()),
-                "ordinal": unit.ordinal,
-                "plan_sha256": plan_sha256,
-                "session_date": self._session,
-                "symbol": unit.symbol,
-                "version": _VERSION,
-            },
-        )
+    def _write_intent(
+        self, root: Path, unit: _Unit, plan_sha256: str
+    ) -> Mapping[str, object]:
+        material: dict[str, object] = {
+            "identifier": unit.identifier,
+            "issued_at": _utc_text(self._utcnow()),
+            "ordinal": unit.ordinal,
+            "plan_sha256": plan_sha256,
+            "session_date": self._session,
+            "symbol": unit.symbol,
+            "version": _VERSION,
+        }
+        if unit.instrument_id is not None:
+            material["instrument_id"] = unit.instrument_id
+            material["asset_type"] = unit.asset_type
+            material["universe_sha256"] = self._universe_sha256
+        intent = _envelope(f"{_CONTRACT_PREFIX}_intent", material)
         _write_json(_unit_paths(root, unit)["intent"], intent)
         return intent
 
@@ -665,6 +914,10 @@ class _Runner:
             or not isinstance(value["Error Message"], str)
             or not value["Error Message"].strip()
             or len(value["Error Message"]) > 4096
+            or any(
+                ord(character) < 32 or ord(character) == 127
+                for character in value["Error Message"]
+            )
         ):
             raise ValidationError("Stage 12E provider error envelope is invalid")
 
@@ -686,7 +939,17 @@ class _Runner:
         if status == 200:
             parsed = loads_strict(body, max_bytes=MAX_RESPONSE_BYTES)
             if parsed == []:
-                outcome = "no_market_session" if unit.ordinal == 1 else "terminal_empty"
+                if unit.ordinal == 1:
+                    outcome = "no_market_session"
+                elif _TERMINAL_RESPONSE_POLICY.get(unit.symbol) == (
+                    "noncoverage_empty",
+                    200,
+                ):
+                    outcome = "terminal_noncoverage"
+                else:
+                    raise StoreUnavailableError(
+                        "Stage 12E provider returned an unapproved empty response"
+                    )
             else:
                 prepared = self._collector.prepare(
                     Stage12BFixtureRequest(
@@ -712,24 +975,29 @@ class _Runner:
                     "semantic_identity": receipt.semantic_identity,
                     "written_versions": receipt.written_versions,
                 }
-        elif status in {404, 410, 422} and unit.ordinal != 1:
+        elif _TERMINAL_RESPONSE_POLICY.get(unit.symbol) == (
+            "noncoverage_http_402_authorized",
+            402,
+        ) and status == 402:
             self._error_envelope(body)
             outcome = "terminal_noncoverage"
         else:
             raise StoreUnavailableError("Stage 12E provider response is outside policy")
-        result = _envelope(
-            f"{_CONTRACT_PREFIX}_result",
-            {
-                "http_status": status,
-                "identifier": unit.identifier,
-                "outcome": outcome,
-                "publication": publication,
-                "response_sha256": spool["sha256"],
-                "session_date": self._session,
-                "symbol": unit.symbol,
-                "version": _VERSION,
-            },
-        )
+        material: dict[str, object] = {
+            "http_status": status,
+            "identifier": unit.identifier,
+            "outcome": outcome,
+            "publication": publication,
+            "response_sha256": spool["sha256"],
+            "session_date": self._session,
+            "symbol": unit.symbol,
+            "version": _VERSION,
+        }
+        if unit.instrument_id is not None:
+            material["instrument_id"] = unit.instrument_id
+            material["asset_type"] = unit.asset_type
+            material["universe_sha256"] = self._universe_sha256
+        result = _envelope(f"{_CONTRACT_PREFIX}_result", material)
         _write_json(_unit_paths(root, unit)["result"], result)
         return result
 
@@ -760,7 +1028,6 @@ class _Runner:
                     for unit in units if unit.identifier in results
                 ],
                 "session_date": self._session,
-                "stage12c_completion_sha256": STAGE12C_COMPLETION_SHA256,
                 "target_identity": {
                     "device": self._target_identity[0],
                     "inode": self._target_identity[1],
@@ -810,7 +1077,13 @@ class _Runner:
         session_root = self._state_root / self._session
         _ensure_private_directory(session_root)
         _ensure_private_directory(session_root / "journal")
-        with _held_run_lock(session_root):
+        with _held_run_attempt(
+            session_root,
+            authority_sha256=self._authority,
+            session_date=self._session,
+            plan_sha256=str(plan["sha256"]),
+            utcnow=self._utcnow,
+        ):
             plan_path = session_root / "plan.json"
             if plan_path.exists() or plan_path.is_symlink():
                 existing_plan = _validate_envelope(
@@ -884,26 +1157,36 @@ class _Runner:
             )
 
     @classmethod
-    def _for_canonical_live(cls) -> "_Runner":
+    def _for_canonical_live(cls, *, session_date: str) -> "_Runner":
         if cls is not _Runner:
             raise ValidationError("Stage 12E canonical runner cannot be subclassed")
+        session = _date_text(session_date)
         stage12a = load_stage12_market_v1_scope(
             PROJECT_ROOT / "config" / "stage12_market_v1_scope.json"
         )
         stage12b = load_stage12b_incremental_market_v1_scope(
             PROJECT_ROOT / "config" / "stage12b_incremental_market_v1_scope.json"
         )
+        universe = _canonical_scheduled_universe()
         collector = Stage12BIncrementalCollector._for_canonical_market_close(
             scope=stage12b,
             stage12a_scope=stage12a,
             schedule_authority_sha256=STAGE12E_AUTHORITY_SHA256,
+            scheduled_instruments={
+                item.symbol: (item.instrument_id, item.asset_type)
+                for item in universe.instruments
+            },
+            scheduled_universe_sha256=universe.sha256,
+            scheduled_code_version=_VERSION,
         )
         return cls(
             project_root=PROJECT_ROOT,
             market_store=MARKET_STORE,
             state_root=STATE_ROOT,
-            session_date=scheduled_session_date(datetime.now(timezone.utc)),
-            symbols=_canonical_symbols(),
+            session_date=session,
+            symbols=tuple(item.symbol for item in universe.instruments),
+            scheduled_instruments=universe.instruments,
+            universe_sha256=universe.sha256,
             collector=collector,
             transport=_StdlibTransport(),
             environment=os.environ,
@@ -926,6 +1209,8 @@ class Stage12EMarketCloseRunner(_Runner):
         state_root: str | Path,
         session_date: str,
         symbols: tuple[str, ...],
+        scheduled_instruments: tuple[_ScheduledInstrument, ...] | None = None,
+        universe_sha256: str | None = None,
         collector: Stage12BIncrementalCollector,
         transport: Stage12ETransport,
         environment: Mapping[str, str],
@@ -940,6 +1225,8 @@ class Stage12EMarketCloseRunner(_Runner):
             state_root=Path(state_root),
             session_date=session_date,
             symbols=symbols,
+            scheduled_instruments=scheduled_instruments,
+            universe_sha256=universe_sha256,
             collector=collector,
             transport=transport,
             environment=environment,
@@ -954,7 +1241,30 @@ class Stage12EMarketCloseRunner(_Runner):
 def run_stage12e_market_close_live() -> Stage12EMarketCloseReport:
     """Run the sole fixed-target scheduled market-close cycle."""
 
-    return _Runner._for_canonical_live().run()
+    session = scheduled_session_date(datetime.now(timezone.utc))
+    session_root = STATE_ROOT / session
+    _ensure_private_directory(session_root)
+    _ensure_private_directory(session_root / "journal")
+    with _held_run_lock(session_root):
+        _raise_if_prior_failure(
+            session_root,
+            authority_sha256=STAGE12E_AUTHORITY_SHA256,
+            session_date=session,
+        )
+    try:
+        runner = _Runner._for_canonical_live(session_date=session)
+    except Exception as error:
+        with _held_run_lock(session_root):
+            _write_failure_receipt(
+                session_root,
+                authority_sha256=STAGE12E_AUTHORITY_SHA256,
+                session_date=session,
+                plan_sha256=None,
+                failed_at=_utc_text(datetime.now(timezone.utc)),
+                error=error,
+            )
+        raise
+    return runner.run()
 
 
 def main() -> int:
@@ -993,7 +1303,7 @@ if __name__ == "__main__":
 
 
 __all__ = (
-    "EXPECTED_SYMBOL_COUNT",
+    "MAX_SYMBOL_COUNT",
     "MARKET_CLOSE_TIME",
     "MINIMUM_REQUEST_INTERVAL_SECONDS",
     "STAGE12E_AUTHORITY_SHA256",

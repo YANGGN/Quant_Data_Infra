@@ -39,6 +39,11 @@ _FMP_ENDPOINT = "/stable/historical-price-eod/full"
 _EVIDENCE_DATASET = "market.stage10.source_evidence"
 _PRICE_DATASET = "market.stage10.daily_prices"
 _PHYSICAL_CAPTURE_NORMALIZATION_VERSION = "stage10.fmp.daily_price.v1"
+_SCHEDULED_COLLECTOR_ID = "stage12e.market_close"
+_SCHEDULED_SOURCE_REFERENCE = "fmp.scheduled.historical-price-eod.full"
+_SCHEDULED_MAX_SYMBOL_COUNT = 800
+_SCHEDULED_ASSET_TYPES = frozenset({"equity", "etf", "index"})
+
 _ROW_KEYS = frozenset(
     {
         "symbol",
@@ -290,6 +295,46 @@ class Stage12BIncrementalCollector:
         self._stage12a_scope = stage12a_scope
         self._owner = object()
         self._schedule_authority_sha256: str | None = None
+        self._scheduled_instruments: dict[str, tuple[str, str]] | None = None
+        self._scheduled_universe_sha256: str | None = None
+        self._scheduled_code_version: str | None = None
+
+    @staticmethod
+    def _validated_scheduled_instruments(
+        value: Mapping[str, tuple[str, str]],
+    ) -> dict[str, tuple[str, str]]:
+        if not isinstance(value, Mapping) or not value or len(value) > _SCHEDULED_MAX_SYMBOL_COUNT:
+            raise ValidationError("Stage 12E scheduled instrument mapping is invalid")
+        result: dict[str, tuple[str, str]] = {}
+        instrument_ids: set[str] = set()
+        for symbol, identity in value.items():
+            if (
+                not isinstance(symbol, str)
+                or not symbol
+                or len(symbol) > 32
+                or symbol != symbol.upper()
+                or any(character.isspace() for character in symbol)
+                or not isinstance(identity, tuple)
+                or len(identity) != 2
+            ):
+                raise ValidationError("Stage 12E scheduled instrument mapping is invalid")
+            instrument_id, asset_type = identity
+            if (
+                not isinstance(instrument_id, str)
+                or not instrument_id
+                or len(instrument_id) > 256
+                or any(character.isspace() for character in instrument_id)
+                or not isinstance(asset_type, str)
+                or asset_type not in _SCHEDULED_ASSET_TYPES
+                or symbol in result
+                or instrument_id in instrument_ids
+            ):
+                raise ValidationError("Stage 12E scheduled instrument mapping is invalid")
+            result[symbol] = (instrument_id, asset_type)
+            instrument_ids.add(instrument_id)
+        if "AAPL" not in result:
+            raise ValidationError("Stage 12E scheduled instrument mapping lacks AAPL")
+        return result
 
     @classmethod
     def _for_canonical_market_close(
@@ -298,6 +343,9 @@ class Stage12BIncrementalCollector:
         scope: Stage12BIncrementalMarketScope,
         stage12a_scope: Stage12MarketV1Scope,
         schedule_authority_sha256: str,
+        scheduled_instruments: Mapping[str, tuple[str, str]],
+        scheduled_universe_sha256: str,
+        scheduled_code_version: str,
     ) -> "Stage12BIncrementalCollector":
         """Build the private, fixed-target publisher used only by Stage 12E."""
 
@@ -309,6 +357,41 @@ class Stage12BIncrementalCollector:
             or any(character not in "0123456789abcdef" for character in schedule_authority_sha256)
         ):
             raise ValidationError("Stage 12E schedule authority digest is invalid")
+        if (
+            not isinstance(scheduled_universe_sha256, str)
+            or len(scheduled_universe_sha256) != 64
+            or any(character not in "0123456789abcdef" for character in scheduled_universe_sha256)
+        ):
+            raise ValidationError("Stage 12E scheduled universe digest is invalid")
+        validated_scheduled_instruments = cls._validated_scheduled_instruments(
+            scheduled_instruments
+        )
+        expected_scheduled_universe_sha256 = _sha256_json(
+            [
+                {
+                    "asset_type": asset_type,
+                    "instrument_id": instrument_id,
+                    "symbol": symbol,
+                }
+                for symbol, (instrument_id, asset_type) in sorted(
+                    validated_scheduled_instruments.items(),
+                    key=lambda item: (
+                        item[0] != "AAPL",
+                        item[0],
+                        item[1][0],
+                    ),
+                )
+            ]
+        )
+        if scheduled_universe_sha256 != expected_scheduled_universe_sha256:
+            raise ValidationError("Stage 12E scheduled universe digest is inconsistent")
+        if (
+            not isinstance(scheduled_code_version, str)
+            or not scheduled_code_version
+            or len(scheduled_code_version) > 64
+            or any(character.isspace() for character in scheduled_code_version)
+        ):
+            raise ValidationError("Stage 12E scheduled code version is invalid")
         validated_stage12a = require_stage12a_binding(
             scope,
             stage12a_scope,
@@ -334,10 +417,13 @@ class Stage12BIncrementalCollector:
         collector._store_path = store
         collector._scope = scope
         collector._fixture_root_identity = cls._physical_identity(root_stat)
+        collector._scheduled_code_version = scheduled_code_version
         collector._store_identity = cls._physical_identity(store_stat)
         collector._stage12a_scope = validated_stage12a
         collector._owner = object()
         collector._schedule_authority_sha256 = schedule_authority_sha256
+        collector._scheduled_instruments = validated_scheduled_instruments
+        collector._scheduled_universe_sha256 = scheduled_universe_sha256
         return collector
 
     @property
@@ -600,9 +686,15 @@ class Stage12BIncrementalCollector:
         symbol = _require_text(request.symbol, pointer="/symbol", maximum=32)
         if symbol != symbol.upper() or any(character.isspace() for character in symbol):
             raise _issue("/symbol", "symbol", "Fixture symbol must be one frozen uppercase roster symbol")
-        roster = {item.symbol: item for item in self._stage12a_scope.roster}
-        if symbol not in roster:
-            raise _issue("/symbol", "roster", "Fixture symbol is outside the frozen Stage 12A roster")
+        scheduled_identity = None
+        if self._scheduled_instruments is None:
+            roster = {item.symbol: item for item in self._stage12a_scope.roster}
+            if symbol not in roster:
+                raise _issue("/symbol", "roster", "Fixture symbol is outside the frozen Stage 12A roster")
+        else:
+            scheduled_identity = self._scheduled_instruments.get(symbol)
+            if scheduled_identity is None:
+                raise _issue("/symbol", "roster", "Stage 12E symbol is outside the scheduled universe")
         from_date = _date_text(request.from_date, pointer="/from_date")
         to_date = _date_text(request.to_date, pointer="/to_date")
         start = date.fromisoformat(from_date)
@@ -632,6 +724,10 @@ class Stage12BIncrementalCollector:
             request_scope["schedule_authority_sha256"] = (
                 self._schedule_authority_sha256
             )
+        if scheduled_identity is not None:
+            request_scope["scheduled_instrument_id"] = scheduled_identity[0]
+            request_scope["scheduled_asset_type"] = scheduled_identity[1]
+            request_scope["scheduled_universe_sha256"] = self._scheduled_universe_sha256
         return request_scope, captured_at
 
     def _parse_response(
@@ -758,10 +854,22 @@ class Stage12BIncrementalCollector:
         ).fetchone()
         if row is None:
             raise ValidationError("Stage 12B fixture publication requires a preseeded frozen instrument")
-        roster = {item.symbol: item for item in self._stage12a_scope.roster}
-        roster_item = roster[symbol]
-        if str(row["asset_type"]) != roster_item.asset_type or str(row["currency_segment"]) != "provider_native":
-            raise ValidationError("Preseeded instrument does not match the frozen Stage 12A roster identity")
+        if self._scheduled_instruments is None:
+            roster = {item.symbol: item for item in self._stage12a_scope.roster}
+            roster_item = roster[symbol]
+            if str(row["asset_type"]) != roster_item.asset_type or str(row["currency_segment"]) != "provider_native":
+                raise ValidationError("Preseeded instrument does not match the frozen Stage 12A roster identity")
+        else:
+            scheduled = self._scheduled_instruments.get(symbol)
+            if scheduled is None:
+                raise ConflictError("Stage 12E scheduled instrument mapping changed")
+            expected_instrument_id, expected_asset_type = scheduled
+            if (
+                str(row["instrument_id"]) != expected_instrument_id
+                or str(row["asset_type"]) != expected_asset_type
+                or str(row["currency_segment"]) != "provider_native"
+            ):
+                raise ValidationError("Preseeded instrument does not match the scheduled identity")
         return row
 
     def _write_publication(
@@ -774,10 +882,24 @@ class Stage12BIncrementalCollector:
         instrument_id = str(instrument["instrument_id"])
         self._require_changed_rows_are_later(connection, state, instrument_id)
         semantic = state.semantic_identity
-        run_id = stable_id("stage12b-run", semantic)
-        artifact_id = stable_id("stage12b-artifact", semantic, state.response_sha256)
-        snapshot_id = stable_id("stage12b-snapshot", semantic)
-        capture_id = stable_id("stage12b-capture", semantic)
+        scheduled = self._scheduled_instruments is not None
+        identifier_prefix = "stage12e" if scheduled else "stage12b"
+        if scheduled:
+            assert self._scheduled_universe_sha256 is not None
+            assert self._scheduled_code_version is not None
+            scope_manifest_sha256 = self._scheduled_universe_sha256
+            collector_id = _SCHEDULED_COLLECTOR_ID
+            source_reference = _SCHEDULED_SOURCE_REFERENCE
+            code_version = self._scheduled_code_version
+        else:
+            scope_manifest_sha256 = self._stage12a_scope.manifest_sha256
+            collector_id = STAGE12B_COLLECTOR_ID
+            source_reference = "fmp.fixture.historical-price-eod.full"
+            code_version = self._scope.version
+        run_id = stable_id(identifier_prefix + "-run", semantic)
+        artifact_id = stable_id(identifier_prefix + "-artifact", semantic, state.response_sha256)
+        snapshot_id = stable_id(identifier_prefix + "-snapshot", semantic)
+        capture_id = stable_id(identifier_prefix + "-capture", semantic)
         scope_json = dumps_strict(dict(state.request_scope))
         connection.execute(
             """
@@ -790,11 +912,11 @@ class Stage12BIncrementalCollector:
                 run_id,
                 _PRICE_DATASET,
                 semantic,
-                STAGE12B_COLLECTOR_ID,
+                collector_id,
                 scope_json,
                 state.captured_at,
                 len(state.rows),
-                self._scope.version,
+                code_version,
             ),
         )
         for dataset_id in (_EVIDENCE_DATASET, _PRICE_DATASET):
@@ -819,7 +941,7 @@ class Stage12BIncrementalCollector:
                 instrument_id,
                 state.request_scope["symbol"],
                 _FMP_ENDPOINT,
-                self._stage12a_scope.manifest_sha256,
+                scope_manifest_sha256,
                 scope_json,
                 state.request_scope_sha256,
                 state.response_sha256,
@@ -854,7 +976,7 @@ class Stage12BIncrementalCollector:
                 continue
             sequence = 1 if current is None else int(current["correction_sequence"]) + 1
             previous = None if current is None else str(current["version_id"])
-            version_id = stable_id("stage12b-price-version", semantic, row.trade_date, str(sequence))
+            version_id = stable_id(identifier_prefix + "-price-version", semantic, row.trade_date, str(sequence))
             connection.execute(
                 """
                 INSERT INTO stage10_daily_price_versions(
@@ -919,7 +1041,7 @@ class Stage12BIncrementalCollector:
                 _EVIDENCE_DATASET,
                 state.response_sha256,
                 len(state.response_body),
-                "fmp.fixture.historical-price-eod.full",
+                source_reference,
                 scope_json,
                 state.captured_at,
                 self._scope.publication.normalization_version,

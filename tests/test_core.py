@@ -20,7 +20,7 @@ from quant_data.errors import (
 from quant_data import fingerprint as fingerprint_module
 from quant_data.fingerprint import logical_manifest, mutation_fingerprint
 from quant_data.fixtures import FixtureManifest
-from quant_data.json_codec import dumps_strict, loads_strict
+from quant_data.json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
 from quant_data.migrations import initialize_all, migrate_store
 from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage2_registry_profile
 from quant_data.tool_platform.catalog import CURRENT_PUBLIC_TOOL_NAMES
@@ -544,9 +544,13 @@ INSERT INTO child(id, parent_id) VALUES ('child', 'missing');
         # larger than the public JSON envelope.
         self.assertLess(len(dumps_strict(mutation).encode("utf-8")), 2_000_000)
         # The logical manifest intentionally embeds the active registry,
-        # including the Step 1-4 strict tool contracts, while the 250k-row
-        # relation remains represented only by its compact fingerprint.
-        self.assertLess(len(dumps_strict(logical).encode("utf-8")), 2_500_000)
+        # including the reviewed versioned tool contracts, while the 250k-row
+        # relation remains represented only by its compact fingerprint. The
+        # envelope stays far below the public eight-megabyte response ceiling.
+        self.assertLess(
+            len(dumps_strict(logical).encode("utf-8")),
+            MAX_JSON_BYTES,
+        )
         self.assertEqual(
             mutation["sha256"],
             mutation_fingerprint(self.store_map)["sha256"],

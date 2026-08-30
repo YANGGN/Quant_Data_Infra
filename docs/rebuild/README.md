@@ -41,9 +41,10 @@ no-copy Stage 12C population is complete and independently verified under its
 [two-session contract](STAGE12C_MARKET_GAP_V1.md) and immutable
 [evidence record](STAGE12C_EVIDENCE.md). Registry `2.14.0`/schema `1.8.0`
 binds 629 one-attempt units: 619 published complete, three successful-empty,
-and seven narrowly sealed authorized HTTP 402 terminal outcomes. The final
-project-local target has 4,237,131 current rows, 4,237,873 immutable versions,
-and 5,210 captures with clean invariants.
+and seven narrowly sealed authorized HTTP 402 terminal outcomes. The Stage
+12C receipt records 4,237,131 current rows, 4,237,873 immutable versions, and
+5,210 captures with clean invariants; the later additive IWM result is
+recorded separately below.
 
 Stage 12D is complete and independently verified under its
 [no-transfer project-local adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md),
@@ -54,7 +55,17 @@ WAL, SHM, and journal stamps unchanged. Independent reconciliation did not
 reopen SQLite or compute a new full-database hash, and it is not a backup or
 recovery proof. No second multi-gigabyte database, copy, move, replacement,
 backup, migration, registry bump, promotion pointer, provider/network access,
-public exposure, or scheduler change occurred. Stage 12E remains closed.
+public exposure, or scheduler change occurred. Stage 12E was separately
+authorized on 2026-08-29 as a bounded daily market refresh; its implementation
+is complete and host-timer activation is pending.
+
+The [2026-08-29 personal-project recovery decision](../../plan.md#22-dated-clarification-personal-project-recovery-scope)
+removes formal four-store backup/restore certification from the current
+restoration exit criteria. GitHub is the recovery authority for code,
+migrations, tests, and configuration; database loss may be handled by
+rebuilding schemas and separately authorized provider re-fetches. Existing
+backup fixtures remain safety evidence, not a required certification milestone.
+
 Registry `2.15.0`/schema `1.8.0` changed only the macro, company, and news
 default basenames to `data/macro.sqlite`,
 `data/company.sqlite`, and `data/news.sqlite`, matching the existing files.
@@ -229,10 +240,163 @@ Nearest positive listed expiries are selected deterministically and duplicate
 target mappings are captured once. The fixed local Inspector adds a read-only
 `options-surfaces` view. The existing scheduled SPY collector and its
 `spy-options` view remain unchanged and SPY-only; the broad collector has no
-scheduler or registry job. Implementation and offline validation made no
-provider request, credential read, or canonical-store write, so no broad-grid
-live-completion receipt is claimed. Exact projection restores byte-identical
+scheduler or registry job. On 2026-08-27 the one authorized manual attempt
+issued 17 requests and failed closed for all 15 underlyings before any option
+chain or publication; captures, contracts, surfaces, and writes were zero, and
+the attempt was not retried. See the
+[additive IWM evidence](STAGE10_IWM_EXTENSION_EVIDENCE.md). Exact projection
+restores byte-identical
 registry `2.48.0`; catalog `2.11.0` is unchanged.
+
+On 2026-08-27 the user clarified that IWM belongs in the Stage 10 ETF
+universe even though the historical single-name rule remains the overlap of
+the S&P 500, Nasdaq-100, and Dow 30 cohorts. Registry `2.50.0` adds one
+private, manual-only FMP IWM full-history collector over the four existing
+Stage 10 evidence, instrument, universe, and daily-price datasets. It derives
+one 96-member `curated_etfs` successor from the exact frozen 95-member
+snapshot plus IWM; the sealed 629-instrument receipts and their historical
+IWM exclusion are not rewritten. One run is fixed to one request, one
+attempt, 30,000 rows, 16 MiB, and 45 seconds. The operation reserves private
+attempt state before provider access and has no registry job or timer. The
+one authorized live request completed on 2026-08-27 with 1,254 daily rows and
+an exact 96-member successor. Immutable postchecks returned integrity `ok`,
+zero foreign-key violations, exact current/version lineage, unchanged frozen
+Stage 12C counts, and 1,254 read-only Inspector-visible IWM prices. Its private
+completion state blocks another invocation. See the
+[additive IWM evidence](STAGE10_IWM_EXTENSION_EVIDENCE.md). Exact projection
+restores byte-identical
+registry `2.49.0`; no migration, dataset, tool, dashboard, export, or
+scheduler was added.
+Registry `2.51.0` adds only the private, manual-only fixed IWM
+missing-interval collector declaration and grants no live-run authority.
+Registry `2.52.0` adds seven explicit store-free analytical successors over
+compatible caller-supplied Stage 10 return series. Registry `2.53.0` adds
+`company.search_filings@2.0.0` with exact-CIK, cutoff-bound cursor
+pagination. Registry `2.54.0` adds
+`market.search_instruments@2.0.0` for retained Stage 10 FMP identity search
+and `company.get_share_count_history@2.0.0` for reviewed SEC share facts.
+Registry `2.55.0` adds only the explicit, store-free
+`market.technical_indicators@2.1.0` successor and its causal
+`supertrend_ai` calculation. Catalog `2.15.0` has 76 contracts and 30
+explicit variants. Registry `2.56.0` adds only the explicit, store-free
+`market.technical_indicators@2.2.0` successor and its causal
+`swing_structure_forecast` calculation. At that revision the active manifest
+had 65 logical names with every frozen default and predecessor unchanged;
+catalog `2.16.0` had 78 contracts and 31 explicit variants. Its registry
+SHA-256 was
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`,
+and its catalog SHA-256 was
+`cb1c6965582b90eaeec27054eda0d66e7a4c603aefa69f9b453ae342d779302b`.
+Exact predecessor projection removes only v2.2 and restores byte-identical
+registry `2.55.0`; its predecessor removes only v2.1 and restores
+byte-identical registry `2.54.0`. The older projection chain remains intact.
+These increments add no migration, dataset ownership, provider authority,
+canonical write, scheduler, export, hosting, or deployment scope.
+
+
+Registry `2.57.0` adds fifteen explicit read-only investment-analysis v2
+successors while retaining the same 65 logical names and every frozen v1
+default. The batch provides query-bound release-calendar pagination,
+explicit-ticker cross-sectional performance, revision/surprise readers,
+direct rates/liquidity/credit/regime views, raw research state, retained
+energy readers, and normalized company fundamentals. The tools are bounded,
+source-native readers or direct documented calculations; they add no
+portfolio/position semantics, opaque composite score, classifier, or
+investment recommendation. Catalog `2.17.0` has 108 contracts, 40 version
+policies, and 46 variants, at SHA-256
+`5c0ea96b9aba9d73f8f89aea20a052c858691e10a1047f22594f027d8f893101`.
+The registry source SHA-256 is
+`1d36ddd20494cfc0ae9e6172f662c5dfe04b905319c0f83b439446f44fd29b5e`.
+Exact projection returns to registry `2.56.0`
+and catalog `2.16.0`; no migration, dataset ownership, provider authority,
+canonical write, scheduler, export, hosting, or deployment scope is added.
+
+Registry `2.58.0` adds only the store-free
+`market.technical_indicators@2.3.0` KDJ successor over caller-supplied typed
+high, low, and close series. Catalog `2.18.0` has 110 contracts, 40 version
+policies, and 47 variants at SHA-256
+`4803071d5cb2ababa2710ac4c0e3eb1e1640b06aa0b6071e14c2f40be68fec72`;
+the registry SHA-256 is
+`02a4aeb34632c5ae194622b7de77ec31145135bdf399620e45af461132134d43`.
+Exact projection removes only v2.3 and restores byte-identical registry
+`2.57.0` and catalog `2.17.0`. It adds no provider request, canonical write,
+migration, scheduler, export, hosting, or deployment scope.
+Registry `2.59.0` keeps the same 65 logical names and adds five explicit
+successors: the existing store-free Williams Vix Fix v2.4 calculation,
+market breadth/risk analytics v2.1, fixed-lag seasonality for both retained
+energy readers v2.1, and normalized company ratios v2.1. It also corrects the
+stationarity and declared structural-break adapters to exclude only expected
+incomplete return edges while continuing to reject interior gaps. Catalog
+`2.19.0` has 120 contracts, 40 version policies, and 52 variants at SHA-256
+`e4fdb9d9b6783ec131838762d8e2ae4b1c6833cc37c0292e1ceed09e0d919474`;
+the registry SHA-256 is
+`0457910706181d7f4d9bb07efbf18845dd86335999b55c5d5a8d203041d315a1`.
+Exact projection removes only the five new variants and restores byte-identical
+registry `2.58.0` and catalog `2.18.0`. It adds no provider request, canonical
+write, migration, scheduler, export, hosting, or deployment scope.
+
+Registry `2.60.0` keeps the same 65 logical names and adds only the store-free
+`market.technical_indicators@2.5.0` WaveTrend-with-crosses successor over
+caller-supplied typed high, low, and close series. It applies the Pine channel
+and average lengths, fixed `0.015` channel scaling, and fixed four-bar signal
+SMA, and returns WaveTrend, signal, difference, and signed cross components;
+chart levels, colors, markers, fills, and bar colors are excluded presentation
+behavior. Catalog `2.20.0` has 122 contracts, 40 version policies, and 53
+variants at SHA-256
+`cebc1ca58257fed167db36973be1ce37e6e01162c2bc072c24591a673b0aedb4`;
+the registry SHA-256 is
+`563c4294c47d534754014dc77a4a1b39e84749cc4d8165636bafd82feff679b0`.
+Exact projection removes only v2.5 and restores byte-identical registry
+`2.59.0` and catalog `2.19.0`. It adds no provider request, canonical write,
+migration, scheduler, export, hosting, or deployment scope.
+
+Registry `2.61.0` keeps the same 65 logical names and adds only the store-free
+`market.technical_indicators@2.6.0` Parabolic SAR successor over
+caller-supplied typed high, low, and close series. It returns one aligned
+price-valued stop series with explicit first-bar missingness and excludes
+chart-only presentation behavior. Catalog `2.21.0` has 124 contracts, 40
+version policies, and 54 variants at SHA-256
+`b70798594de6149b7710b36d3b735b3d24ff81eb23277ba54dfdc697aceb0efc`;
+the registry SHA-256 is
+`0f43045c1dcc46b0f9d5ecb0aaf98aa3e9ad61a43e250afc389408602a8615ea`.
+Exact projection removes only v2.6 and restores byte-identical registry
+`2.60.0` and catalog `2.20.0`. It adds no provider request, canonical write,
+migration, scheduler, export, hosting, or deployment scope. The
+[2026-08-28 current public-tool actual-data audit](CURRENT_TOOL_ACTUAL_DATA_AUDIT_2026-08-28.md)
+is point-in-time execution evidence; the generated manifest and each selected
+`describe` result remain the consumer contract authority.
+
+Registry `2.62.0` keeps the same 65 logical names and adds only the store-free
+`market.technical_indicators@2.7.0` rolling-regression-line successor over one
+caller-supplied typed close series. Its caller-supplied integer `window` is 2
+through 10,000; it fits OLS over the complete trailing window including the
+current bar and emits the fitted right-edge value. Warm-up is explicit
+`insufficient_history`; a null close in the lookback is explicit
+`rolling_window_input_missing`, with recovery as soon as that gap leaves the
+window. Catalog `2.22.0` has 126 contracts, 40 version policies, and 55
+variants at SHA-256
+`18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1`; the
+registry SHA-256 is
+`59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2`.
+Exact projection removes only v2.7 and restores byte-identical registry
+`2.61.0` and catalog `2.21.0`. It adds no provider request, canonical write,
+migration, scheduler, export, hosting, or deployment scope.
+
+Registry `2.63.0` keeps 65 logical names and adds the separate repeatable
+current FMP news successor: migration `news:0006_fmp_stock_latest_current`,
+datasets `news.fmp.stock_latest_current_evidence` and
+`news.fmp.stock_latest_current_articles`, manual-only collector
+`fmp.news.stock_latest_current`, and `news.search@2.0.0`. Catalog `2.23.0`
+has 128 contracts, 41 version policies, and 56 variants at SHA-256
+`05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`; the
+registry SHA-256 is
+`06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72`.
+Exact projection removes only this successor and restores byte-identical
+`2.62.0`/`2.22.0`. This is offline-validated only: no live request, canonical
+news-store migration/population, or recurring timer has occurred or been
+authorized.
+
+
 
 For any provider, credential, scheduler, canonical-store, migration,
 promotion, retirement, deployment, public-exposure, or destructive task, read
@@ -377,7 +541,8 @@ adoption/freeze` under its
 [evidence record](STAGE12D_EVIDENCE.md). The evidence states the post-proof
 no-reopen/no-new-full-hash limitation and makes no backup or recovery claim.
 It has no transfer, migration, provider, credential, public-consumer, or
-scheduler authority. Stage 12E remains closed.
+scheduler authority. Stage 12E is separately authorized and implemented as a
+bounded daily market refresh; its host-timer activation is pending.
 
 ## 5. Shared terminology
 

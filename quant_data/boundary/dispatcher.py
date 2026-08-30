@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -17,7 +18,11 @@ from threading import BoundedSemaphore, local
 from time import perf_counter_ns
 from typing import Any, Mapping
 
-from quant_data.contracts import Observation, TimeSeries
+from quant_data.contracts import (
+    EXACT_DECIMAL_QUALITY_FLAG_PREFIX,
+    Observation,
+    TimeSeries,
+)
 from quant_data.errors import (
     ConcurrencyLimitError,
     InternalOutputError,
@@ -46,7 +51,13 @@ from quant_data.tool_platform.catalog import (
     ADDITIVE_STAGE10_STATISTICS_TOOLS,
     VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_ENERGY_TOOLS,
+    VERSIONED_COMPANY_FUNDAMENTAL_TOOLS,
+    VERSIONED_MACRO_CONDITION_TOOLS,
     VERSIONED_MARKET_RETURN_TOOLS,
+    VERSIONED_RATE_TOOLS,
+    VERSIONED_RESEARCH_ANALYTIC_TOOLS,
+    VERSIONED_RESEARCH_STATE_TOOLS,
     VERSIONED_TECHNICAL_INDICATOR_TOOLS,
     VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
     current_tool_profiles,
@@ -75,9 +86,65 @@ _STAGE5_INPUT_KINDS = {
     profile.name: profile.input_kind for profile in current_tool_profiles()
 }
 _VERSIONED_INPUT_KINDS = {
+    ("news.search", "2.0.0"): "current_news_search_v2",
     ("macro.search_series", "2.0.0"): "canonical_macro_search_v2",
     ("macro.describe_series", "2.0.0"): "canonical_macro_describe_v2",
     ("macro.get_series", "2.0.0"): "canonical_macro_series_v2",
+    ("macro.get_release_calendar", "2.0.0"): "macro_release_calendar_v2",
+    (
+        "market.cross_sectional_performance",
+        "2.0.0",
+    ): "stage10_cross_sectional_performance_v2",
+    (
+        "market.cross_sectional_performance",
+        "2.1.0",
+    ): "stage10_cross_sectional_analytics_v2_1",
+    ("macro.revision_analysis", "2.0.0"): "macro_revision_v2",
+    (
+        "macro.standardize_surprises",
+        "2.0.0",
+    ): "macro_surprise_standardization_v2",
+    ("rates.get_funding_conditions", "2.0.0"): "funding_conditions_v2",
+    (
+        "rates.get_repo_facility_usage",
+        "2.0.0",
+    ): "macro_observed_snapshot_v2",
+    ("rates.curve_analytics", "2.0.0"): "curve_analytics_v2",
+    (
+        "macro.get_liquidity_snapshot",
+        "2.0.0",
+    ): "macro_observed_snapshot_v2",
+    ("macro.get_liquidity_impulse", "2.0.0"): "liquidity_impulse_v2",
+    (
+        "macro.get_credit_conditions",
+        "2.0.0",
+    ): "macro_observed_snapshot_v2",
+    ("macro.regime_snapshot", "2.0.0"): "macro_regime_v2",
+    ("research.liquidity_credit_state", "2.0.0"): "macro_regime_v2",
+    (
+        "energy.get_electricity_retail_sales",
+        "2.0.0",
+    ): "energy_electricity_retail_v2",
+    (
+        "energy.get_electricity_retail_sales",
+        "2.1.0",
+    ): "energy_electricity_retail_v2",
+    (
+        "energy.get_weekly_fundamentals",
+        "2.0.0",
+    ): "energy_weekly_fundamentals_v2",
+    (
+        "energy.get_weekly_fundamentals",
+        "2.1.0",
+    ): "energy_weekly_fundamentals_v2",
+    ("company.get_fundamentals", "2.0.0"): "company_fundamentals_v2",
+    (
+        "company.get_fundamentals",
+        "2.1.0",
+    ): "company_fundamental_ratios_v2_1",
+    ("company.search_filings", "2.0.0"): "company_filing_search_v2",
+    ("company.get_share_count_history", "2.0.0"): "company_share_count_history_v2",
+    ("market.search_instruments", "2.0.0"): "stage10_market_instrument_search_v2",
     **{
         (name, "2.0.0"): "stage10_market_return_v2"
         for name in VERSIONED_MARKET_RETURN_TOOLS
@@ -86,7 +153,35 @@ _VERSIONED_INPUT_KINDS = {
         "market.technical_indicators",
         "2.0.0",
     ): "stage10_technical_indicator_v2",
+    (
+        "market.technical_indicators",
+        "2.1.0",
+    ): "stage10_technical_indicator_v2_1",
+    (
+        "market.technical_indicators",
+        "2.2.0",
+    ): "stage10_technical_indicator_v2_2",
+    (
+        "market.technical_indicators",
+        "2.3.0",
+    ): "stage10_technical_indicator_v2_3",
+    (
+        "market.technical_indicators",
+        "2.4.0",
+    ): "stage10_technical_indicator_v2_4",
     ("timeseries.describe", "2.0.0"): "stage10_market_describe_v2",
+    (
+        "market.technical_indicators",
+        "2.5.0",
+    ): "stage10_technical_indicator_v2_5",
+    (
+        "market.technical_indicators",
+        "2.6.0",
+    ): "stage10_technical_indicator_v2_6",
+    (
+        "market.technical_indicators",
+        "2.7.0",
+    ): "stage10_technical_indicator_v2_7",
     ("timeseries.align", "2.0.0"): "stage10_market_align_v2",
     ("timeseries.correlation", "2.0.0"): "stage10_market_correlation_v2",
     ("timeseries.transform", "2.0.0"): "stage10_market_transform_v2",
@@ -585,7 +680,8 @@ class ToolDispatcher:
                 )
             decode_series = self._timeseries_from_public
             if (
-                declaration["version"] == "2.0.0"
+                declaration["version"]
+                in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
                 and name in VERSIONED_TECHNICAL_INDICATOR_TOOLS
             ):
                 from quant_data.tool_platform.technical_indicator_adapter import (
@@ -605,6 +701,7 @@ class ToolDispatcher:
                         *VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
                         *VERSIONED_DATA_QUALITY_TOOLS,
                         *VERSIONED_ECONOMETRICS_TOOLS,
+                        *VERSIONED_RESEARCH_ANALYTIC_TOOLS,
                     )
                 )
                 or name in ADDITIVE_STAGE10_STATISTICS_TOOLS
@@ -699,7 +796,8 @@ class ToolDispatcher:
                 "read_only"
                 if (
                     name in ADDITIVE_PUBLIC_TOOL_NAMES
-                    or declaration["version"] in {"2.0.0", "2.1.0", "3.0.0"}
+                    or declaration["version"]
+                    in {"2.0.0", "2.1.0", "2.2.0", "3.0.0"}
                 )
                 else "offline_fixture"
             ),
@@ -899,8 +997,6 @@ class ToolDispatcher:
                 "Observation period is inverted",
                 issues=(Issue(f"{pointer}/period_end", "range", "Period end must not precede period start"),),
             )
-        raw_number = value["value"]
-        decimal_value = _as_decimal(raw_number, f"{pointer}/value") if raw_number is not None else None
         dimensions = value["dimensions"]
         if not isinstance(dimensions, Mapping) or any(
             not isinstance(key, str) or not isinstance(item, str)
@@ -912,6 +1008,9 @@ class ToolDispatcher:
             isinstance(flag, str) for flag in quality_flags
         ):
             raise ValidationError("TimeSeries quality flags must be strings")
+        decimal_value = _decimal_from_public_observation(
+            value["value"], quality_flags, pointer
+        )
         return Observation(
             period_start=value["period_start"],
             period_end=value["period_end"],
@@ -977,6 +1076,94 @@ def _as_decimal(value: Any, pointer: str) -> Decimal:
             issues=(Issue(pointer, "finite", "NaN and infinity are not allowed"),),
         )
     return decimal_value
+
+
+def _decimal_from_public_observation(
+    value: Any,
+    quality_flags: list[str] | tuple[str, ...],
+    pointer: str,
+) -> Decimal | None:
+    exact_encodings = tuple(
+        flag.removeprefix(EXACT_DECIMAL_QUALITY_FLAG_PREFIX)
+        for flag in quality_flags
+        if flag.startswith(EXACT_DECIMAL_QUALITY_FLAG_PREFIX)
+    )
+    metadata_pointer = f"{pointer}/quality_flags"
+    if value is None:
+        if exact_encodings:
+            raise ValidationError(
+                "Missing observations cannot carry exact decimal metadata",
+                issues=(
+                    Issue(
+                        metadata_pointer,
+                        "integrity",
+                        "Exact decimal metadata requires a numeric value",
+                    ),
+                ),
+            )
+        return None
+
+    received = _as_decimal(value, f"{pointer}/value")
+    if not exact_encodings:
+        return received
+    if len(exact_encodings) != 1 or not exact_encodings[0]:
+        raise ValidationError(
+            "Exact decimal metadata is invalid",
+            issues=(
+                Issue(
+                    metadata_pointer,
+                    "integrity",
+                    "Expected one exact decimal metadata flag",
+                ),
+            ),
+        )
+    encoded = exact_encodings[0]
+    try:
+        exact = Decimal(encoded)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValidationError(
+            "Exact decimal metadata is invalid",
+            issues=(
+                Issue(
+                    metadata_pointer,
+                    "format",
+                    "Expected a canonical finite decimal",
+                ),
+            ),
+        ) from exc
+    if not exact.is_finite() or dumps_strict(exact) != encoded:
+        raise ValidationError(
+            "Exact decimal metadata is invalid",
+            issues=(
+                Issue(
+                    metadata_pointer,
+                    "format",
+                    "Expected a canonical finite decimal",
+                ),
+            ),
+        )
+    if received == exact:
+        return exact
+
+    try:
+        ordinary_json_value = float(exact)
+    except (OverflowError, ValueError):
+        ordinary_json_value = math.inf
+    if (
+        math.isfinite(ordinary_json_value)
+        and received == Decimal(str(ordinary_json_value))
+    ):
+        return exact
+    raise ValidationError(
+        "Observation value does not match exact decimal metadata",
+        issues=(
+            Issue(
+                f"{pointer}/value",
+                "integrity",
+                "Numeric value conflicts with exact decimal metadata",
+            ),
+        ),
+    )
 
 
 def _stable_unique_strings(values: list[str]) -> list[str]:

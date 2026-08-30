@@ -66,7 +66,13 @@ class FmpStockLatestRegistryTests(unittest.TestCase):
             (migration.store, migration.ordinal, migration.sha256, migration.reconstruction_state),
             ("news", 5, MIGRATION_SHA256, "fixture_validated"),
         )
-        self.assertEqual(registry.store("news").migration_order[-1], MIGRATION_ID)
+        self.assertEqual(
+            registry.store("news").migration_order[-2:],
+            (
+                "news:0005_fmp_stock_latest",
+                "news:0006_fmp_stock_latest_current",
+            ),
+        )
         datasets = {item.id: item for item in registry.datasets if item.id in DATASET_IDS}
         self.assertEqual(tuple(datasets), DATASET_IDS)
         self.assertEqual(

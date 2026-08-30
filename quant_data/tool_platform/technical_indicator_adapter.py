@@ -33,7 +33,16 @@ from quant_data.temporal import (
     parse_date,
 )
 
-from .arguments import Stage10TechnicalIndicatorArgumentsV2
+from .arguments import (
+    Stage10TechnicalIndicatorArgumentsV2,
+    Stage10TechnicalIndicatorArgumentsV21,
+    Stage10TechnicalIndicatorArgumentsV22,
+    Stage10TechnicalIndicatorArgumentsV23,
+    Stage10TechnicalIndicatorArgumentsV24,
+    Stage10TechnicalIndicatorArgumentsV25,
+    Stage10TechnicalIndicatorArgumentsV26,
+    Stage10TechnicalIndicatorArgumentsV27,
+)
 from .context import ToolExecutionContext
 from .market_prices import stage10_market_price_series_schema
 from .market_volume import stage10_market_volume_series_schema
@@ -41,6 +50,14 @@ from .results import DiagnosticV1, QueryResult, RecordV1, fields_from_mapping
 from .technical_indicators import (
     MAX_TECHNICAL_INDICATOR_OBSERVATIONS,
     TECHNICAL_INDICATORS,
+    TECHNICAL_INDICATORS_V2,
+    TECHNICAL_INDICATORS_V21,
+    TECHNICAL_INDICATORS_V22,
+    TECHNICAL_INDICATORS_V23,
+    TECHNICAL_INDICATORS_V24,
+    TECHNICAL_INDICATORS_V25,
+    TECHNICAL_INDICATORS_V26,
+    TECHNICAL_INDICATORS_V27,
     TechnicalIndicatorComponent,
     calculate_technical_indicator,
 )
@@ -48,7 +65,21 @@ from .technical_indicators import (
 
 TOOL_NAME = "market.technical_indicators"
 OPERATION_VERSION = "2.0.0"
+OPERATION_VERSION_V21 = "2.1.0"
+OPERATION_VERSION_V22 = "2.2.0"
+OPERATION_VERSION_V23 = "2.3.0"
+OPERATION_VERSION_V24 = "2.4.0"
+OPERATION_VERSION_V25 = "2.5.0"
+OPERATION_VERSION_V26 = "2.6.0"
+OPERATION_VERSION_V27 = "2.7.0"
 TRANSFORMATION_ID = "technical_indicator_v2"
+TRANSFORMATION_ID_V21 = "technical_indicator_v2_1"
+TRANSFORMATION_ID_V22 = "technical_indicator_v2_2"
+TRANSFORMATION_ID_V23 = "technical_indicator_v2_3"
+TRANSFORMATION_ID_V24 = "technical_indicator_v2_4"
+TRANSFORMATION_ID_V25 = "technical_indicator_v2_5"
+TRANSFORMATION_ID_V26 = "technical_indicator_v2_6"
+TRANSFORMATION_ID_V27 = "technical_indicator_v2_7"
 MAX_OUTPUT_VALUES = 200_000
 _STAGE10_MIGRATION_ID = "market:0010_stage10_market_history"
 _HEX = frozenset("0123456789abcdef")
@@ -60,10 +91,16 @@ _HIGH_LOW_INDICATORS = frozenset(
         "average_true_range",
         "donchian_channels",
         "stochastic_oscillator",
+        "kdj",
         "average_directional_index",
         "accumulation_distribution",
+        "supertrend_ai",
+        "swing_structure_forecast",
+        "wavetrend_crosses",
+        "parabolic_sar",
     )
 )
+_LOW_ONLY_INDICATORS = frozenset(("williams_vix_fix",))
 _VOLUME_INDICATORS = frozenset(
     ("on_balance_volume", "accumulation_distribution")
 )
@@ -73,21 +110,49 @@ _THREE_COMPONENT_INDICATORS = frozenset(
         "bollinger_bands",
         "donchian_channels",
         "average_directional_index",
+        "kdj",
     )
 )
+_FOUR_COMPONENT_INDICATORS = frozenset(
+    ("williams_vix_fix", "wavetrend_crosses")
+)
+_FIVE_COMPONENT_INDICATORS = frozenset(("supertrend_ai",))
+_TEN_COMPONENT_INDICATORS = frozenset(("swing_structure_forecast",))
 _PERCENT_COMPONENTS = frozenset(
     (
         "rate_of_change",
         "relative_strength_index",
         "percent_k",
         "percent_d",
+        "percent_j",
+        "williams_vix_fix",
+        "upper_band",
+        "range_high",
+        "range_low",
         "plus_di",
         "minus_di",
         "adx",
+        "forecast_percent",
+        "forecast_standard_deviation",
     )
 )
 _VOLUME_COMPONENTS = frozenset(
     ("on_balance_volume", "accumulation_distribution")
+)
+_DIMENSIONLESS_COMPONENTS = frozenset(
+    (
+        "trend",
+        "performance_index",
+        "target_factor",
+        "swing_direction",
+        "wavetrend",
+        "wavetrend_signal",
+        "wavetrend_difference",
+        "wavetrend_cross_signal",
+    )
+)
+_BAR_COUNT_COMPONENTS = frozenset(
+    ("forecast_duration_bars", "forecast_origin_age_bars")
 )
 
 
@@ -217,11 +282,24 @@ def stage10_technical_indicator_input_series_schema() -> dict[str, Any]:
     )
 
 
-def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
+def stage10_technical_indicator_output_series_schema(
+    *,
+    indicators: Sequence[str] = TECHNICAL_INDICATORS_V2,
+    transformation_id: str = TRANSFORMATION_ID,
+    operation_version: str = OPERATION_VERSION,
+    parameter_max_items: int = 5,
+    parameter_value_types: Sequence[str] = ("integer", "number"),
+    representations: Sequence[str] = (
+        "price",
+        "volume",
+        "percentage",
+        "z_score",
+    ),
+) -> dict[str, Any]:
     """Return the exact derived scalar TimeSeries schema."""
 
     parameter = _strict(
-        {"name": _text(), "value": {"type": ["integer", "number"]}}
+        {"name": _text(), "value": {"type": list(parameter_value_types)}}
     )
     unit = {
         "type": "string",
@@ -234,7 +312,7 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
     }
     representation = {
         "type": "string",
-        "enum": ["price", "volume", "percentage", "z_score"],
+        "enum": list(representations),
     }
     scale = {"type": "string", "enum": ["1", "100"]}
     dimensions = _strict(
@@ -243,11 +321,11 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
             "provider": {"type": "string", "const": PROVIDER},
             "transformation": {
                 "type": "string",
-                "const": TRANSFORMATION_ID,
+                "const": transformation_id,
             },
             "indicator": {
                 "type": "string",
-                "enum": list(TECHNICAL_INDICATORS),
+                "enum": list(indicators),
             },
             "component": _text(),
         }
@@ -288,12 +366,12 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
             "scale": scale,
             "indicator": {
                 "type": "string",
-                "enum": list(TECHNICAL_INDICATORS),
+                "enum": list(indicators),
             },
             "component": _text(),
             "parameters": {
                 "type": "array",
-                "maxItems": 5,
+                "maxItems": parameter_max_items,
                 "items": parameter,
             },
             "source_observation_fields": _strings(5),
@@ -323,11 +401,11 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
             },
             "transformation": {
                 "type": "string",
-                "const": TRANSFORMATION_ID,
+                "const": transformation_id,
             },
             "transformation_version": {
                 "type": "string",
-                "const": OPERATION_VERSION,
+                "const": operation_version,
             },
         }
     )
@@ -354,12 +432,12 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
             "requested_end_date": _nullable_text(),
             "indicator": {
                 "type": "string",
-                "enum": list(TECHNICAL_INDICATORS),
+                "enum": list(indicators),
             },
             "component": _text(),
             "parameters": {
                 "type": "array",
-                "maxItems": 5,
+                "maxItems": parameter_max_items,
                 "items": parameter,
             },
             "source_series_ids": _strings(5),
@@ -408,11 +486,11 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
         {
             "transformation_id": {
                 "type": "string",
-                "const": TRANSFORMATION_ID,
+                "const": transformation_id,
             },
             "operation_version": {
                 "type": "string",
-                "const": OPERATION_VERSION,
+                "const": operation_version,
             },
             "source_dataset_ids": _strings(3),
             "source_series_ids": _strings(5),
@@ -442,6 +520,160 @@ def stage10_technical_indicator_output_series_schema() -> dict[str, Any]:
             "truncated": {"type": "boolean", "const": False},
             "lineage_digest": _text(),
         }
+    )
+
+
+def stage10_technical_indicator_output_series_schema_v21() -> dict[str, Any]:
+    """Return the v2.1 derived-series schema including SuperTrend AI."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V21,
+        transformation_id=TRANSFORMATION_ID_V21,
+        operation_version=OPERATION_VERSION_V21,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+        ),
+    )
+
+
+def stage10_technical_indicator_output_series_schema_v22() -> dict[str, Any]:
+    """Return the v2.2 schema including the causal swing forecast."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V22,
+        transformation_id=TRANSFORMATION_ID_V22,
+        operation_version=OPERATION_VERSION_V22,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+            "bar_count",
+        ),
+    )
+
+
+def stage10_technical_indicator_output_series_schema_v23() -> dict[str, Any]:
+    """Return the v2.3 schema including KDJ."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V23,
+        transformation_id=TRANSFORMATION_ID_V23,
+        operation_version=OPERATION_VERSION_V23,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+            "bar_count",
+        ),
+    )
+
+
+def stage10_technical_indicator_output_series_schema_v24() -> dict[str, Any]:
+    """Return the v2.4 schema including Williams Vix Fix."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V24,
+        transformation_id=TRANSFORMATION_ID_V24,
+        operation_version=OPERATION_VERSION_V24,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+            "bar_count",
+        ),
+    )
+
+
+def stage10_technical_indicator_output_series_schema_v25() -> dict[str, Any]:
+    """Return the v2.5 schema including WaveTrend crosses."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V25,
+        transformation_id=TRANSFORMATION_ID_V25,
+        operation_version=OPERATION_VERSION_V25,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+            "bar_count",
+        ),
+    )
+
+
+
+def stage10_technical_indicator_output_series_schema_v26() -> dict[str, Any]:
+    """Return the v2.6 schema including Parabolic SAR."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V26,
+        transformation_id=TRANSFORMATION_ID_V26,
+        operation_version=OPERATION_VERSION_V26,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+            "bar_count",
+        ),
+    )
+
+
+def stage10_technical_indicator_output_series_schema_v27() -> dict[str, Any]:
+    """Return the v2.7 schema including a rolling regression line."""
+
+    return stage10_technical_indicator_output_series_schema(
+        indicators=TECHNICAL_INDICATORS_V27,
+        transformation_id=TRANSFORMATION_ID_V27,
+        operation_version=OPERATION_VERSION_V27,
+        parameter_max_items=6,
+        parameter_value_types=("integer", "number", "string"),
+        representations=(
+            "price",
+            "volume",
+            "percentage",
+            "z_score",
+            "regime",
+            "ratio",
+            "factor",
+            "bar_count",
+        ),
     )
 
 
@@ -1028,6 +1260,10 @@ def _validate_inputs(
         raise ValidationError(
             f"{indicator} requires high, low, and close series"
         )
+    if indicator in _LOW_ONLY_INDICATORS and "low" not in by_role:
+        raise ValidationError(
+            f"{indicator} requires low and close series"
+        )
     if indicator in _VOLUME_INDICATORS and "volume" not in by_role:
         raise ValidationError(f"{indicator} requires a volume series")
     ordered = tuple(
@@ -1107,6 +1343,20 @@ def _component_contract(component: str) -> tuple[str, str, str]:
         return "percent", "percentage", "100"
     if component == "rolling_z_score":
         return "dimensionless", "z_score", "1"
+    if component in _BAR_COUNT_COMPONENTS:
+        return "dimensionless", "bar_count", "1"
+    if component in _DIMENSIONLESS_COMPONENTS:
+        representation = {
+            "trend": "regime",
+            "performance_index": "ratio",
+            "target_factor": "factor",
+            "swing_direction": "regime",
+            "wavetrend": "ratio",
+            "wavetrend_signal": "ratio",
+            "wavetrend_difference": "ratio",
+            "wavetrend_cross_signal": "regime",
+        }[component]
+        return "dimensionless", representation, "1"
     return "provider_native_currency", "price", "1"
 
 
@@ -1166,8 +1416,9 @@ def _quality_flags(
     ordered: Sequence[tuple[str, TimeSeries]],
     index: int,
     missing_reason: str | None,
+    transformation_id: str,
 ) -> tuple[str, ...]:
-    flags = {"transformation:technical_indicator_v2"}
+    flags = {f"transformation:{transformation_id}"}
     for _, series in ordered:
         flags.add(f"source_lineage:{series.lineage_digest}")
         flags.update(series.observations[index].quality_flags)
@@ -1211,12 +1462,14 @@ def _warning_codes(
 def _derived_series(
     component: TechnicalIndicatorComponent,
     indicator: str,
-    parameters: tuple[tuple[str, int | Decimal], ...],
+    parameters: tuple[tuple[str, int | Decimal | str], ...],
     ordered: tuple[tuple[str, TimeSeries], ...],
     available_times: tuple[str, ...],
     selection_digest: str,
     warnings: tuple[str, ...],
     limit: int,
+    operation_version: str,
+    transformation_id: str,
 ) -> TimeSeries:
     anchor = dict(ordered)["close"]
     unit, representation, scale = _component_contract(component.name)
@@ -1275,12 +1528,15 @@ def _derived_series(
                 dimensions={
                     "instrument_id": str(anchor.metadata["instrument_id"]),
                     "provider": PROVIDER,
-                    "transformation": TRANSFORMATION_ID,
+                    "transformation": transformation_id,
                     "indicator": indicator,
                     "component": component.name,
                 },
                 quality_flags=_quality_flags(
-                    ordered, index, point.missing_reason
+                    ordered,
+                    index,
+                    point.missing_reason,
+                    transformation_id,
                 ),
             )
         )
@@ -1310,8 +1566,8 @@ def _derived_series(
             "session_calendar_status": "not_established",
             "adjustment_status": "not_established",
             "volume_unit_status": "provider_native_not_normalized",
-            "transformation": TRANSFORMATION_ID,
-            "transformation_version": OPERATION_VERSION,
+            "transformation": transformation_id,
+            "transformation_version": operation_version,
         },
         observations=tuple(observations),
         warnings=warnings,
@@ -1347,8 +1603,8 @@ def _derived_series(
             "truncated": False,
         },
         provenance={
-            "transformation_id": TRANSFORMATION_ID,
-            "operation_version": OPERATION_VERSION,
+            "transformation_id": transformation_id,
+            "operation_version": operation_version,
             "source_dataset_ids": (
                 DATASET_ID,
                 EVIDENCE_DATASET_ID,
@@ -1375,14 +1631,74 @@ def invoke_stage10_technical_indicator(
             "Technical-indicator operation is not registered"
         )
     if (
-        context.tool_version != OPERATION_VERSION
-        or context.operation_graph_id
-        != "tool_platform.market.technical_indicators.v2"
+        context.tool_version == OPERATION_VERSION
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2"
     ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV2
+        operation_version = OPERATION_VERSION
+        transformation_id = TRANSFORMATION_ID
+    elif (
+        context.tool_version == OPERATION_VERSION_V21
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_1"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV21
+        operation_version = OPERATION_VERSION_V21
+        transformation_id = TRANSFORMATION_ID_V21
+    elif (
+        context.tool_version == OPERATION_VERSION_V22
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_2"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV22
+        operation_version = OPERATION_VERSION_V22
+        transformation_id = TRANSFORMATION_ID_V22
+    elif (
+        context.tool_version == OPERATION_VERSION_V23
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_3"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV23
+        operation_version = OPERATION_VERSION_V23
+        transformation_id = TRANSFORMATION_ID_V23
+    elif (
+        context.tool_version == OPERATION_VERSION_V24
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_4"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV24
+        operation_version = OPERATION_VERSION_V24
+        transformation_id = TRANSFORMATION_ID_V24
+    elif (
+        context.tool_version == OPERATION_VERSION_V25
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_5"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV25
+        operation_version = OPERATION_VERSION_V25
+        transformation_id = TRANSFORMATION_ID_V25
+    elif (
+        context.tool_version == OPERATION_VERSION_V26
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_6"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV26
+        operation_version = OPERATION_VERSION_V26
+        transformation_id = TRANSFORMATION_ID_V26
+    elif (
+        context.tool_version == OPERATION_VERSION_V27
+        and context.operation_graph_id
+        == "tool_platform.market.technical_indicators.v2_7"
+    ):
+        argument_type = Stage10TechnicalIndicatorArgumentsV27
+        operation_version = OPERATION_VERSION_V27
+        transformation_id = TRANSFORMATION_ID_V27
+    else:
         raise LookupError(
             "Selected technical-indicator operation graph is invalid"
         )
-    if not isinstance(arguments, Stage10TechnicalIndicatorArgumentsV2):
+    if not isinstance(arguments, argument_type):
         raise ValidationError(
             "Technical-indicator arguments use the wrong contract"
         )
@@ -1393,7 +1709,13 @@ def invoke_stage10_technical_indicator(
     role_series = dict(ordered)
     bars = len(role_series["close"].observations)
     output_count = (
-        3
+        10
+        if arguments.indicator in _TEN_COMPONENT_INDICATORS
+        else 5
+        if arguments.indicator in _FIVE_COMPONENT_INDICATORS
+        else 4
+        if arguments.indicator in _FOUR_COMPONENT_INDICATORS
+        else 3
         if arguments.indicator in _THREE_COMPONENT_INDICATORS
         else 2
         if arguments.indicator == "stochastic_oscillator"
@@ -1411,17 +1733,54 @@ def invoke_stage10_technical_indicator(
                 arguments.fast_window,
                 arguments.slow_window,
                 arguments.signal_window,
+                getattr(arguments, "percentile_window", None),
             )
             if item is not None
         ),
         default=1,
     )
+    if arguments.indicator == "wavetrend_crosses":
+        effective_window = max(effective_window, 4)
+    if arguments.indicator == "supertrend_ai":
+        minimum_factor = getattr(arguments, "minimum_factor", None)
+        maximum_factor = getattr(arguments, "maximum_factor", None)
+        factor_step = getattr(arguments, "factor_step", None)
+        if not all(
+            isinstance(item, Decimal)
+            for item in (minimum_factor, maximum_factor, factor_step)
+        ):
+            raise ValidationError(
+                "SuperTrend AI factor controls use the wrong contract"
+            )
+        assert isinstance(minimum_factor, Decimal)
+        assert isinstance(maximum_factor, Decimal)
+        assert isinstance(factor_step, Decimal)
+        if factor_step <= 0 or minimum_factor > maximum_factor:
+            raise ValidationError("SuperTrend AI factor grid is invalid")
+        factor_count = int(
+            (maximum_factor - minimum_factor) // factor_step
+        ) + 1
+        partition_bound = (
+            (factor_count + 1) * (factor_count + 2) // 2
+        )
+        assignment_count = min(1_001, partition_bound)
+        operation_count = bars * (
+            output_count + factor_count * assignment_count
+        )
+    elif arguments.indicator == "swing_structure_forecast":
+        operation_count = bars * (
+            len(ordered)
+            + output_count
+            + int(getattr(arguments, "sample_count", 0) or 0)
+        )
+    else:
+        operation_count = bars * (
+            len(ordered) + output_count * effective_window
+        )
     context.budget.require(
         rows=max(bars, arguments.limit),
         series=len(ordered),
-        operations=bars * (
-            len(ordered) + output_count * effective_window
-        ),
+        operations=operation_count,
     )
     result = calculate_technical_indicator(
         indicator=arguments.indicator,
@@ -1450,6 +1809,27 @@ def invoke_stage10_technical_indicator(
         standard_deviation_multiplier=(
             arguments.standard_deviation_multiplier
         ),
+        minimum_factor=getattr(arguments, "minimum_factor", None),
+        maximum_factor=getattr(arguments, "maximum_factor", None),
+        factor_step=getattr(arguments, "factor_step", None),
+        performance_memory=getattr(arguments, "performance_memory", None),
+        cluster=getattr(arguments, "cluster", None),
+        sample_count=getattr(arguments, "sample_count", None),
+        aggregation_method=getattr(
+            arguments, "aggregation_method", None
+        ),
+        percentile_window=getattr(
+            arguments, "percentile_window", None
+        ),
+        percentile_high_factor=getattr(
+            arguments, "percentile_high_factor", None
+        ),
+        percentile_low_factor=getattr(
+            arguments, "percentile_low_factor", None
+        ),
+        start=getattr(arguments, "start", None),
+        increment=getattr(arguments, "increment", None),
+        maximum=getattr(arguments, "maximum", None),
     )
     selection_digest = _digest(
         {
@@ -1480,6 +1860,8 @@ def invoke_stage10_technical_indicator(
             selection_digest,
             warning_codes,
             arguments.limit,
+            operation_version,
+            transformation_id,
         )
         for component in result.components
     )
@@ -1567,9 +1949,23 @@ def invoke_stage10_technical_indicator(
 __all__ = (
     "MAX_OUTPUT_VALUES",
     "OPERATION_VERSION",
+    "OPERATION_VERSION_V21",
+    "OPERATION_VERSION_V22",
+    "OPERATION_VERSION_V23",
+    "OPERATION_VERSION_V24",
+    "OPERATION_VERSION_V25",
+    "OPERATION_VERSION_V26",
+    "OPERATION_VERSION_V27",
     "TOOL_NAME",
     "invoke_stage10_technical_indicator",
     "stage10_technical_indicator_example",
     "stage10_technical_indicator_input_series_schema",
     "stage10_technical_indicator_output_series_schema",
+    "stage10_technical_indicator_output_series_schema_v21",
+    "stage10_technical_indicator_output_series_schema_v22",
+    "stage10_technical_indicator_output_series_schema_v23",
+    "stage10_technical_indicator_output_series_schema_v24",
+    "stage10_technical_indicator_output_series_schema_v25",
+    "stage10_technical_indicator_output_series_schema_v26",
+    "stage10_technical_indicator_output_series_schema_v27",
 )

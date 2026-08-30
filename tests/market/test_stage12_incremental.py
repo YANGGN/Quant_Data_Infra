@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+import quant_data.market.stage12_incremental as stage12_incremental
 from quant_data.errors import ConflictError, ResourceLimitError, ValidationError
 from quant_data.fingerprint import mutation_fingerprint
 from quant_data.market.stage12_incremental import (
@@ -406,6 +407,149 @@ class Stage12BIncrementalCollectorTests(unittest.TestCase):
         with self.assertRaises(ConflictError):
             self.collector.publish(rebound)
         self.assertEqual(mutation_fingerprint(self.stores), rebound_before)
+
+    def test_canonical_market_close_publishes_scheduled_identity_outside_stage12a(self) -> None:
+        self.assertNotIn("IWM", {item.symbol for item in self.stage12a.roster})
+        with writer_connection(self.stores, StoreRole.MARKET) as connection:
+            connection.execute(
+                """
+                INSERT INTO ingestion_runs(
+                    run_id, dataset_id, semantic_identity, command, scope_json,
+                    status, started_at, code_version
+                ) VALUES (?, ?, ?, ?, ?, 'running', ?, ?)
+                """,
+                (
+                    "stage12e_iwm_seed_run",
+                    "market.stage10.instruments",
+                    "c" * 64,
+                    "fixture.seed",
+                    "{}",
+                    _TIME,
+                    "fixture",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO stage10_instruments(
+                    instrument_id, provider, provider_symbol, asset_type, display_name,
+                    exchange_code, currency_segment, first_trade_date,
+                    identity_seed_sha256, captured_at, captured_precision, run_id
+                ) VALUES (?, 'fmp', 'IWM', 'etf', 'IWM fixture', 'ARCX',
+                          'provider_native', NULL, ?, ?, 'datetime', ?)
+                """,
+                ("stage12e_iwm", "d" * 64, _TIME, "stage12e_iwm_seed_run"),
+            )
+
+        scheduled = {
+            "AAPL": ("stage12b_aapl", "equity"),
+            "IWM": ("stage12e_iwm", "etf"),
+        }
+        universe_sha256 = stage12_incremental._sha256_json(
+            [
+                {
+                    "asset_type": "equity",
+                    "instrument_id": "stage12b_aapl",
+                    "symbol": "AAPL",
+                },
+                {
+                    "asset_type": "etf",
+                    "instrument_id": "stage12e_iwm",
+                    "symbol": "IWM",
+                },
+            ]
+        )
+        common = {
+            "scope": self.scope,
+            "stage12a_scope": self.stage12a,
+            "schedule_authority_sha256": "e" * 64,
+            "scheduled_instruments": scheduled,
+            "scheduled_code_version": "stage12e-test",
+        }
+        with self.assertRaises(ValidationError):
+            Stage12BIncrementalCollector._for_canonical_market_close(
+                **common,
+                scheduled_universe_sha256="0" * 64,
+            )
+
+        with mock.patch.object(
+            stage12_incremental, "_CANONICAL_PROJECT_ROOT", self.root
+        ), mock.patch.object(
+            stage12_incremental, "_CANONICAL_MARKET_STORE", self.stores.market
+        ):
+            collector = Stage12BIncrementalCollector._for_canonical_market_close(
+                **common,
+                scheduled_universe_sha256=universe_sha256,
+            )
+        rows = json.loads(self.body)
+        for row in rows:
+            row["symbol"] = "IWM"
+        request = Stage12BFixtureRequest(
+            symbol="IWM",
+            from_date="2026-08-10",
+            to_date="2026-08-12",
+            session_dates=("2026-08-10", "2026-08-11", "2026-08-12"),
+            captured_at=_TIME,
+        )
+        first = collector.publish(
+            collector.prepare(
+                request,
+                self._response(json.dumps(rows, separators=(",", ":")).encode("utf-8")),
+            )
+        )
+        self.assertEqual((first.outcome, first.written_versions), ("published", 3))
+
+        rows.reverse()
+        replay = collector.publish(
+            collector.prepare(
+                Stage12BFixtureRequest(
+                    symbol="IWM",
+                    from_date="2026-08-10",
+                    to_date="2026-08-12",
+                    session_dates=("2026-08-10", "2026-08-11", "2026-08-12"),
+                    captured_at="2026-08-15T02:00:00Z",
+                ),
+                self._response(json.dumps(rows, separators=(",", ":")).encode("utf-8")),
+            )
+        )
+        self.assertEqual((replay.outcome, replay.written_versions), ("unchanged", 0))
+        self.assertEqual(self._counts(), (1, 3, 3))
+
+        with read_connection(self.stores, StoreRole.MARKET) as connection:
+            provenance = connection.execute(
+                """
+                SELECT run.command, run.code_version, capture.scope_manifest_sha256,
+                       capture.request_scope_json, artifact.source_reference
+                FROM stage10_daily_price_captures AS capture
+                JOIN ingestion_runs AS run ON run.run_id = capture.run_id
+                JOIN ingestion_artifacts AS artifact ON artifact.artifact_id = capture.artifact_id
+                WHERE capture.capture_id = ?
+                """,
+                (first.capture_id,),
+            ).fetchone()
+        assert provenance is not None
+        scope = json.loads(str(provenance["request_scope_json"]))
+        self.assertEqual(
+            (
+                str(provenance["command"]),
+                str(provenance["code_version"]),
+                str(provenance["scope_manifest_sha256"]),
+                str(provenance["source_reference"]),
+            ),
+            (
+                "stage12e.market_close",
+                "stage12e-test",
+                universe_sha256,
+                "fmp.scheduled.historical-price-eod.full",
+            ),
+        )
+        self.assertEqual(
+            (
+                scope["scheduled_instrument_id"],
+                scope["scheduled_asset_type"],
+                scope["scheduled_universe_sha256"],
+            ),
+            ("stage12e_iwm", "etf", universe_sha256),
+        )
 
     def test_commit_failure_rolls_back_all_fixture_publication_rows(self) -> None:
         prepared = self.collector.prepare(self._request(), self._response(self.body))

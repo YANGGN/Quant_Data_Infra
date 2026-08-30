@@ -302,6 +302,23 @@ outcome, and exact raw response bytes before private article/version and
 capture-membership rows. It grants no scheduler, retry, fallback endpoint,
 second page, public consumer, promotion, or store-retirement authority.
 
+## Repeatable FMP current-news allocation
+
+Registry `2.63.0` adds a separate, forward-only successor for retained current
+FMP stock-news headlines.  It follows the frozen `news:0005_fmp_stock_latest`
+resource without changing its one-shot scope or history.  The new migration
+owns immutable hourly-slot attempt/outcome/capture evidence plus article,
+version, and capture-membership lineage.  It grants no historical-completeness
+claim, tombstone inference, scheduler, provider retry, or public body/raw
+evidence exposure.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `news:0006_fmp_stock_latest_current` | news | 6 | `quant_data/migrations/news/0006_fmp_stock_latest_current.sql` | `bf8757bcc7679d1bd57408978eed996c9f4dad9c89339a52ca8adbeedbf83d30` | `fixture_validated` | Offline implementation/validation only; no canonical application, population, or live request |
+
+The current collector is manual-only until a separately authorized recurring
+schedule exists.  No timer is authorized or installed by this allocation.
+
 ## Legacy semantic cross-reference
 
 | New resource | Recovered evidence used | Deliberate stage boundary |
@@ -335,6 +352,7 @@ second page, public consumer, promotion, or store-retirement authority.
 | `macro:0015_live_macro_history_extension` | Explicit one-time macro-history authorization plus sealed-response adoption, source-native series, provider-alias lineage, and exact registry projection | Seven fixed BLS CPI windows and four Philadelphia Fed GDP/GNP/CPI matrices; no repeat, scheduler, public consumer, or BEA-series reinterpretation |
 | `macro:0016_fmp_calendar_wholesale_evidence` | Explicit `2.21.0` FMP wholesale-calendar authorization plus immutable raw-evidence, local-replay, no-write, and physical-lock contracts | One-time retained FMP calendar response/row evidence supporting local replays; no original-release archive, public consumer, scheduler, or repeat provider request |
 | `news:0005_fmp_stock_latest` | Explicit bounded FMP stock-news authorization plus accepted news evidence, version, and physical-lock contracts | One private page-zero/page-limit-1000 capture only; no historical completeness, tombstone inference, public consumer, or live-success claim |
+| `news:0006_fmp_stock_latest_current` | Separate forward current-feed migration, immutable local-capture availability, article-version lineage, and physical-lock contracts | Repeatable UTC-hour-slot capture only after separate live authority; no canonical application/population yet, timer, raw/body public exposure, or history rewrite |
 
 Except for the explicitly authorized Stage 9, Stage 10, Stage 11, official
 macro-vintage, FMP wholesale-evidence, and bounded FMP stock-news rows above,

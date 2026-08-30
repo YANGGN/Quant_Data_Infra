@@ -7,6 +7,8 @@ Stage 5 results; absent composites remain explicitly not established.
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 from decimal import Decimal
 from math import isfinite
@@ -18,6 +20,8 @@ from quant_data.company.stage4_repository import (
 )
 from quant_data.contracts import LineageRef, TimeSeries, TruncationV1, WarningV1
 from quant_data.errors import ValidationError
+from quant_data.json_codec import dumps_strict, loads_strict
+from quant_data.temporal import parse_date
 from quant_data.macro.stage3_repository import (
     MacroStage3RecessionQuery,
     MacroStage3Repository,
@@ -172,6 +176,86 @@ def _company_cik(arguments: Mapping[str, Any], *, search: bool) -> str | None:
         return None
     candidate = identifiers[0]
     return candidate if len(candidate) == 10 and candidate.isdigit() else None
+
+
+def _encode_company_filing_cursor(
+    *,
+    cik: str,
+    as_of: str | None,
+    filing_date: str,
+    accession_number: str,
+) -> str:
+    material = {
+        "version": 1,
+        "cik": cik,
+        "as_of": as_of,
+        "filing_date": filing_date,
+        "accession_number": accession_number,
+    }
+    return (
+        base64.urlsafe_b64encode(dumps_strict(material).encode("utf-8"))
+        .rstrip(b"=")
+        .decode("ascii")
+    )
+
+
+def _decode_company_filing_cursor(
+    cursor: object,
+    *,
+    cik: str,
+    as_of: str | None,
+) -> tuple[str, str] | None:
+    if cursor is None:
+        return None
+    if not isinstance(cursor, str) or not cursor:
+        raise ValidationError("Company filing cursor must be null or nonempty")
+    try:
+        encoded = cursor.encode("ascii")
+        padded = encoded + b"=" * ((4 - len(encoded) % 4) % 4)
+        payload = base64.b64decode(
+            padded,
+            altchars=b"-_",
+            validate=True,
+        )
+    except (UnicodeEncodeError, ValueError, binascii.Error) as exc:
+        raise ValidationError("Company filing cursor is malformed") from exc
+    if (
+        base64.urlsafe_b64encode(payload).rstrip(b"=").decode("ascii")
+        != cursor
+    ):
+        raise ValidationError("Company filing cursor is not canonical")
+    try:
+        material = loads_strict(payload, max_bytes=2_048)
+    except (TypeError, ValueError, ValidationError) as exc:
+        raise ValidationError("Company filing cursor is malformed") from exc
+    if (
+        not isinstance(material, dict)
+        or set(material) != {
+            "version",
+            "cik",
+            "as_of",
+            "filing_date",
+            "accession_number",
+        }
+        or material["version"] != 1
+        or isinstance(material["version"], bool)
+        or material["cik"] != cik
+        or material["as_of"] != as_of
+    ):
+        raise ValidationError(
+            "Company filing cursor does not match the selected query"
+        )
+    filing_date = material["filing_date"]
+    accession_number = material["accession_number"]
+    if (
+        not isinstance(filing_date, str)
+        or not isinstance(accession_number, str)
+        or not accession_number
+        or len(accession_number) > 100
+    ):
+        raise ValidationError("Company filing cursor key is invalid")
+    parse_date(filing_date, pointer="/cursor/filing_date")
+    return filing_date, accession_number
 
 
 def _scalar(value: object) -> Scalar:
@@ -866,7 +950,20 @@ def _company_operation(
                 warnings=_warning_values(row.get("warnings")),
             )
         if name == "company.search_filings":
-            rows = repository.get_filings(query)
+            paginated = context.tool_version == "2.0.0"
+            if paginated:
+                after = _decode_company_filing_cursor(
+                    arguments.get("cursor"),
+                    cik=cik,
+                    as_of=cutoff,
+                )
+                rows, has_more = repository.get_filings_page(
+                    query,
+                    after=after,
+                )
+            else:
+                rows = repository.get_filings(query)
+                has_more = False
             values = tuple(
                 _project(
                     row,
@@ -895,17 +992,49 @@ def _company_operation(
                     if isinstance(warning, str)
                 )
             )
+            lineage = _lineage(
+                rows,
+                dataset_id="fixture.company.filings",
+                store_role="company",
+                semantic_field="accession_number",
+            )
+            if paginated:
+                next_cursor = (
+                    _encode_company_filing_cursor(
+                        cik=cik,
+                        as_of=cutoff,
+                        filing_date=str(rows[-1]["filing_date"]),
+                        accession_number=str(
+                            rows[-1]["accession_number"]
+                        ),
+                    )
+                    if has_more
+                    else None
+                )
+                records = records_from_mappings(
+                    "company_filing",
+                    values,
+                )
+                return QueryResult(
+                    tool=name,
+                    records=records,
+                    warnings=warnings,
+                    lineage=lineage,
+                    truncation=TruncationV1(
+                        has_more,
+                        limit,
+                        len(records),
+                        None,
+                        has_more,
+                        next_cursor,
+                    ),
+                )
             return _result(
                 name,
                 limit=limit,
                 record_type="company_filing",
                 values=values,
-                lineage=_lineage(
-                    rows,
-                    dataset_id="fixture.company.filings",
-                    store_role="company",
-                    semantic_field="accession_number",
-                ),
+                lineage=lineage,
                 warnings=warnings,
             )
         if name == "company.get_fundamentals":

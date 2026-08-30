@@ -1080,6 +1080,80 @@ class Stage10DailyPriceSeriesTests(unittest.TestCase):
             returns["series"][0]["lineage_digest"],
         )
 
+    def test_public_v2_returns_survive_ordinary_json_round_trip(self) -> None:
+        dispatcher = ToolDispatcher(self.stores, self.registry)
+        returns = dispatcher.call(
+            "market.get_returns",
+            self._public_v2_arguments(),
+            tool_version="2.0.0",
+        )
+        series = returns["series"][0]
+        round_tripped = loads_strict(json.dumps(json.loads(dumps_strict(series))))
+
+        direct = dispatcher.call(
+            "timeseries.describe",
+            {"series": series, "limit": 100},
+            tool_version="2.0.0",
+        )
+        composed = dispatcher.call(
+            "timeseries.describe",
+            {"series": round_tripped, "limit": 100},
+            tool_version="2.0.0",
+        )
+
+        self.assertEqual(dumps_strict(composed), dumps_strict(direct))
+        observations = round_tripped["observations"]
+        self.assertFalse(
+            any(
+                flag.startswith("exact_decimal_value:")
+                for flag in observations[0]["quality_flags"]
+            )
+        )
+        self.assertTrue(
+            all(
+                any(
+                    flag.startswith("exact_decimal_value:")
+                    for flag in item["quality_flags"]
+                )
+                for item in observations[1:]
+            )
+        )
+
+    def test_public_v2_exact_decimal_metadata_rejects_tampering(self) -> None:
+        dispatcher = ToolDispatcher(self.stores, self.registry)
+        returns = dispatcher.call(
+            "market.get_returns",
+            self._public_v2_arguments(),
+            tool_version="2.0.0",
+        )
+        wire = json.dumps(json.loads(dumps_strict(returns["series"][0])))
+
+        changed_value = loads_strict(wire)
+        changed_value["observations"][1]["value"] = Decimal("0.5")
+        with self.assertRaisesRegex(
+            ValidationError, "does not match exact decimal metadata"
+        ):
+            dispatcher.call(
+                "timeseries.describe",
+                {"series": changed_value, "limit": 100},
+                tool_version="2.0.0",
+            )
+
+        malformed_metadata = loads_strict(wire)
+        flags = malformed_metadata["observations"][1]["quality_flags"]
+        exact_index = next(
+            index
+            for index, flag in enumerate(flags)
+            if flag.startswith("exact_decimal_value:")
+        )
+        flags[exact_index] = "exact_decimal_value:not-a-decimal"
+        with self.assertRaisesRegex(ValidationError, "metadata is invalid"):
+            dispatcher.call(
+                "timeseries.describe",
+                {"series": malformed_metadata, "limit": 100},
+                tool_version="2.0.0",
+            )
+
     def test_public_v1_default_is_unchanged_and_deprecation_is_out_of_band(self) -> None:
         dispatcher = ToolDispatcher(self.stores, self.registry)
         declaration = self.registry.tool("market.get_returns")

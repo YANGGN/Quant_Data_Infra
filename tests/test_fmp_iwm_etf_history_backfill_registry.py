@@ -1,0 +1,180 @@
+from __future__ import annotations
+
+from dataclasses import replace
+import hashlib
+import json
+from pathlib import Path
+import unittest
+
+from quant_data.errors import RegistryError
+from quant_data.registry import (
+    fmp_iwm_etf_daily_history_backfill_registry_profile,
+    load_registry,
+)
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
+COLLECTOR_ID = "fmp.market.iwm_etf_daily_history_backfill"
+OUTPUT_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.daily_prices",
+)
+CURRENT_SOURCE_SHA256 = (
+    "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
+)
+PREVIOUS_SOURCE_SHA256 = (
+    "0adc78cbe419b18ece989c9cdd6d918ef13113fa5f573d6f5fbe045b9eca8259"
+)
+
+
+class FmpIwmEtfHistoryBackfillRegistryTests(unittest.TestCase):
+    def _registry(self):
+        return load_registry(
+            REGISTRY_PATH,
+            project_root=PROJECT_ROOT,
+            environment={},
+        )
+
+    def test_current_collector_is_exact_reciprocal_and_projects_to_250(self) -> None:
+        current = self._registry()
+        self.assertEqual(
+            (current.schema_version, current.revision, current.source_sha256),
+            ("1.9.0", "2.63.0", CURRENT_SOURCE_SHA256),
+        )
+        self.assertEqual(
+            (len(current.migrations), len(current.datasets), len(current.collectors)),
+            (41, 55, 57),
+        )
+        collector = next(
+            item for item in current.collectors if item["id"] == COLLECTOR_ID
+        )
+        self.assertEqual(collector["version"], "1.0.0")
+        self.assertEqual(
+            collector["handler"],
+            "market.fmp_iwm_etf_daily_history_backfill",
+        )
+        self.assertTrue(collector["network"])
+        self.assertEqual(collector["configuration_env"], ["FMP_API_KEY"])
+        self.assertEqual(
+            collector["input_datasets"],
+            ["market.stage10.instruments", "market.stage10.universes"],
+        )
+        self.assertEqual(
+            collector["output_datasets"],
+            list(OUTPUT_DATASET_IDS),
+        )
+        self.assertEqual(
+            collector["semantic_identity"],
+            {
+                "excludes": [
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                ],
+                "includes": [
+                    "iwm_scope_manifest_sha256",
+                    "backfill_scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_backfill_sha256",
+                ],
+            },
+        )
+        self.assertEqual(
+            collector["mutation_policy"],
+            {
+                "mode": "append_missing_price_versions",
+                "unchanged": "zero_persistent_writes",
+            },
+        )
+        self.assertEqual(
+            collector["workload_bounds"],
+            {
+                "max_bytes": 16_777_216,
+                "max_requests": 1,
+                "max_rows": 30_000,
+                "max_seconds": 45,
+            },
+        )
+        self.assertEqual(
+            collector["retry_policy"],
+            {
+                "backoff": "none_single_attempt",
+                "honor_retry_after": False,
+                "max_attempts": 1,
+                "transient_classes": [],
+            },
+        )
+        self.assertEqual(collector["schedule_eligibility"], {"mode": "manual_only"})
+        datasets = {item.id: item for item in current.datasets}
+        for dataset_id in OUTPUT_DATASET_IDS:
+            self.assertEqual(
+                datasets[dataset_id].collector_ids.count(COLLECTOR_ID),
+                1,
+            )
+        self.assertFalse(
+            any(
+                step.collector_id == COLLECTOR_ID
+                for job in current.jobs
+                for step in job.steps
+            )
+        )
+
+        previous = fmp_iwm_etf_daily_history_backfill_registry_profile(current)
+        self.assertEqual(
+            (previous.revision, previous.source_sha256),
+            ("2.50.0", PREVIOUS_SOURCE_SHA256),
+        )
+        self.assertEqual(
+            (len(previous.migrations), len(previous.datasets), len(previous.collectors)),
+            (40, 53, 55),
+        )
+        self.assertNotIn(
+            COLLECTOR_ID,
+            {str(item["id"]) for item in previous.collectors},
+        )
+        previous_datasets = {item.id: item for item in previous.datasets}
+        for dataset_id in OUTPUT_DATASET_IDS:
+            self.assertNotIn(
+                COLLECTOR_ID,
+                previous_datasets[dataset_id].collector_ids,
+            )
+        payload = (
+            json.dumps(previous.raw, ensure_ascii=True, indent=2, sort_keys=True)
+            + "\n"
+        ).encode("utf-8")
+        self.assertEqual(hashlib.sha256(payload).hexdigest(), PREVIOUS_SOURCE_SHA256)
+        self.assertIs(
+            fmp_iwm_etf_daily_history_backfill_registry_profile(previous),
+            previous,
+        )
+
+    def test_current_delta_drift_fails_closed(self) -> None:
+        current = self._registry()
+        raw = json.loads(json.dumps(current.raw))
+        collector = next(
+            item for item in raw["collectors"] if item["id"] == COLLECTOR_ID
+        )
+        collector["handler"] = "market.unreviewed"
+        with self.assertRaises(RegistryError):
+            fmp_iwm_etf_daily_history_backfill_registry_profile(
+                replace(current, raw=raw)
+            )
+
+        raw = json.loads(json.dumps(current.raw))
+        dataset = next(
+            item
+            for item in raw["datasets"]
+            if item["id"] == "market.stage10.daily_prices"
+        )
+        dataset["collector_ids"].remove(COLLECTOR_ID)
+        with self.assertRaises(RegistryError):
+            fmp_iwm_etf_daily_history_backfill_registry_profile(
+                replace(current, raw=raw)
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

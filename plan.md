@@ -1058,13 +1058,15 @@ These require evidence or an explicit new decision before implementation:
 The project is restored when:
 
 - Source, migrations, tests, and configuration templates are version controlled.
-- Four independently recoverable SQLite databases implement the declared logical contracts.
+- Four independently rebuildable SQLite databases implement the declared logical contracts.
 - Manual ingestion is idempotent, auditable, and capable of complete backfill.
 - Dates remain as-is without accidental timezone conversion.
 - Point-in-time and local-capture limitations are explicit and tested.
 - The reviewed 57-tool manifest is available, bounded, read-only, and produces valid JSON.
 - The web portal exposes persistent navigation, data inspection, run health, and useful structured tool output.
-- A clean environment can rebuild the databases from documented sources and can restore them from verified backups.
+- A clean environment can recreate the database schemas from version-controlled
+  migrations and repopulate them through the documented collectors. Byte-exact
+  restoration of historical database files is not required.
 
 This plan preserves what can be recovered from project history and the live manifest while keeping every unresolved fact visible. It should be treated as the authoritative recovery specification until replaced by source-controlled migrations, schemas, and provider manifests.
 
@@ -1583,7 +1585,7 @@ Rebuild in this order:
 10. Restore scheduler definitions one job at a time.
 11. Restore Atlas with staged atomic publication.
 12. Repopulate only into new non-production stores, then promote after
-    idempotence, point-in-time, integrity and backup drills pass.
+    idempotence, point-in-time, and integrity checks pass.
 
 Additional acceptance gates:
 
@@ -1606,8 +1608,9 @@ Additional acceptance gates:
   pass dry runs.
 - Atlas exports from explicit read-only stores into exact staging, validates all
   chunks and promotes atomically.
-- Source, secrets, each SQLite database/WAL state, Task Scheduler definitions
-  and Atlas metadata have a tested backup/restore procedure.
+- Source, migrations, configuration templates, Task Scheduler definitions, and
+  Atlas metadata have a documented reconstruction procedure; secrets stay
+  external and canonical databases may be repopulated from providers.
 
 Where recovered executable artifacts conflict with this document, validated
 source, migrations and database evidence take precedence. Record the conflict
@@ -1966,3 +1969,24 @@ request, public exposure, or scheduler action. Bounded offline Stage 12A freezes
 Market v1 authority, its explicit retained roster and coverage/non-claims, and
 the later serial lifecycle gates. Stages 12B through 12E require separate
 authorization.
+
+## 22. Dated clarification: personal-project recovery scope
+
+Decision date: 2026-08-29
+
+For this personal deployment, restoration completion does not require a
+formal four-store backup/restore certification or verified database backups.
+GitHub is the recovery authority for code, migrations, tests, and configuration
+templates. A lost database may be recreated from version-controlled migrations
+and repopulated through the documented collectors. Byte-identical historical
+database-file recovery is not a restoration goal.
+
+This decision supersedes the former backup-certification requirements recorded
+in earlier versions of Sections 17 and 18. Any provider re-fetch remains a
+future, explicitly scoped operation under the current provider, credential,
+canonical-store, and no-repeat rules; this decision does not authorize a
+population run or promise exact historical or point-in-time reproduction.
+
+Existing fixture backup/restore tests and safe SQLite snapshot mechanisms
+remain useful implementation evidence when relevant, but they do not create a
+formal restoration stage, exit gate, or certification milestone.

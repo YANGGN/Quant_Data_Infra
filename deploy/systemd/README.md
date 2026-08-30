@@ -1,24 +1,54 @@
 # Scheduled refresh unit guidance
 
-Status: Read-only inspection guidance. Unit-file presence does not authorize
+Status: Current unit guidance. Unit-file presence alone does not authorize
 linking, starting, enabling, disabling, updating, removing, or manually
 triggering a service or timer. Before scheduler or provider work, read the
 [current operating envelope](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
 and [scheduling contract](../../docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
-Five recurring timers are approved and active. A sixth weekday SEC company-
-fundamentals timer is explicitly authorized and staged pending its focused
-activation gate. Agents may inspect active status read-only, but may not
-change or manually trigger an existing timer.
+Existing recurring units retain their documented state. The Stage 12E
+market-close timer is enabled and waiting as recorded below. Agents may inspect
+status read-only, but must not manually trigger, retry, broaden, disable,
+update, remove, or repurpose any unit.
 
-## Closed: market-close timer
+## Active: market-close timer
 
-Stage 12E remains closed. The project-local
-`quant-data-market-close.service` and `quant-data-market-close.timer` files
-are retained artifacts only. Do not link, start, enable, test, or supply a
-credential to them. The completed Stage 12C provider write remains no-repeat.
-This closure does not include the separately approved fixed Alpaca timer
-below.
+On 2026-08-29 the reviewed project-local
+`quant-data-market-close.service` and `quant-data-market-close.timer` were
+daemon-reloaded, enabled, and started. The timer's verified state is
+`LoadState=loaded`, `UnitFileState=enabled`, `ActiveState=active`, and
+`SubState=waiting`; its next trigger is Monday 2026-08-31 18:00:00 EDT and
+`LastTrigger` is empty.
+
+The service remains `inactive/dead` with no
+`ExecMainStartTimestamp` or `ExecMainExitTimestamp`. No state directory,
+provider request, or canonical write occurred during activation. It runs at
+18:00 America/New_York on weekdays with `Persistent=false`, so there is no
+catch-up. It has no hidden retry.
+
+Its zero-argument service snapshots every current FMP provider-native
+`stage10_instruments` identity whose `asset_type` is `equity`, `etf`, or
+`index`. The 2026-08-29 preflight contained 630 identities (519 equities, 96
+ETFs, and 15 indexes); the dynamic batch is bounded to 800 and ordered `AAPL`
+first. It makes one current-session FMP daily-OHLCV request per symbol; an
+empty `AAPL` response is the no-market-session sentinel and stops the batch.
+The ten pinned historical noncoverage symbols remain eligible: valid 200 data
+is published if it becomes available, only their exact reviewed empty/HTTP 402
+outcomes are terminal, and other missing or error outcomes fail closed.
+
+The service writes only through the fixed canonical `data/market.sqlite`
+publisher; exact semantic replay writes nothing, and per-symbol evidence is
+private and durable. The completed Stage 12C provider write remains no-repeat,
+and the frozen Stage 7 `market-close` job remains disabled.
+
+These read-only inspection commands apply:
+
+    systemctl --user status quant-data-market-close.service
+    systemctl --user status quant-data-market-close.timer
+    systemctl --user list-timers quant-data-market-close.timer --all
+
+Do not manually start the service, expose a credential, or repurpose the timer
+for another store, cadence, universe, or historical range.
 
 ## Active GDP/CPI vintage timer
 

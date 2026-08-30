@@ -4,7 +4,11 @@ Status: authorized forward reconstruction; offline fixture and live gates are
 pending.  Nothing in this document is evidence of a live provider request,
 publication, promotion, scheduling, or public exposure.
 
-## Fixed population profile
+The frozen one-shot `news:0005_fmp_stock_latest` contract below remains
+historical evidence.  It is not superseded, retried, or reinterpreted by the
+separate current-feed successor documented at the end of this file.
+
+## Frozen one-shot population profile
 
 The only future live request is one HTTPS `GET` to
 `https://financialmodelingprep.com/stable/news/stock-latest`, with exactly
@@ -75,3 +79,29 @@ append-only lineage, target-only migration/register behavior, and no mutation
 of project data.  Only after those checks and independent verification may a
 separate explicit live authorization be considered.  A live run remains out of
 scope for this reconstruction document.
+
+## Repeatable current-feed successor -- offline only
+
+Registry `2.63.0` adds a separate current-news path, not a change to the
+frozen one-shot contract: migration
+`news:0006_fmp_stock_latest_current` (SHA-256
+`bf8757bcc7679d1bd57408978eed996c9f4dad9c89339a52ca8adbeedbf83d30`),
+datasets `news.fmp.stock_latest_current_evidence` and
+`news.fmp.stock_latest_current_articles`, and manual-only collector
+`fmp.news.stock_latest_current`.  Its exact profile remains one FMP
+stock-latest page with `page=0` and `limit=1000`, but it reserves a single
+immutable attempt for each UTC-hour poll slot.  It has no retry, fallback
+endpoint, redirect, second page, or tombstone inference.
+
+The successor accepts usable headline rows only: symbol, title, and absolute
+HTTP(S) URL are required; site may be derived from the URL host; body and
+publication timestamp may be absent.  Raw bytes and article bodies remain
+private evidence.  The public `news.search@2.0.0` reader returns only retained
+headline metadata with local-capture availability, lineage, warnings, and
+truncation information.
+
+This is offline-validated implementation only.  No live provider request has
+been made, `data/news.sqlite` has not been migrated or populated by this
+successor, and no recurring timer has been authorized or installed.  A future
+explicit bounded live decision must cover the first request and canonical
+application; a separate user decision is required before any recurring timer.

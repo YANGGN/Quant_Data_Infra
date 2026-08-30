@@ -51,10 +51,9 @@ authorized the fixed weekday aggregate macro-current timer described below.
 On 2026-08-25 the user separately authorized the fixed Alpaca SPY option-
 surface timer. On 2026-08-25 the user also authorized scheduled SEC market-
 equity CompanyFacts fetching; the implementation fixes it to the weekday timer
-described below. The original five exceptions
-are active; the sixth is staged pending its focused activation gate. None
-broadens the disabled
-recovered job catalog or Stage 12E.
+described below. The original exceptions retain their documented states. The
+Stage 12E market timer was enabled and is waiting for its first normal trigger
+on 2026-08-29; it does not broaden the disabled recovered job catalog.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
 
@@ -198,6 +197,41 @@ the recovered `options-close` or market-close jobs. Alpaca's indicative
 quotes and delayed/derived trades are inspection evidence, not an executable
 price, trading signal, or valuation input.
 
+## Active Stage 12E market-close refresh
+
+On 2026-08-29 the reviewed fixed `quant-data-market-close.timer` was
+daemon-reloaded, enabled, and started. Host verification recorded
+`LoadState=loaded`, `UnitFileState=enabled`, `ActiveState=active`, and
+`SubState=waiting`; its next trigger is Monday 2026-08-31 18:00:00 EDT and
+`LastTrigger` is empty. Its service remains `inactive/dead`, without
+`ExecMainStartTimestamp` or `ExecMainExitTimestamp`; activation made no
+state directory, provider request, or canonical write.
+
+It runs at 18:00 America/New_York on weekdays with `Persistent=false`; a
+missed window is not replayed. There is no hidden retry or manual catch-up.
+
+Before provider access, the zero-argument runner takes an immutable read-only
+snapshot of every current FMP provider-native `stage10_instruments` identity
+whose `asset_type` is `equity`, `etf`, or `index`. The 2026-08-29
+preflight contained 630 identities: 519 equities, 96 ETFs, and 15 indexes.
+The bounded snapshot remains dynamic, rejects malformed membership, limits the
+batch to 800 symbols, and places `AAPL` first. It is
+not the frozen Stage 12C historical roster.
+
+The runner requests only the current New York session's FMP daily OHLCV, once
+per selected symbol. An empty `AAPL` response is a no-market-session sentinel
+and stops the batch before other symbols are requested. The ten pinned
+historical noncoverage symbols remain eligible: valid 200 data is published if
+it becomes available, while only their exact reviewed empty or HTTP 402
+outcomes are terminal. Other missing or error outcomes fail closed. There is
+no hidden retry or automatic catch-up.
+
+Network parsing completes before the short physical lock and transaction on
+the fixed `data/market.sqlite`; exact semantic replay writes nothing. Each
+attempted symbol has durable private evidence. The unit remains separate from
+the frozen, disabled Stage 7 `market-close` registry job and cannot repeat
+Stage 10 or Stage 12C history.
+
 ## Authorized SEC market-equity fundamentals refresh
 
 The user explicitly authorized one longest-available historical population
@@ -305,7 +339,11 @@ progression serially:
   produced immutable receipts and left database/WAL/SHM/journal stamps
   unchanged; it made no copy, transfer, backup, migration, provider/network,
   consumer, or scheduler action; and
-- Stage 12E remains closed as the later external scheduling proposal.
+- Stage 12E is **authorized and implemented**, with its fixed timer enabled,
+  active, and waiting for the first normal clock-driven trigger. It refreshes
+  the current eligible equity/ETF/index identity snapshot only, not the frozen
+  historical roster or a recovered Stage 7 job; the service has not run and no
+  provider or canonical write occurred during activation.
 
 ### Stage 0: static registry validation
 
@@ -705,7 +743,8 @@ Before an external schedule can be proposed:
 - exact task definitions are reconciled with the recovered cadence table;
 - user identity, WSL distribution, working directory, timezone/DST behavior,
   IgnoreNew semantics, task timeout, and exit-code propagation are reviewed;
-- backup and restore drills use only non-production copies; and
+- formal backup/restore certification is not a prerequisite for this personal
+  project; any optional recovery drill uses only non-production copies; and
 - installation, update, removal, and immediate start remain separate explicit
   approvals.
 

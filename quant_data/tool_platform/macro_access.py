@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+import base64
+import binascii
+from collections.abc import Mapping
+from typing import Any
 
 from quant_data.contracts import (
     LineageRef,
@@ -50,6 +53,9 @@ CANONICAL_MACRO_TOOL_NAMES = (
     "macro.get_series",
 )
 CALENDAR_TOOL_NAME = "macro.get_release_calendar"
+CALENDAR_OPERATION_VERSION = "2.0.0"
+_CALENDAR_CURSOR_VERSION = 1
+_CALENDAR_CURSOR_MAX_LENGTH = 2_048
 
 
 def _strict(properties: dict[str, Any]) -> dict[str, Any]:
@@ -592,6 +598,263 @@ def invoke_canonical_macro(
     return result
 
 
+def _calendar_v2_argument_value(
+    arguments: object,
+    field: str,
+    *,
+    optional: bool = False,
+) -> object:
+    """Read one v2 field from a typed object or temporary mapping."""
+
+    if isinstance(arguments, Mapping):
+        if field in arguments:
+            return arguments[field]
+    elif hasattr(arguments, field):
+        return getattr(arguments, field)
+    if optional:
+        return None
+    raise ValidationError(f"Release calendar v2 requires {field}")
+
+
+def _calendar_v2_query(arguments: object) -> MacroReleaseCalendarQuery:
+    """Build the validated selection query before decoding its cursor."""
+
+    initial = MacroReleaseCalendarQuery(
+        start_date=_calendar_v2_argument_value(arguments, "start_date"),
+        end_date=_calendar_v2_argument_value(arguments, "end_date"),
+        mode=_calendar_v2_argument_value(arguments, "mode"),
+        as_of=_calendar_v2_argument_value(arguments, "as_of"),
+        date_only_policy=_calendar_v2_argument_value(
+            arguments,
+            "date_only_policy",
+        ),
+        event_name=_calendar_v2_argument_value(arguments, "event_name"),
+        limit=_calendar_v2_argument_value(arguments, "limit"),
+    )
+    after = _decode_release_calendar_cursor(
+        _calendar_v2_argument_value(arguments, "cursor", optional=True),
+        query=initial,
+    )
+    return MacroReleaseCalendarQuery(
+        start_date=initial.start_date,
+        end_date=initial.end_date,
+        mode=initial.mode,
+        as_of=initial.as_of,
+        date_only_policy=initial.date_only_policy,
+        event_name=initial.event_name,
+        limit=initial.limit,
+        after=after,
+    )
+
+
+def _encode_release_calendar_cursor(
+    *,
+    query: MacroReleaseCalendarQuery,
+    after: tuple[str, str, str],
+) -> str:
+    event_at, event_name, event_id = after
+    material = {
+        "version": _CALENDAR_CURSOR_VERSION,
+        "mode": query.mode,
+        "as_of": query.as_of,
+        "date_only_policy": query.date_only_policy.value,
+        "start_date": query.start_date,
+        "end_date": query.end_date,
+        "event_name": query.event_name,
+        "last_event_at": event_at,
+        "last_event_name": event_name,
+        "last_event_id": event_id,
+    }
+    return (
+        base64.urlsafe_b64encode(dumps_strict(material).encode("utf-8"))
+        .rstrip(b"=")
+        .decode("ascii")
+    )
+
+
+def _decode_release_calendar_cursor(
+    cursor: object,
+    *,
+    query: MacroReleaseCalendarQuery,
+) -> tuple[str, str, str] | None:
+    if cursor is None:
+        return None
+    if (
+        not isinstance(cursor, str)
+        or not cursor
+        or len(cursor) > _CALENDAR_CURSOR_MAX_LENGTH
+    ):
+        raise ValidationError(
+            "Release calendar cursor must be null or a bounded string"
+        )
+    try:
+        encoded = cursor.encode("ascii")
+        padded = encoded + b"=" * ((4 - len(encoded) % 4) % 4)
+        payload = base64.b64decode(padded, altchars=b"-_", validate=True)
+    except (UnicodeEncodeError, ValueError, binascii.Error) as exc:
+        raise ValidationError("Release calendar cursor is malformed") from exc
+    if base64.urlsafe_b64encode(payload).rstrip(b"=").decode("ascii") != cursor:
+        raise ValidationError("Release calendar cursor is not canonical")
+    try:
+        material = loads_strict(payload, max_bytes=4_096)
+    except (TypeError, ValueError, ValidationError) as exc:
+        raise ValidationError("Release calendar cursor is malformed") from exc
+    if (
+        not isinstance(material, dict)
+        or set(material)
+        != {
+            "version",
+            "mode",
+            "as_of",
+            "date_only_policy",
+            "start_date",
+            "end_date",
+            "event_name",
+            "last_event_at",
+            "last_event_name",
+            "last_event_id",
+        }
+        or isinstance(material["version"], bool)
+        or material["version"] != _CALENDAR_CURSOR_VERSION
+        or material["mode"] != query.mode
+        or material["as_of"] != query.as_of
+        or material["date_only_policy"] != query.date_only_policy.value
+        or material["start_date"] != query.start_date
+        or material["end_date"] != query.end_date
+        or material["event_name"] != query.event_name
+    ):
+        raise ValidationError(
+            "Release calendar cursor does not match the selected query"
+        )
+    after = (
+        material["last_event_at"],
+        material["last_event_name"],
+        material["last_event_id"],
+    )
+    try:
+        validated = MacroReleaseCalendarQuery(
+            start_date=query.start_date,
+            end_date=query.end_date,
+            mode=query.mode,
+            as_of=query.as_of,
+            date_only_policy=query.date_only_policy,
+            event_name=query.event_name,
+            limit=query.limit,
+            after=after,
+        )
+    except ValidationError as exc:
+        raise ValidationError("Release calendar cursor key is invalid") from exc
+    assert validated.after is not None
+    return validated.after
+
+
+def invoke_release_calendar_v2(
+    name: str,
+    arguments: object,
+    context: ToolExecutionContext,
+    registry: Registry,
+) -> QueryResult:
+    """Page the reconciled release calendar with a query-bound cursor."""
+
+    if name != CALENDAR_TOOL_NAME:
+        raise LookupError("Release-calendar operation is not registered")
+    query = _calendar_v2_query(arguments)
+    context.checkpoint()
+    context.budget.require(
+        rows=query.limit,
+        series=0,
+        operations=query.limit,
+    )
+    selection = CanonicalMacroRepository(
+        context.store_map, registry
+    ).get_release_calendar(query)
+    cutoff = query.cutoff
+    records = tuple(
+        RecordV1(
+            record_type="macro_release_calendar_event",
+            fields=fields_from_mapping(record),
+        )
+        for record in selection.records
+    )
+    next_cursor = (
+        _encode_release_calendar_cursor(
+            query=query,
+            after=(
+                str(selection.records[-1]["event_at"]),
+                str(selection.records[-1]["event_name"]),
+                str(selection.records[-1]["event_id"]),
+            ),
+        )
+        if selection.truncated and selection.records
+        else None
+    )
+    unsafe_reasons = tuple(
+        code
+        for code in selection.warnings
+        if code == "date_only_same_day_intraday_safety_not_established"
+    )
+    point_in_time_status = (
+        "unsafe"
+        if query.mode == "as_of" and unsafe_reasons
+        else "safe"
+        if query.mode == "as_of"
+        else "not_applicable"
+    )
+    context.checkpoint()
+    return QueryResult(
+        tool=name,
+        status="ok",
+        records=records,
+        diagnostics=(
+            DiagnosticV1(
+                code="macro_release_calendar_selection",
+                message=(
+                    "The 0016 wholesale predecessor and 0018 incremental "
+                    "successor were reconciled by event identity."
+                ),
+                metrics=fields_from_mapping(
+                    {
+                        "mode": query.mode,
+                        "requested_mode": query.mode,
+                        "actual_mode": query.mode,
+                        "cutoff": query.as_of,
+                        "cutoff_precision": (
+                            None if cutoff is None else cutoff.precision.value
+                        ),
+                        "date_only_policy": query.date_only_policy.value,
+                        "availability_basis": "local_capture",
+                        "point_in_time_status": point_in_time_status,
+                        "unsafe_reasons": dumps_strict(list(unsafe_reasons)),
+                        "period_range_rule": "event_at_calendar_date",
+                        "requested_start_date": query.start_date,
+                        "requested_end_date": query.end_date,
+                        "cursor_applied": query.after is not None,
+                        "returned_count": len(records),
+                        "total_count": selection.total_selected_count,
+                        "truncated": selection.truncated,
+                    }
+                ),
+            ),
+        ),
+        warnings=tuple(
+            WarningV1(
+                code=code,
+                message=f"Macro release-calendar warning: {code}.",
+            )
+            for code in selection.warnings
+        ),
+        lineage=_lineage(CALENDAR_DATASET_IDS, selection.receipt_sha256),
+        truncation=TruncationV1(
+            applied=selection.truncated,
+            limit=query.limit,
+            returned_count=len(records),
+            total_known_count=selection.total_selected_count,
+            has_more=selection.truncated,
+            next_cursor=next_cursor,
+        ),
+    )
+
+
 def invoke_release_calendar(
     name: str,
     arguments: MacroReleaseCalendarArgumentsV1,
@@ -690,9 +953,11 @@ def invoke_release_calendar(
 
 __all__ = (
     "CALENDAR_TOOL_NAME",
+    "CALENDAR_OPERATION_VERSION",
     "CANONICAL_MACRO_TOOL_NAMES",
     "canonical_macro_query_result_schema",
     "invoke_canonical_macro",
     "invoke_release_calendar",
+    "invoke_release_calendar_v2",
     "macro_time_series_v2_schema",
 )

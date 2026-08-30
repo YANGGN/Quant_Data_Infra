@@ -24,7 +24,7 @@ from typing import Any, Iterable, Mapping
 from ..errors import ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection, stable_id
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection, stable_id
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -88,6 +88,7 @@ OFFICIAL_VINTAGE_SERIES_IDS = frozenset(
 
 _MAX_VERSION_CANDIDATES = 200_000
 _MAX_CALENDAR_CANDIDATES = 200_000
+_MAX_BATCH_SERIES = 20
 _FMP_CALENDAR_COMMAND = "fmp.macro.us_economic_calendar_wholesale"
 
 
@@ -202,6 +203,7 @@ class MacroReleaseCalendarQuery:
     date_only_policy: DateOnlyPolicy | str
     event_name: str | None
     limit: int
+    after: tuple[str, str, str] | None = None
 
     def __post_init__(self) -> None:
         start = (
@@ -239,6 +241,22 @@ class MacroReleaseCalendarQuery:
         elif self.as_of is not None:
             raise ValidationError("Calendar cutoff is only valid in as_of mode")
         _limit(self.limit, label="Calendar limit", maximum=10_000)
+        if self.after is not None:
+            if not isinstance(self.after, tuple) or len(self.after) != 3:
+                raise ValidationError("Calendar after key is invalid")
+            event_at, event_name, event_id = self.after
+            if (
+                not isinstance(event_at, str)
+                or not event_at
+                or len(event_at) > 100
+                or not isinstance(event_name, str)
+                or not event_name
+                or len(event_name) > 256
+                or not isinstance(event_id, str)
+                or not event_id
+                or len(event_id) > 200
+            ):
+                raise ValidationError("Calendar after key is invalid")
 
     @property
     def cutoff(self) -> TemporalValue | None:
@@ -760,7 +778,7 @@ class CanonicalMacroRepository:
         if not isinstance(query, MacroCatalogQuery):
             raise ValidationError("Macro catalog search requires a typed query")
         self._require_datasets(MACRO_ACCESS_DATASET_IDS)
-        with read_connection(self._stores, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._stores, StoreRole.MACRO) as connection:
             _reconcile_store_contract(
                 connection, self._registry, MACRO_ACCESS_DATASET_IDS
             )
@@ -819,7 +837,7 @@ class CanonicalMacroRepository:
         normalized = _required_text(
             series_id, label="Macro series ID", maximum=200
         )
-        with read_connection(self._stores, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._stores, StoreRole.MACRO) as connection:
             _reconcile_store_contract(
                 connection, self._registry, MACRO_ACCESS_DATASET_IDS
             )
@@ -1228,62 +1246,63 @@ class CanonicalMacroRepository:
             ),
         }
 
-    def get_series(self, request: MacroSeriesRequest) -> MacroSeriesSelection:
-        if not isinstance(request, MacroSeriesRequest):
-            raise ValidationError("Canonical macro series requires a typed request")
-        self._require_datasets(MACRO_ACCESS_DATASET_IDS)
-        with read_connection(self._stores, StoreRole.MACRO) as connection:
-            _reconcile_store_contract(
-                connection, self._registry, MACRO_ACCESS_DATASET_IDS
+    def _select_series_in_connection(
+        self,
+        connection: Any,
+        request: MacroSeriesRequest,
+        *,
+        descriptors: Mapping[str, MacroSeriesDescriptor],
+        migration_ids: tuple[str, ...],
+        migrations: list[dict[str, str]],
+    ) -> MacroSeriesSelection:
+        """Select one typed series from an already-pinned macro snapshot."""
+
+        descriptor = descriptors.get(request.series_id)
+        if descriptor is None:
+            if request.series_id in OFFICIAL_VINTAGE_SERIES_IDS:
+                raise ValidationError(
+                    "Requested official-vintage macro series is not populated"
+                )
+            raise ValidationError("Requested macro series is unavailable")
+        if request.mode not in descriptor.supported_modes:
+            raise ValidationError(
+                "Requested macro mode is not evidenced for this series"
             )
-            descriptors = {item.series_id: item for item in self._catalog(connection)}
-            descriptor = descriptors.get(request.series_id)
-            if descriptor is None:
-                if request.series_id in OFFICIAL_VINTAGE_SERIES_IDS:
-                    raise ValidationError(
-                        "Requested official-vintage macro series is not populated"
-                    )
-                raise ValidationError("Requested macro series is unavailable")
-            if request.mode not in descriptor.supported_modes:
-                raise ValidationError(
-                    "Requested macro mode is not evidenced for this series"
-                )
-            if request.mode == "first_release" and not descriptor.first_release_count:
-                raise ValidationError(
-                    "Requested macro series has no explicit first-release evidence"
-                )
-            if descriptor.storage_model == "official_vintage":
-                raw_rows = self._official_rows(connection, request)
-                selected, warnings, first_release_coverage = self._select_official(
-                    raw_rows, request, descriptor.frequency
-                )
-                make_record = self._official_record
-                dataset_ids = (
-                    OFFICIAL_CANONICAL_DATASET_ID,
-                    OFFICIAL_EVIDENCE_DATASET_ID,
-                )
-            else:
-                raw_rows = self._generic_rows(connection, request)
-                selected, warnings, first_release_coverage = self._select_generic(
-                    raw_rows, request
-                )
-                make_record = self._generic_record
-                dataset_ids = (
-                    GENERIC_CANONICAL_DATASET_ID,
-                    GENERIC_EVIDENCE_DATASET_ID,
-                    GENERIC_CATALOG_DATASET_ID,
-                )
-            active_rows = [
-                row
-                for row in selected
-                if descriptor.storage_model == "official_vintage"
-                or str(row["state"]) == "active"
-            ]
-            total = len(active_rows)
-            truncated = total > request.limit
-            active_rows = active_rows[: request.limit]
-            records = tuple(make_record(row, descriptor) for row in active_rows)
-            migration_ids, migrations = _migration_receipt(connection)
+        if request.mode == "first_release" and not descriptor.first_release_count:
+            raise ValidationError(
+                "Requested macro series has no explicit first-release evidence"
+            )
+        if descriptor.storage_model == "official_vintage":
+            raw_rows = self._official_rows(connection, request)
+            selected, warnings, first_release_coverage = self._select_official(
+                raw_rows, request, descriptor.frequency
+            )
+            make_record = self._official_record
+            dataset_ids = (
+                OFFICIAL_CANONICAL_DATASET_ID,
+                OFFICIAL_EVIDENCE_DATASET_ID,
+            )
+        else:
+            raw_rows = self._generic_rows(connection, request)
+            selected, warnings, first_release_coverage = self._select_generic(
+                raw_rows, request
+            )
+            make_record = self._generic_record
+            dataset_ids = (
+                GENERIC_CANONICAL_DATASET_ID,
+                GENERIC_EVIDENCE_DATASET_ID,
+                GENERIC_CATALOG_DATASET_ID,
+            )
+        active_rows = [
+            row
+            for row in selected
+            if descriptor.storage_model == "official_vintage"
+            or str(row["state"]) == "active"
+        ]
+        total = len(active_rows)
+        truncated = total > request.limit
+        active_rows = active_rows[: request.limit]
+        records = tuple(make_record(row, descriptor) for row in active_rows)
         if truncated:
             warnings.add("result_truncated")
         if request.mode == "as_of":
@@ -1346,6 +1365,57 @@ class CanonicalMacroRepository:
             ).hexdigest(),
             dataset_ids=dataset_ids,
         )
+
+    def _select_series_batch_in_connection(
+        self,
+        connection: Any,
+        requests: tuple[MacroSeriesRequest, ...],
+    ) -> tuple[MacroSeriesSelection, ...]:
+        descriptors = {item.series_id: item for item in self._catalog(connection)}
+        migration_ids, migrations = _migration_receipt(connection)
+        return tuple(
+            self._select_series_in_connection(
+                connection,
+                request,
+                descriptors=descriptors,
+                migration_ids=migration_ids,
+                migrations=migrations,
+            )
+            for request in requests
+        )
+
+    def _get_series_batch_in_connection(
+        self,
+        connection: Any,
+        requests: Iterable[MacroSeriesRequest],
+    ) -> tuple[MacroSeriesSelection, ...]:
+        """Package-private selection for a host-owned immutable transaction."""
+
+        typed_requests = tuple(requests)
+        if not typed_requests or len(typed_requests) > _MAX_BATCH_SERIES:
+            raise ResourceLimitError(
+                f"Macro series batch must contain 1 through {_MAX_BATCH_SERIES} requests"
+            )
+        if any(
+            not isinstance(request, MacroSeriesRequest) for request in typed_requests
+        ):
+            raise ValidationError("Canonical macro series requires typed requests")
+        self._require_datasets(MACRO_ACCESS_DATASET_IDS)
+        _reconcile_store_contract(connection, self._registry, MACRO_ACCESS_DATASET_IDS)
+        return self._select_series_batch_in_connection(connection, typed_requests)
+
+    def get_series_batch(
+        self, requests: Iterable[MacroSeriesRequest]
+    ) -> tuple[MacroSeriesSelection, ...]:
+        """Read a bounded group of series from one owned immutable snapshot."""
+
+        with quiet_immutable_read_connection(self._stores, StoreRole.MACRO) as opened:
+            return self._get_series_batch_in_connection(opened, requests)
+
+    def get_series(self, request: MacroSeriesRequest) -> MacroSeriesSelection:
+        if not isinstance(request, MacroSeriesRequest):
+            raise ValidationError("Canonical macro series requires a typed request")
+        return self.get_series_batch((request,))[0]
 
     @staticmethod
     def _calendar_candidate_record(
@@ -1430,7 +1500,7 @@ class CanonicalMacroRepository:
         self._require_datasets(CALENDAR_DATASET_IDS)
         start = query.start_date or "0001-01-01"
         end = query.end_date or "9999-12-31"
-        with read_connection(self._stores, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._stores, StoreRole.MACRO) as connection:
             _reconcile_store_contract(
                 connection, self._registry, CALENDAR_DATASET_IDS
             )
@@ -1592,22 +1662,36 @@ class CanonicalMacroRepository:
             ),
         )
         total = len(ordered)
-        truncated = total > query.limit
+        if query.after is not None:
+            ordered = [
+                record
+                for record in ordered
+                if (
+                    str(record["event_at"]),
+                    str(record["event_name"]),
+                    str(record["event_id"]),
+                )
+                > query.after
+            ]
+        truncated = len(ordered) > query.limit
         records = tuple(ordered[: query.limit])
         if truncated:
             warnings.add("result_truncated")
+        request = {
+            "as_of": query.as_of,
+            "date_only_policy": query.date_only_policy.value,
+            "end_date": query.end_date,
+            "event_name": query.event_name,
+            "limit": query.limit,
+            "mode": query.mode,
+            "start_date": query.start_date,
+        }
+        if query.after is not None:
+            request["after"] = list(query.after)
         receipt = {
             "dataset_ids": list(CALENDAR_DATASET_IDS),
             "migrations": migrations,
-            "request": {
-                "as_of": query.as_of,
-                "date_only_policy": query.date_only_policy.value,
-                "end_date": query.end_date,
-                "event_name": query.event_name,
-                "limit": query.limit,
-                "mode": query.mode,
-                "start_date": query.start_date,
-            },
+            "request": request,
             "selected_versions": [record["event_version_id"] for record in records],
             "total_selected_count": total,
             "truncated": truncated,

@@ -4,12 +4,15 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from quant_data.boundary import Stage1Application
 from quant_data.json_codec import dumps_strict, loads_strict
+from quant_data.news.current_repository import CurrentNewsSelection
 from quant_data.registry import load_registry
 from quant_data.stores import StoreMap
 from quant_data.tool_platform.local_agent_cli import PROJECT_ROOT, run
+from quant_data.tool_platform.technical_indicators import TECHNICAL_INDICATORS_V2
 
 
 REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
@@ -138,6 +141,156 @@ class LocalAgentCliTests(unittest.TestCase):
         )
         self.assertEqual(payload["tool"]["input_schema"], expected["input_schema"])
         self.assertEqual(payload["tool"]["output_schema"], expected["output_schema"])
+        self.assertFalse(any(self.root.iterdir()))
+
+    def test_local_agents_can_discover_and_call_technical_indicator_v2(self) -> None:
+        default_code, default_payload, default_stderr = self.invoke(
+            ["describe", "market.technical_indicators"]
+        )
+        self.assertEqual(default_code, 0)
+        self.assertEqual(default_stderr, "")
+        self.assertEqual(default_payload["selection"]["tool_version"], "1.0.0")
+
+        code, payload, stderr = self.invoke(
+            [
+                "describe",
+                "market.technical_indicators",
+                "--tool-version",
+                "2.0.0",
+            ]
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(
+            payload["selection"],
+            {
+                "name": "market.technical_indicators",
+                "tool_version": "2.0.0",
+            },
+        )
+        declaration = payload["tool"]
+        self.assertEqual(declaration["stores"], [])
+        self.assertFalse(declaration["live_capability"]["possible"])
+        self.assertEqual(
+            declaration["input_schema"]["properties"]["indicator"]["enum"],
+            list(TECHNICAL_INDICATORS_V2),
+        )
+        self.assertEqual(
+            declaration["input_schema"]["required"],
+            [
+                "series",
+                "indicator",
+                "window",
+                "fast_window",
+                "slow_window",
+                "signal_window",
+                "standard_deviation_multiplier",
+                "limit",
+            ],
+        )
+
+        envelope = {
+            "api_version": self.application.api_version,
+            "tool": "market.technical_indicators",
+            "tool_version": "2.0.0",
+            "arguments": declaration["examples"][0],
+        }
+        call_code, call_payload, call_stderr = self.invoke(
+            ["call"], dumps_strict(envelope).encode("utf-8")
+        )
+        self.assertEqual(call_code, 0)
+        self.assertEqual(call_stderr, "")
+        self.assertEqual(
+            call_payload["tool"],
+            {"name": "market.technical_indicators", "version": "2.0.0"},
+        )
+        self.assertEqual(call_payload["result"]["status"], "ok")
+        self.assertEqual(call_payload["receipt"]["logical_stores"], [])
+        self.assertFalse(any(self.root.iterdir()))
+
+    def test_local_agents_can_call_latest_technical_indicator_v27(self) -> None:
+        code, payload, stderr = self.invoke(
+            [
+                "describe",
+                "market.technical_indicators",
+                "--tool-version",
+                "2.7.0",
+            ]
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(
+            payload["selection"],
+            {
+                "name": "market.technical_indicators",
+                "tool_version": "2.7.0",
+            },
+        )
+
+        envelope = {
+            "api_version": self.application.api_version,
+            "tool": "market.technical_indicators",
+            "tool_version": "2.7.0",
+            "arguments": payload["tool"]["examples"][0],
+        }
+        call_code, call_payload, call_stderr = self.invoke(
+            ["call"], dumps_strict(envelope).encode("utf-8")
+        )
+        self.assertEqual(call_code, 0)
+        self.assertEqual(call_stderr, "")
+        self.assertEqual(
+            call_payload["tool"],
+            {"name": "market.technical_indicators", "version": "2.7.0"},
+        )
+        self.assertEqual(call_payload["result"]["status"], "ok")
+        self.assertEqual(call_payload["receipt"]["logical_stores"], [])
+        self.assertFalse(any(self.root.iterdir()))
+
+    def test_local_agents_can_discover_and_call_current_news_v2(self) -> None:
+        code, payload, stderr = self.invoke(
+            ["describe", "news.search", "--tool-version", "2.0.0"]
+        )
+        self.assertEqual(code, 0)
+        self.assertEqual(stderr, "")
+        self.assertEqual(
+            payload["selection"],
+            {
+                "name": "news.search",
+                "tool_version": "2.0.0",
+            },
+        )
+
+        envelope = {
+            "api_version": self.application.api_version,
+            "tool": "news.search",
+            "tool_version": "2.0.0",
+            "arguments": payload["tool"]["examples"][0],
+        }
+        selection = CurrentNewsSelection(
+            records=(),
+            total_selected_count=0,
+            truncated=False,
+            migration_ids=("news:0006_fmp_stock_latest_current",),
+            receipt_sha256="a" * 64,
+        )
+        with mock.patch(
+            "quant_data.tool_platform.news_access.CurrentNewsRepository"
+        ) as repository_type:
+            repository_type.return_value.search.return_value = selection
+            call_code, call_payload, call_stderr = self.invoke(
+                ["call"], dumps_strict(envelope).encode("utf-8")
+            )
+
+        self.assertEqual(call_code, 0)
+        self.assertEqual(call_stderr, "")
+        self.assertEqual(
+            call_payload["tool"],
+            {"name": "news.search", "version": "2.0.0"},
+        )
+        self.assertEqual(call_payload["result"]["status"], "ok")
+        self.assertEqual(call_payload["result"]["records"], [])
+        self.assertEqual(call_payload["receipt"]["logical_stores"], ["news"])
+        repository_type.return_value.search.assert_called_once()
         self.assertFalse(any(self.root.iterdir()))
 
     def test_call_matches_in_process_application_and_does_not_write(self) -> None:

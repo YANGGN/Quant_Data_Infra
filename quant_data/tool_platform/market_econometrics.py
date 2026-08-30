@@ -109,6 +109,61 @@ def _aligned_rows(
     return rows
 
 
+def _trim_terminal_missing_values(
+    values: Sequence[Decimal | None],
+) -> tuple[tuple[Decimal | None, ...], int, int]:
+    """Trim only complete-sample edges; preserve interior gaps for rejection."""
+
+    source = tuple(values)
+    present = tuple(index for index, value in enumerate(source) if value is not None)
+    if not present:
+        return source, 0, 0
+    first, last = present[0], present[-1]
+    if any(value is None for value in source[first : last + 1]):
+        return source, 0, 0
+    return source[first : last + 1], first, len(source) - last - 1
+
+
+def _trim_common_incomplete_edges(
+    rows: Sequence[Mapping[str, Any]],
+) -> tuple[tuple[Mapping[str, Any], ...], int, int]:
+    """Trim only common incomplete alignment edges; preserve interior gaps."""
+
+    source = tuple(rows)
+    complete = tuple(
+        all(value is not None for value in row["values"])
+        for row in source
+    )
+    if not any(complete):
+        return source, 0, 0
+    first = complete.index(True)
+    last = len(complete) - 1 - tuple(reversed(complete)).index(True)
+    if not all(complete[first : last + 1]):
+        return source, 0, 0
+    return source[first : last + 1], first, len(source) - last - 1
+
+
+def _trimmed_edge_exclusion(
+    *,
+    code: str,
+    leading: int,
+    trailing: int,
+    subject_id: str,
+) -> tuple[ExclusionV1, ...]:
+    if not (leading or trailing):
+        return ()
+    return (
+        ExclusionV1(
+            code=code,
+            reason=(
+                f"{leading} leading and {trailing} trailing incomplete "
+                "observations were excluded."
+            ),
+            subject_id=subject_id,
+        ),
+    )
+
+
 def _complete_record_truncation(
     *, observation_limit: int, returned_count: int
 ) -> TruncationV1:
@@ -1187,12 +1242,24 @@ def _stationarity(
         raise ResourceLimitError(
             "Stage 10 stationarity exceeds its declared observation limit"
         )
+    source_values, trimmed_leading_count, trimmed_trailing_count = (
+        _trim_terminal_missing_values(
+            tuple(item.value for item in series.observations)
+        )
+    )
+    trimmed_edge_count = trimmed_leading_count + trimmed_trailing_count
+    edge_warnings = (
+        ("terminal_missing_observations_trimmed",)
+        if trimmed_edge_count
+        else ()
+    )
     result: ADFResult = augmented_dickey_fuller(
-        tuple(item.value for item in series.observations),
+        source_values,
         lag=arguments.lag,
         deterministic=arguments.deterministic,
         significance=Decimal(arguments.significance),
     )
+    excluded_count = result.excluded_count + trimmed_edge_count
     critical_values = dict(result.critical_values)
     rejections = dict(result.rejections)
     regression = result.regression
@@ -1213,7 +1280,7 @@ def _stationarity(
                 "decision": result.decision,
                 "deterministic": result.deterministic,
                 "effective_sample_size": result.effective_sample_size,
-                "excluded_count": result.excluded_count,
+                "excluded_count": excluded_count,
                 "lag": result.lag,
                 "lagged_level_coefficient": (
                     lagged_level.estimate if lagged_level is not None else None
@@ -1234,17 +1301,22 @@ def _stationarity(
             }
         ),
     )
-    exclusions = (
-        ()
-        if result.status == "established"
-        else (
+    exclusions = list(
+        _trimmed_edge_exclusion(
+            code="terminal_missing_observations_trimmed",
+            leading=trimmed_leading_count,
+            trailing=trimmed_trailing_count,
+            subject_id=series.series_id,
+        )
+    )
+    if result.status != "established":
+        exclusions.append(
             ExclusionV1(
                 code="not_established",
                 reason=result.reason or "adf_not_established",
                 subject_id=series.series_id,
-            ),
+            )
         )
-    )
     parameters = {
         "deterministic": arguments.deterministic,
         "lag": arguments.lag,
@@ -1277,10 +1349,11 @@ def _stationarity(
         warnings=_warnings(
             values,
             *result.warnings,
+            *edge_warnings,
             "fixed_lag_no_autolag",
             "stationarity_decision_is_in_sample_not_predictive",
         ),
-        exclusions=exclusions,
+        exclusions=tuple(exclusions),
         lineage=_lineage(values),
         truncation=TruncationV1(False, arguments.limit, 1, 1, False),
         research_contract=_research_envelope(
@@ -1289,7 +1362,7 @@ def _stationarity(
             parameters=parameters,
             sample={
                 "effective_sample_size": result.effective_sample_size,
-                "excluded_count": result.excluded_count,
+                "excluded_count": excluded_count,
                 "sample_size": result.sample_size,
             },
             uncertainty={
@@ -1298,7 +1371,7 @@ def _stationarity(
             },
             values=values,
             reports=reports,
-            exclusions=exclusions,
+            exclusions=tuple(exclusions),
         ),
     )
 
@@ -1315,7 +1388,17 @@ def _stationarity_v21(
         )
 
     significance = Decimal(arguments.significance)
-    source_values = tuple(item.value for item in series.observations)
+    source_values, trimmed_leading_count, trimmed_trailing_count = (
+        _trim_terminal_missing_values(
+            tuple(item.value for item in series.observations)
+        )
+    )
+    trimmed_edge_count = trimmed_leading_count + trimmed_trailing_count
+    edge_warnings = (
+        ("terminal_missing_observations_trimmed",)
+        if trimmed_edge_count
+        else ()
+    )
     adf = augmented_dickey_fuller(
         source_values,
         lag=arguments.adf_lag,
@@ -1351,7 +1434,7 @@ def _stationarity_v21(
                 "critical_value_0_10": kpss_critical_values.get(Decimal("0.10")),
                 "decision": kpss.decision,
                 "deterministic": kpss.deterministic,
-                "excluded_count": kpss.excluded_count,
+                "excluded_count": kpss.excluded_count + trimmed_edge_count,
                 "kpss_statistic": kpss.kpss_statistic,
                 "lag": kpss.lag,
                 "long_run_variance": kpss.long_run_variance,
@@ -1400,7 +1483,14 @@ def _stationarity_v21(
             }
         ),
     )
-    exclusions: list[ExclusionV1] = []
+    exclusions = list(
+        _trimmed_edge_exclusion(
+            code="terminal_missing_observations_trimmed",
+            leading=trimmed_leading_count,
+            trailing=trimmed_trailing_count,
+            subject_id=series.series_id,
+        )
+    )
     if adf.status != "established":
         exclusions.append(
             ExclusionV1(
@@ -1469,6 +1559,7 @@ def _stationarity_v21(
             values,
             *adf.warnings,
             *kpss.warnings,
+            *edge_warnings,
             "fixed_adf_lag_no_autolag",
             "fixed_kpss_bartlett_lag_no_automatic_bandwidth",
             "joint_stationarity_interpretation_is_in_sample_not_predictive",
@@ -1491,7 +1582,10 @@ def _stationarity_v21(
             sample={
                 "adf_effective_sample_size": adf.effective_sample_size,
                 "complete_sample_size": kpss.sample_size,
-                "excluded_count": max(adf.excluded_count, kpss.excluded_count),
+                "excluded_count": (
+                    max(adf.excluded_count, kpss.excluded_count)
+                    + trimmed_edge_count
+                ),
                 "joint_status": joint_status,
             },
             uncertainty={
@@ -1573,24 +1667,44 @@ def _structural_breaks(
 ) -> QueryResult:
     values = arguments.series
     reports = _validated_inputs(values)
-    rows = _aligned_rows(values, limit=arguments.limit)
+    original_rows = _aligned_rows(values, limit=arguments.limit)
+    rows, trimmed_leading_count, trimmed_trailing_count = (
+        _trim_common_incomplete_edges(original_rows)
+    )
+    effective_break_index = arguments.break_index - trimmed_leading_count
+    if not (0 < effective_break_index < len(rows)):
+        rows = original_rows
+        trimmed_leading_count = 0
+        trimmed_trailing_count = 0
+        effective_break_index = arguments.break_index
+    trimmed_edge_count = trimmed_leading_count + trimmed_trailing_count
+    edge_warnings = (
+        ("common_incomplete_edge_rows_trimmed",)
+        if trimmed_edge_count
+        else ()
+    )
     dependent, predictors = _regression_vectors(rows)
     result = chow_break_test(
         dependent,
         predictors,
-        break_index=arguments.break_index,
+        break_index=effective_break_index,
         intercept=arguments.intercept,
         significance=Decimal(arguments.significance),
     )
 
+    excluded_count = result.excluded_count + trimmed_edge_count
+
     pre_break_end = (
-        rows[arguments.break_index - 1]["period_end"]
-        if rows and arguments.break_index <= len(rows)
+        original_rows[arguments.break_index - 1]["period_end"]
+        if (
+            original_rows
+            and arguments.break_index <= len(original_rows)
+        )
         else None
     )
     post_break_start = (
-        rows[arguments.break_index]["period_start"]
-        if arguments.break_index < len(rows)
+        original_rows[arguments.break_index]["period_start"]
+        if arguments.break_index < len(original_rows)
         else None
     )
     summary = RecordV1(
@@ -1598,13 +1712,13 @@ def _structural_breaks(
         fields_from_mapping(
             {
                 "alternative_hypothesis": result.alternative_hypothesis,
-                "break_index": result.break_index,
+                "break_index": arguments.break_index,
                 "break_index_semantics": "zero_based_first_post_break_row",
                 "decision": result.decision,
                 "denominator_degrees_of_freedom": (
                     result.denominator_degrees_of_freedom
                 ),
-                "excluded_count": result.excluded_count,
+                "excluded_count": excluded_count,
                 "f_statistic": result.f_statistic,
                 "inference_backend": result.inference_backend,
                 "method": result.method,
@@ -1647,17 +1761,22 @@ def _structural_breaks(
         _chow_fit_record("pre_break", result.pre_break_fit),
         _chow_fit_record("post_break", result.post_break_fit),
     )
-    exclusions = (
-        (
+    exclusions = list(
+        _trimmed_edge_exclusion(
+            code="common_incomplete_edge_rows_trimmed",
+            leading=trimmed_leading_count,
+            trailing=trimmed_trailing_count,
+            subject_id=values[0].series_id,
+        )
+    )
+    if result.status != "established":
+        exclusions.append(
             ExclusionV1(
                 code="structural_break_not_established",
                 reason=result.reason or "chow_test_not_established",
                 subject_id=values[0].series_id,
-            ),
+            )
         )
-        if result.status != "established"
-        else ()
-    )
     parameters = {
         "break_index": arguments.break_index,
         "break_index_semantics": "zero_based_first_post_break_row",
@@ -1695,13 +1814,14 @@ def _structural_breaks(
         warnings=_warnings(
             values,
             *result.warnings,
+            *edge_warnings,
             (
                 "result_record_limit_raised_for_fixed_analytical_report"
                 if arguments.limit < len(records)
                 else ""
             ),
         ),
-        exclusions=exclusions,
+        exclusions=tuple(exclusions),
         lineage=_lineage(values),
         truncation=_complete_record_truncation(
             observation_limit=arguments.limit,
@@ -1713,7 +1833,7 @@ def _structural_breaks(
             parameters=parameters,
             sample={
                 "aligned_sample_size": len(rows),
-                "excluded_count": result.excluded_count,
+                "excluded_count": excluded_count,
                 "post_break_sample_size": result.post_break_sample_size,
                 "pre_break_sample_size": result.pre_break_sample_size,
             },
@@ -1726,7 +1846,7 @@ def _structural_breaks(
             },
             values=values,
             reports=reports,
-            exclusions=exclusions,
+            exclusions=tuple(exclusions),
         ),
     )
 

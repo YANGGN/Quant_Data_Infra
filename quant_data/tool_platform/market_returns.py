@@ -11,7 +11,14 @@ import hashlib
 from dataclasses import dataclass, replace
 from typing import Any, Mapping, Sequence
 
-from quant_data.contracts import LineageRef, Observation, TimeSeries, TruncationV1, WarningV1
+from quant_data.contracts import (
+    LineageRef,
+    Observation,
+    TimeSeries,
+    TruncationV1,
+    WarningV1,
+    exact_decimal_quality_flag,
+)
 from quant_data.errors import ResourceLimitError, ValidationError
 from quant_data.json_codec import dumps_strict
 from quant_data.market.stage10_series import (
@@ -322,6 +329,8 @@ def _derived_observation(
             f"transformation:return:{direction}:{method}:horizon={horizon}",
         }
     )
+    if item.value is not None:
+        flags.add(exact_decimal_quality_flag(item.value))
     return Observation(
         period_start=item.period_start,
         period_end=item.period_end,

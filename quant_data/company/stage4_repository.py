@@ -14,7 +14,7 @@ from typing import Any, Callable, Hashable, Iterable, Mapping, Sequence
 
 from ..errors import ResourceLimitError, ValidationError
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection
 from ..temporal import (
     DateOnlyPolicy,
     TemporalValue,
@@ -164,7 +164,7 @@ class CompanyStage4Repository:
         return str(row["issuer_id"])
 
     def get_issuer(self, query: CompanyStage4Query) -> dict[str, Any]:
-        with read_connection(self._store_map, StoreRole.COMPANY) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.COMPANY) as connection:
             issuer_id = self._issuer_id(connection, query.cik)
             versions = _query_rows(
                 connection,
@@ -263,7 +263,7 @@ class CompanyStage4Repository:
         )
 
     def get_filings(self, query: CompanyStage4Query) -> tuple[dict[str, Any], ...]:
-        with read_connection(self._store_map, StoreRole.COMPANY) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.COMPANY) as connection:
             issuer_id = self._issuer_id(connection, query.cik)
             rows = _query_rows(
                 connection,
@@ -316,6 +316,124 @@ class CompanyStage4Repository:
             for row in eligible
         )
 
+
+    def get_filings_page(
+        self,
+        query: CompanyStage4Query,
+        *,
+        after: tuple[str, str] | None,
+    ) -> tuple[tuple[dict[str, Any], ...], bool]:
+        """Return one stable filing page without changing the frozen v1 read."""
+
+        if after is not None and (
+            not isinstance(after, tuple)
+            or len(after) != 2
+            or not all(isinstance(item, str) and item for item in after)
+        ):
+            raise ValidationError("Company filing cursor key is invalid")
+
+        with quiet_immutable_read_connection(
+            self._store_map,
+            StoreRole.COMPANY,
+        ) as connection:
+            issuer_id = self._issuer_id(connection, query.cik)
+            where = "WHERE membership.issuer_id=?"
+            parameters: list[object] = [issuer_id]
+            if after is not None:
+                filing_date, accession_number = after
+                where += (
+                    " AND (filing.filing_date > ?"
+                    " OR (filing.filing_date = ?"
+                    " AND filing.accession_number > ?))"
+                )
+                parameters.extend(
+                    (filing_date, filing_date, accession_number)
+                )
+            parameters.append(_MAX_CANDIDATE_ROWS + 1)
+            rows = _query_rows(
+                connection,
+                f"""
+                SELECT filing.accession_number,
+                       filing.first_observed_issuer_id,
+                       filing.form_type, filing.filing_date,
+                       filing.filing_date_precision, filing.accepted_at,
+                       filing.accepted_precision,
+                       filing.report_period_start,
+                       filing.report_period_end, filing.primary_document,
+                       filing.source_url, filing.available_at,
+                       filing.available_precision
+                FROM company_sec_filing_issuer_membership AS membership
+                JOIN company_sec_filings AS filing
+                  ON filing.accession_number=membership.accession_number
+                {where}
+                ORDER BY filing.filing_date, filing.accession_number
+                LIMIT ?
+                """,
+                tuple(parameters),
+            )
+            eligible: list[Mapping[str, Any]] = []
+            warnings: set[str] = set()
+            for row in rows:
+                if query.cutoff is not None:
+                    decision = availability_at_or_before(
+                        _availability(row),
+                        query.cutoff,
+                        query.date_only_policy,
+                    )
+                    warnings.update(decision.warnings)
+                    if not decision.included:
+                        continue
+                eligible.append(row)
+                if len(eligible) > query.limit:
+                    break
+
+        has_more = len(eligible) > query.limit
+        page = eligible[: query.limit]
+        return (
+            tuple(
+                {
+                    "accession_number": str(row["accession_number"]),
+                    "first_observed_issuer_id": str(
+                        row["first_observed_issuer_id"]
+                    ),
+                    "form_type": str(row["form_type"]),
+                    "filing_date": str(row["filing_date"]),
+                    "filing_date_precision": str(
+                        row["filing_date_precision"]
+                    ),
+                    "accepted_at": str(row["accepted_at"]),
+                    "accepted_precision": str(row["accepted_precision"]),
+                    "report_period_start": (
+                        str(row["report_period_start"])
+                        if row["report_period_start"] is not None
+                        else None
+                    ),
+                    "report_period_end": (
+                        str(row["report_period_end"])
+                        if row["report_period_end"] is not None
+                        else None
+                    ),
+                    "primary_document": (
+                        str(row["primary_document"])
+                        if row["primary_document"] is not None
+                        else None
+                    ),
+                    "source_url": (
+                        str(row["source_url"])
+                        if row["source_url"] is not None
+                        else None
+                    ),
+                    "available_at": str(row["available_at"]),
+                    "available_precision": str(
+                        row["available_precision"]
+                    ),
+                    "warnings": tuple(sorted(warnings)),
+                }
+                for row in page
+            ),
+            has_more,
+        )
+
     def get_fundamentals(
         self,
         query: CompanyStage4Query,
@@ -329,7 +447,7 @@ class CompanyStage4Repository:
             ):
                 raise ValidationError("Fundamental metric codes must be nonempty strings")
             requested = set(metric_codes)
-        with read_connection(self._store_map, StoreRole.COMPANY) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.COMPANY) as connection:
             issuer_id = self._issuer_id(connection, query.cik)
             rows = _query_rows(
                 connection,
@@ -414,7 +532,7 @@ class CompanyStage4Repository:
         self,
         query: CompanyStage4Query,
     ) -> tuple[dict[str, Any], ...]:
-        with read_connection(self._store_map, StoreRole.COMPANY) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.COMPANY) as connection:
             issuer_id = self._issuer_id(connection, query.cik)
             rows = _query_rows(
                 connection,
@@ -480,7 +598,7 @@ class CompanyStage4Repository:
         )
 
     def get_earnings(self, query: CompanyStage4Query) -> dict[str, Any]:
-        with read_connection(self._store_map, StoreRole.COMPANY) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.COMPANY) as connection:
             issuer_id = self._issuer_id(connection, query.cik)
             consensus_rows = _query_rows(
                 connection,

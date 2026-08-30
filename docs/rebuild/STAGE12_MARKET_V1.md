@@ -1,8 +1,8 @@
 # Stage 12 Market v1 Operationalization Contract
 
-Status: Stages 12A and 12B implemented and independently verified within their offline boundaries; Stages 12C and 12D complete and independently verified; Stage 12E closed
-Decision date: 2026-08-15
-Executable scope: immutable completed Stage 12A/12B/12C/12D only; Stage 12E remains closed
+Status: Stages 12A and 12B implemented and independently verified within their offline boundaries; Stages 12C and 12D complete and independently verified; Stage 12E authorized and implemented, with its timer enabled and waiting for its first normal trigger
+Decision dates: 2026-08-15; Stage 12E daily-refresh authorization and timer activation 2026-08-29
+Executable scope: immutable completed Stage 12A/12B/12C/12D plus the bounded Stage 12E current-session refresh through the enabled fixed timer
 
 ## 1. Purpose
 
@@ -161,12 +161,40 @@ a new full-database hash. No second database, copy, move, replacement,
 promotion pointer, backup, migration, registry change, provider/network
 access, public exposure, or scheduler change occurred.
 
-### Stage 12E — market-only scheduling proposal
+### Stage 12E — authorized daily market refresh
 
-Closed. Stage 12D evidence is complete, but no decision has authorized a real
-`market-close` job or its external task definition. Any proposal,
-installation, first start, update, or removal remains a separate explicit
-action. Other jobs stay disabled.
+On 2026-08-29 the reviewed fixed `quant-data-market-close` host unit was
+daemon-reloaded, enabled, and started for its weekday 18:00 America/New_York
+refresh. Host verification recorded `LoadState=loaded`,
+`UnitFileState=enabled`, `ActiveState=active`, and `SubState=waiting`;
+the next trigger is Monday 2026-08-31 18:00:00 EDT and `LastTrigger` is
+empty. The service remains `inactive/dead`, with no
+`ExecMainStartTimestamp` or `ExecMainExitTimestamp`; no state directory,
+provider request, or canonical write occurred during activation. It does not
+repeat the sealed Stage 10 or Stage 12C historical work.
+
+At each scheduled run, the runner takes one immutable, read-only snapshot of
+every current FMP provider-native `stage10_instruments` row whose `asset_type`
+is `equity`, `etf`, or `index`. The snapshot is bounded to 800 symbols,
+validates its asset types, and orders `AAPL` first. The 2026-08-29 preflight
+contained 630 identities: 519 equities, 96 ETFs, and 15 indexes. It is dynamic
+rather than the frozen Stage 12C roster; the ten pinned historical
+noncoverage symbols remain eligible, and valid 200 data is published if it
+becomes available.
+
+The runner requests only the current New York session's daily OHLCV for each
+symbol, once. An empty `AAPL` response is the no-market-session sentinel and
+stops the batch before other symbols are requested. For each remaining symbol,
+only its exact reviewed empty or HTTP 402 terminal outcome is accepted;
+unknown missing or error outcomes fail closed.
+
+The timer is non-persistent, so missed windows do not catch up. There is no
+hidden retry: each attempted symbol has one bounded request, and network work
+finishes before a short write transaction against the fixed canonical
+`data/market.sqlite`. Exact semantic replay writes nothing. Each attempted
+symbol retains durable private evidence. The frozen Stage 7 `market-close` job
+remains disabled and manual-fixture-only; this is a separate fixed host-level
+exception, not its activation.
 
 ## 6. Stage 12A exit gate
 
@@ -203,5 +231,6 @@ complete only within its fixture boundary. Stage 12C is now complete under its
 database. Stage 12D is complete and independently verified under its bounded
 [no-transfer contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md) and
 [evidence record](STAGE12D_EVIDENCE.md). It created only two immutable private
-proof receipts and no data transfer or store mutation. Stage 12E remains
-closed.
+proof receipts and no data transfer or store mutation. Stage 12E is separately
+authorized and implemented; its enabled timer is waiting for the first normal
+clock-driven run, and no live daily-batch receipt is claimed here.
