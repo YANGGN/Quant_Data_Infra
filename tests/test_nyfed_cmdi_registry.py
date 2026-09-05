@@ -25,7 +25,7 @@ PRE_CMDI_SOURCE_SHA256 = (
     "9be40d07a7984b223303174a079b19a2a57fa7fcb5a56678482533dc53e4f8ff"
 )
 CURRENT_SOURCE_SHA256 = (
-    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
+    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
 )
 
 
@@ -40,7 +40,7 @@ class NyFedCmdiRegistryTests(unittest.TestCase):
     def test_collector_is_manual_credential_free_and_bound(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.69.0")
+        self.assertEqual(registry.revision, "2.70.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (

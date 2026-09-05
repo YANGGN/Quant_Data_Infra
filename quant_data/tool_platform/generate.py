@@ -11,6 +11,7 @@ from typing import Any
 
 from quant_data.tool_platform.catalog import (
     ADDITIVE_DATA_STATUS_TOOLS,
+    ADDITIVE_ETF_TOOLS,
     ADDITIVE_NEWS_RESEARCH_TOOLS,
     CATALOG_ID,
     CATALOG_VERSION,
@@ -40,6 +41,7 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.70.0"): "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3",
     ("1.9.0", "2.37.0"): (
         "2a2b611ac6f752e6d83a81369155454b1484b8caebf4d1aaa3be60c41f0e866b"
     ),
@@ -800,6 +802,10 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version < ("1.9.0", "2.69.0"):
+        entries = tuple(item for item in entries if item["id"] not in ADDITIVE_ETF_TOOLS)
+        additive_entries = tuple(item for item in additive_entries if item["id"] not in ADDITIVE_ETF_TOOLS)
+        catalog_version = "2.26.0"
     if source_version <= ("1.9.0", "2.65.0"):
         entries = tuple(
             item
@@ -1084,6 +1090,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.67.0"),
         ("1.9.0", "2.68.0"),
         ("1.9.0", "2.69.0"),
+        ("1.9.0", "2.70.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1160,7 +1167,8 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.66.0"): "2.67.0",
         ("1.9.0", "2.67.0"): "2.68.0",
         ("1.9.0", "2.68.0"): "2.68.0",
-        ("1.9.0", "2.69.0"): "2.69.0",
+        ("1.9.0", "2.69.0"): "2.70.0",
+        ("1.9.0", "2.70.0"): "2.70.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

@@ -98,7 +98,7 @@ class RegistryIdentifierTests(unittest.TestCase):
 
         self.assertEqual(len(registry.stores), 4)
         self.assertEqual(registry.schema_version, "1.9.0")
-        self.assertEqual(registry.registry_version, "2.69.0")
+        self.assertEqual(registry.registry_version, "2.70.0")
         news_predecessor = news_research_registry_profile(registry)
         self.assertEqual(news_predecessor.registry_version, "2.65.0")
         self.assertEqual(
@@ -202,7 +202,7 @@ class RegistryIdentifierTests(unittest.TestCase):
             PUBLIC_TOOL_NAMES,
         )
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 74)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 75)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
             list(CURRENT_PUBLIC_TOOL_NAMES),

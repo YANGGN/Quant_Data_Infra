@@ -33,7 +33,7 @@ class MacroHistoryExtensionRegistryTests(unittest.TestCase):
         )
         self.assertEqual(
             (registry.schema_version, registry.registry_version),
-            ("1.9.0", "2.69.0"),
+            ("1.9.0", "2.70.0"),
         )
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),

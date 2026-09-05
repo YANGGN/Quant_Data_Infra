@@ -252,6 +252,25 @@ _OPTIONS_V2_TARGET_DTES = frozenset({1, 2, 3, 7, 14, 30, 60, 90, 180, 365})
 
 
 @dataclass(frozen=True, slots=True)
+class EtfAllocatorSnapshotArgumentsV1(_ArgumentMapping):
+    """One explicit ETF universe and timezone-aware decision cutoff."""
+
+    INPUT_KIND: ClassVar[str] = "etf_allocator_snapshot_v1"
+
+    symbols: tuple[str, ...] = _typed_field(
+        _InputField(types=("array",), min_items=1, max_items=25,
+            item=_InputField(types=("string",), enum=(
+                "SPY", "QQQ", "DIA", "IWM", "VEA", "VWO", "IEF", "TLT",
+                "TIP", "LQD", "HYG", "GLD", "SLV", "PDBC", "XLB", "XLC",
+                "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY",
+            )), form="array")
+    )
+    decision_as_of: str = _typed_field(
+        _InputField(types=("string",), min_length=20, max_length=64)
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class DatasetStatusArgumentsV1(_ArgumentMapping):
     """Filter retained dataset/control-plane status without probing providers."""
 
@@ -2500,6 +2519,7 @@ _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     CurrentNewsSearchArgumentsV22,
     NewsSourceStatusArgumentsV1,
     DatasetStatusArgumentsV1,
+    EtfAllocatorSnapshotArgumentsV1,
     OptionsCaptureSearchArgumentsV2,
     OptionsContractSearchArgumentsV2,
     OptionsSurfaceSnapshotArgumentsV2,
@@ -3140,6 +3160,21 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 }
             ),
         )
+
+    if argument_type is EtfAllocatorSnapshotArgumentsV1:
+        symbols = _validated_string_array(
+            mapping["symbols"], _field_contract(argument_type, "symbols"), "/symbols"
+        )
+        cutoff = _validated_string(
+            mapping["decision_as_of"],
+            _field_contract(argument_type, "decision_as_of"), "/decision_as_of"
+        )
+        from quant_data.temporal import TemporalValue, TemporalPrecision
+        if TemporalValue.parse(cutoff).precision is not TemporalPrecision.DATETIME:
+            raise ValidationError("ETF decision_as_of requires a timezone-aware datetime")
+        return _PreparedArguments(argument_type, MappingProxyType({
+            "symbols": symbols, "decision_as_of": cutoff,
+        }))
 
     if argument_type is DatasetStatusArgumentsV1:
         stores = _validated_string_array(
@@ -5279,6 +5314,7 @@ def parse_arguments(
         CurrentNewsSearchArgumentsV22,
         NewsSourceStatusArgumentsV1,
         DatasetStatusArgumentsV1,
+        EtfAllocatorSnapshotArgumentsV1,
         OptionsCaptureSearchArgumentsV2,
         OptionsContractSearchArgumentsV2,
         OptionsSurfaceSnapshotArgumentsV2,
@@ -5789,6 +5825,8 @@ def _inferred_input_kind(public: Mapping[str, Any]) -> str:
         return Stage10MarketRegressionArgumentsV21.INPUT_KIND
     if names == market_rolling_regression_v21_names:
         return Stage10MarketRollingRegressionArgumentsV21.INPUT_KIND
+    if names == {"symbols", "decision_as_of"}:
+        return EtfAllocatorSnapshotArgumentsV1.INPUT_KIND
     if names == search_names:
         return SearchArguments.INPUT_KIND
     raise _validation_error("/arguments", "shape", "Arguments do not match a registered input shape")
@@ -5805,6 +5843,8 @@ def preflight_dimensions(
     """
 
     prepared = _prepared(input_kind or _inferred_input_kind(public), public)
+    if prepared.argument_type is EtfAllocatorSnapshotArgumentsV1:
+        return {"rows": len(prepared.values["symbols"]) * 400, "series": 1, "operations": 5_000_000}
     default_rows = (
         8
         if prepared.argument_type is NewsSourceStatusArgumentsV1

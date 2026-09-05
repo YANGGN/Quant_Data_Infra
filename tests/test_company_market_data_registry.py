@@ -11,7 +11,7 @@ IDS = ("fmp.company.corporate_actions_current", "fmp.company.analyst_estimates_c
 class CompanyMarketDataRegistryTests(unittest.TestCase):
     def test_private_bindings_preserve_exact_previous_registry(self):
         registry = load_registry(ROOT / "config/system_registry.json", project_root=ROOT, environment={})
-        self.assertEqual(registry.revision, "2.69.0")
+        self.assertEqual(registry.revision, "2.70.0")
         self.assertEqual((len(registry.migrations), len(registry.datasets), len(registry.collectors)), (44,59,66))
         previous = company_market_data_registry_profile(registry)
         self.assertEqual(previous.revision, "2.68.0")

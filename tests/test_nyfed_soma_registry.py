@@ -24,7 +24,7 @@ PRE_SOMA_SOURCE_SHA256 = (
     "a6fa1cc606182743ddcb8d6b0cc06b236e3dc5ba4891d71627bf5d1454a8c863"
 )
 CURRENT_SOURCE_SHA256 = (
-    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
+    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
 )
 
 
@@ -39,7 +39,7 @@ class NyFedSomaRegistryTests(unittest.TestCase):
     def test_collector_is_exact_manual_credential_free_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.69.0")
+        self.assertEqual(registry.revision, "2.70.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (

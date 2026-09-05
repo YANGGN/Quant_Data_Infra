@@ -21,7 +21,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.26.0"
+VERSIONED_CATALOG_VERSION = "2.27.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -39,6 +39,7 @@ ADDITIVE_NEWS_RESEARCH_TOOLS = (
     "news.headline_sentiment",
     "research.news_event_impact",
 )
+ADDITIVE_ETF_TOOLS = ("portfolio.get_etf_allocator_snapshot",)
 ADDITIVE_DATA_STATUS_TOOLS = ("data.get_dataset_status",)
 ADDITIVE_PUBLIC_TOOL_NAMES = (
     "macro.get_release_calendar",
@@ -48,6 +49,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_STAGE10_STATISTICS_TOOLS,
     *ADDITIVE_NEWS_RESEARCH_TOOLS,
     *ADDITIVE_DATA_STATUS_TOOLS,
+    *ADDITIVE_ETF_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -221,7 +223,7 @@ CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
     "market": 8,
-    "research": 23,
+    "research": 24,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
 _CURRENT_PUBLIC_NAMES.insert(
@@ -252,6 +254,7 @@ _CURRENT_PUBLIC_NAMES.insert(
     _CURRENT_DATA_STATUS_INSERTION,
     "data.get_dataset_status",
 )
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_ETF_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -588,6 +591,11 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
             datasets=DATA_STATUS_DATASETS,
         ),
     )
+    additive += (ToolProfile(
+        name="portfolio.get_etf_allocator_snapshot", family="research",
+        input_kind="etf_allocator_snapshot_v1", stores=("market",),
+        datasets=market_identity_datasets,
+    ),)
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -1188,7 +1196,53 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *_build_analysis_foundation_entries(),
         *_build_news_research_entries(),
         *_build_data_status_entries(),
+        *_build_etf_snapshot_entries(),
     )
+
+
+def _build_etf_snapshot_entries() -> tuple[dict[str, Any], ...]:
+    """Reuse the native scalar-record result and standard receipt contract."""
+    name = "portfolio.get_etf_allocator_snapshot"
+    profile = next(item for item in current_tool_profiles() if item.name == name)
+    entry = copy.deepcopy(_build_data_status_entries()[0])
+    entry.update({
+        "id": name,
+        "description": "Read one coherent cutoff-bound ETF feature snapshot and explicit retained-input gaps.",
+        "handler": profile.operation_graph_id,
+        "operation_graph_id": profile.operation_graph_id,
+        "stores": list(profile.stores),
+        "datasets": list(profile.datasets),
+        "input_type": "EtfAllocatorSnapshotArgumentsV1",
+        "input_schema_id": _versioned_schema_id(name, "input", version="1.0.0"),
+        "input_schema": typed_input_schema("etf_allocator_snapshot_v1", {}),
+        "output_schema_id": _versioned_schema_id(name, "output", version="1.0.0"),
+        "output_schema": query_result_schema(name, {
+            "type": "object", "additionalProperties": False, "properties": {}, "required": [],
+        }),
+        "examples": [{"symbols": ["SPY", "QQQ"], "decision_as_of": "2026-09-05T00:00:00Z"}],
+        "assumptions": [
+            "one_immutable_market_transaction", "retained_local_capture_cutoff",
+            "split_adjusted_excluding_distributions_required",
+            "unestablished_adjustments_produce_null_features",
+            "cash_equity_calendar_2024_through_2026_only",
+            "no_silent_symbol_or_observation_omission",
+            "historical_reconstruction_not_established",
+            "investment_authority_remains_in_consumer",
+        ],
+        "workload_bounds": {
+            "max_rows": 10000, "max_series": 1, "max_operations": 5000000,
+            "max_request_bytes": 1048576, "max_response_bytes": 8388608,
+        },
+        "availability_policy": {"modes": ["as_of"], "point_in_time_default": "as_of"},
+        "contracts": {
+            "availability": "retained_local_capture",
+            "point_in_time": "historical_adjustment_reconstruction_not_established",
+            "returns": "split_adjusted_price_excluding_distributions",
+        },
+    })
+    entry["output_schema"]["properties"]["series"]["maxItems"] = 0
+    entry["output_schema"]["properties"]["records"]["maxItems"] = 25
+    return (entry,)
 
 
 def _build_data_status_entries() -> tuple[dict[str, Any], ...]:

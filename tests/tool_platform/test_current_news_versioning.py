@@ -11,6 +11,7 @@ from quant_data.registry import (
     current_news_registry_profile,
     data_status_options_registry_profile,
     macro_database_expansion_registry_profile,
+    company_market_data_registry_profile,
     load_registry,
     multi_source_current_news_registry_profile,
     news_research_registry_profile,
@@ -22,10 +23,10 @@ from quant_data.tool_platform.generate import generated_bytes
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CURRENT_REGISTRY_SHA256 = (
-    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
+    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
 )
 CURRENT_CATALOG_SHA256 = (
-    "fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28"
+    "6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b"
 )
 REGISTRY_267_SHA256 = (
     "a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325"
@@ -75,7 +76,7 @@ class CurrentNewsVersioningTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.registry_version, "2.69.0")
+        self.assertEqual(registry.registry_version, "2.70.0")
         self.assertEqual(registry.source_sha256, CURRENT_REGISTRY_SHA256)
         self.assertEqual(
             registry.raw["tool_version_schema_catalog"]["sha256"],
@@ -147,7 +148,7 @@ class CurrentNewsVersioningTests(unittest.TestCase):
         self.assertEqual(registry_261.registry_version, "2.61.0")
         self.assertEqual(registry_261.source_sha256, REGISTRY_261_SHA256)
 
-    def test_exact_predecessor_regenerates_current_bytes(self) -> None:
+    def test_exact_predecessor_regenerates_macro_expansion_bytes(self) -> None:
         current_registry_bytes = (
             PROJECT_ROOT / "config" / "system_registry.json"
         ).read_bytes()
@@ -177,8 +178,10 @@ class CurrentNewsVersioningTests(unittest.TestCase):
             generated_registry, _, generated_catalog = generated_bytes(
                 temporary_root
             )
-        self.assertEqual(generated_registry, current_registry_bytes)
-        self.assertEqual(generated_catalog, current_catalog_bytes)
+        expected = company_market_data_registry_profile(registry)
+        self.assertEqual(generated_registry, _render(expected.raw))
+        self.assertEqual(hashlib.sha256(generated_catalog).hexdigest(),
+            expected.raw["tool_version_schema_catalog"]["sha256"])
 
 
 if __name__ == "__main__":

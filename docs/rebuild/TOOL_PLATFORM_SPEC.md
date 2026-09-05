@@ -1150,3 +1150,21 @@ statistical definitions, resource ceilings, or live capabilities require
 integration-owner review. Changes to a primitive require impact analysis of
 every registry entry bound to it. The registry digest and acceptance evidence
 MUST be updated in the same reviewed change.
+
+
+## Additive personal ETF snapshot (registry 2.70.0)
+
+The user-requested `portfolio.get_etf_allocator_snapshot@1.0.0` uses the
+existing local public launcher, generated typed input and QueryResultV1 output,
+standard receipts, and one immutable market transaction. Catalog 2.27.0 has
+158 contracts and the active manifest has 75 logical names. Its exact
+predecessor is registry 2.69.0; no recovered default changes.
+
+The [local-agent ETF contract](../LOCAL_AGENT_TOOLS.md#etf-allocator-snapshot)
+defines the fixed 25-symbol scope, bounded cash-equity calendar, split-only
+price feature conventions, null/missingness rules, and consumer adjustments.
+Retained provider-native prices do not establish split-only adjustment or
+genuine historical reconstruction: the real public request returned all 25
+identities with blocked feature readiness and unchanged store stamps.
+This tool adds no provider, credential, ingestion, migration, scheduler,
+public network route, investment approval, or app-project modification.

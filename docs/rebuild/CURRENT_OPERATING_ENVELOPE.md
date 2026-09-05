@@ -28,10 +28,19 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.69.0`, schema `1.9.0`, with
-source SHA-256 `2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f`.
-The active versioned catalog is `2.26.0` at SHA-256
+The current registry is revision `2.70.0`, schema `1.9.0`, with
+source SHA-256 `4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3`.
+The active versioned catalog is `2.27.0` at SHA-256
+`6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b`.
+The additive local ETF snapshot preserves exact registry `2.69.0` at
+SHA-256 `2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f`
+and catalog `2.26.0` at
 `fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
+Its one user-requested read at decision cutoff `2026-09-05T00:00:00Z`
+returned all 25 symbols with blocked feature readiness, missing August month-end
+observations and unestablished split-only provenance. Store and sidecar stamps
+were unchanged; no provider request or scheduler action occurred.
+See the [ETF interface and gap report](../LOCAL_AGENT_TOOLS.md#etf-allocator-snapshot).
 Its immediate `2.68.0` predecessor is retained at SHA-256
 `9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`. The earlier `2.67.0` predecessor is retained at registry SHA-256
 `a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325`; the public catalog remains byte-identical.

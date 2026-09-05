@@ -25,7 +25,7 @@ PRE_REPO_SOURCE_SHA256 = (
     "62a8f72f9b565f5b81eefce3bbef6704d5c9c65bd1222c19d49e6b53f54e4779"
 )
 CURRENT_SOURCE_SHA256 = (
-    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
+    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
 )
 
 
@@ -40,7 +40,7 @@ class NyFedRepoFacilitiesRegistryTests(unittest.TestCase):
     def test_collector_is_exact_manual_credential_free_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.69.0")
+        self.assertEqual(registry.revision, "2.70.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (

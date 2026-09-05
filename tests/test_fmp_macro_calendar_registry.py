@@ -32,7 +32,7 @@ class FmpMacroCalendarRegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.revision, "2.69.0")
+        self.assertEqual(registry.revision, "2.70.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
             (44, 59, 66),

@@ -65,7 +65,7 @@ class RegistryAndFixtureTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
         self.assertEqual(registry.status, "validated")
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 74)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 75)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
             list(CURRENT_PUBLIC_TOOL_NAMES),

@@ -352,6 +352,9 @@ def invoke_operation(
             or context.operation_graph_id != expected_graph
         ):
             raise LookupError("Selected additive operation graph is invalid")
+        if name == "portfolio.get_etf_allocator_snapshot":
+            from .etf_snapshot import invoke_etf_snapshot
+            return invoke_etf_snapshot(name, arguments, context, registry)
         if name in ADDITIVE_DATA_STATUS_TOOLS:
             from .data_status_access import invoke_dataset_status
 

@@ -36,7 +36,7 @@ this package to the consuming project's imports. Use this sequence:
 6. Keep the complete response, receipt, warnings, truncation, and lineage with
    any downstream result.
 
-At the current macro-database-expansion checkpoint, registry `2.68.0` exposes 74
+At the earlier macro-database-expansion checkpoint, registry `2.68.0` exposed 74
 logical names. Its source SHA-256 is
 `9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`;
 catalog `2.26.0` has SHA-256
@@ -113,7 +113,7 @@ Browser Inspector.
 
 ## Latest contracts
 
-This is the latest-only projection for registry `2.68.0`. If the registry
+This is the latest-only projection for registry `2.70.0`. If the registry
 advances, the semantic maximum advertised by the runtime `manifest` overrides
 this checkpoint.
 
@@ -193,6 +193,7 @@ this checkpoint.
 | `news.headline_sentiment` | `1.0.0` |
 | `research.news_event_impact` | `1.0.0` |
 | `research.liquidity_credit_state` | `2.0.0` |
+| `portfolio.get_etf_allocator_snapshot` | `1.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one
@@ -1152,3 +1153,190 @@ release timing from observation periods.
 Do not silently fill missing observations, mix raw prices with adjusted-price
 assumptions, change the return definition, or discard point-in-time metadata
 between those steps.
+
+
+## ETF allocator snapshot
+
+Registry `2.70.0` adds `portfolio.get_etf_allocator_snapshot@1.0.0`.
+The current manifest contains 75 logical tools; catalog `2.27.0` contains
+158 contracts. The 57 recovered defaults and exact `2.69.0` predecessor are
+preserved. This section supersedes the older inventory checkpoints above for
+this additive tool.
+
+The tool accepts 1–25 unique exact symbols from the following fixed roster.
+A subset request returns that exact subset in request order; the investment
+app should request its complete 25-symbol roster. SGOV is excluded.
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe portfolio.get_etf_allocator_snapshot --tool-version 1.0.0
+
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"portfolio.get_etf_allocator_snapshot","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ","DIA","IWM","VEA","VWO","IEF","TLT","TIP","LQD","HYG","GLD","SLV","PDBC","XLB","XLC","XLE","XLF","XLI","XLK","XLP","XLRE","XLU","XLV","XLY"],"decision_as_of":"2026-09-05T00:00:00Z"}}
+JSON
+```
+
+`decision_as_of` is required, offset-aware, and cannot exceed the execution
+clock. The fixed market reader uses one descriptor-pinned immutable
+transaction for the entire request, filters retained versions and identities
+by local availability, and checks main/WAL/SHM/journal stamps. It opens no
+other store and performs no provider request.
+
+The public result uses the existing `QueryResultV1` shape: one
+`etf_allocator_features` record per requested symbol and one
+`etf_allocator_snapshot` diagnostic containing snapshot metadata. Convert
+each record's `fields` and the diagnostic's `metrics` arrays from
+`{name,value}` pairs to mappings. List-valued diagnostic fields such as
+`missing_inputs`, `missing_session_dates`, `missing_month_end_dates`,
+`limitations`, and `lineage_sha256` are strict JSON strings, following
+the platform's scalar-field convention. Retain the complete outer receipt.
+
+### Calculation conventions and evidence gate
+
+- Price basis: split-adjusted prices **excluding distributions**, in the
+  source price unit. Neither dividend-adjusted nor total-return prices qualify.
+  Retained FMP full-EOD rows have no established adjustment provenance.
+  Therefore this version returns all nine requested feature values as null,
+  with individual missing reasons; it does not apply an inferred split factor.
+  The pure calculation kernel is tested on explicitly split-only inputs.
+- Calendar: the fixed US cash-equity regular-session schedule for
+  `2024-01-01` through `2026-12-31`, in `America/New_York`.
+  [NYSE's published 2024–2026 calendar](https://ir.theice.com/press/news-details/2023/NYSE-Group-Announces-2024-2025-and-2026-Holiday-and-Early-Closings-Calendar/default.aspx)
+  supplies holidays and 13:00 early closes; normal close is 16:00.
+  The [January 9, 2025 closure](https://ir.theice.com/press/news-details/2024/The-New-York-Stock-Exchange-Will-Close-Markets-on-January-9-to-Honor-the-Passing-of-Former-President-Jimmy-Carter-on-National-Day-of-Mourning/default.aspx)
+  is included. Calendar coverage is explicit and bounded, without a new
+  dependency or runtime calendar fetch.
+- Endpoint: let `m` be the latest month whose final scheduled session has
+  closed at or before the decision instant. Use that session's exact close.
+  An early or missing observation cannot replace it. For example, March 2024
+  ends March 28 after its close; the Good Friday holiday is March 29.
+  `selected_month_end` and `final_eligible_month_end` describe calendar
+  eligibility, not data readiness. Missing prices do not move the shared
+  endpoint backward. Actual available price dates are reported per symbol;
+  `feature_observation_date` remains null when no feature is established.
+- SMA: arithmetic mean of ten exact monthly closes, `P(m-9)..P(m)`.
+- Returns: `return_12_to_1_month = P(m-1)/P(m-12)-1`.
+  The other three returns are `P(m)/P(m-k)-1`, for `k=3,6,12`.
+  They require the exact contributing endpoints; absent intermediate daily
+  rows do not change an endpoint return. The longest lookback spans thirteen
+  monthly endpoints including the current endpoint.
+- Volatility: 21, 63, or 252 consecutive regular-session simple returns
+  `r(t)=P(t)/P(t-1)-1`, sample standard deviation with denominator
+  `n-1`, multiplied by `sqrt(252)`. Units are annualized fractions
+  (`0.20` means 20%). Each requires `n+1` positive finite closes on
+  the expected session grid. Interior missing sessions are not bridged.
+  Zero measured variance remains zero; it is never substituted for missing data.
+- Decimal calculations use 34-digit local precision. Missing, nonpositive,
+  nonfinite, insufficient-history, out-of-calendar, and unsupported-basis
+  inputs produce explicit reasons. All requested rows are returned; there is
+  no caller-selected limit or silent truncation.
+- The as-of audit is limited to retained local captures. It does not establish
+  original provider publication time, historical listing/classification state,
+  or a split/distribution adjustment history available at the decision.
+  `point_in_time_status` remains `not_established`, including when price
+  dates are old. A pre-retention cutoff cannot borrow current prices.
+
+Return all three volatility measures when their evidence is available.
+A straightforward app-side selector is `realized_volatility_63` for a
+quarter-length measure. This is a recommendation only: the app still needs
+to choose its weighting-volatility rule. Quant emits no approved volatility,
+qualification, structure approval, portfolio cap, cluster selection, or risk scale.
+
+Classification metadata uses `retained_identity_only` when the retained symbol,
+stable ID and asset type are available. Exposure, legal structure and
+leveraged/inverse fields remain null. Missing identities use `not_retained`.
+A retained non-ETF identity fails closed with `instrument_type_mismatch`
+before price selection.
+
+### Retained-data request on 2026-09-05
+
+The exact public invocation above exited 0, returned all 25 identities, selected
+calendar endpoint `2026-08-31`, and reported `status: not_established`,
+`complete: false`, `truncated: false`, and zero feature-ready symbols.
+The immutable reader and explicit before/after check found unchanged market
+and sidecar stamps. No ingestion occurred.
+
+Every symbol lacks established split-only adjustment provenance, historical
+adjustment reconstruction, the August 31 endpoint, and supported exchange,
+exposure, legal-structure, leveraged/inverse metadata. These metadata fields
+are null rather than inferred from the ticker or the word ETF.
+
+| Symbol | Retained rows in requested lookback | Last retained price | Missing sessions through Aug 31 | Feature readiness |
+| --- | ---: | --- | ---: | --- |
+| SPY | 261 | 2026-08-14 | 11 | Blocked |
+| QQQ | 261 | 2026-08-14 | 11 | Blocked |
+| DIA | 261 | 2026-08-14 | 11 | Blocked |
+| IWM | 270 | 2026-08-27 | 2 | Blocked |
+| VEA | 261 | 2026-08-14 | 11 | Blocked |
+| VWO | 261 | 2026-08-14 | 11 | Blocked |
+| IEF | 261 | 2026-08-14 | 11 | Blocked |
+| TLT | 261 | 2026-08-14 | 11 | Blocked |
+| TIP | 261 | 2026-08-14 | 11 | Blocked |
+| LQD | 261 | 2026-08-14 | 11 | Blocked |
+| HYG | 261 | 2026-08-14 | 11 | Blocked |
+| GLD | 261 | 2026-08-14 | 11 | Blocked |
+| SLV | 261 | 2026-08-14 | 11 | Blocked |
+| PDBC | 261 | 2026-08-14 | 11 | Blocked |
+| XLB | 261 | 2026-08-14 | 11 | Blocked |
+| XLC | 261 | 2026-08-14 | 11 | Blocked |
+| XLE | 261 | 2026-08-14 | 11 | Blocked |
+| XLF | 261 | 2026-08-14 | 11 | Blocked |
+| XLI | 261 | 2026-08-14 | 11 | Blocked |
+| XLK | 261 | 2026-08-14 | 11 | Blocked |
+| XLP | 261 | 2026-08-14 | 11 | Blocked |
+| XLRE | 261 | 2026-08-14 | 11 | Blocked |
+| XLU | 261 | 2026-08-14 | 11 | Blocked |
+| XLV | 261 | 2026-08-14 | 11 | Blocked |
+| XLY | 261 | 2026-08-14 | 11 | Blocked |
+
+All rows start at `2025-08-01` within this request's bounded lookback.
+The non-IWM gaps are August 17–21, 24–28, and 31; IWM lacks August 28 and 31.
+These are retained-data findings, not authorization to fetch or repeat a
+historical population. Resolving readiness requires a separately scoped
+data decision after establishing split-only source semantics and provenance.
+
+A sanitized excerpt of the actual response (other rows, metrics, and receipt
+fields omitted only in this documentation) is:
+
+```json
+{"result":{"status":"not_established","records":[{"record_type":"etf_allocator_features","fields":[{"name":"symbol","value":"SPY"},{"name":"instrument_id","value":"stage10_instrument_3e453d444b94440afdf0f3a84d2d6a7b"},{"name":"split_adjusted_price","value":null},{"name":"split_adjusted_price_missing_reason","value":"adjustment_basis_not_established"},{"name":"source_last_observation_date","value":"2026-08-14"}]}],"truncation":{"applied":false,"limit":25,"returned_count":25,"total_known_count":25,"has_more":false,"next_cursor":null}}}
+```
+
+### Minimal investment-app adjustment
+
+The five requested consumer files were reviewed as interface references only.
+This Quant integration did not modify the investment-app project.
+
+1. Call the explicit advertised `1.0.0` version and adapt the standard
+   records/diagnostics described above; do not require a new
+   `feature_packet + policy_inputs` wrapper. Keep schema hashes and actual
+   registry revision from the outer receipt and bind the stored response hash
+   in the app, as the existing session already does.
+2. Require the exact requested row set, nontruncation, complete numeric inputs,
+   acceptable point-in-time evidence, and app-defined freshness. Check freshness
+   against the underlying feature date, not the echoed decision cutoff.
+   The current retained result must remain blocked.
+3. Join stable Quant instrument IDs and symbols to the app's own universe and
+   policy. Supply `cluster_id`, `structure_approved`, `position_limit_key`,
+   caps, qualification, and risk-scale authority from app configuration.
+   Factual `asset_type: etf` is not legal-structure or trading approval.
+4. Select 21/63/252 volatility in the app, then populate its internal
+   `approved_weighting_volatility` field. The reviewed shadow solver uses
+   `1/sqrt(selected_volatility)`; preserve or explicitly revise that
+   strategy choice in the app. Do not hide it inside Quant's estimator.
+5. Replace the app's approval-bearing Quant fixtures in
+   `test_local_warehouse_inputs.py` with standard raw feature/quality records.
+   Keep fail-closed cases for missing inputs, unavailable historical evidence,
+   receipt mismatch, and absent app policy.
+
+The existing `options.get_surface_snapshot@2.0.0` interface separately exposes
+retained underlying bid/ask evidence for SPY, QQQ, IWM, DIA, and the eleven
+sector ETFs. Its `alpaca_option_surface_snapshot_v2` records include
+`underlying_quote_bid_price`, `underlying_quote_ask_price`,
+`underlying_quote_available_at`, `underlying_quote_state`, and
+`underlying_quote_missing_reason`. The default v1 interface does not expose
+these underlying quotes. This is a limited paper/indicative retained-data
+path, with no freshness guarantee and no full 25-symbol coverage. Availability
+is a local retention timestamp; the source-native quote timestamp is not in
+the public record. It cannot establish a current executable quote. This
+milestone inspected that interface's source only and did not access Alpaca
+or an options store.

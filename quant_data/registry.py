@@ -17,6 +17,7 @@ from .schema import validate_schema
 from .stores import STORE_ROLES
 from .tool_platform.catalog import (
     ADDITIVE_DATA_STATUS_TOOLS,
+    ADDITIVE_ETF_TOOLS,
     ADDITIVE_NEWS_RESEARCH_TOOLS,
     ADDITIVE_PUBLIC_TOOL_NAMES,
     ADDITIVE_STAGE10_STATISTICS_TOOLS,
@@ -554,9 +555,10 @@ _PLACEHOLDER_SUCCESSOR_VERSIONED_TOOL_IDS = frozenset(
 _TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
     "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
+_PRE_ETF_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
 _PRE_DATA_STATUS_OPTIONS_TOOL_NAMES = tuple(
     name
-    for name in CURRENT_PUBLIC_TOOL_NAMES
+    for name in _PRE_ETF_TOOL_NAMES
     if name not in ADDITIVE_DATA_STATUS_TOOLS
 )
 _PRE_NEWS_RESEARCH_TOOL_NAMES = tuple(
@@ -722,6 +724,7 @@ _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID = (
 _BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
 _BEA_PERSONAL_INCOME_COLLECTOR_ID = "bea.macro.personal_income_history"
 _BEA_PERSONAL_INCOME_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_ETF_SNAPSHOT_REGISTRY_SOURCE_SHA256 = "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
 _COMPANY_MARKET_REGISTRY_SOURCE_SHA256 = '2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f'
 _COMPANY_MARKET_COLLECTOR_SPECS = {'fmp.company.corporate_actions_current': {'id': 'fmp.company.corporate_actions_current', 'version': '1.0.0', 'handler': 'company.fmp_corporate_actions_current', 'network': True, 'input_datasets': ['market.stage10.instruments', 'fixture.company.issuers'], 'output_datasets': ['fixture.company.action_evidence', 'fixture.company.corporate_actions'], 'semantic_identity': {'includes': ['request_scope', 'normalization_version', 'normalized_records'], 'excludes': ['api_key', 'captured_at', 'http_headers', 'source_row_order', 'raw_response_identity', 'discovery_evidence_identity', 'dividend_yield']}, 'mutation_policy': {'mode': 'append_versions_and_capture_membership', 'unchanged': 'zero_persistent_writes'}, 'workload_bounds': {'max_requests': 1, 'max_rows': 1000, 'max_bytes': 1048576, 'max_seconds': 30}, 'retry_policy': {'transient_classes': [], 'max_attempts': 1, 'backoff': 'none_single_attempt', 'honor_retry_after': False}, 'configuration_env': ['FMP_API_KEY'], 'physical_locks': 'derived_from_output_store_paths', 'schedule_eligibility': {'mode': 'manual_only'}}, 'fmp.company.analyst_estimates_current': {'id': 'fmp.company.analyst_estimates_current', 'version': '1.0.0', 'handler': 'company.fmp_analyst_estimates_current', 'network': True, 'input_datasets': ['market.stage10.instruments', 'fixture.company.issuers'], 'output_datasets': ['fixture.company.expectation_evidence', 'fixture.company.expectations'], 'semantic_identity': {'includes': ['request_scope', 'normalization_version', 'normalized_records'], 'excludes': ['api_key', 'captured_at', 'http_headers', 'source_row_order', 'raw_response_identity', 'discovery_evidence_identity', 'dividend_yield']}, 'mutation_policy': {'mode': 'append_versions_and_capture_membership', 'unchanged': 'zero_persistent_writes'}, 'workload_bounds': {'max_requests': 1, 'max_rows': 10, 'max_bytes': 1048576, 'max_seconds': 30}, 'retry_policy': {'transient_classes': [], 'max_attempts': 1, 'backoff': 'none_single_attempt', 'honor_retry_after': False}, 'configuration_env': ['FMP_API_KEY'], 'physical_locks': 'derived_from_output_store_paths', 'schedule_eligibility': {'mode': 'manual_only'}}}
 
@@ -1930,7 +1933,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2724,7 +2727,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=156,
+        expected_count=158,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -5757,8 +5760,42 @@ def _pre_registry_266_policies() -> tuple[dict[str, Any], ...]:
     return tuple(policies)
 
 
+def etf_snapshot_registry_profile(registry: Registry) -> Registry:
+    """Remove only the ETF public tool to reproduce the exact 2.69 predecessor."""
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.70.0"):
+        return registry
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode()
+    if (hashlib.sha256(render(registry.raw)).hexdigest() != _ETF_SNAPSHOT_REGISTRY_SOURCE_SHA256
+        or registry.source_sha256 != _ETF_SNAPSHOT_REGISTRY_SOURCE_SHA256):
+        raise RegistryError("ETF snapshot registry source drifted")
+    if ([dict(tool) for tool in registry.tools] != registry.raw["tools"]
+        or {d.id: list(d.tool_ids) for d in registry.datasets}
+        != {d["id"]: d["tool_ids"] for d in registry.raw["datasets"]}):
+        raise RegistryError("ETF snapshot parsed bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.69.0"
+    raw["tools"] = [tool for tool in raw["tools"] if tool["id"] not in ADDITIVE_ETF_TOOLS]
+    raw["presentation_order"]["tools"] = list(_PRE_ETF_TOOL_NAMES)
+    raw["tool_version_schema_catalog"] = {
+        "schema_id": VERSIONED_CATALOG_ID, "schema_version": "2.26.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _DATA_STATUS_OPTIONS_CATALOG_SOURCE_SHA256,
+    }
+    bindings = {}
+    for dataset in raw["datasets"]:
+        dataset["tool_ids"] = [name for name in dataset["tool_ids"] if name not in ADDITIVE_ETF_TOOLS]
+        bindings[dataset["id"]] = tuple(dataset["tool_ids"])
+    if hashlib.sha256(render(raw)).hexdigest() != _COMPANY_MARKET_REGISTRY_SOURCE_SHA256:
+        raise RegistryError("ETF snapshot historical projection drifted")
+    return replace(registry, registry_version="2.69.0", raw=raw,
+        source_sha256=_COMPANY_MARKET_REGISTRY_SOURCE_SHA256,
+        tools=tuple(tool for tool in registry.tools if tool["id"] not in ADDITIVE_ETF_TOOLS),
+        datasets=tuple(replace(d, tool_ids=bindings[d.id]) for d in registry.datasets))
+
+
 def company_market_data_registry_profile(registry: Registry) -> Registry:
     """Project additive company live collectors to byte-exact registry 2.68."""
+    registry = etf_snapshot_registry_profile(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.69.0"):
         return registry
     payload = (json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode()
@@ -6027,7 +6064,7 @@ def data_status_options_registry_profile(registry: Registry) -> Registry:
 
     current_catalog = {
         "schema_id": VERSIONED_CATALOG_ID,
-        "schema_version": VERSIONED_CATALOG_VERSION,
+        "schema_version": "2.26.0",
         "resource": "quant_data/generated/tool_contract_schemas_v2.json",
         "sha256": _DATA_STATUS_OPTIONS_CATALOG_SOURCE_SHA256,
     }
@@ -6042,7 +6079,7 @@ def data_status_options_registry_profile(registry: Registry) -> Registry:
         registry.source_sha256 != _DATA_STATUS_OPTIONS_REGISTRY_SOURCE_SHA256
         or hashlib.sha256(payload).hexdigest()
         != _DATA_STATUS_OPTIONS_REGISTRY_SOURCE_SHA256
-        or tool_names != CURRENT_PUBLIC_TOOL_NAMES
+        or tool_names != _PRE_ETF_TOOL_NAMES
         or _tool_policy_variant_inventory(registry) != current_inventory
         or registry.raw.get("tool_version_schema_catalog") != current_catalog
     ):
