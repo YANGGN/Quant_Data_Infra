@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+import json
 from datetime import date
 from io import BytesIO
 from pathlib import Path
@@ -9,6 +11,7 @@ import tempfile
 import unittest
 from zipfile import ZipFile
 
+import quant_data.macro.official_conditions as official_conditions
 from quant_data.errors import ValidationError
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.macro.official_conditions import (
@@ -47,6 +50,12 @@ from quant_data.macro.official_conditions import (
     parse_treasury_fiscal_balance,
     parse_treasury_tga,
 )
+from quant_data.macro.nyfed_primary_dealer_statistics import (
+    parse_nyfed_primary_dealer_statistics,
+)
+from quant_data.macro.treasury_securities_auctions import (
+    parse_treasury_securities_auctions,
+)
 from quant_data.migrations import migrate_and_register_store
 from quant_data.registry import load_registry
 from quant_data.stores import StoreMap, StoreRole, read_connection
@@ -57,6 +66,66 @@ REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
 CAPTURED_AT = "2026-08-22T14:00:00Z"
 
 
+TREASURY_SECURITIES_AUCTIONS_FIXTURE = (
+    PROJECT_ROOT / "tests/fixtures/macro/treasury_securities_auctions.json"
+)
+NYFED_PRIMARY_DEALER_CATALOG_FIXTURE = (
+    PROJECT_ROOT / "tests/fixtures/macro/nyfed_primary_dealer_catalog.json"
+)
+NYFED_PRIMARY_DEALER_HISTORY_FIXTURE = (
+    PROJECT_ROOT / "tests/fixtures/macro/nyfed_primary_dealer_history.json"
+)
+_EXTERNAL_SOURCE_KEYS = (
+    "treasury_securities_auctions",
+    "nyfed_primary_dealer_statistics",
+    "federal_reserve_h8",
+    "federal_reserve_sloos",
+)
+
+
+def _bound_external_source_registry(registry, source_keys: tuple[str, ...]):
+    definitions = []
+    for source_key in source_keys:
+        definition = official_conditions._definition(source_key)
+        if definition is None:
+            raise AssertionError(f"missing source definition: {source_key}")
+        definitions.append(definition)
+    collector_ids = tuple(item.collector_id for item in definitions)
+    collectors = tuple(
+        item
+        for item in registry.collectors
+        if str(item["id"]) not in collector_ids
+    ) + tuple(
+        {
+            "id": definition.collector_id,
+            "handler": definition.handler,
+            "network": True,
+            "version": "1.0.0",
+            "output_datasets": list(OUTPUT_DATASET_IDS),
+            "configuration_env": list(definition.configuration_env),
+            "schedule_eligibility": {"mode": "manual_only"},
+        }
+        for definition in definitions
+    )
+    datasets = tuple(
+        replace(
+            item,
+            collector_ids=(
+                tuple(
+                    collector_id
+                    for collector_id in item.collector_ids
+                    if collector_id not in collector_ids
+                )
+                + collector_ids
+                if item.id in OUTPUT_DATASET_IDS
+                else item.collector_ids
+            ),
+        )
+        for item in registry.datasets
+    )
+    return replace(registry, collectors=collectors, datasets=datasets)
+
+
 def _h41_body() -> bytes:
     output = BytesIO()
     with ZipFile(output, "w") as archive:
@@ -64,14 +133,18 @@ def _h41_body() -> bytes:
         archive.writestr(
             "weekly,_as_of_wednesday.csv",
             "observation_date,WALCL\n"
+            "2026-08-05,6599999\n"
             "2026-08-12,6600000\n"
-            "2026-08-19,6600001\n",
+            "2026-08-19,6600001\n"
+            "2026-08-26,6600002\n",
         )
         archive.writestr(
             "weekly,_ending_wednesday.csv",
             "observation_date,WRESBAL,WTREGEN\n"
+            "2026-08-05,3299999,649999\n"
             "2026-08-12,3300000,\n"
-            "2026-08-19,3300001,650001\n",
+            "2026-08-19,3300001,650001\n"
+            "2026-08-26,3300002,650002\n",
         )
     return output.getvalue()
 
@@ -79,8 +152,10 @@ def _h41_body() -> bytes:
 def _policy_rates_body() -> bytes:
     return (
         "observation_date,IORB,DFEDTARL,DFEDTARU\n"
+        "2021-07-27,.,0.00,0.25\n"
         "2021-07-28,.,0.00,0.25\n"
         "2021-07-29,0.15,0.00,0.25\n"
+        "2021-07-30,0.15,0.00,0.25\n"
     ).encode("utf-8")
 
 
@@ -89,6 +164,7 @@ def _industrial_production_body() -> bytes:
         "observation_date,INDPRO\n"
         "2026-06-01,102.7\n"
         "2026-07-01,.\n"
+        "2026-09-01,102.9\n"
     ).encode("utf-8")
 
 
@@ -227,7 +303,7 @@ def _cmdi_body(
 
 
 class OfficialConditionsParserTests(unittest.TestCase):
-    def test_h41_three_components_and_missing_value(self) -> None:
+    def test_h41_filters_superset_and_preserves_missing_value(self) -> None:
         capture = parse_federal_reserve_h41(
             _h41_body(),
             captured_at=CAPTURED_AT,
@@ -238,6 +314,10 @@ class OfficialConditionsParserTests(unittest.TestCase):
         self.assertEqual(len(H41_MANIFEST), 3)
         self.assertEqual(len(capture.parts), 1)
         self.assertEqual(len(capture.observations), 6)
+        self.assertEqual(
+            {item.period_start for item in capture.observations},
+            {"2026-08-12", "2026-08-19"},
+        )
         missing = next(
             item
             for item in capture.observations
@@ -247,7 +327,7 @@ class OfficialConditionsParserTests(unittest.TestCase):
         self.assertIsNone(missing.value_text)
         self.assertEqual(missing.missing_reason, "source_missing")
 
-    def test_federal_reserve_policy_rates_and_source_missingness(self) -> None:
+    def test_policy_rates_filter_superset_and_preserve_missingness(self) -> None:
         capture = parse_federal_reserve_policy_rates(
             _policy_rates_body(),
             captured_at=CAPTURED_AT,
@@ -271,7 +351,7 @@ class OfficialConditionsParserTests(unittest.TestCase):
         self.assertIsNone(iorb_before_start.value_text)
         self.assertEqual(iorb_before_start.missing_reason, "source_missing")
 
-    def test_industrial_production_month_bounds_and_missingness(self) -> None:
+    def test_industrial_production_filters_superset_and_keeps_month_bounds(self) -> None:
         capture = parse_federal_reserve_industrial_production(
             _industrial_production_body(),
             captured_at=CAPTURED_AT,
@@ -492,6 +572,15 @@ class OfficialConditionsParserTests(unittest.TestCase):
                 start_date="1919-01-01",
                 end_date="2026-08-22",
             )
+        with self.assertRaisesRegex(ValidationError, "outside"):
+            parse_federal_reserve_industrial_production(
+                _industrial_production_body().replace(
+                    b"2026-06-01", b"2026-06-02", 1
+                ),
+                captured_at=CAPTURED_AT,
+                start_date="1919-01-01",
+                end_date="2026-08-22",
+            )
         with self.assertRaisesRegex(ValidationError, "unique"):
             parse_chicagofed_national_activity(
                 _cfnai_body(duplicate=True),
@@ -590,6 +679,32 @@ class OfficialConditionsPublicationTests(unittest.TestCase):
                 )
             )
 
+    def test_cfnai_mirror_adds_current_data_and_preserves_existing_series(self):
+        workbook = OfficialConditionsPublisher(
+            source_key="cfnai", macro_store=self.stores.macro,
+            project_root=self.root, registry=self.registry)
+        workbook.publish(parse_chicagofed_national_activity(
+            _cfnai_body(), captured_at=CAPTURED_AT,
+            start_date="2026-01-01", end_date="2026-09-30"))
+        publisher = OfficialConditionsPublisher(
+            source_key="cfnai_fred", macro_store=self.stores.macro,
+            project_root=self.root, registry=self.registry)
+        capture = official_conditions.parse_fred_chicagofed_national_activity(
+            b"observation_date,CFNAI\n2026-06-01,-0.10\n2026-07-01,0.14\n2026-08-01,0.2\n",
+            captured_at="2026-09-05T04:00:00Z",
+            start_date="2026-01-01", end_date="2026-09-30")
+        result = publisher.publish(capture)
+        self.assertEqual(result.written_series, 0)
+        self.assertEqual(result.written_observation_versions, 1)
+        before = self._counts()
+        self.assertEqual(publisher.publish(capture).outcome, "unchanged")
+        self.assertEqual(before, self._counts())
+        with read_connection(self.stores, StoreRole.MACRO) as connection:
+            row = connection.execute(
+                "SELECT source_resource,media_type FROM macro_source_artifacts "
+                "WHERE normalization_version='chicagofed_cfnai_fred_v1'").fetchone()
+        self.assertEqual(tuple(row), ("fred/graph/fredgraph.csv/CFNAI", "text/csv"))
+
     def test_initial_publish_exact_replay_and_one_correction(self) -> None:
         original = self.publisher.publish(self._capture())
 
@@ -667,6 +782,112 @@ class OfficialConditionsPublicationTests(unittest.TestCase):
         )
         self.assertEqual(outputs, len(OUTPUT_DATASET_IDS))
 
+
+    def test_observation_dimensions_are_persisted_and_registered(self) -> None:
+        original = self._capture()
+        observations = tuple(
+            replace(
+                item,
+                dimensions=(("fixture_dimension", "preserved"),),
+            )
+            if index == 1
+            else item
+            for index, item in enumerate(original.observations, start=1)
+        )
+        semantic_identity = official_conditions._sha256_text(
+            dumps_strict(
+                official_conditions._semantic_material(
+                    official_conditions._DEFINITIONS["chicago"],
+                    loads_strict(original.request_scope_json),
+                    observations,
+                )
+            )
+        )
+        capture = replace(
+            original,
+            observations=observations,
+            semantic_identity=semantic_identity,
+        )
+        report = self.publisher.publish(capture)
+
+        self.assertEqual(report.outcome, "published")
+        with read_connection(self.stores, StoreRole.MACRO) as connection:
+            stored = connection.execute(
+                """
+                SELECT dimensions_json
+                FROM macro_observation_versions
+                WHERE series_id=? AND source_row=1
+                """,
+                (observations[0].series_id,),
+            ).fetchone()
+            dimension = connection.execute(
+                """
+                SELECT dimension_value
+                FROM macro_series_dimensions
+                WHERE series_id=? AND dimension_key='fixture_dimension'
+                """,
+                (observations[0].series_id,),
+            ).fetchone()
+        self.assertEqual(stored[0], '{"fixture_dimension":"preserved"}')
+        self.assertEqual(dimension[0], "preserved")
+
+
+
+    def test_same_value_dimensions_receive_distinct_version_ids(self) -> None:
+        original = self._capture()
+        seed = original.observations[0]
+        observations = (
+            replace(
+                seed,
+                dimensions=(("fixture_dimension", "first"),),
+                source_row=1,
+            ),
+            replace(
+                seed,
+                dimensions=(("fixture_dimension", "second"),),
+                source_row=2,
+            ),
+            *tuple(
+                replace(item, source_row=ordinal)
+                for ordinal, item in enumerate(original.observations[1:], start=3)
+            ),
+        )
+        capture = replace(
+            original,
+            observations=observations,
+            semantic_identity=official_conditions._sha256_text(
+                dumps_strict(
+                    official_conditions._semantic_material(
+                        official_conditions._DEFINITIONS["chicago"],
+                        loads_strict(original.request_scope_json),
+                        observations,
+                    )
+                )
+            ),
+        )
+        self.publisher.publish(capture)
+
+        with read_connection(self.stores, StoreRole.MACRO) as connection:
+            rows = connection.execute(
+                """
+                SELECT version_id, dimensions_json
+                FROM macro_observation_versions
+                WHERE series_id=? AND period_start=?
+                ORDER BY source_row
+                """,
+                (seed.series_id, seed.period_start),
+            ).fetchall()
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(len({row["version_id"] for row in rows}), 2)
+        self.assertEqual(
+            {row["dimensions_json"] for row in rows},
+            {
+                '{"fixture_dimension":"first"}',
+                '{"fixture_dimension":"second"}',
+            },
+        )
+
+
     def test_new_source_keys_reuse_existing_registry_bindings(self) -> None:
         captures = (
             (
@@ -696,6 +917,200 @@ class OfficialConditionsPublicationTests(unittest.TestCase):
                 registry=self.registry,
             )
             self.assertEqual(publisher.publish(capture).outcome, "published")
+
+
+    def test_external_source_definitions_construct_with_bound_registry(
+        self,
+    ) -> None:
+        registry = _bound_external_source_registry(
+            self.registry, _EXTERNAL_SOURCE_KEYS
+        )
+        for source_key in _EXTERNAL_SOURCE_KEYS:
+            with self.subTest(source_key=source_key):
+                publisher = OfficialConditionsPublisher(
+                    source_key=source_key,
+                    macro_store=self.stores.macro,
+                    project_root=self.root,
+                    registry=registry,
+                )
+                self.assertIsInstance(publisher, OfficialConditionsPublisher)
+
+    def test_primary_dealer_response_count_range_fails_closed(self) -> None:
+        source_key = "nyfed_primary_dealer_statistics"
+        registry = _bound_external_source_registry(
+            self.registry, (source_key,)
+        )
+        publisher = OfficialConditionsPublisher(
+            source_key=source_key,
+            macro_store=self.stores.macro,
+            project_root=self.root,
+            registry=registry,
+        )
+        definition = official_conditions._definition(source_key)
+        self.assertIsNotNone(definition)
+        self.assertEqual(
+            (definition.minimum_requests, definition.max_requests),
+            (2, 33),
+        )
+        capture = parse_nyfed_primary_dealer_statistics(
+            NYFED_PRIMARY_DEALER_CATALOG_FIXTURE.read_bytes(),
+            (NYFED_PRIMARY_DEALER_HISTORY_FIXTURE.read_bytes(),),
+            captured_at=CAPTURED_AT,
+            series_break="SBN2024",
+            start_date="2026-08-01",
+            end_date="2026-08-31",
+        )
+        self.assertEqual(len(capture.parts), 2)
+        for parts in (capture.parts[:1], capture.parts * 17):
+            with self.subTest(part_count=len(parts)):
+                with self.assertRaisesRegex(ValidationError, "capture binding"):
+                    publisher.publish(replace(capture, parts=parts))
+
+    def test_dimensional_external_sources_replay_and_correct(self) -> None:
+        source_keys = (
+            "treasury_securities_auctions",
+            "nyfed_primary_dealer_statistics",
+        )
+        registry = _bound_external_source_registry(self.registry, source_keys)
+        auctions = OfficialConditionsPublisher(
+            source_key=source_keys[0],
+            macro_store=self.stores.macro,
+            project_root=self.root,
+            registry=registry,
+        )
+        primary_dealers = OfficialConditionsPublisher(
+            source_key=source_keys[1],
+            macro_store=self.stores.macro,
+            project_root=self.root,
+            registry=registry,
+        )
+        auction_body = TREASURY_SECURITIES_AUCTIONS_FIXTURE.read_bytes()
+        catalog_body = NYFED_PRIMARY_DEALER_CATALOG_FIXTURE.read_bytes()
+        history_body = NYFED_PRIMARY_DEALER_HISTORY_FIXTURE.read_bytes()
+        auction_original = parse_treasury_securities_auctions(
+            auction_body,
+            captured_at=CAPTURED_AT,
+            start_date="2026-08-20",
+            end_date="2026-08-21",
+        )
+        dealer_original = parse_nyfed_primary_dealer_statistics(
+            catalog_body,
+            (history_body,),
+            captured_at=CAPTURED_AT,
+            series_break="SBN2024",
+            start_date="2026-08-01",
+            end_date="2026-08-31",
+        )
+        self.assertEqual(
+            (
+                auctions.publish(auction_original).outcome,
+                primary_dealers.publish(dealer_original).outcome,
+            ),
+            ("published", "published"),
+        )
+        before_replay = self._counts()
+        auction_replay = parse_treasury_securities_auctions(
+            auction_body,
+            captured_at="2026-08-22T15:00:00Z",
+            start_date="2026-08-20",
+            end_date="2026-08-21",
+        )
+        dealer_replay = parse_nyfed_primary_dealer_statistics(
+            catalog_body,
+            (history_body,),
+            captured_at="2026-08-22T15:00:00Z",
+            series_break="SBN2024",
+            start_date="2026-08-01",
+            end_date="2026-08-31",
+        )
+        self.assertEqual(auctions.publish(auction_replay).outcome, "unchanged")
+        self.assertEqual(
+            primary_dealers.publish(dealer_replay).outcome, "unchanged"
+        )
+        self.assertEqual(before_replay, self._counts())
+
+        auction_corrected = json.loads(auction_body)
+        auction_corrected["data"][0]["offering_amt"] = "76000000000"
+        dealer_corrected = json.loads(history_body)
+        dealer_corrected["pd"]["timeseries"][-1]["value"] = "12501"
+        auction_report = auctions.publish(
+            parse_treasury_securities_auctions(
+                json.dumps(
+                    auction_corrected, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8"),
+                captured_at="2026-08-22T16:00:00Z",
+                start_date="2026-08-20",
+                end_date="2026-08-21",
+            )
+        )
+        dealer_report = primary_dealers.publish(
+            parse_nyfed_primary_dealer_statistics(
+                catalog_body,
+                (
+                    json.dumps(
+                        dealer_corrected, sort_keys=True, separators=(",", ":")
+                    ).encode("utf-8"),
+                ),
+                captured_at="2026-08-22T16:00:00Z",
+                series_break="SBN2024",
+                start_date="2026-08-01",
+                end_date="2026-08-31",
+            )
+        )
+        self.assertEqual(
+            (
+                auction_report.written_series,
+                auction_report.written_observation_versions,
+                dealer_report.written_series,
+                dealer_report.written_observation_versions,
+            ),
+            (0, 1, 0, 1),
+        )
+        with read_connection(self.stores, StoreRole.MACRO) as connection:
+            auction_versions = connection.execute(
+                """
+                SELECT correction_sequence, value_text
+                FROM macro_observation_versions
+                WHERE series_id='macro.treasury_fiscal.auction.offering_amount'
+                  AND period_start='2026-08-20'
+                  AND dimensions_json LIKE '%"cusip":"91282CMA4"%'
+                ORDER BY correction_sequence
+                """
+            ).fetchall()
+            dealer_versions = connection.execute(
+                """
+                SELECT correction_sequence, value_text
+                FROM macro_observation_versions
+                WHERE series_id='macro.nyfed.primary_dealer.positions'
+                  AND period_start='2026-08-19'
+                  AND dimensions_json LIKE '%"official_series_key":"PDPOSMBS-TOT"%'
+                ORDER BY correction_sequence
+                """
+            ).fetchall()
+            auction_dimensions = connection.execute(
+                """
+                SELECT count(DISTINCT dimensions_digest)
+                FROM macro_observation_versions
+                WHERE series_id='macro.treasury_fiscal.auction.offering_amount'
+                  AND period_start='2026-08-20'
+                """
+            ).fetchone()[0]
+            self.assertEqual(
+                list(connection.execute("PRAGMA foreign_key_check")), []
+            )
+            self.assertEqual(
+                connection.execute("PRAGMA integrity_check").fetchone()[0],
+                "ok",
+            )
+        self.assertEqual(
+            [tuple(item) for item in auction_versions],
+            [(1, "75000000000"), (2, "76000000000")],
+        )
+        self.assertEqual(
+            [tuple(item) for item in dealer_versions],
+            [(1, "12500.25"), (2, "12501")],
+        )
+        self.assertEqual(auction_dimensions, 2)
 
 
 class OfficialConditionsAdditionalParserTests(unittest.TestCase):
@@ -967,19 +1382,19 @@ class OfficialConditionsAdditionalParserTests(unittest.TestCase):
 
         captures = (
             parse_eia_total_motor_gasoline_stocks(
-                body("WGTSTUS1", "Thousand Barrels", "235000"),
+                body("WGTSTUS1", "MBBL", "235000"),
                 captured_at=CAPTURED_AT,
                 credential=secret,
             ),
             parse_eia_distillate_fuel_oil_stocks(
-                body("WDISTUS1", "Thousand Barrels", "120000"),
+                body("WDISTUS1", "MBBL", "120000"),
                 captured_at=CAPTURED_AT,
                 credential=secret,
             ),
             parse_eia_finished_motor_gasoline_product_supplied(
                 body(
                     "WGFUPUS2",
-                    "Thousand Barrels per Day",
+                    "MBBL/D",
                     "9100",
                 ),
                 captured_at=CAPTURED_AT,
@@ -1015,9 +1430,37 @@ class OfficialConditionsAdditionalParserTests(unittest.TestCase):
         for capture in captures:
             self.assertNotIn(secret.encode("utf-8"), capture.parts[0].body)
 
+        legacy_units = (
+            parse_eia_total_motor_gasoline_stocks(
+                body("WGTSTUS1", "Thousand Barrels", "235000"),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            ),
+            parse_eia_distillate_fuel_oil_stocks(
+                body("WDISTUS1", "Thousand Barrels", "120000"),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            ),
+            parse_eia_finished_motor_gasoline_product_supplied(
+                body(
+                    "WGFUPUS2",
+                    "Thousand Barrels per Day",
+                    "9100",
+                ),
+                captured_at=CAPTURED_AT,
+                credential=secret,
+            ),
+        )
+        self.assertEqual(
+            [capture.observations[0].value_text for capture in legacy_units],
+            ["235000", "120000", "9100"],
+        )
+
         for series, units in (
             ("WRONG_SERIES", "Thousand Barrels"),
             ("WGTSTUS1", "Wrong Units"),
+            ("WGTSTUS1", "MBBL/D"),
+            ("WGTSTUS1", "MBBL/day"),
         ):
             with self.subTest(series=series, units=units):
                 with self.assertRaises(ValidationError):

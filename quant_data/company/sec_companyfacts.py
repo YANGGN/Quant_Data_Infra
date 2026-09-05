@@ -1311,6 +1311,15 @@ def _insert_or_validate_filing(
         (filing.accession_number,),
     ).fetchone()
     if existing is not None:
+        if (
+            not parsed.legacy_aapl
+            and existing["first_observed_issuer_id"] == _issuer_id(parsed.cik)
+        ):
+            # A later official endpoint can represent an accession already
+            # first observed for this generic issuer with different metadata.
+            # Preserve the immutable filing and append only source-specific
+            # snapshot membership below.
+            return 0
         # Accession numbers can represent joint filings. The first issuer,
         # archive URL, and conservative first-observed availability stay
         # immutable while a later issuer contributes its membership.
@@ -1735,7 +1744,7 @@ class SecCompanyFactsPublisher:
             code_version=(
                 "sec_aapl_companyfacts.1.0.0"
                 if legacy_aapl
-                else "sec_companyfacts.1.1.0"
+                else "sec_companyfacts.1.5.0"
             ),
         )
 
@@ -1754,7 +1763,7 @@ class SecCompanyFactsPublisher:
             _profile_id(
                 parsed,
                 legacy="sec_aapl_companyfacts_run",
-                generic="sec_companyfacts_run_v1_1",
+                generic="sec_companyfacts_run_v1_5",
             ),
             SEC_AAPL_COMPANYFACTS_CANONICAL_DATASET_ID,
             parsed.semantic_identity,

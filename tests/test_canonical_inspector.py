@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import http.client
+import io
+import re
 import sqlite3
 import tempfile
 import threading
@@ -9,11 +12,15 @@ import unittest
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from quant_data.boundary import create_server
-from quant_data.canonical_inspector import CanonicalInspectorApplication
-from quant_data.errors import ValidationError
+from quant_data.canonical_inspector import (
+    CanonicalInspectorApplication,
+    build_canonical_inspector,
+    main as inspector_main,
+)
+from quant_data.errors import StoreUnavailableError, ValidationError
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.macro.fmp_calendar_wholesale import parse_fmp_us_calendar_wholesale
 from quant_data.macro.fmp_release_surprises import (
@@ -22,8 +29,9 @@ from quant_data.macro.fmp_release_surprises import (
     UNEMPLOYMENT_RATE_KIND,
     ReleaseSurprise,
 )
+from quant_data.migrations import initialize_all
 from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry
-from quant_data.stores import StoreMap, stable_id
+from quant_data.stores import StoreMap, StoreRole, stable_id
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -2368,6 +2376,634 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn("coalesced_event_version_ids", result["columns"])
         self.assertEqual(before, (self._sha256(self.market), self._sha256(self.macro)))
 
+    def test_current_agent_tools_show_latest_version_and_keep_compatibility_calls(self) -> None:
+        before = (
+            self._sha256(self.market),
+            self._sha256(self.macro),
+            self._sha256(self.company),
+        )
+        manifest_response = self.application.handle("GET", "/api/agent-tools")
+        self.assertEqual(manifest_response.status, 200)
+        manifest = loads_strict(manifest_response.body)
+        self.assertEqual(manifest["registry_revision"], "2.69.0")
+        self.assertEqual(len(manifest["tools"]), 74)
+        technical = next(
+            item
+            for item in manifest["tools"]
+            if item["name"] == "market.technical_indicators"
+        )
+        self.assertEqual(
+            [item["version"] for item in technical["versions"]],
+            [
+                "1.0.0",
+                "2.0.0",
+                "2.1.0",
+                "2.2.0",
+                "2.3.0",
+                "2.4.0",
+                "2.5.0",
+                "2.6.0",
+                "2.7.0",
+            ],
+        )
+        v20 = next(
+            item for item in technical["versions"] if item["version"] == "2.0.0"
+        )
+        v23 = next(
+            item for item in technical["versions"] if item["version"] == "2.3.0"
+        )
+        v27 = next(
+            item for item in technical["versions"] if item["version"] == "2.7.0"
+        )
+        self.assertIn(
+            "ema",
+            v20["input_schema"]["properties"]["indicator"]["enum"],
+        )
+        self.assertIn(
+            "kdj",
+            v23["input_schema"]["properties"]["indicator"]["enum"],
+        )
+        self.assertIn(
+            "rolling_regression_line",
+            v27["input_schema"]["properties"]["indicator"]["enum"],
+        )
+        news = next(item for item in manifest["tools"] if item["name"] == "news.search")
+        self.assertIn("2.1.0", [item["version"] for item in news["versions"]])
+        data_status = next(
+            item
+            for item in manifest["tools"]
+            if item["name"] == "data.get_dataset_status"
+        )
+        self.assertEqual(data_status["version"], "1.0.0")
+        options_captures = next(
+            item
+            for item in manifest["tools"]
+            if item["name"] == "options.search_captures"
+        )
+        self.assertEqual(
+            [item["version"] for item in options_captures["versions"]],
+            ["1.0.0", "2.0.0"],
+        )
+
+        page = self.application.handle(
+            "GET",
+            "/agent-tools?tool=market.technical_indicators",
+        )
+        self.assertEqual(page.status, 200)
+        document = page.body.decode("utf-8")
+        self.assertIn("74 logical tools", document)
+        self.assertIn('name="tool_version"', document)
+        self.assertIn(
+            'name="tool_version" value="2.7.0" readonly required',
+            document,
+        )
+        self.assertNotIn('<option value="2.3.0"', document)
+        self.assertIn("Latest versions", document)
+        self.assertIn("One per logical tool", document)
+        self.assertIn("Latest version", document)
+        self.assertIn("Point-in-time policy", document)
+        self.assertNotIn("Callable versions", document)
+        self.assertIn("rolling_regression_line", document)
+        self.assertIn("news.search", document)
+        self.assertIn("Current news", document)
+        self.assertIn('href="/news"', document)
+        self.assertIn("Data status", document)
+        self.assertIn('href="/data-status"', document)
+        self.assertIn("Registered data coverage", document)
+        self.assertNotIn(str(self.market), document)
+
+        latest_link = self.application.handle(
+            "GET",
+            "/agent-tools?tool=market.technical_indicators"
+            "&tool_version=2.7.0",
+        )
+        self.assertEqual(latest_link.status, 200)
+
+        kdj_page = self.application.handle(
+            "GET",
+            "/agent-tools?tool=market.technical_indicators"
+            "&tool_version=2.3.0",
+        )
+        self.assertEqual(kdj_page.status, 400)
+
+        response = self.application.handle(
+            "POST",
+            "/api/agent-tools/call",
+            body=dumps_strict(
+                {
+                    "api_version": manifest["api_version"],
+                    "tool": technical["name"],
+                    "tool_version": v27["version"],
+                    "arguments": v27["examples"][0],
+                }
+            ).encode("utf-8"),
+        )
+        self.assertEqual(response.status, 200)
+        payload = loads_strict(response.body)
+        self.assertEqual(payload["receipt"]["tool_version"], "2.7.0")
+        self.assertEqual(payload["result"]["status"], "ok")
+        self.assertEqual(
+            payload["result"]["series"][0]["metadata"]["indicator"],
+            "rolling_regression_line",
+        )
+
+        kdj_arguments = copy.deepcopy(v23["examples"][0])
+        base_series = kdj_arguments["series"][0]
+        kdj_series = []
+        for role, values in (
+            ("high", ("10", "12", "14", "16", "18")),
+            ("low", ("4", "5", "6", "8", "10")),
+            ("close", ("7", "8.5", "9", "10.5", "12")),
+        ):
+            series = copy.deepcopy(base_series)
+            series["series_id"] = f"inspector-kdj:{role}"
+            series["metadata"]["observation_field"] = role
+            series["audit"]["observation_field"] = role
+            for observation, value in zip(
+                series["observations"],
+                values,
+                strict=True,
+            ):
+                observation["value"] = Decimal(value)
+                observation["dimensions"]["observation_field"] = role
+            lineage_material = {
+                key: value
+                for key, value in series.items()
+                if key != "lineage_digest"
+            }
+            series["lineage_digest"] = hashlib.sha256(
+                dumps_strict(lineage_material).encode("utf-8")
+            ).hexdigest()
+            kdj_series.append(series)
+        kdj_arguments.update(
+            {
+                "series": kdj_series,
+                "indicator": "kdj",
+                "window": 3,
+                "signal_window": 2,
+                "limit": 5,
+            }
+        )
+        kdj_response = self.application.handle(
+            "POST",
+            "/api/agent-tools/call",
+            body=dumps_strict(
+                {
+                    "api_version": manifest["api_version"],
+                    "tool": technical["name"],
+                    "tool_version": v23["version"],
+                    "arguments": kdj_arguments,
+                }
+            ).encode("utf-8"),
+        )
+        self.assertEqual(
+            kdj_response.status,
+            200,
+            kdj_response.body.decode("utf-8"),
+        )
+        kdj_payload = loads_strict(kdj_response.body)
+        self.assertEqual(kdj_payload["receipt"]["tool_version"], "2.3.0")
+        self.assertEqual(
+            tuple(
+                item["metadata"]["component"]
+                for item in kdj_payload["result"]["series"]
+            ),
+            ("percent_k", "percent_d", "percent_j"),
+        )
+        self.assertEqual(
+            before,
+            (
+                self._sha256(self.market),
+                self._sha256(self.macro),
+                self._sha256(self.company),
+            ),
+        )
+
+    def test_local_agent_guide_latest_contract_table_matches_manifest(self) -> None:
+        source = (PROJECT_ROOT / "docs" / "LOCAL_AGENT_TOOLS.md").read_text(
+            encoding="utf-8"
+        )
+        documented = dict(
+            re.findall(
+                r"^\| `([a-z0-9_.]+)` \| `(\d+\.\d+\.\d+)` \|$",
+                source,
+                flags=re.MULTILINE,
+            )
+        )
+        expected = {}
+        for tool in self.application.dispatcher.manifest()["tools"]:
+            variants = tool.get("versions")
+            available = (
+                tuple(variants)
+                if isinstance(variants, list) and variants
+                else (tool,)
+            )
+            latest = max(
+                available,
+                key=lambda item: tuple(
+                    int(part) for part in item["version"].split(".")
+                ),
+            )
+            expected[tool["name"]] = latest["version"]
+        self.assertEqual(len(expected), 74)
+        self.assertEqual(documented, expected)
+
+    def test_current_news_v21_runs_through_inspector_without_store_mutation(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            root = Path(temporary)
+            stores = StoreMap.four_explicit(
+                market=root / "market.sqlite",
+                macro=root / "macro.sqlite",
+                company=root / "company.sqlite",
+                news=root / "news.sqlite",
+            )
+            initialize_all(stores, self.registry)
+            application = CanonicalInspectorApplication(stores, self.registry)
+            paths = (
+                root / "market.sqlite",
+                root / "macro.sqlite",
+                root / "company.sqlite",
+                root / "news.sqlite",
+            )
+            before = tuple(self._sha256(path) for path in paths)
+            manifest = loads_strict(
+                application.handle("GET", "/api/agent-tools").body
+            )
+            news = next(
+                item for item in manifest["tools"] if item["name"] == "news.search"
+            )
+            v21 = next(
+                item for item in news["versions"] if item["version"] == "2.1.0"
+            )
+            response = application.handle(
+                "POST",
+                "/api/agent-tools/call",
+                body=dumps_strict(
+                    {
+                        "api_version": manifest["api_version"],
+                        "tool": news["name"],
+                        "tool_version": v21["version"],
+                        "arguments": v21["examples"][0],
+                    }
+                ).encode("utf-8"),
+            )
+            self.assertEqual(response.status, 200)
+            payload = loads_strict(response.body)
+            self.assertEqual(payload["receipt"]["tool_version"], "2.1.0")
+            self.assertEqual(payload["result"]["status"], "ok")
+            self.assertEqual(payload["result"]["records"], [])
+            serialized = dumps_strict(payload)
+            for private_name in ("body_text", "response_bytes", "image_url"):
+                self.assertNotIn(f'"{private_name}":', serialized)
+            self.assertEqual(before, tuple(self._sha256(path) for path in paths))
+
+    def test_current_news_page_runs_v22_and_renders_bounded_headlines(
+        self,
+    ) -> None:
+        result = {
+            "records": [
+                {
+                    "record_type": "current_news_headline_v2_2",
+                    "fields": [
+                        {"name": "feed_id", "value": "alpaca_benzinga"},
+                        {
+                            "name": "headline",
+                            "value": "Cloud capacity agreement expands",
+                        },
+                        {
+                            "name": "summary",
+                            "value": "A bounded retained summary.",
+                        },
+                        {
+                            "name": "symbols",
+                            "value": '["MSFT","NVDA"]',
+                        },
+                        {
+                            "name": "published_normalized_at",
+                            "value": "2026-09-01T02:38:07.000000Z",
+                        },
+                        {
+                            "name": "published_date_raw",
+                            "value": "2026-09-01T02:38:07Z",
+                        },
+                        {
+                            "name": "available_at",
+                            "value": "2026-09-01T03:10:06.179546Z",
+                        },
+                        {
+                            "name": "source_url",
+                            "value": "https://example.test/news/cloud",
+                        },
+                    ],
+                }
+            ],
+            "truncation": {
+                "applied": True,
+                "has_more": True,
+                "limit": 10,
+                "next_cursor": "cursor-2",
+                "returned_count": 1,
+                "total_known_count": 42,
+            },
+        }
+        source_status = {"records": [], "truncation": {"returned_count": 0}}
+        with patch.object(
+            self.application.dispatcher,
+            "call",
+            side_effect=(result, source_status),
+        ) as dispatcher_call:
+            response = self.application.handle(
+                "GET",
+                "/news?query=cloud&symbol=nvda"
+                "&source_id=alpaca_benzinga"
+                "&start_date=2026-08-01&end_date=2026-09-01&limit=10",
+            )
+        self.assertEqual(response.status, 200)
+        dispatcher_call.assert_has_calls(
+            [
+                call(
+                    "news.search",
+                    {
+                        "query": "cloud",
+                        "symbols": ["NVDA"],
+                        "source_ids": ["alpaca_benzinga"],
+                        "mode": "latest",
+                        "as_of": None,
+                        "date_only_policy": "completed_date",
+                        "start_date": "2026-08-01",
+                        "end_date": "2026-09-01",
+                        "cursor": None,
+                        "limit": 10,
+                    },
+                    tool_version="2.2.0",
+                ),
+                call(
+                    "news.get_source_status",
+                    {"source_ids": []},
+                    tool_version="1.0.0",
+                ),
+            ]
+        )
+        self.assertEqual(dispatcher_call.call_count, 2)
+        document = response.body.decode("utf-8")
+        self.assertIn("<h1>Current news</h1>", document)
+        self.assertIn('href="/news" aria-current="page"', document)
+        self.assertIn("Cloud capacity agreement expands", document)
+        self.assertIn("A bounded retained summary.", document)
+        self.assertIn("MSFT, NVDA", document)
+        self.assertIn("42 retained rows match this selection.", document)
+        self.assertIn("cursor=cursor-2", document)
+        self.assertIn("https://example.test/news/cloud", document)
+        self.assertNotIn("body_text", document)
+        self.assertNotIn("response_bytes", document)
+        self.assertNotIn(str(self.stores.path(StoreRole.NEWS)), document)
+
+        with patch.object(self.application.dispatcher, "call") as invalid_call:
+            rejected = self.application.handle(
+                "GET",
+                "/news?path=/tmp/news.sqlite",
+            )
+        self.assertEqual(rejected.status, 200)
+        self.assertIn(
+            "Current news query contains an unsupported field",
+            rejected.body.decode("utf-8"),
+        )
+        invalid_call.assert_called_once_with(
+            "news.get_source_status",
+            {"source_ids": []},
+            tool_version="1.0.0",
+        )
+
+    def test_data_status_routes_use_the_public_read_only_tool(self) -> None:
+        result = {
+            "records": [
+                {
+                    "record_type": "dataset_status_v1",
+                    "fields": [
+                        {"name": "id", "value": "macro.fed_h41_liquidity"},
+                        {"name": "store", "value": "macro"},
+                        {"name": "status", "value": "stale"},
+                        {"name": "status_reason", "value": "threshold_exceeded"},
+                        {
+                            "name": "latest_successful_capture",
+                            "value": '{"captured_at":"2026-08-01T00:00:00Z"}',
+                        },
+                        {
+                            "name": "latest_retained_outcome",
+                            "value": '{"outcome_kind":"success"}',
+                        },
+                        {
+                            "name": "latest_reference_period",
+                            "value": '{"period_end":"2026-08-15"}',
+                        },
+                        {
+                            "name": "freshness",
+                            "value": '{"stale_after":"P7D"}',
+                        },
+                    ],
+                }
+            ],
+            "truncation": {"returned_count": 1},
+        }
+        arguments = {
+            "stores": [],
+            "dataset_ids": [],
+            "statuses": [],
+            "limit": 128,
+        }
+        with patch.object(
+            self.application.dispatcher,
+            "call",
+            return_value=result,
+        ) as dispatcher_call:
+            page = self.application.handle("GET", "/data-status")
+            api = self.application.handle("GET", "/api/data-status")
+        self.assertEqual(page.status, 200)
+        document = page.body.decode("utf-8")
+        self.assertIn("<h1>Data status</h1>", document)
+        self.assertIn("macro.fed_h41_liquidity", document)
+        self.assertIn("Retained dataset/control-plane status only", document)
+        self.assertNotIn(str(self.market), document)
+        self.assertEqual(api.status, 200)
+        payload = loads_strict(api.body)
+        self.assertEqual(payload["execution"], "read_only")
+        self.assertEqual(payload["receipt"]["route"], "data_status")
+        self.assertEqual(payload["result"], result)
+        self.assertEqual(
+            dispatcher_call.call_args_list,
+            [
+                call(
+                    "data.get_dataset_status",
+                    arguments,
+                    tool_version="1.0.0",
+                ),
+                call(
+                    "data.get_dataset_status",
+                    arguments,
+                    tool_version="1.0.0",
+                ),
+            ],
+        )
+
+    def test_data_status_rejects_queries_without_dispatch(self) -> None:
+        with patch.object(self.application.dispatcher, "call") as dispatcher_call:
+            response = self.application.handle(
+                "GET", "/data-status?path=/tmp/store.sqlite"
+            )
+        self.assertEqual(response.status, 400)
+        self.assertIn("Data status does not accept query fields", response.body.decode("utf-8"))
+        dispatcher_call.assert_not_called()
+
+    def test_agent_tools_selection_and_methods_fail_closed(self) -> None:
+        cases = (
+            ("/agent-tools?path=/tmp/news.sqlite", 400),
+            ("/agent-tools?tool=unknown", 400),
+            (
+                "/agent-tools?tool=market.technical_indicators"
+                "&tool_version=99.0.0",
+                400,
+            ),
+            (
+                "/agent-tools?tool=market.technical_indicators"
+                "&tool_version=2.3.0",
+                400,
+            ),
+            ("/agent-tools?tool_version=2.7.0", 400),
+            ("/api/agent-tools?sql=select", 400),
+        )
+        for target, expected in cases:
+            with self.subTest(target=target):
+                response = self.application.handle("GET", target)
+                self.assertEqual(response.status, expected)
+                self.assertNotIn(str(self.market), response.body.decode("utf-8"))
+        self.assertEqual(
+            self.application.handle("POST", "/agent-tools", body=b"{}").status,
+            405,
+        )
+        self.assertEqual(
+            self.application.handle("POST", "/news", body=b"{}").status,
+            405,
+        )
+        self.assertEqual(
+            self.application.handle("POST", "/data-status", body=b"{}").status,
+            405,
+        )
+        self.assertEqual(
+            self.application.handle("POST", "/api/data-status", body=b"{}").status,
+            405,
+        )
+        self.assertEqual(
+            self.application.handle("POST", "/api/agent-tools", body=b"{}").status,
+            405,
+        )
+        self.assertEqual(
+            self.application.handle("GET", "/api/agent-tools/call").status,
+            404,
+        )
+
+    def test_healthz_reports_process_liveness_only(self) -> None:
+        with patch.object(self.application.dispatcher, "call") as dispatcher_call:
+            response = self.application.handle("GET", "/healthz")
+        self.assertEqual(response.status, 200)
+        dispatcher_call.assert_not_called()
+        payload = loads_strict(response.body)
+        self.assertEqual(payload["execution"], "read_only")
+        self.assertEqual(payload["receipt"]["route"], "healthz")
+        self.assertEqual(
+            payload["result"],
+            {
+                "status": "ok",
+                "service": "quant-data-inspector",
+                "scope": "process_liveness_only",
+                "data_freshness": "not_checked",
+                "provider_health": "not_checked",
+                "scheduler_health": "not_checked",
+            },
+        )
+        self.assertEqual(
+            self.application.handle("GET", "/healthz?path=/tmp/store").status,
+            400,
+        )
+        self.assertEqual(
+            self.application.handle("POST", "/healthz", body=b"{}").status,
+            405,
+        )
+
+    def test_main_reports_bounded_readiness_failures(self) -> None:
+        with (
+            patch(
+                "quant_data.canonical_inspector.build_canonical_inspector",
+                side_effect=StoreUnavailableError("Canonical market store is unavailable"),
+            ),
+            patch("sys.stderr", new_callable=io.StringIO) as stderr,
+        ):
+            self.assertEqual(
+                inspector_main(["--project-root", str(PROJECT_ROOT), "--port", "0"]),
+                69,
+            )
+        self.assertEqual(
+            stderr.getvalue().strip(),
+            "Canonical Data Inspector unavailable: Canonical market store is unavailable",
+        )
+
+        with (
+            patch(
+                "quant_data.canonical_inspector.build_canonical_inspector",
+                return_value=self.application,
+            ),
+            patch(
+                "quant_data.canonical_inspector.create_server",
+                side_effect=OSError("address already in use"),
+            ),
+            patch("sys.stderr", new_callable=io.StringIO) as stderr,
+        ):
+            self.assertEqual(
+                inspector_main(["--project-root", str(PROJECT_ROOT), "--port", "8765"]),
+                69,
+            )
+        self.assertEqual(
+            stderr.getvalue().strip(),
+            "Canonical Data Inspector unavailable: the requested loopback port cannot be opened",
+        )
+
+    def test_builder_requires_all_four_canonical_store_bindings(self) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            root = Path(temporary)
+            data = root / "data"
+            data.mkdir()
+            market = data / "market.sqlite"
+            macro = data / "macro.sqlite"
+            company = data / "company.sqlite"
+            news = data / "news.sqlite"
+            for path in (market, macro, company):
+                path.touch()
+            stores = StoreMap.four_explicit(
+                market=market,
+                macro=macro,
+                company=company,
+                news=news,
+            )
+            with (
+                patch(
+                    "quant_data.canonical_inspector.load_registry",
+                    return_value=self.registry,
+                ),
+                patch(
+                    "quant_data.canonical_inspector.resolve_store_map",
+                    return_value=stores,
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    StoreUnavailableError,
+                    "Canonical news store is unavailable",
+                ):
+                    build_canonical_inspector(root)
+                news.touch()
+                application = build_canonical_inspector(root)
+                self.assertIsInstance(application, CanonicalInspectorApplication)
+
     def test_html_assets_and_local_server_security_headers(self) -> None:
         response = self.application.handle("GET", "/?view=market-prices&symbol=AAPL")
         self.assertEqual(response.status, 200)
@@ -2384,12 +3020,16 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn("Natural gas storage", document)
         self.assertIn("Recession chronology", document)
         self.assertIn("Raw FMP calendar", document)
+        self.assertIn("Current news", document)
+        self.assertIn("Agent Tools", document)
         self.assertIn("Database paths, SQL, writes, and provider calls are not available", document)
         self.assertNotIn(str(self.market), document)
         css = self.application.handle("GET", "/assets/dashboard.css")
         self.assertEqual(css.status, 200)
         self.assertIn(b"flex-wrap: wrap", css.body)
         self.assertEqual(self.application.handle("GET", "/assets/inter-variable.woff2").status, 200)
+        self.assertEqual(self.application.handle("GET", "/assets/inspector-tools.css").status, 200)
+        self.assertEqual(self.application.handle("GET", "/assets/inspector-tools.js").status, 200)
 
         server = create_server(self.application, host="127.0.0.1", port=0)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

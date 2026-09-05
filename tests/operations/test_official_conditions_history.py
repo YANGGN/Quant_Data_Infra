@@ -55,19 +55,19 @@ _EIA_GASOLINE_STOCKS_BODY = (
     b'{"response":{"frequency":"weekly","total":"1","api_key":"'
     + SECRET.encode("utf-8")
     + b'","data":[{"period":"2026-08-14","series":"WGTSTUS1",'
-    + b'"units":"Thousand Barrels","value":"235000"}]}}'
+    + b'"units":"MBBL","value":"235000"}]}}'
 )
 _EIA_DISTILLATE_STOCKS_BODY = (
     b'{"response":{"frequency":"weekly","total":"1","api_key":"'
     + SECRET.encode("utf-8")
     + b'","data":[{"period":"2026-08-14","series":"WDISTUS1",'
-    + b'"units":"Thousand Barrels","value":"120000"}]}}'
+    + b'"units":"MBBL","value":"120000"}]}}'
 )
 _EIA_GASOLINE_SUPPLIED_BODY = (
     b'{"response":{"frequency":"weekly","total":"1","api_key":"'
     + SECRET.encode("utf-8")
     + b'","data":[{"period":"2026-08-14","series":"WGFUPUS2",'
-    + b'"units":"Thousand Barrels per Day","value":"9100"}]}}'
+    + b'"units":"MBBL/D","value":"9100"}]}}'
 )
 _NBER_BODY = b'[{"peak":"2020-02","trough":"2020-04"}]'
 _BLS_BODY = (
@@ -496,28 +496,22 @@ class OfficialConditionsHistoryOperationTests(unittest.TestCase):
             ["NFCI", "ANFCI", "Risk", "Credit", "Leverage"],
         )
 
-    def test_cfnai_route_uses_one_fixed_official_workbook(self) -> None:
+    def test_cfnai_route_uses_one_bounded_fred_request(self) -> None:
         runner = self._runner()
-        runner.run_cfnai(
-            start_date="1967-03-01", end_date="2026-09-30"
+        response = operation.CsvResponse(
+            status=200, media_type="application/csv",
+            body=b"observation_date,CFNAI\n2026-07-01,-0.08\n",
+            redirected=False,
         )
-
-        self.assertEqual(len(self.transport.calls), 1)
-        call = self.transport.calls[0]
-        self.assertEqual(call["url"], operation.CHICAGO_CFNAI_URL)
-        self.assertEqual(
-            call["headers"]["Accept"],
-            (
-                "application/vnd.openxmlformats-officedocument."
-                "spreadsheetml.sheet"
-            ),
-        )
+        with patch.object(self.transport, "request", return_value=response) as request:
+            runner.run_cfnai(start_date="2026-01-01", end_date="2026-09-30")
+        request.assert_called_once()
+        query = parse_qs(urlsplit(request.call_args.kwargs["url"]).query)
+        self.assertEqual(query, {"id": ["CFNAI"], "cosd": ["2026-01-01"],
+                                 "coed": ["2026-09-30"]})
         capture = self.publisher.captures[0]
-        self.assertEqual(capture.source_key, "cfnai")
-        self.assertEqual(
-            [item.provider_code for item in capture.observations],
-            ["CFNAI"],
-        )
+        self.assertEqual(capture.source_key, "cfnai_fred")
+        self.assertEqual(capture.observations[0].source_period, "2026-07")
 
     def test_bea_route_uses_one_fixed_full_history_request(self) -> None:
         runner = self._runner()

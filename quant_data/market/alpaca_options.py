@@ -40,15 +40,16 @@ ALPACA_SPY_OPTIONS_COLLECTOR_ID: Final = "alpaca.market.spy_option_surface"
 ALPACA_SPY_OPTIONS_HANDLER: Final = "market.alpaca_spy_option_surface"
 ALPACA_ETF_OPTIONS_HANDLER: Final = "market.alpaca_etf_option_surface_grid"
 ALPACA_SPY_OPTIONS_EVIDENCE_DATASET_ID: Final = "fixture.market.option_capture_evidence"
+ALPACA_OPTIONS_RAW_EVIDENCE_DATASET_ID: Final = "market.alpaca.option_raw_evidence"
 ALPACA_SPY_OPTIONS_CANONICAL_DATASET_ID: Final = "fixture.market.options"
 ALPACA_SPY_OPTIONS_IDENTITY_DATASET_ID: Final = "fixture.market.instruments"
 ALPACA_PROVIDER: Final = "alpaca"
 ALPACA_REQUESTED_FEED: Final = "indicative"
 ALPACA_RESOLVED_FEED: Final = "alpaca_indicative"
 ALPACA_ENVIRONMENT: Final = "paper"
-ALPACA_NORMALIZATION_VERSION: Final = "alpaca_spy_option_surface.v2"
+ALPACA_NORMALIZATION_VERSION: Final = "alpaca_spy_option_surface.v3"
 ALPACA_ETF_OPTIONS_COLLECTOR_ID: Final = "alpaca.market.etf_option_surface_grid"
-ALPACA_ETF_OPTIONS_NORMALIZATION_VERSION: Final = "alpaca_etf_option_surface_grid.v1"
+ALPACA_ETF_OPTIONS_NORMALIZATION_VERSION: Final = "alpaca_etf_option_surface_grid.v2"
 SPY_SYMBOL: Final = "SPY"
 TARGET_DTE: Final = 30
 MIN_DTE: Final = 23
@@ -96,6 +97,7 @@ _REQUIRED_DATASETS: Final = frozenset(
     {
         ALPACA_SPY_OPTIONS_IDENTITY_DATASET_ID,
         ALPACA_SPY_OPTIONS_EVIDENCE_DATASET_ID,
+        ALPACA_OPTIONS_RAW_EVIDENCE_DATASET_ID,
         ALPACA_SPY_OPTIONS_CANONICAL_DATASET_ID,
     }
 )
@@ -463,18 +465,72 @@ def select_alpaca_expiration(
     return min(eligible, key=lambda item: (abs((item - session).days - TARGET_DTE), item)).isoformat()
 
 
-def _deliverable(row: Mapping[str, Any], multiplier: int) -> tuple[str, str | None]:
-    root = row.get("root_symbol", SPY_SYMBOL)
-    root_symbol = SPY_SYMBOL if root is None else _text(root, "contract root symbol", 32)
+def _explicit_standard_deliverable(
+    deliverables: Sequence[Any], *, underlying_symbol: str
+) -> bool:
+    """Recognize Alpaca's explicit representation of ordinary 100-share delivery."""
+
+    if len(deliverables) != 1 or not isinstance(deliverables[0], Mapping):
+        return False
+    item = deliverables[0]
+    symbol = item.get("symbol")
+    kind = item.get("type")
+    delayed_settlement = item.get("delayed_settlement")
+    if (
+        not isinstance(symbol, str)
+        or symbol.strip() != underlying_symbol
+        or not isinstance(kind, str)
+        or kind.strip().casefold() != "equity"
+        or not (delayed_settlement is None or delayed_settlement is False)
+    ):
+        return False
+    try:
+        amount = _decimal(item.get("amount"), "deliverable amount")
+        allocation = _decimal(
+            item.get("allocation_percentage"),
+            "deliverable allocation percentage",
+        )
+    except (ResourceLimitError, ValidationError):
+        return False
+    return Decimal(amount) == Decimal("100") and Decimal(allocation) == Decimal("100")
+
+
+def _deliverable_for_underlying(
+    row: Mapping[str, Any], *, underlying_symbol: str, multiplier: int
+) -> tuple[str, str | None]:
+    root = row.get("root_symbol", underlying_symbol)
+    root_symbol = (
+        underlying_symbol
+        if root is None
+        else _text(root, "contract root symbol", 32)
+    )
     deliverables = row.get("deliverables", [])
     if deliverables is None:
         deliverables = []
     if not isinstance(deliverables, list):
         raise _fail("contract deliverables are invalid")
-    if root_symbol == SPY_SYMBOL and multiplier == 100 and not deliverables:
+    if (
+        root_symbol == underlying_symbol
+        and multiplier == 100
+        and (
+            not deliverables
+            or _explicit_standard_deliverable(
+                deliverables,
+                underlying_symbol=underlying_symbol,
+            )
+        )
+    ):
         return "standard", None
     return "nonstandard", dumps_strict(
         {"deliverables": deliverables, "root_symbol": root_symbol, "size": multiplier}
+    )
+
+
+def _deliverable(row: Mapping[str, Any], multiplier: int) -> tuple[str, str | None]:
+    return _deliverable_for_underlying(
+        row,
+        underlying_symbol=SPY_SYMBOL,
+        multiplier=multiplier,
     )
 
 
@@ -858,6 +914,7 @@ class ParsedAlpacaSpyOptionsCapture:
     semantic_identity: str
     response_sha256: str
     response_byte_count: int
+    raw_responses: tuple[tuple[str, bytes], ...]
 
     @property
     def fetched_count(self) -> int:
@@ -964,14 +1021,22 @@ def parse_alpaca_spy_options_capture(
         "completeness": "complete",
         "deliverable_policy": "standard_only",
     }
-    response_sha256, response_byte_count = _response_digest(
-        {
-            "calendar": calendar_body,
-            "contracts": contracts_body,
-            "option_chain": snapshots_body,
-            "underlying": underlying_body,
-        }
+    raw_responses = (
+        ("calendar", calendar_body),
+        ("underlying", underlying_body),
+        ("contracts", contracts_body),
+        ("option_chain", snapshots_body),
     )
+    response_sha256, response_byte_count = _response_digest(dict(raw_responses))
+    normalized_semantic = _semantic(scope, contracts, surfaces, inputs)
+    semantic_identity = hashlib.sha256(
+        dumps_strict(
+            {
+                "normalized_semantic": normalized_semantic,
+                "raw_response_sha256": response_sha256,
+            }
+        ).encode("utf-8")
+    ).hexdigest()
     return ParsedAlpacaSpyOptionsCapture(
         capture=capture,
         contracts=contracts,
@@ -979,9 +1044,10 @@ def parse_alpaca_spy_options_capture(
         inputs=inputs,
         scope=scope,
         captured_at=TemporalValue.parse(completed, pointer="/completed_at"),
-        semantic_identity=_semantic(scope, contracts, surfaces, inputs),
+        semantic_identity=semantic_identity,
         response_sha256=response_sha256,
         response_byte_count=response_byte_count,
+        raw_responses=raw_responses,
     )
 
 
@@ -1520,6 +1586,80 @@ def _ensure_contract(
     return contract_id, 1
 
 
+def _write_raw_option_responses(
+    connection: sqlite3.Connection,
+    *,
+    parsed: ParsedAlpacaSpyOptionsCapture | ParsedAlpacaEtfOptionsCapture,
+    capture_id: str,
+) -> int:
+    """Write byte-faithful provider evidence before canonical option rows."""
+
+    if (
+        not parsed.raw_responses
+        or len({name for name, _ in parsed.raw_responses}) != len(parsed.raw_responses)
+    ):
+        raise ValidationError("Alpaca option raw response evidence is invalid")
+    written = 0
+    for source_order, (response_name, body) in enumerate(
+        parsed.raw_responses,
+        start=1,
+    ):
+        name = _text(response_name, "raw response name", 128)
+        if not isinstance(body, bytes) or not body:
+            raise ValidationError("Alpaca option raw response evidence is invalid")
+        content_sha256 = hashlib.sha256(body).hexdigest()
+        raw_response_id = stable_id(
+            "option_raw_response",
+            ALPACA_PROVIDER,
+            content_sha256,
+        )
+        existing = connection.execute(
+            """
+            SELECT provider, content_sha256, media_type, byte_count, response_body
+            FROM option_raw_responses
+            WHERE raw_response_id=?
+            """,
+            (raw_response_id,),
+        ).fetchone()
+        expected = (
+            ALPACA_PROVIDER,
+            content_sha256,
+            "application/json",
+            len(body),
+            body,
+        )
+        if existing is None:
+            connection.execute(
+                """
+                INSERT INTO option_raw_responses (
+                    raw_response_id, provider, content_sha256, media_type,
+                    byte_count, response_body
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (raw_response_id, *expected),
+            )
+            written += 1
+        elif tuple(existing[key] for key in existing.keys()) != expected:
+            raise ConflictError("Immutable Alpaca raw option response conflicts")
+        connection.execute(
+            """
+            INSERT INTO option_capture_raw_responses (
+                capture_id, response_name, raw_response_id, source_order,
+                captured_at, captured_precision
+            ) VALUES (?, ?, ?, ?, ?, 'datetime')
+            """,
+            (
+                capture_id,
+                name,
+                raw_response_id,
+                source_order,
+                parsed.capture["completed_at"],
+            ),
+        )
+        written += 1
+    return written
+
+
 class AlpacaSpyOptionsPublisher:
     """Publish one fully prepared live capture through the existing options tables."""
 
@@ -1530,7 +1670,7 @@ class AlpacaSpyOptionsPublisher:
         if not _REQUIRED_DATASETS.issubset(datasets):
             raise ValidationError("Alpaca SPY options datasets are not registered")
         self._store_map = store_map
-        self._coordinator = IngestionCoordinator(store_map, code_version="alpaca_spy_options.1.1.0")
+        self._coordinator = IngestionCoordinator(store_map, code_version="alpaca_spy_options.1.2.0")
 
     def publish(
         self,
@@ -1605,6 +1745,11 @@ class AlpacaSpyOptionsPublisher:
                 ),
             )
             written += 1
+            written += _write_raw_option_responses(
+                connection,
+                parsed=parsed,
+                capture_id=capture_id,
+            )
             input_count, _ = _write_capture_inputs(
                 connection, parsed=parsed, capture_id=capture_id, underlying_instrument_id=underlying_id
             )
@@ -1677,6 +1822,7 @@ class AlpacaSpyOptionsPublisher:
             output_dataset_ids=(
                 ALPACA_SPY_OPTIONS_IDENTITY_DATASET_ID,
                 ALPACA_SPY_OPTIONS_EVIDENCE_DATASET_ID,
+                ALPACA_OPTIONS_RAW_EVIDENCE_DATASET_ID,
                 ALPACA_SPY_OPTIONS_CANONICAL_DATASET_ID,
             ),
             semantic_identity=parsed.semantic_identity,
@@ -1705,6 +1851,7 @@ class ParsedAlpacaEtfOptionsCapture:
     semantic_identity: str
     response_sha256: str
     response_byte_count: int
+    raw_responses: tuple[tuple[str, bytes], ...]
 
     @property
     def fetched_count(self) -> int:
@@ -1847,17 +1994,10 @@ def _grid_catalog_expiration(
 def _grid_deliverable(
     row: Mapping[str, Any], *, underlying_symbol: str, multiplier: int
 ) -> tuple[str, str | None]:
-    root = row.get("root_symbol", underlying_symbol)
-    root_symbol = underlying_symbol if root is None else _text(root, "contract root symbol", 32)
-    deliverables = row.get("deliverables", [])
-    if deliverables is None:
-        deliverables = []
-    if not isinstance(deliverables, list):
-        raise _fail("contract deliverables are invalid")
-    if root_symbol == underlying_symbol and multiplier == 100 and not deliverables:
-        return "standard", None
-    return "nonstandard", dumps_strict(
-        {"deliverables": deliverables, "root_symbol": root_symbol, "size": multiplier}
+    return _deliverable_for_underlying(
+        row,
+        underlying_symbol=underlying_symbol,
+        multiplier=multiplier,
     )
 
 
@@ -2255,6 +2395,15 @@ def _parse_alpaca_etf_options_capture(
         {f"chain_{index:02d}": body for index, body in enumerate(chain_bodies, start=1)}
     )
     response_sha256, response_byte_count = _grid_response_digest(responses)
+    normalized_semantic = _grid_semantic(scope, contracts, surfaces, inputs)
+    semantic_identity = hashlib.sha256(
+        dumps_strict(
+            {
+                "normalized_semantic": normalized_semantic,
+                "raw_response_sha256": response_sha256,
+            }
+        ).encode("utf-8")
+    ).hexdigest()
     return ParsedAlpacaEtfOptionsCapture(
         capture=capture,
         contracts=contracts,
@@ -2262,9 +2411,10 @@ def _parse_alpaca_etf_options_capture(
         inputs=inputs,
         scope=scope,
         captured_at=TemporalValue.parse(completed, pointer="/completed_at"),
-        semantic_identity=_grid_semantic(scope, contracts, surfaces, inputs),
+        semantic_identity=semantic_identity,
         response_sha256=response_sha256,
         response_byte_count=response_byte_count,
+        raw_responses=tuple(responses.items()),
     )
 
 
@@ -2445,7 +2595,7 @@ class AlpacaEtfOptionsPublisher:
         self._store_map = store_map
         self._stage10_etfs = dict(stage10_etfs)
         self._coordinator = IngestionCoordinator(
-            store_map, code_version="alpaca_etf_options.1.0.0"
+            store_map, code_version="alpaca_etf_options.1.1.0"
         )
 
     def publish(
@@ -2529,6 +2679,11 @@ class AlpacaEtfOptionsPublisher:
                 ),
             )
             written += 1
+            written += _write_raw_option_responses(
+                connection,
+                parsed=parsed,
+                capture_id=capture_id,
+            )
             input_count, _ = _write_capture_inputs(
                 connection,
                 parsed=parsed,
@@ -2610,6 +2765,7 @@ class AlpacaEtfOptionsPublisher:
             output_dataset_ids=(
                 ALPACA_SPY_OPTIONS_IDENTITY_DATASET_ID,
                 ALPACA_SPY_OPTIONS_EVIDENCE_DATASET_ID,
+                ALPACA_OPTIONS_RAW_EVIDENCE_DATASET_ID,
                 ALPACA_SPY_OPTIONS_CANONICAL_DATASET_ID,
             ),
             semantic_identity=parsed.semantic_identity,

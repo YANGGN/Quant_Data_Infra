@@ -28,7 +28,7 @@ OUTPUT_DATASET_IDS: Final = (
 )
 EVIDENCE_DATASET_ID: Final = OUTPUT_DATASET_IDS[0]
 CANONICAL_DATASET_ID: Final = OUTPUT_DATASET_IDS[1]
-NORMALIZATION_VERSION: Final = "nyfed_soma_summary_v1"
+NORMALIZATION_VERSION: Final = "nyfed_soma_summary_v2"
 MAX_RESPONSE_BYTES: Final = 16 * 1024 * 1024
 MAX_RESPONSE_ROWS: Final = 20_000
 MAX_WINDOW_DAYS: Final = 10_000
@@ -36,6 +36,7 @@ SOURCE_REFERENCE: Final = "nyfed/markets-data-api/soma/summary"
 PROVIDER: Final = "nyfed"
 MEASURE: Final = "amount"
 UNIT: Final = "thousands_usd"
+_USD_PER_THOUSAND: Final = Decimal("1000")
 
 
 @dataclass(frozen=True, slots=True)
@@ -151,7 +152,9 @@ def _component_value(value: object) -> tuple[str | None, str | None]:
         raise _fail("NY Fed SOMA component must be a non-negative finite decimal")
     if not parsed.is_finite() or parsed < 0:
         raise _fail("NY Fed SOMA component must be a non-negative finite decimal")
-    return _normalized_decimal(parsed), None
+    # The NY Fed JSON API reports dollars while the canonical SOMA contract
+    # stores and exposes thousands of U.S. dollars.
+    return _normalized_decimal(parsed / _USD_PER_THOUSAND), None
 
 
 def _utc_capture(raw: str) -> str:

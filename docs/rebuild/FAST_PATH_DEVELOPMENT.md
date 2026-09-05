@@ -2,7 +2,7 @@
 
 Status: Accepted default workflow
 Accepted: 2026-08-17
-Revised: 2026-08-21
+Revised: 2026-09-02
 
 ## Purpose
 
@@ -145,13 +145,26 @@ Use this validation ladder:
 
 1. Run the narrowest affected unit, lint, type, link, or content check.
 2. Add adjacent integration checks only when a changed interface has adjacent
-   consumers.
+   consumers. Add a browser smoke check when user-visible UI behavior changes.
 3. For a bounded operational run, add only exact-target counts, integrity,
    lineage/replay checks relevant to the publisher, and sidecar/fingerprint
    checks when the established store procedure requires them.
-4. Run the full suite only for plausibly broad regressions, uncertain test
-   selection, a required exit gate, or an explicit user request.
-5. State what ran and what was deliberately not run.
+4. Run the full suite only for a migration, a registry-wide or
+   generated-contract change, an accepted contract that names it as an exit
+   gate, or an explicit user request. Resolve uncertain test selection by
+   inspecting affected interfaces and adding adjacent checks, not by defaulting
+   to the full suite.
+5. If a slow full suite is supplementary, finish the interactive implementation
+   handoff after the focused gate and final diff review. Report the
+   implementation complete, label the exhaustive run separately, and run it
+   only in a background or follow-up context that can report its own outcome.
+   A full suite that is a required exit gate must pass before completion is
+   claimed.
+6. Shard a long suite only when its isolation rules permit it. Keep it serial
+   when tests can interfere through mutable databases, canonical/default
+   paths, locks, ports, process-global state, or other shared resources.
+7. State what ran, what was deliberately not run, and whether exhaustive
+   validation is pending, running, passed, or failed.
 
 Independent verification is required only when an accepted contract or the
 heavy-workflow conditions above require it. Routine local work and bounded

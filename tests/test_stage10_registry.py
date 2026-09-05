@@ -49,7 +49,7 @@ class Stage10RegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.64.0"))
+        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.69.0"))
         registry = stage10_registry_profile(registry)
         self.assertEqual((registry.schema_version, registry.registry_version), ("1.6.0", "2.8.0"))
         self.assertEqual(registry.store("market").default_path, "data/market_data.sqlite")

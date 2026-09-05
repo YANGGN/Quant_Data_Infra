@@ -238,15 +238,22 @@ universe `SPY`, `QQQ`, `IWM`, `DIA`, and the eleven sector ETFs, with exact
 DTE targets `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and `365`.
 Nearest positive listed expiries are selected deterministically and duplicate
 target mappings are captured once. The fixed local Inspector adds a read-only
-`options-surfaces` view. The existing scheduled SPY collector and its
-`spy-options` view remain unchanged and SPY-only; the broad collector has no
-scheduler or registry job. On 2026-08-27 the one authorized manual attempt
-issued 17 requests and failed closed for all 15 underlyings before any option
-chain or publication; captures, contracts, surfaces, and writes were zero, and
-the attempt was not retried. See the
+`options-surfaces` view. At registry `2.49.0`, the existing scheduled SPY
+collector and its `spy-options` view remained SPY-only, while the broad
+collector had no host scheduler or registry job. On 2026-08-27 the one
+authorized manual attempt issued 17 requests and failed closed for all 15
+underlyings before any option chain or publication; captures, contracts,
+surfaces, and writes were zero, and the attempt was not retried. See the
 [additive IWM evidence](STAGE10_IWM_EXTENSION_EVIDENCE.md). Exact projection
-restores byte-identical
-registry `2.48.0`; catalog `2.11.0` is unchanged.
+restores byte-identical registry `2.48.0`; catalog `2.11.0` is unchanged.
+On 2026-08-30 the user separately authorized updating the enabled,
+legacy-named timer in place to invoke the fixed 15-ETF grid at its then-current
+15:55 weekday cadence. On 2026-08-31 the user authorized moving that same fixed
+timer to 16:20 America/New_York so collection begins after the latest ordinary
+ETF-option session. The reviewed 362-request, 256 MiB, 900-second bounds,
+16-minute host timeout, no retry, and no catch-up are unchanged. Its registry
+declaration remains `manual_only`; the host unit is the explicit recurring
+exception and the 18:00 Stage 12E FMP job remains separate.
 
 On 2026-08-27 the user clarified that IWM belongs in the Stage 10 ETF
 universe even though the historical single-name rule remains the overlap of
@@ -410,6 +417,30 @@ normal `:10` UTC trigger, and activation did not run the service or write a
 store. Exact projection removes both 2.64 migrations, all three 2.64 datasets,
 its collector, and v2.1, restoring byte-identical
 `2.63.0`/`2.23.0`.
+
+Registry `2.65.0` adds market migration `market:0011_option_raw_evidence`
+and a private raw-response dataset while leaving catalog `2.24.0` unchanged.
+Registry `2.66.0` then adds cursor-paginated `news.search@2.2.0` and eight
+bounded local read-only news/research names. Catalog `2.25.0` has 148
+contracts at SHA-256
+`e35b136e3e47a6211a85d62c75baf6ecd52b9246938a30549ace5c19e0c39700`;
+registry SHA-256 is
+`f7b8c402ce4abce5d024f7fcdc8debde97e25324739f037ef209312bb4d070f3`.
+The tools expose metadata and declared deterministic derivations, never raw
+responses or article bodies. Exact projection restores byte-identical
+registry `2.65.0` and catalog `2.24.0`.
+
+Registry `2.67.0` adds retained-only `data.get_dataset_status@1.0.0` and
+typed v2 successors for the three canonical options-access names. Catalog
+`2.26.0` has 156 contracts at SHA-256
+`fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`;
+registry SHA-256 is
+`a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325`.
+Data Status is explicitly retained control-plane freshness rather than live
+provider/scheduler health. Options v2 keeps one capture cohort per surface,
+preserves explicit missing/excluded states, and exposes no raw response bytes.
+Exact projection restores byte-identical registry `2.66.0` and catalog
+`2.25.0`.
 
 For any provider, credential, scheduler, canonical-store, migration, promotion,
 retirement, deployment, public-exposure, or destructive task, read the

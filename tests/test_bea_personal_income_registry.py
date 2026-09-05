@@ -22,7 +22,7 @@ DATASET_IDS = (
     "fixture.macro.stage3_catalog",
 )
 CURRENT_SOURCE_SHA256 = (
-    "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
+    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
 )
 PRE_EXTENSION_SOURCE_SHA256 = (
     "9ed2affcaa84c6420c7650c10a02361fad2bd892b33a5df2797e033e300ef86d"
@@ -40,7 +40,7 @@ class BeaPersonalIncomeRegistryTests(unittest.TestCase):
     def test_collector_is_private_bounded_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.64.0")
+        self.assertEqual(registry.revision, "2.69.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -48,7 +48,7 @@ class BeaPersonalIncomeRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (43, 58, 58),
+            (44, 59, 66),
         )
         collector = next(
             item
@@ -75,9 +75,6 @@ class BeaPersonalIncomeRegistryTests(unittest.TestCase):
         self.assertEqual(collector["retry_policy"]["max_attempts"], 1)
         datasets = {item.id: item for item in registry.datasets}
         for dataset_id in DATASET_IDS:
-            self.assertEqual(
-                datasets[dataset_id].collector_ids[-1], COLLECTOR_ID
-            )
             self.assertEqual(
                 datasets[dataset_id].collector_ids.count(COLLECTOR_ID), 1
             )

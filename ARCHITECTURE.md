@@ -240,11 +240,16 @@ Revision `2.48.0` adds only the store-free
 `market.technical_indicators@2.0.0` successor over caller-supplied typed Stage
 10 OHLCV series. Revision `2.49.0` adds the private, manual-only fixed ETF
 option-surface grid over the existing identities and option schema plus a
-fixed local read-only Inspector view. The broad collector has no registry job
-or host timer; the separately authorized SPY timer remains SPY-only. The one
-authorized 2026-08-27 attempt issued 17 requests, failed closed for all 15
-underlyings before any option-chain request, and wrote zero canonical rows. It
-was not retried.
+fixed local read-only Inspector view. At that revision the broad collector had
+no registry job or host timer, and the separately authorized timer remained
+SPY-only. The one authorized 2026-08-27 attempt issued 17 requests, failed
+closed for all 15 underlyings before any option-chain request, and wrote zero
+canonical rows. It was not retried. On 2026-08-30 the user separately
+authorized updating the enabled legacy-named timer in place to invoke the
+fixed grid at its then-current 15:55 weekday cadence. On 2026-08-31 the user
+authorized moving that same fixed timer to 16:20 America/New_York so collection
+starts after the latest ordinary ETF-option session. Scope, bounds, no-retry,
+no-catch-up, and `Persistent=false` semantics are unchanged.
 Revision `2.50.0` adds the private, manual-only FMP IWM history collector
 over the existing Stage 10 relations. It derives one exact 96-member ETF
 successor from the frozen 95-member snapshot plus IWM, without rewriting the
@@ -463,9 +468,14 @@ snapshots, retains dated OI/close state independently of quote availability,
 explicitly excludes nonstandard surfaces, and publishes through
 the existing replay-safe option relations. A fixed local read-only
 `options-surfaces` Inspector view exposes the retained cohorts. The collector
-is manual-only and bounded to 362 requests, 900,016 rows, 256 MiB, and 900
-seconds; it has no timer or registry job. Exact projection restores registry
-`2.48.0`. The implementation did not call Alpaca or write the canonical store.
+registry declaration is `manual_only` and bounded to 362 requests, 900,016
+rows, 256 MiB, and 900 seconds; revision `2.49.0` added no registry job or
+host timer. Exact projection restores registry `2.48.0`. The implementation
+did not call Alpaca or write the canonical store. On 2026-08-30 the user
+separately authorized the existing 15:55 host timer as the fixed recurring
+exception for this grid. The host service timeout is 16 minutes, exact raw
+responses precede normalization, partial grids exit nonzero, and no immediate
+or manual run was authorized.
 Registry `2.50.0` retains catalog `2.11.0` and adds only
 `fmp.market.iwm_etf_daily_history`. The collector binds to the existing
 Stage 10 evidence, instrument, universe, and daily-price datasets, fixes IWM
@@ -522,9 +532,11 @@ paper-account contract metadata plus indicative option snapshots for local
 inspection. The fixed runner has four single-attempt requests, bounded rows
 and bytes, and an enforced 120-second deadline. Network parsing completes
 before the physical market-store lock; exact semantic replay produces no
-canonical change. The registry declaration remains `manual_only`; the current
-user's separately authorized 15:55 host timer is the only recurring exception.
-This increment adds no migration, public tool, export, deployment, or authority
+canonical change. The registry declaration remains `manual_only`; the
+separately authorized 15:55 host timer was initially the SPY-only recurring
+exception. On 2026-08-30 the user explicitly authorized updating that enabled,
+legacy-named unit in place to invoke the fixed 15-ETF grid instead. This
+increment adds no migration, public tool, export, deployment, or authority
 for either recovered market job.
 
 Registry `2.44.0` adds the private fixed-AAPL SEC core-fundamentals collector.

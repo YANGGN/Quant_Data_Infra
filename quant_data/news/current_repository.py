@@ -288,6 +288,121 @@ def _published(
     return raw, normalized, precision, offset_status, publication_instant, calendar_date
 
 
+_KEYSET_MISSING = object()
+
+
+@dataclass(frozen=True, slots=True)
+class CurrentNewsKeysetAnchor:
+    """Strict continuation key for the stable current-news newest-first order."""
+
+    publication_instant: datetime | None
+    captured_at: datetime
+    article_id: str
+
+    def __post_init__(self) -> None:
+        publication = self.publication_instant
+        if publication is not None:
+            publication = self._utc_datetime(
+                publication,
+                label="publication instant",
+            )
+        captured = self._utc_datetime(self.captured_at, label="capture availability")
+        if not isinstance(self.article_id, str) or not self.article_id:
+            raise ValidationError("Current-news keyset article identity is invalid")
+        object.__setattr__(self, "publication_instant", publication)
+        object.__setattr__(self, "captured_at", captured)
+
+    @staticmethod
+    def _utc_datetime(value: object, *, label: str) -> datetime:
+        if (
+            not isinstance(value, datetime)
+            or value.tzinfo is None
+            or value.utcoffset() is None
+        ):
+            raise ValidationError(f"Current-news keyset {label} is invalid")
+        return value.astimezone(timezone.utc)
+
+    @classmethod
+    def from_record(cls, record: Mapping[str, object]) -> "CurrentNewsKeysetAnchor":
+        """Build an anchor from a safe repository record or its internal form."""
+
+        if not isinstance(record, Mapping):
+            raise ValidationError("Current-news keyset record is invalid")
+
+        captured = record.get("_captured_instant", _KEYSET_MISSING)
+        if captured is _KEYSET_MISSING:
+            available_at = record.get("available_at", _KEYSET_MISSING)
+            if not isinstance(available_at, str):
+                raise ValidationError("Current-news keyset availability is invalid")
+            temporal = TemporalValue.parse(available_at, pointer="/available_at")
+            if temporal.precision is not TemporalPrecision.DATETIME:
+                raise ValidationError("Current-news keyset availability is invalid")
+            assert isinstance(temporal.value, datetime)
+            captured = temporal.value
+
+        publication = record.get("_publication_instant", _KEYSET_MISSING)
+        if publication is _KEYSET_MISSING:
+            publication = record.get("publication_instant", _KEYSET_MISSING)
+        if publication is _KEYSET_MISSING:
+            precision = record.get("published_precision", _KEYSET_MISSING)
+            normalized = record.get("published_normalized_at", _KEYSET_MISSING)
+            if not isinstance(precision, str) or precision not in _PUBLISHED_PRECISIONS:
+                raise ValidationError("Current-news keyset publication is invalid")
+            if precision == "datetime_offset":
+                if not isinstance(normalized, str):
+                    raise ValidationError("Current-news keyset publication is invalid")
+                temporal = TemporalValue.parse(
+                    normalized,
+                    pointer="/published_normalized_at",
+                )
+                if temporal.precision is not TemporalPrecision.DATETIME:
+                    raise ValidationError("Current-news keyset publication is invalid")
+                assert isinstance(temporal.value, datetime)
+                publication = temporal.value
+            else:
+                if normalized is not None:
+                    raise ValidationError("Current-news keyset publication is invalid")
+                publication = None
+
+        return cls(
+            publication_instant=publication,
+            captured_at=captured,
+            article_id=record.get("article_id"),
+        )
+
+    def receipt_mapping(self) -> dict[str, str | None]:
+        return {
+            "article_id": self.article_id,
+            "captured_at": self.captured_at.isoformat().replace("+00:00", "Z"),
+            "publication_instant": (
+                None
+                if self.publication_instant is None
+                else self.publication_instant.isoformat().replace("+00:00", "Z")
+            ),
+        }
+
+
+def record_is_after_current_news_anchor(
+    record: Mapping[str, object],
+    after: CurrentNewsKeysetAnchor,
+) -> bool:
+    """Return whether one record follows ``after`` in current-news sort order."""
+
+    if not isinstance(after, CurrentNewsKeysetAnchor):
+        raise ValidationError("Current-news keyset anchor is invalid")
+    candidate = CurrentNewsKeysetAnchor.from_record(record)
+    if candidate.publication_instant is None:
+        if after.publication_instant is not None:
+            return True
+    elif after.publication_instant is None:
+        return False
+    elif candidate.publication_instant != after.publication_instant:
+        return candidate.publication_instant < after.publication_instant
+    if candidate.captured_at != after.captured_at:
+        return candidate.captured_at < after.captured_at
+    return candidate.article_id > after.article_id
+
+
 def _required_row_text(row: Mapping[str, object], name: str) -> str:
     value = row[name]
     if not isinstance(value, str) or not value:
@@ -451,9 +566,16 @@ class CurrentNewsRepository:
         ):
             raise ValidationError("Current FMP news datasets are not registered")
 
-    def search(self, query: CurrentNewsQuery) -> CurrentNewsSelection:
+    def search(
+        self,
+        query: CurrentNewsQuery,
+        *,
+        after: CurrentNewsKeysetAnchor | None = None,
+    ) -> CurrentNewsSelection:
         if not isinstance(query, CurrentNewsQuery):
             raise ValidationError("Current-news selection requires a typed query")
+        if after is not None and not isinstance(after, CurrentNewsKeysetAnchor):
+            raise ValidationError("Current-news selection anchor is invalid")
         self._require_datasets()
         with quiet_immutable_read_connection(
             self._store_map,
@@ -480,6 +602,12 @@ class CurrentNewsRepository:
         ]
         filtered = [record for record in selected if _matches(record, query)]
         _sort(filtered)
+        if after is not None:
+            filtered = [
+                record
+                for record in filtered
+                if record_is_after_current_news_anchor(record, after)
+            ]
         total = len(filtered)
         rendered: list[dict[str, object]] = []
         for record in filtered[: query.limit]:
@@ -506,6 +634,8 @@ class CurrentNewsRepository:
             "truncated": total > query.limit,
             "warnings": sorted(warnings),
         }
+        if after is not None:
+            receipt["after"] = after.receipt_mapping()
         return CurrentNewsSelection(
             records=tuple(rendered),
             total_selected_count=total,
@@ -522,7 +652,9 @@ __all__ = (
     "CURRENT_NEWS_ARTICLES_DATASET_ID",
     "CURRENT_NEWS_DATASET_IDS",
     "CURRENT_NEWS_EVIDENCE_DATASET_ID",
+    "CurrentNewsKeysetAnchor",
     "CurrentNewsQuery",
     "CurrentNewsRepository",
     "CurrentNewsSelection",
+    "record_is_after_current_news_anchor",
 )

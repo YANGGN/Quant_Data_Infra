@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from quant_data.tool_platform.catalog import (
+    ADDITIVE_DATA_STATUS_TOOLS,
+    ADDITIVE_NEWS_RESEARCH_TOOLS,
     CATALOG_ID,
     CATALOG_VERSION,
     LEGACY_TOOL_NAMES,
@@ -21,6 +23,7 @@ from quant_data.tool_platform.catalog import (
     VERSIONED_INVESTMENT_ANALYSIS_TOOLS,
     VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
     VERSIONED_NEWS_TOOLS,
+    VERSIONED_OPTIONS_ACCESS_TOOLS,
     VERSIONED_RESEARCH_ANALYTIC_TOOLS,
     build_additive_tool_entries,
     build_current_tool_entries,
@@ -28,6 +31,10 @@ from quant_data.tool_platform.catalog import (
     build_tool_version_policies,
     schema_catalog,
     versioned_schema_catalog,
+)
+from quant_data.registry_bundle_lock import (
+    REGISTRY_BUNDLE_LOCK_TIMEOUT_SECONDS,
+    registry_bundle_lock,
 )
 
 
@@ -117,6 +124,21 @@ _REVIEWED_REGISTRY_SOURCE_SHA256 = {
     ("1.9.0", "2.64.0"): (
         "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
     ),
+    ("1.9.0", "2.65.0"): (
+        "c22d9ada8be3c3c7f9538c902bac3ef3467b9fdfa43c23fd7aa1c88200d58614"
+    ),
+    ("1.9.0", "2.66.0"): (
+        "f7b8c402ce4abce5d024f7fcdc8debde97e25324739f037ef209312bb4d070f3"
+    ),
+    ("1.9.0", "2.67.0"): (
+        "a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325"
+    ),
+    ("1.9.0", "2.68.0"): (
+        "9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e"
+    ),
+    ("1.9.0", "2.69.0"): (
+        "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
+    ),
 }
 CATALOG_RESOURCE = Path("quant_data/generated/tool_contract_schemas_v1.json")
 VERSIONED_CATALOG_RESOURCE = Path(
@@ -155,6 +177,7 @@ _INVESTMENT_ANALYSIS_VERSIONED_TOOL_IDS = frozenset(
     VERSIONED_INVESTMENT_ANALYSIS_TOOLS
 )
 _CURRENT_NEWS_VERSIONED_TOOL_IDS = frozenset(VERSIONED_NEWS_TOOLS)
+_CURRENT_OPTIONS_VERSIONED_TOOL_IDS = frozenset(VERSIONED_OPTIONS_ACCESS_TOOLS)
 _CURRENT_NEWS_MIGRATION_ID = "news:0006_fmp_stock_latest_current"
 _CURRENT_NEWS_DATASET_IDS = (
     "news.fmp.stock_latest_current_evidence",
@@ -169,6 +192,79 @@ _CURRENT_MULTI_SOURCE_DATASET_IDS = (
     "news.current_multi_source_articles",
 )
 _CURRENT_MULTI_SOURCE_COLLECTOR_ID = "news.current_multi_source"
+_OPTION_RAW_MIGRATION_ID = "market:0011_option_raw_evidence"
+_OPTION_RAW_DATASET_ID = "market.alpaca.option_raw_evidence"
+_OPTION_RAW_RELATIONS = (
+    "option_raw_responses",
+    "option_capture_raw_responses",
+)
+_ALPACA_OPTION_COLLECTOR_IDS = (
+    "alpaca.market.spy_option_surface",
+    "alpaca.market.etf_option_surface_grid",
+)
+_MACRO_DATABASE_EXPANSION_COLLECTOR_IDS = (
+    "cftc.macro.tff_futures_only_history",
+    "cftc.macro.disaggregated_futures_only_history",
+    "treasury_fiscal_data.macro.securities_auctions_history",
+    "nyfed.macro.primary_dealer_statistics_history",
+    "federal_reserve.macro.h8_history",
+    "federal_reserve.macro.sloos_history",
+)
+_MACRO_DATABASE_EXPANSION_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
+_MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS = (
+    (
+        "cftc.macro.tff_futures_only_history",
+        "macro.cftc_tff_futures_only_history",
+        8,
+        4_000,
+        16_777_216,
+        480,
+    ),
+    (
+        "cftc.macro.disaggregated_futures_only_history",
+        "macro.cftc_disaggregated_futures_only_history",
+        8,
+        4_000,
+        16_777_216,
+        480,
+    ),
+    (
+        "treasury_fiscal_data.macro.securities_auctions_history",
+        "macro.treasury_securities_auctions_history",
+        1,
+        1_000,
+        16_777_216,
+        60,
+    ),
+    (
+        "nyfed.macro.primary_dealer_statistics_history",
+        "macro.nyfed_primary_dealer_statistics_history",
+        33,
+        100_000,
+        67_108_864,
+        180,
+    ),
+    (
+        "federal_reserve.macro.h8_history",
+        "macro.federal_reserve_h8_history",
+        7,
+        20_000,
+        16_777_216,
+        420,
+    ),
+    (
+        "federal_reserve.macro.sloos_history",
+        "macro.federal_reserve_sloos_history",
+        6,
+        20_000,
+        16_777_216,
+        360,
+    ),
+)
 
 
 def _add_current_news_declarations(raw: dict[str, Any]) -> None:
@@ -499,6 +595,170 @@ def _add_current_multi_source_declarations(raw: dict[str, Any]) -> None:
     raw["collectors"].append(collector)
 
 
+def _add_option_raw_evidence_declarations(raw: dict[str, Any]) -> None:
+    """Advance exact registry 2.64 with byte-faithful Alpaca option evidence."""
+
+    if (
+        any(item.get("id") == _OPTION_RAW_MIGRATION_ID for item in raw["migrations"])
+        or any(item.get("id") == _OPTION_RAW_DATASET_ID for item in raw["datasets"])
+    ):
+        raise ValueError("Raw option evidence declarations already exist")
+    market_stores = [item for item in raw["stores"] if item.get("id") == "market"]
+    option_evidence = [
+        item
+        for item in raw["datasets"]
+        if item.get("id") == "fixture.market.option_capture_evidence"
+    ]
+    collectors = {
+        item["id"]: item
+        for item in raw["collectors"]
+        if item.get("id") in _ALPACA_OPTION_COLLECTOR_IDS
+    }
+    if (
+        len(market_stores) != 1
+        or market_stores[0].get("migration_order", [])[-1:]
+        != ["market:0010_stage10_market_history"]
+        or len(option_evidence) != 1
+        or set(collectors) != set(_ALPACA_OPTION_COLLECTOR_IDS)
+    ):
+        raise ValueError("Reviewed raw option evidence predecessor drifted")
+
+    raw["migrations"].append(
+        {
+            "dependencies": ["market:0010_stage10_market_history"],
+            "id": _OPTION_RAW_MIGRATION_ID,
+            "ordinal": 11,
+            "reconstruction_state": "fixture_validated",
+            "resource": "quant_data/migrations/market/0011_option_raw_evidence.sql",
+            "semantic_scope": (
+                "Byte-faithful private Alpaca option response evidence, capture "
+                "memberships, and the exact 100-share deliverable correction."
+            ),
+            "sha256": "f6a4685963e1eddffb7fd92944e19e4bbeda0c89bc196d85a2308f1f408d8129",
+            "store": "market",
+        }
+    )
+    market_stores[0]["migration_order"].append(_OPTION_RAW_MIGRATION_ID)
+
+    evidence = copy.deepcopy(option_evidence[0])
+    evidence["id"] = _OPTION_RAW_DATASET_ID
+    evidence["collector_ids"] = list(_ALPACA_OPTION_COLLECTOR_IDS)
+    evidence["physical"]["relations"] = [
+        {"kind": "table", "name": relation}
+        for relation in _OPTION_RAW_RELATIONS
+    ]
+    evidence["identity"] = {
+        "stable_fields": ["provider", "content_sha256"],
+        "version_fields": [
+            "raw_response_id",
+            "capture_id",
+            "response_name",
+        ],
+    }
+    evidence["quality_contract"]["rules"] = [
+        "exact_response_bytes_retained_private",
+        "capture_membership_precedes_canonical_projection",
+        "analytical_exclusion_never_deletes_raw_evidence",
+    ]
+    evidence["dashboard_ids"] = []
+    evidence["tool_ids"] = []
+    raw["datasets"].append(evidence)
+
+    for collector in collectors.values():
+        collector["output_datasets"].append(_OPTION_RAW_DATASET_ID)
+        collector["semantic_identity"]["includes"].append(
+            "raw_response_content_sha256"
+        )
+
+
+def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
+    """Advance exact registry 2.67 with six private macro collectors."""
+
+    collectors = raw["collectors"]
+    if any(
+        item.get("id") in _MACRO_DATABASE_EXPANSION_COLLECTOR_IDS
+        for item in collectors
+    ):
+        raise ValueError("Macro database-expansion declarations already exist")
+    anchor_indexes = [
+        index
+        for index, item in enumerate(collectors)
+        if item.get("id") == "bea.macro.personal_income_history"
+    ]
+    datasets = {
+        item["id"]: item
+        for item in raw["datasets"]
+        if item.get("id") in _MACRO_DATABASE_EXPANSION_DATASET_IDS
+    }
+    if (
+        len(anchor_indexes) != 1
+        or tuple(datasets) != _MACRO_DATABASE_EXPANSION_DATASET_IDS
+        or any(
+            any(
+                collector_id in dataset.get("collector_ids", ())
+                for collector_id in _MACRO_DATABASE_EXPANSION_COLLECTOR_IDS
+            )
+            for dataset in datasets.values()
+        )
+    ):
+        raise ValueError("Reviewed macro database-expansion predecessor drifted")
+
+    common = {
+        "configuration_env": [],
+        "input_datasets": [],
+        "mutation_policy": {
+            "mode": "append_versions_and_snapshot_membership",
+            "unchanged": "zero_persistent_writes",
+        },
+        "network": True,
+        "output_datasets": list(_MACRO_DATABASE_EXPANSION_DATASET_IDS),
+        "physical_locks": "derived_from_output_store_paths",
+        "retry_policy": {
+            "backoff": "none_single_attempt",
+            "honor_retry_after": False,
+            "max_attempts": 1,
+            "transient_classes": [],
+        },
+        "schedule_eligibility": {"mode": "manual_only"},
+        "semantic_identity": {
+            "excludes": [
+                "captured_at",
+                "http_headers",
+                "source_row_order",
+            ],
+            "includes": [
+                "request_scope",
+                "normalization_version",
+                "normalized_observations",
+            ],
+        },
+        "version": "1.0.0",
+    }
+    declarations = []
+    for (
+        collector_id,
+        handler,
+        max_requests,
+        max_rows,
+        max_bytes,
+        max_seconds,
+    ) in _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS:
+        declaration = copy.deepcopy(common)
+        declaration["handler"] = handler
+        declaration["id"] = collector_id
+        declaration["workload_bounds"] = {
+            "max_bytes": max_bytes,
+            "max_requests": max_requests,
+            "max_rows": max_rows,
+            "max_seconds": max_seconds,
+        }
+        declarations.append(declaration)
+    insertion_index = anchor_indexes[0] + 1
+    collectors[insertion_index:insertion_index] = declarations
+    for dataset in datasets.values():
+        dataset["collector_ids"].extend(_MACRO_DATABASE_EXPANSION_COLLECTOR_IDS)
+
+
 def _render(value: Any) -> bytes:
     return (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode(
         "utf-8"
@@ -525,6 +785,10 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         _add_current_news_declarations(raw)
     if source_version == ("1.9.0", "2.63.0"):
         _add_current_multi_source_declarations(raw)
+    if source_version == ("1.9.0", "2.64.0"):
+        _add_option_raw_evidence_declarations(raw)
+    if source_version == ("1.9.0", "2.67.0"):
+        _add_macro_database_expansion_declarations(raw)
     existing = {item["id"]: item for item in raw["tools"]}
     try:
         legacy = {name: existing[name] for name in LEGACY_TOOL_NAMES}
@@ -536,6 +800,55 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version <= ("1.9.0", "2.65.0"):
+        entries = tuple(
+            item
+            for item in entries
+            if item["id"] not in ADDITIVE_DATA_STATUS_TOOLS
+        )
+        additive_entries = tuple(
+            item
+            for item in additive_entries
+            if item["id"] not in ADDITIVE_DATA_STATUS_TOOLS
+        )
+        version_policies = tuple(
+            item
+            for item in version_policies
+            if item["tool"] not in _CURRENT_OPTIONS_VERSIONED_TOOL_IDS
+        )
+        catalog_version = "2.25.0"
+    if source_version <= ("1.9.0", "2.64.0"):
+        entries = tuple(
+            item
+            for item in entries
+            if item["id"] not in ADDITIVE_NEWS_RESEARCH_TOOLS
+        )
+        additive_entries = tuple(
+            item
+            for item in additive_entries
+            if item["id"] not in ADDITIVE_NEWS_RESEARCH_TOOLS
+        )
+        projected_policies: list[dict[str, Any]] = []
+        for item in version_policies:
+            projected = copy.deepcopy(dict(item))
+            if projected["tool"] == "news.search":
+                projected["variants"] = [
+                    variant
+                    for variant in projected["variants"]
+                    if variant["version"] != "2.2.0"
+                ]
+                projected["deprecations"][0]["message"] = (
+                    "news.search version 1.0.0 remains available for the frozen "
+                    "Stage 4 fixture; select version 2.0.0 for retained current "
+                    "FMP headline metadata."
+                )
+                projected["deprecations"][0]["replacement"] = {
+                    "tool": "news.search",
+                    "version": "2.0.0",
+                }
+            projected_policies.append(projected)
+        version_policies = tuple(projected_policies)
+        catalog_version = "2.24.0"
     if source_version <= ("1.9.0", "2.62.0"):
         version_policies = tuple(
             {
@@ -766,6 +1079,11 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.62.0"),
         ("1.9.0", "2.63.0"),
         ("1.9.0", "2.64.0"),
+        ("1.9.0", "2.65.0"),
+        ("1.9.0", "2.66.0"),
+        ("1.9.0", "2.67.0"),
+        ("1.9.0", "2.68.0"),
+        ("1.9.0", "2.69.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -837,7 +1155,12 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.61.0"): "2.62.0",
         ("1.9.0", "2.62.0"): "2.63.0",
         ("1.9.0", "2.63.0"): "2.64.0",
-        ("1.9.0", "2.64.0"): "2.64.0",
+        ("1.9.0", "2.64.0"): "2.65.0",
+        ("1.9.0", "2.65.0"): "2.66.0",
+        ("1.9.0", "2.66.0"): "2.67.0",
+        ("1.9.0", "2.67.0"): "2.68.0",
+        ("1.9.0", "2.68.0"): "2.68.0",
+        ("1.9.0", "2.69.0"): "2.69.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {
@@ -877,26 +1200,33 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
 
 def generate(project_root: Path, *, check: bool = False) -> None:
     root = project_root.resolve(strict=True)
-    registry_bytes, catalog_bytes, versioned_catalog_bytes = generated_bytes(root)
-    expected = {
-        root / REGISTRY_RESOURCE: registry_bytes,
-        root / CATALOG_RESOURCE: catalog_bytes,
-        root / VERSIONED_CATALOG_RESOURCE: versioned_catalog_bytes,
-    }
-    stale = [
-        path.relative_to(root).as_posix()
-        for path, payload in expected.items()
-        if not path.exists() or path.read_bytes() != payload
-    ]
-    if check:
-        if stale:
-            raise SystemExit("Generated Stage 5 artifacts are stale: " + ", ".join(stale))
-        return
-    for path, payload in expected.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_name(path.name + ".tmp-stage5")
-        temporary.write_bytes(payload)
-        temporary.replace(path)
+    with registry_bundle_lock(
+        root,
+        exclusive=True,
+        timeout_seconds=REGISTRY_BUNDLE_LOCK_TIMEOUT_SECONDS,
+    ):
+        registry_bytes, catalog_bytes, versioned_catalog_bytes = generated_bytes(root)
+        expected = {
+            root / REGISTRY_RESOURCE: registry_bytes,
+            root / CATALOG_RESOURCE: catalog_bytes,
+            root / VERSIONED_CATALOG_RESOURCE: versioned_catalog_bytes,
+        }
+        stale = [
+            path.relative_to(root).as_posix()
+            for path, payload in expected.items()
+            if not path.exists() or path.read_bytes() != payload
+        ]
+        if check:
+            if stale:
+                raise SystemExit(
+                    "Generated Stage 5 artifacts are stale: " + ", ".join(stale)
+                )
+            return
+        for path, payload in expected.items():
+            path.parent.mkdir(parents=True, exist_ok=True)
+            temporary = path.with_name(path.name + ".tmp-stage5")
+            temporary.write_bytes(payload)
+            temporary.replace(path)
 
 
 def main() -> None:

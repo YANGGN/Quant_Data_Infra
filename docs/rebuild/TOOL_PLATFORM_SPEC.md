@@ -90,9 +90,19 @@ advances it to `2.20.0` with WaveTrend with Crosses v2.5. Registry `2.61.0`
 advances it to `2.21.0` with Parabolic SAR v2.6. Registry `2.62.0` advances
 it to `2.22.0` with rolling regression line v2.7. Registry `2.63.0` advances
 it to `2.23.0` with the current FMP `news.search@2.0.0` successor. Registry
-`2.64.0` advances it to `2.24.0` with multi-source `news.search@2.1.0`. The
-same 65 logical names and frozen v1 defaults remain; every omitted selector
-retains the frozen v1 default.
+`2.64.0` advances it to `2.24.0` with multi-source `news.search@2.1.0`.
+Registry `2.65.0` leaves that catalog unchanged. Registry `2.66.0` advances
+the catalog to `2.25.0` with cursor-paginated `news.search@2.2.0`, seven
+additive news names, and `research.news_event_impact@1.0.0`. The current
+inventory at that checkpoint is 73 logical names, 41 version policies, 58
+variants, and 148 contracts. Registry `2.67.0` advances catalog `2.26.0` with
+`data.get_dataset_status@1.0.0` and three options-access v2 successors. The
+current inventory is 74 logical names, 44 version policies, 61 variants, and
+156 contracts. Frozen v1 defaults remain; every omitted selector for a versioned
+name retains its frozen v1 default.
+Registry `2.68.0` leaves this public catalog unchanged: its six private macro
+collectors add no tools or contracts, so catalog `2.26.0` remains at 74 logical
+names, 44 version policies, 61 variants, and 156 contracts.
 
 The recovered compatibility names are:
 
@@ -106,10 +116,10 @@ The recovered compatibility names are:
 | Market | 5 | `market.search_instruments`, `market.get_returns`, `market.get_forward_returns`, `market.technical_indicators`, `market.cross_sectional_performance` |
 | Rates | 3 | `rates.get_funding_conditions`, `rates.get_repo_facility_usage`, `rates.curve_analytics` |
 | Options | 6 | `options.search_captures`, `options.search_contracts`, `options.get_surface_snapshot`, `options.surface_diagnostics`, `options.screen_contracts`, `options.strategy_scenario` |
-| Research, diagnostics, forecast, and news | 10 | `research.point_in_time_panel`, `data.quality_audit`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate`, `news.search`, `research.liquidity_credit_state` |
+| Research, diagnostics, forecast, and news | 19 | `research.point_in_time_panel`, `data.get_dataset_status`, `data.quality_audit`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate`, `news.search`, `news.get_source_status`, `news.get_item_history`, `news.story_clusters`, `news.entity_coverage`, `news.attention_metrics`, `news.classify_events`, `news.headline_sentiment`, `research.news_event_impact`, `research.liquidity_credit_state` |
 
 The current active family counts are macro 13, time series 4, econometrics 5,
-company 10, energy 2, market 8, rates 3, options 6, and research 14. Versioned
+company 10, energy 2, market 8, rates 3, options 6, and research 23. Versioned
 variants do not create additional logical names.
 
 The additive `market.get_price_series` contract accepts a server-resolved
@@ -1054,6 +1064,12 @@ their persisted state and missing reason rather than making nulls ambiguous.
 It exposes no SQL, caller
 path, provider request, credential, writable connection, or ingestion action.
 The legacy `spy-options` view remains unchanged.
+
+The current Inspector also exposes `/data-status`, backed by the public
+retained-only dataset-status contract, and `/healthz`, a zero-store process-
+liveness response. Data Status MUST NOT be labelled live provider, credential,
+or scheduler health and MUST NOT infer a source-period timestamp from generic
+ingestion metadata. `/healthz` MUST NOT open a store or perform a provider call.
 
 ## Security requirements
 

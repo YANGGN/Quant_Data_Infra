@@ -1,0 +1,28 @@
+[
+  {
+    "report_date_as_yyyy_mm_dd": "2026-08-18T00:00:00.000",
+    "futonly_or_combined": "FuturesOnly",
+    "cftc_contract_market_code": "654321",
+    "contract_units": "CONTRACTS",
+    "market_and_exchange_names": "CORN - CHICAGO",
+    "commodity_name": "CORN",
+    "commodity_group_name": "AGRICULTURAL",
+    "open_interest_all": "2000",
+    "prod_merc_positions_long": "800",
+    "prod_merc_positions_short": "700",
+    "swap_positions_long_all": "250",
+    "swap__positions_short_all": "275",
+    "swap__positions_spread_all": "15",
+    "m_money_positions_long_all": "300",
+    "m_money_positions_short_all": "350",
+    "m_money_positions_spread": "20",
+    "other_rept_positions_long": "150",
+    "other_rept_positions_short": "125",
+    "other_rept_positions_spread": "10",
+    "tot_rept_positions_long_all": "1500",
+    "tot_rept_positions_short": "1450",
+    "nonrept_positions_long_all": "500",
+    "nonrept_positions_short_all": "550",
+    "pct_of_oi_nonrept_long_all": "25.0"
+  }
+]

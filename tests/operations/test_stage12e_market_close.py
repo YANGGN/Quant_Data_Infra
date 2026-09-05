@@ -8,7 +8,14 @@ import tempfile
 import unittest
 from zoneinfo import ZoneInfo
 
-from quant_data.errors import ConflictError, ResourceLimitError, StoreUnavailableError, ValidationError
+import quant_data.operations.stage12e_market_close as stage12e_market_close
+from quant_data.errors import (
+    ConflictError,
+    Issue,
+    ResourceLimitError,
+    StoreUnavailableError,
+    ValidationError,
+)
 from quant_data.market.stage12_incremental import Stage12BPublicationReceipt
 from quant_data.operations.stage12e_market_close import (
     MAX_SYMBOL_COUNT,
@@ -67,17 +74,39 @@ class _Environment(dict[str, str]):
 
 
 class _Collector:
-    def __init__(self, market_store: Path) -> None:
+    def __init__(
+        self,
+        market_store: Path,
+        *,
+        invalid_symbols: frozenset[str] = frozenset(),
+        publish_failure_symbols: frozenset[str] = frozenset(),
+    ) -> None:
         self.market_store = market_store
+        self.invalid_symbols = invalid_symbols
+        self.publish_failure_symbols = publish_failure_symbols
         self.prepared: list[tuple[object, object]] = []
 
     def prepare(self, request: object, response: object) -> tuple[object, object]:
         self.prepared.append((request, response))
+        symbol = str(getattr(request, "symbol"))
+        if symbol in self.invalid_symbols:
+            raise ValidationError(
+                "injected invalid market values",
+                issues=(
+                    Issue(
+                        "/response/body/0/high",
+                        "ohlc",
+                        "injected invalid market values",
+                    ),
+                ),
+            )
         return request, response
 
     def publish(self, prepared: tuple[object, object]) -> Stage12BPublicationReceipt:
         request, _ = prepared
         symbol = str(getattr(request, "symbol"))
+        if symbol in self.publish_failure_symbols:
+            raise StoreUnavailableError("injected publication failure")
         return Stage12BPublicationReceipt(
             outcome="published",
             semantic_identity=("a" * 63) + str(len(self.prepared) % 10),
@@ -169,6 +198,7 @@ class Stage12EMarketCloseTests(unittest.TestCase):
         environment: _Environment | None = None,
         scheduled_instruments: tuple[_ScheduledInstrument, ...] | None = None,
         universe_sha256: str | None = None,
+        collector: _Collector | None = None,
     ) -> Stage12EMarketCloseRunner:
         return Stage12EMarketCloseRunner(
             project_root=self.project,
@@ -178,12 +208,41 @@ class Stage12EMarketCloseTests(unittest.TestCase):
             symbols=symbols,
             scheduled_instruments=scheduled_instruments,
             universe_sha256=universe_sha256,
-            collector=self.collector,  # type: ignore[arg-type]
+            collector=self.collector if collector is None else collector,  # type: ignore[arg-type]
             transport=transport,
             environment=environment or self.environment,
             monotonic=self.clock.monotonic,
             sleeper=self.clock.sleep,
             utcnow=self.clock.now,
+        )
+
+    def _results_by_symbol(self) -> dict[str, dict[str, object]]:
+        journal = self.state / self.session / "journal"
+        values = (
+            json.loads(path.read_text(encoding="utf-8"))
+            for path in journal.glob("*.result.json")
+        )
+        return {str(value["symbol"]): value for value in values}
+
+    def test_request_scope_authority_is_stable_across_implementation_versions(self) -> None:
+        implementation_only_change = dict(stage12e_market_close._AUTHORITY)
+        implementation_only_change["version"] = "9.9.9"
+        request_change = dict(stage12e_market_close._AUTHORITY)
+        request_change["endpoint_path"] = "/changed"
+
+        self.assertEqual(
+            stage12e_market_close.STAGE12E_REQUEST_SCOPE_AUTHORITY_SHA256,
+            "3bc6efd4d82325179ae54c791e28cb3700916c4e8dc1f30168f9e438940add29",
+        )
+        self.assertEqual(
+            stage12e_market_close._request_scope_authority_sha256(
+                implementation_only_change
+            ),
+            stage12e_market_close.STAGE12E_REQUEST_SCOPE_AUTHORITY_SHA256,
+        )
+        self.assertNotEqual(
+            stage12e_market_close._request_scope_authority_sha256(request_change),
+            stage12e_market_close.STAGE12E_REQUEST_SCOPE_AUTHORITY_SHA256,
         )
 
     def test_complete_cycle_is_aapl_first_paced_and_replay_is_credential_free(self) -> None:
@@ -311,37 +370,176 @@ class Stage12EMarketCloseTests(unittest.TestCase):
             ("complete", 1, 2),
         )
 
-    def test_pinned_terminal_402_rejects_control_characters(self) -> None:
-        with self.assertRaises(ValidationError):
-            self._runner(
-                _Transport(
-                    self.session,
-                    responses={
-                        "^NDX": Stage12ETransportResponse(
-                            status=402,
-                            media_type="application/json",
-                            body=b'{"Error Message":"payment\\u0000required"}',
-                        )
-                    },
-                    clock=self.clock,
-                ),
-                symbols=("AAPL", "^NDX"),
-            ).run()
+    def test_malformed_pinned_402_is_isolated_but_aggregate_fails(self) -> None:
+        transport = _Transport(
+            self.session,
+            responses={
+                "^AXJO": Stage12ETransportResponse(
+                    status=402,
+                    media_type="application/json",
+                    body=b'{"Error Message":',
+                )
+            },
+            clock=self.clock,
+        )
+        with self.assertRaises(StoreUnavailableError):
+            self._runner(transport, symbols=("AAPL", "^AXJO", "MSFT")).run()
 
-    def test_unknown_empty_response_fails_closed(self) -> None:
+        self.assertEqual(transport.calls, ["AAPL", "^AXJO", "MSFT"])
+        results = self._results_by_symbol()
+        self.assertEqual(
+            (results["^AXJO"]["outcome"], results["^AXJO"]["failure_kind"]),
+            ("failed_response", "invalid_error_envelope"),
+        )
+        self.assertIsNone(results["^AXJO"]["publication"])
+        self.assertEqual(results["MSFT"]["outcome"], "published")
+        self.assertFalse((self.state / self.session / "completion.json").exists())
+
+    def test_unknown_empty_response_is_isolated_but_aggregate_fails(self) -> None:
+        transport = _Transport(
+            self.session,
+            responses={
+                "AVB": Stage12ETransportResponse(
+                    status=200, media_type="application/json", body=b"[]"
+                )
+            },
+            clock=self.clock,
+        )
+        with self.assertRaisesRegex(
+            StoreUnavailableError, "ticker responses failed validation"
+        ):
+            self._runner(transport, symbols=("AAPL", "AVB", "MSFT")).run()
+
+        self.assertEqual(transport.calls, ["AAPL", "AVB", "MSFT"])
+        results = self._results_by_symbol()
+        self.assertEqual(
+            {symbol: result["outcome"] for symbol, result in results.items()},
+            {
+                "AAPL": "published",
+                "AVB": "failed_response",
+                "MSFT": "published",
+            },
+        )
+        self.assertEqual(results["AVB"]["failure_kind"], "unapproved_empty")
+        self.assertIsNone(results["AVB"]["publication"])
+        session_root = self.state / self.session
+        self.assertFalse((session_root / "completion.json").exists())
+        failure = json.loads(
+            (session_root / "failure.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(failure["error"], "store_unavailable")
+
+        second_transport = _Transport(self.session, fail=True, clock=self.clock)
+        with self.assertRaises(ConflictError):
+            self._runner(
+                second_transport, symbols=("AAPL", "AVB", "MSFT")
+            ).run()
+        self.assertEqual(second_transport.calls, [])
+
+    def test_received_policy_failures_are_isolated_but_aggregate_fails(self) -> None:
+        transport = _Transport(
+            self.session,
+            responses={
+                "AVB": Stage12ETransportResponse(
+                    status=500,
+                    media_type="application/json",
+                    body=b"{}",
+                ),
+                "EA": Stage12ETransportResponse(
+                    status=200,
+                    media_type="text/plain",
+                    body=_body("EA", self.session),
+                ),
+                "MSFT": Stage12ETransportResponse(
+                    status=200,
+                    media_type="application/json",
+                    body=_body("MSFT", self.session),
+                    redirected=True,
+                ),
+                "IBM": Stage12ETransportResponse(
+                    status=True,
+                    media_type="application/json",
+                    body=_body("IBM", self.session),
+                ),
+            },
+            clock=self.clock,
+        )
         with self.assertRaises(StoreUnavailableError):
             self._runner(
-                _Transport(
-                    self.session,
-                    responses={
-                        "MSFT": Stage12ETransportResponse(
-                            status=200, media_type="application/json", body=b"[]"
-                        )
-                    },
-                    clock=self.clock,
-                ),
-                symbols=("AAPL", "MSFT"),
+                transport,
+                symbols=("AAPL", "AVB", "EA", "MSFT", "IBM", "NVDA"),
             ).run()
+
+        self.assertEqual(
+            transport.calls, ["AAPL", "AVB", "EA", "MSFT", "IBM", "NVDA"]
+        )
+        results = self._results_by_symbol()
+        self.assertEqual(
+            {
+                symbol: result.get("failure_kind")
+                for symbol, result in results.items()
+                if result["outcome"] == "failed_response"
+            },
+            {
+                "AVB": "unapproved_status",
+                "EA": "invalid_media_type",
+                "MSFT": "redirected_response",
+                "IBM": "invalid_status",
+            },
+        )
+        self.assertEqual(results["NVDA"]["outcome"], "published")
+        self.assertTrue(
+            all(
+                results[symbol]["publication"] is None
+                for symbol in ("AVB", "EA", "MSFT", "IBM")
+            )
+        )
+        self.assertFalse((self.state / self.session / "completion.json").exists())
+
+    def test_malformed_and_invalid_payloads_do_not_block_later_tickers(self) -> None:
+        collector = _Collector(
+            self.market,
+            invalid_symbols=frozenset({"AVB"}),
+        )
+        transport = _Transport(
+            self.session,
+            responses={
+                "AAPL": Stage12ETransportResponse(
+                    status=200,
+                    media_type="application/json",
+                    body=b'{"malformed":',
+                )
+            },
+            clock=self.clock,
+        )
+        with self.assertRaises(StoreUnavailableError):
+            self._runner(
+                transport,
+                symbols=("AAPL", "AVB", "MSFT"),
+                collector=collector,
+            ).run()
+
+        self.assertEqual(transport.calls, ["AAPL", "AVB", "MSFT"])
+        results = self._results_by_symbol()
+        self.assertEqual(results["AAPL"]["failure_kind"], "invalid_payload")
+        self.assertEqual(results["AVB"]["failure_kind"], "invalid_payload")
+        self.assertEqual(results["MSFT"]["outcome"], "published")
+
+    def test_publication_failure_still_stops_before_later_tickers(self) -> None:
+        collector = _Collector(
+            self.market,
+            publish_failure_symbols=frozenset({"AVB"}),
+        )
+        transport = _Transport(self.session, clock=self.clock)
+        with self.assertRaises(StoreUnavailableError):
+            self._runner(
+                transport,
+                symbols=("AAPL", "AVB", "MSFT"),
+                collector=collector,
+            ).run()
+
+        self.assertEqual(transport.calls, ["AAPL", "AVB"])
+        self.assertEqual(set(self._results_by_symbol()), {"AAPL"})
 
     def test_systemic_response_records_failure_and_never_retries(self) -> None:
         response = Stage12ETransportResponse(

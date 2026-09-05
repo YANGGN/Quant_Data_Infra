@@ -96,7 +96,15 @@ class GridTransport:
             "close_price": "1.20",
             "close_price_date": "2026-08-01",
             "root_symbol": symbol,
-            "deliverables": [],
+            "deliverables": [
+                {
+                    "allocation_percentage": "100",
+                    "amount": "100",
+                    "delayed_settlement": False,
+                    "symbol": symbol,
+                    "type": "equity",
+                }
+            ],
         }
 
     def request(self, **kwargs: object) -> AlpacaHttpResponse:
@@ -359,6 +367,18 @@ class AlpacaEtfOptionsTests(unittest.TestCase):
                     "SELECT request_scope_json FROM option_surface_captures"
                 )
             ]
+            self.assertEqual(
+                connection.execute(
+                    "SELECT count(*) FROM option_raw_responses"
+                ).fetchone()[0],
+                32,
+            )
+            self.assertEqual(
+                connection.execute(
+                    "SELECT count(*) FROM option_capture_raw_responses"
+                ).fetchone()[0],
+                60,
+            )
         self.assertTrue(
             all(
                 scope["target_dtes"] == list(ALPACA_ETF_OPTIONS_DTE_TARGETS)
@@ -385,8 +405,24 @@ class AlpacaEtfOptionsTests(unittest.TestCase):
 
         equivalent = self._run(EquivalentNumericTransport())
         self.assertEqual(equivalent.outcome, "succeeded")
-        self.assertEqual(equivalent.written_count, 0)
-        self.assertEqual(before["sha256"], mutation_fingerprint(self.stores)["sha256"])
+        self.assertGreater(equivalent.written_count, 0)
+        self.assertNotEqual(
+            before["sha256"],
+            mutation_fingerprint(self.stores)["sha256"],
+        )
+        with read_connection(self.stores, StoreRole.MARKET) as connection:
+            self.assertEqual(
+                connection.execute(
+                    "SELECT count(*) FROM option_raw_responses"
+                ).fetchone()[0],
+                47,
+            )
+            self.assertEqual(
+                connection.execute(
+                    "SELECT count(*) FROM option_capture_raw_responses"
+                ).fetchone()[0],
+                120,
+            )
 
     def test_expiry_tie_and_duplicate_target_collapse_are_deterministic(self) -> None:
         def rows(expiration: date) -> list[dict[str, object]]:

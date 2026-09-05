@@ -285,6 +285,16 @@ an offset-bearing ISO 8601 source lexeme with one through nine fractional
 digits. Those exact strings are stored, returned by the Inspector, and
 included in semantic identity.
 
+The same collectors retain each exact provider JSON response body in private,
+immutable evidence before completing the normalized option-surface
+projection. Content SHA-256 and capture membership preserve response identity
+and source order without making raw values analytically eligible. A
+nonstandard-deliverable exclusion may null the canonical analytic surface, but
+it MUST NOT delete or replace the received raw evidence. Conversely, raw
+evidence MUST NOT be copied into an excluded canonical row. When legacy
+response bytes were never retained, a correction records explicit missingness
+and MUST NOT synthesize a historical price.
+
 These source-native fields are inspection and audit text only. They are not
 accepted as shared `TemporalValue`, cutoff, or `as_of` inputs. A transient
 microsecond-compatible copy may be used only to validate the timestamp and

@@ -322,7 +322,9 @@ class FmpMacroCalendarHistoryTests(unittest.TestCase):
         self.assertEqual(self.parser.calls, [])
         self.assertEqual(publisher.calls, [])
 
-    def test_stdlib_transport_keeps_apikey_out_of_query(self) -> None:
+    def test_stdlib_transport_keeps_headers_out_of_query_and_allows_no_query(
+        self,
+    ) -> None:
         calls: list[dict[str, object]] = []
 
         class _Response:
@@ -376,8 +378,16 @@ class FmpMacroCalendarHistoryTests(unittest.TestCase):
                 timeout_seconds=60,
                 max_bytes=1024 * 1024,
             )
+            queryless_response = operation._StdlibTransport().request(
+                url="https://markets.newyorkfed.org/api/soma/summary.json",
+                parameters={},
+                headers={"Accept": "application/json"},
+                timeout_seconds=60,
+                max_bytes=1024 * 1024,
+            )
 
         self.assertEqual(response.body, b"{}")
+        self.assertEqual(queryless_response.body, b"{}")
         self.assertEqual(calls[0], {"host": "financialmodelingprep.com", "timeout": 60})
         self.assertEqual(
             calls[1]["target"],
@@ -385,6 +395,12 @@ class FmpMacroCalendarHistoryTests(unittest.TestCase):
         )
         self.assertNotIn(_SECRET, str(calls[1]["target"]))
         self.assertEqual(calls[1]["headers"], {"Accept": "application/json", "apikey": _SECRET})
+        self.assertEqual(
+            calls[2],
+            {"host": "markets.newyorkfed.org", "timeout": 60},
+        )
+        self.assertEqual(calls[3]["target"], "/api/soma/summary.json")
+        self.assertEqual(calls[3]["headers"], {"Accept": "application/json"})
 
     def test_semantic_replay_stays_with_publisher_and_does_not_write(self) -> None:
         publisher = _Publisher(self.lock_state, self.events, replay=True)

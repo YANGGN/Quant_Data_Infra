@@ -253,7 +253,7 @@ class _StdlibTransport:
             )
         except (TypeError, ValueError) as exc:
             raise ValidationError("FMP calendar provider request is invalid") from exc
-        if len(query) == 0 or any(
+        if any(
             not isinstance(key, str) or not isinstance(value, str)
             for key, value in parameters.items()
         ):
@@ -264,7 +264,9 @@ class _StdlibTransport:
         ):
             raise ValidationError("FMP calendar provider request is invalid")
         parsed = urlsplit(url)
-        target = (parsed.path or "/") + "?" + query
+        target = parsed.path or "/"
+        if query:
+            target += "?" + query
         try:
             connection = http.client.HTTPSConnection(parsed.netloc, timeout=timeout_seconds)
         except (OSError, http.client.HTTPException) as exc:

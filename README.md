@@ -86,6 +86,28 @@ no live provider or runtime network access, scheduler installation/start,
 exports, Atlas, promotion, hosting, credentials, default database fallback, or
 destructive operations.
 
+That Stage 6 portal remains a frozen historical projection. For current
+canonical-data and public-tool inspection, start the separate loopback-only
+Canonical Data Inspector:
+
+```bash
+bin/quant-data-inspector
+```
+
+Open the printed `http://127.0.0.1:8765/` URL. Its Data views use fixed,
+bounded read templates. Its Agent Tools section is generated from the current
+manifest, shows only the latest version of each logical tool, supports session-only
+typed-series reuse, and renders bounded nested previews plus the complete
+strict-JSON response in pages.
+The Current news page renders a bounded latest selection through the fixed
+`news.search@2.2.0` public contract, with source, symbol, date, text, and
+cursor filters. Retained raw response bytes and article bodies remain private.
+The Data status page reports retained capture/outcome freshness without
+probing providers, credentials, or schedulers. `GET /healthz` is a process-
+liveness endpoint only and makes no data-freshness or provider-health claim.
+The launcher has no SQL, database-path, credential, provider-request,
+ingestion, or write control.
+
 The authorized Stage 8 scope is one manual, fixture-only JSON Atlas snapshot
 built from explicit synthetic store roots and query-only SQLite online-backup
 copies. It validates a bounded cohort into an immutable derived revision with a
@@ -614,7 +636,7 @@ the separate current FMP news path and `news.search@2.0.0`. The bounded
 from its one request, with no retry. Its exact projection removes only that
 successor and restores `2.62.0`.
 
-The current registry is `2.64.0` at SHA-256
+Registry `2.64.0` is at SHA-256
 `b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`;
 catalog `2.24.0` is at SHA-256
 `6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
@@ -648,6 +670,38 @@ removes only KDJ v2.3 and
 restores byte-identical `2.57.0`. The next projection removes only the 15
 investment successors and restores byte-identical `2.56.0`; later projections
 remove only v2.2 and then v2.1, restoring `2.55.0` and `2.54.0` respectively.
+On 2026-08-30 the user explicitly authorized updating the enabled,
+legacy-named `quant-data-alpaca-spy-options.timer` in place to run the fixed
+15-ETF option grid at its then-current 15:55 America/New_York weekday cadence.
+On 2026-08-31 the user authorized moving that same fixed timer to 16:20
+America/New_York so collection begins after the latest ordinary ETF-option
+session. The operation has no retry or catch-up and is capped at 362
+single-attempt requests, 900,016 rows, 256 MiB, and 900 seconds with a
+16-minute host timeout. It retains exact response bytes before normalization;
+partial grids exit nonzero. The registry collector remains `manual_only`,
+while this host unit is the explicit recurring exception. The separate 18:00
+Stage 12E FMP market-close job remains unchanged.
+
+The current registry is `2.68.0` at SHA-256
+`9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`;
+catalog `2.26.0` is at SHA-256
+`fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
+Registry `2.68.0` adds six private, credential-free, `manual_only` macro-history
+collectors for CFTC TFF and disaggregated futures-only history, Treasury
+securities auctions, NY Fed Primary Dealer Statistics, and Federal Reserve H.8
+and SLOOS. They reuse the existing macro evidence, canonical, and catalog
+outputs; add no migration, job, scheduler, tool, dashboard, export, or catalog
+contract; and exact projection restores byte-identical registry `2.67.0`
+while catalog `2.26.0` remains unchanged.
+
+Its immediate predecessor, registry `2.67.0`, adds
+`data.get_dataset_status@1.0.0` plus typed v2 successors for option capture
+search, contract search, and coherent surface snapshots over the fixed retained
+Alpaca ETF cohort. The inventory is 74 logical names, 44 version policies, 61
+variants, and 156 contracts. Status is retained-only; option raw responses remain
+private and missing/nonstandard states remain explicit. Exact projection removes
+only this increment and restores registry `2.66.0`/catalog `2.25.0` byte-for-byte.
+
 Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all

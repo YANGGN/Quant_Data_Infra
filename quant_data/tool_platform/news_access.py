@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import hashlib
 from datetime import datetime, timezone
 from typing import Final, Mapping
 
 from quant_data.contracts import LineageRef, TruncationV1, WarningV1
 from quant_data.errors import ResourceLimitError, ValidationError
-from quant_data.json_codec import dumps_strict
+from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.news.current_multi_source import CURRENT_MULTI_SOURCE_FEED_IDS
 from quant_data.news.current_multi_source_repository import (
     CURRENT_MULTI_SOURCE_REPOSITORY_ARTICLES_DATASET_ID,
@@ -18,6 +20,7 @@ from quant_data.news.current_multi_source_repository import (
 from quant_data.news.current_repository import (
     CURRENT_NEWS_ARTICLES_DATASET_ID,
     CURRENT_NEWS_EVIDENCE_DATASET_ID,
+    CurrentNewsKeysetAnchor,
     CurrentNewsQuery,
     CurrentNewsRepository,
     CurrentNewsSelection,
@@ -27,6 +30,7 @@ from quant_data.registry import Registry
 from .arguments import (
     CurrentNewsSearchArgumentsV2,
     CurrentNewsSearchArgumentsV21,
+    CurrentNewsSearchArgumentsV22,
 )
 from .context import ToolExecutionContext
 from .results import DiagnosticV1, QueryResult, Scalar, fields_from_mapping, records_from_mappings
@@ -322,9 +326,11 @@ def _result_v21(
     migration_ids: tuple[str, ...],
     receipt_sha256: str,
     warnings: tuple[str, ...],
+    next_cursor: str | None = None,
+    record_kind: str = "current_news_headline_v2_1",
 ) -> QueryResult:
     rendered = records_from_mappings(
-        "current_news_headline_v2_1",
+        record_kind,
         tuple(_record_fields_v21(row) for row in records),
     )
     truncated = total_selected_count > query.limit
@@ -373,6 +379,7 @@ def _result_v21(
             returned_count=len(rendered),
             total_known_count=total_selected_count,
             has_more=truncated,
+            next_cursor=next_cursor,
         ),
     )
 
@@ -495,11 +502,236 @@ def invoke_news_search_v21(
     )
 
 
+PAGINATED_OPERATION_VERSION: Final = "2.2.0"
+_CURSOR_CONTRACT: Final = "quant_data.current_news_cursor"
+_CURSOR_VERSION: Final = 1
+
+
+def _cursor_query_sha256(
+    arguments: CurrentNewsSearchArgumentsV22,
+    source_ids: tuple[str, ...],
+) -> str:
+    material = {
+        "as_of": arguments.as_of,
+        "date_only_policy": arguments.date_only_policy,
+        "end_date": arguments.end_date,
+        "mode": arguments.mode,
+        "query": arguments.query,
+        "source_ids": sorted(source_ids),
+        "start_date": arguments.start_date,
+        "symbols": sorted(arguments.symbols),
+    }
+    return hashlib.sha256(dumps_strict(material).encode("utf-8")).hexdigest()
+
+
+def _encode_cursor(
+    anchor: CurrentNewsKeysetAnchor,
+    *,
+    query_sha256: str,
+) -> str:
+    payload = dumps_strict(
+        {
+            "anchor": anchor.receipt_mapping(),
+            "contract": _CURSOR_CONTRACT,
+            "query_sha256": query_sha256,
+            "version": _CURSOR_VERSION,
+        }
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).rstrip(b"=").decode("ascii")
+
+
+def _cursor_datetime(value: object, *, label: str) -> datetime:
+    if not isinstance(value, str) or not value:
+        raise ValidationError(f"Current-news cursor {label} is invalid")
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValidationError(f"Current-news cursor {label} is invalid") from exc
+    if parsed.tzinfo is None or parsed.utcoffset() is None:
+        raise ValidationError(f"Current-news cursor {label} is invalid")
+    return parsed.astimezone(timezone.utc)
+
+
+def _decode_cursor(
+    cursor: str | None,
+    *,
+    query_sha256: str,
+) -> CurrentNewsKeysetAnchor | None:
+    if cursor is None:
+        return None
+    try:
+        padding = "=" * (-len(cursor) % 4)
+        raw = base64.b64decode(
+            cursor + padding,
+            altchars=b"-_",
+            validate=True,
+        )
+    except (ValueError, binascii.Error) as exc:
+        raise ValidationError("Current-news cursor is invalid") from exc
+    parsed = loads_strict(raw, max_bytes=4_096)
+    if not isinstance(parsed, Mapping) or set(parsed) != {
+        "anchor",
+        "contract",
+        "query_sha256",
+        "version",
+    }:
+        raise ValidationError("Current-news cursor is invalid")
+    if (
+        parsed["contract"] != _CURSOR_CONTRACT
+        or parsed["version"] != _CURSOR_VERSION
+        or parsed["query_sha256"] != query_sha256
+    ):
+        raise ValidationError("Current-news cursor does not match this query")
+    anchor = parsed["anchor"]
+    if not isinstance(anchor, Mapping) or set(anchor) != {
+        "article_id",
+        "captured_at",
+        "publication_instant",
+    }:
+        raise ValidationError("Current-news cursor anchor is invalid")
+    article_id = anchor["article_id"]
+    publication = anchor["publication_instant"]
+    if not isinstance(article_id, str) or not article_id:
+        raise ValidationError("Current-news cursor article identity is invalid")
+    if publication is not None:
+        publication = _cursor_datetime(publication, label="publication instant")
+    decoded = CurrentNewsKeysetAnchor(
+        publication_instant=publication,
+        captured_at=_cursor_datetime(anchor["captured_at"], label="capture instant"),
+        article_id=article_id,
+    )
+    if _encode_cursor(decoded, query_sha256=query_sha256) != cursor:
+        raise ValidationError("Current-news cursor is not canonical")
+    return decoded
+
+
+def invoke_news_search_v22(
+    name: str,
+    arguments: object,
+    context: ToolExecutionContext,
+    registry: Registry,
+) -> QueryResult:
+    """Select one keyset-paginated page of retained fixed-source news."""
+
+    if name != TOOL_NAME:
+        raise LookupError("Current multi-source news operation is not registered")
+    if not isinstance(arguments, CurrentNewsSearchArgumentsV22):
+        raise ValidationError(
+            "Current multi-source news search requires typed v2.2 arguments"
+        )
+    if not isinstance(registry, Registry):
+        raise ValidationError("Current multi-source news registry is invalid")
+
+    source_ids = _source_ids_v21(arguments)
+    query_sha256 = _cursor_query_sha256(arguments, source_ids)
+    after = _decode_cursor(arguments.cursor, query_sha256=query_sha256)
+    query = _query(arguments)
+    context.checkpoint()
+    context.budget.require(rows=query.limit, series=0, operations=query.limit * 2)
+
+    include_fmp = not source_ids or FMP_CURRENT_SOURCE_ID in source_ids
+    selected_multi_ids = tuple(
+        source_id for source_id in source_ids if source_id != FMP_CURRENT_SOURCE_ID
+    )
+    include_multi = not source_ids or bool(selected_multi_ids)
+    fmp_selection = (
+        CurrentNewsRepository(context.store_map, registry).search(query, after=after)
+        if include_fmp
+        else None
+    )
+    multi_selection = (
+        CurrentMultiSourceNewsRepository(context.store_map, registry).search(
+            query,
+            source_ids=selected_multi_ids if source_ids else (),
+            after=after,
+        )
+        if include_multi
+        else None
+    )
+
+    records: list[dict[str, object]] = []
+    if fmp_selection is not None:
+        records.extend(_normalize_fmp_v21(row) for row in fmp_selection.records)
+    if multi_selection is not None:
+        records.extend({**row, "_family": "multi"} for row in multi_selection.records)
+    _sort_v21(records)
+    selected_records = tuple(records[: query.limit])
+    total_selected_count = sum(
+        selection.total_selected_count
+        for selection in (fmp_selection, multi_selection)
+        if selection is not None
+    )
+    migration_ids = tuple(
+        sorted(
+            {
+                migration_id
+                for selection in (fmp_selection, multi_selection)
+                if selection is not None
+                for migration_id in selection.migration_ids
+            }
+        )
+    )
+    warnings = tuple(
+        sorted(
+            {
+                warning
+                for selection in (fmp_selection, multi_selection)
+                if selection is not None
+                for warning in selection.warnings
+            }
+        )
+    )
+    subreceipts = [
+        selection.receipt_sha256
+        for selection in (fmp_selection, multi_selection)
+        if selection is not None
+    ]
+    has_more = total_selected_count > query.limit
+    next_cursor = (
+        _encode_cursor(
+            CurrentNewsKeysetAnchor.from_record(selected_records[-1]),
+            query_sha256=query_sha256,
+        )
+        if has_more and selected_records
+        else None
+    )
+    receipt_sha256 = hashlib.sha256(
+        dumps_strict(
+            {
+                "after": None if after is None else after.receipt_mapping(),
+                "query_sha256": query_sha256,
+                "request": query.receipt_mapping(),
+                "selected_article_versions": [
+                    str(row["article_version_id"]) for row in selected_records
+                ],
+                "source_ids": list(source_ids),
+                "subreceipts": subreceipts,
+                "total_selected_count": total_selected_count,
+            }
+        ).encode("utf-8")
+    ).hexdigest()
+    context.checkpoint()
+    return _result_v21(
+        name=name,
+        query=query,
+        source_ids=source_ids,
+        records=selected_records,
+        total_selected_count=total_selected_count,
+        migration_ids=migration_ids,
+        receipt_sha256=receipt_sha256,
+        warnings=warnings,
+        next_cursor=next_cursor,
+        record_kind="current_news_headline_v2_2",
+    )
+
+
 __all__ = (
     "FMP_CURRENT_SOURCE_ID",
     "MULTI_SOURCE_OPERATION_VERSION",
     "OPERATION_VERSION",
+    "PAGINATED_OPERATION_VERSION",
     "TOOL_NAME",
     "invoke_news_search_v2",
     "invoke_news_search_v21",
+    "invoke_news_search_v22",
 )

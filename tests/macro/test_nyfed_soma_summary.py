@@ -61,7 +61,7 @@ class NyFedSomaParseTests(unittest.TestCase):
         early = {
             item.category: item for item in capture.releases[0].components
         }
-        self.assertEqual(early["treasury_bills"].value_text, "239304992000")
+        self.assertEqual(early["treasury_bills"].value_text, "239304992")
         self.assertIsNone(early["treasury_floating_rate_notes"].value_text)
         self.assertEqual(
             early["treasury_floating_rate_notes"].missing_reason,
@@ -69,7 +69,7 @@ class NyFedSomaParseTests(unittest.TestCase):
         )
         self.assertEqual(
             capture.releases[-1].components[-1].value_text,
-            "6368753087439.8",
+            "6368753087.4398",
         )
 
     def test_order_capture_time_and_json_format_are_nonsemantic(self) -> None:
@@ -176,6 +176,19 @@ class NyFedSomaPublicationTests(unittest.TestCase):
                     """
                 ).fetchone()[0],
                 "source_missing",
+            )
+            self.assertEqual(
+                tuple(
+                    connection.execute(
+                        """
+                        SELECT value_text, unit
+                        FROM soma_summary_components
+                        WHERE as_of_date='2026-08-19'
+                          AND category='total'
+                        """
+                    ).fetchone()
+                ),
+                ("6368753087.4398", "thousands_usd"),
             )
             self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
             self.assertEqual(

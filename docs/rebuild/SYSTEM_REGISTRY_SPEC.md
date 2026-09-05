@@ -5,17 +5,17 @@
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
 `QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
-`2.64.0`, schema `1.9.0`, with registry SHA-256
-`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4` and
-catalog `2.24.0` SHA-256
-`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
+`2.69.0`, schema `1.9.0`, with 44 migrations, 59 datasets, and 66 collectors;
+registry SHA-256
+`2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f` and catalog `2.26.0` SHA-256
+`fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
 The former `2.22.0`/`validated` working candidate is
 rejected under [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md)
 and is not an accepted registry revision. Registry validation and artifact
 presence are declarative, not authorization or evidence of provider execution,
 canonical publication, public exposure, or scheduler operation. Because the
 candidate never entered the active configuration lineage, it remains absent
-from the later additive `2.23.0` through `2.64.0` revisions. For any
+from the later additive `2.23.0` through `2.68.0` revisions. For any
 operational task, first read the
 [current operating envelope](CURRENT_OPERATING_ENVELOPE.md).
 
@@ -33,7 +33,75 @@ current-news datasets are exposed only through local read-only
 collector, tool, dashboard, export, or source ID. Version 2.1 reads only the
 fixed source IDs declared by the registry. Neither public version exposes
 article bodies or raw evidence, performs a provider request, or reads the
-legacy relation. Registry `2.13.0` also
+legacy relation.
+
+Registry `2.65.0` adds forward market migration
+`market:0011_option_raw_evidence` at SHA-256
+`f6a4685963e1eddffb7fd92944e19e4bbeda0c89bc196d85a2308f1f408d8129`
+and the private `market.alpaca.option_raw_evidence` dataset. The dataset owns
+immutable exact-response BLOBs and capture memberships and is an output of
+both Alpaca option collectors; it has no tool, dashboard, export, or public
+route. The collectors now recognize Alpaca's explicit single-equity,
+100-share, 100%-allocation representation as an ordinary standard
+deliverable. True adjusted, mixed, cash, alternate-root, or non-100-share
+contracts remain analytically excluded, but their received response bytes are
+still retained. The migration narrowly relabels only provably affected stored
+contracts whose delivery symbol matches the stored underlying; because older
+response bytes were not retained, it records explicit missing reasons instead
+of inventing historical prices. Exact projection removes only this migration,
+dataset, collector bindings, and semantic-identity field and restores
+byte-exact registry `2.64.0` at SHA-256
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`.
+The tool catalogs remain unchanged.
+
+Registry `2.66.0` adds only local read-only news/research contracts:
+cursor-paginated `news.search@2.2.0`, seven additive news names, and
+`research.news_event_impact@1.0.0`. The tools read retained current-news
+metadata, and the impact tool additionally reads retained daily market prices;
+they perform no provider request or canonical write. Clusters are exact-match
+candidates, coverage uses provider symbols without claiming canonical entity
+resolution, labels are deterministic derived annotations, and event impact is
+retrospective raw close-to-close performance rather than a causal or abnormal
+return claim. The current inventory is 73 logical names, 41 version policies,
+58 variants, and 148 catalog contracts. Exact projection removes only these
+tools and restores byte-identical registry `2.65.0` and catalog `2.24.0`.
+
+Registry `2.67.0` adds the retained-only
+`data.get_dataset_status@1.0.0` contract and explicit `2.0.0` successors for
+`options.search_captures`, `options.search_contracts`, and
+`options.get_surface_snapshot`. Dataset status evaluates retained successful-
+capture anchors against declared thresholds; it does not probe providers,
+credentials, or schedulers. Options v2 reads only the fixed retained Alpaca
+paper/indicative ETF cohort, never mixes captures, keeps raw responses private,
+and preserves missing/nonstandard exclusions explicitly. The current inventory
+is 74 logical names, 44 version policies, 61 variants, and 156 catalog
+contracts. Exact projection removes only this increment and restores byte-
+identical registry `2.66.0` and catalog `2.25.0`.
+
+Registry `2.68.0` adds six private, credential-free, bounded `manual_only`
+macro-history collectors for CFTC TFF and disaggregated futures-only history,
+Treasury securities auctions, NY Fed Primary Dealer Statistics, and Federal
+Reserve H.8 and SLOOS. They bind only to existing
+`fixture.macro.rtdsm_employ_evidence`, `fixture.macro.rtdsm_employ`, and
+`fixture.macro.stage3_catalog`, derive physical locks from those outputs, allow
+one attempt without retry, and occur in no job. The H.8 and SLOOS
+attempts use seven and six manifest-ordered singleton requests respectively
+under their unchanged 16 MiB aggregate response cap. The increment adds no migration,
+dataset, public tool, dashboard, export, catalog contract, or scheduler. Exact
+projection removes only these six declarations and their reciprocal bindings,
+restoring byte-exact registry `2.67.0` at SHA-256
+`a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325`; catalog `2.26.0` remains unchanged.
+
+Registry `2.69.0` adds only `fmp.company.corporate_actions_current` and
+`fmp.company.analyst_estimates_current` as private, bounded, manual-only
+collectors, with reciprocal bindings to existing company action and expectation
+evidence/fact datasets. It adds no schema, migration, dataset, tool or catalog.
+Exact projection restores `2.68.0` at SHA-256
+`9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`.
+[The repair receipt](FETCH_REPAIRS_2026-09-05.md) owns finite publication
+evidence and the separately approved company host scheduler exception.
+
+Registry `2.13.0` also
 
 declares only the offline fixture collector
 `market.stage12b.fmp_daily_incremental_fixture` with handler

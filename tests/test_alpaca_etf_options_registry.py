@@ -16,13 +16,15 @@ from quant_data.registry import (
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
 COLLECTOR_ID = "alpaca.market.etf_option_surface_grid"
-DATASET_IDS = (
+CORE_DATASET_IDS = (
     "fixture.market.instruments",
     "fixture.market.option_capture_evidence",
     "fixture.market.options",
 )
+RAW_EVIDENCE_DATASET_ID = "market.alpaca.option_raw_evidence"
+CURRENT_DATASET_IDS = (*CORE_DATASET_IDS, RAW_EVIDENCE_DATASET_ID)
 CURRENT_SOURCE_SHA256 = (
-    "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
+    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
 )
 PREVIOUS_SOURCE_SHA256 = (
     "3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524"
@@ -39,7 +41,7 @@ class AlpacaEtfOptionsRegistryTests(unittest.TestCase):
         current = self._registry()
         self.assertEqual(
             (current.schema_version, current.revision, current.source_sha256),
-            ("1.9.0", "2.64.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.69.0", CURRENT_SOURCE_SHA256),
         )
         collector = next(
             item for item in current.collectors if item["id"] == COLLECTOR_ID
@@ -54,7 +56,7 @@ class AlpacaEtfOptionsRegistryTests(unittest.TestCase):
         self.assertEqual(
             collector["input_datasets"], ["market.stage10.instruments"]
         )
-        self.assertEqual(collector["output_datasets"], list(DATASET_IDS))
+        self.assertEqual(collector["output_datasets"], list(CURRENT_DATASET_IDS))
         self.assertEqual(
             collector["workload_bounds"],
             {
@@ -77,7 +79,7 @@ class AlpacaEtfOptionsRegistryTests(unittest.TestCase):
             collector["schedule_eligibility"], {"mode": "manual_only"}
         )
         datasets = {item.id: item for item in current.datasets}
-        for dataset_id in DATASET_IDS:
+        for dataset_id in CURRENT_DATASET_IDS:
             self.assertEqual(
                 datasets[dataset_id].collector_ids.count(COLLECTOR_ID), 1
             )
@@ -99,7 +101,7 @@ class AlpacaEtfOptionsRegistryTests(unittest.TestCase):
             {str(item["id"]) for item in previous.collectors},
         )
         previous_datasets = {item.id: item for item in previous.datasets}
-        for dataset_id in DATASET_IDS:
+        for dataset_id in CORE_DATASET_IDS:
             self.assertNotIn(
                 COLLECTOR_ID, previous_datasets[dataset_id].collector_ids
             )

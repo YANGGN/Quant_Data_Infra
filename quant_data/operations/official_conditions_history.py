@@ -35,6 +35,7 @@ from ..macro.official_conditions import (
     parse_bis_credit_conditions,
     parse_chicagofed_financial_conditions,
     parse_chicagofed_national_activity,
+    parse_fred_chicagofed_national_activity,
     parse_federal_reserve_h41,
     parse_federal_reserve_industrial_production,
     parse_federal_reserve_policy_rates,
@@ -616,19 +617,15 @@ class OfficialConditionsHistoryRunner:
         if start > end:
             raise ValidationError("CFNAI request window is invalid")
         body = self._request(
-            CHICAGO_CFNAI_URL,
-            accept=(
-                "application/vnd.openxmlformats-officedocument."
-                "spreadsheetml.sheet"
-            ),
+            FRED_H41_URL + "?" + urlencode({"id": "CFNAI", "cosd": start, "coed": end})
         )
-        capture = parse_chicagofed_national_activity(
+        capture = parse_fred_chicagofed_national_activity(
             body,
             captured_at=_utc_text(self._utcnow()),
             start_date=start,
             end_date=end,
         )
-        return self._publisher("cfnai").publish(capture)
+        return self._publisher("cfnai_fred").publish(capture)
 
     def run_bis(
         self, *, start_period: str, end_period: str

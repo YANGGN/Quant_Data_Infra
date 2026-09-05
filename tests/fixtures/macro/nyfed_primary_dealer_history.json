@@ -1,0 +1,36 @@
+{
+  "pd": {
+    "timeseries": [
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDFTD-USTET",
+        "asofdate": "2026-08-19",
+        "value": null
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDPOSMBS-TOT",
+        "asofdate": "2026-08-12",
+        "value": "12,000.25"
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDTRGS-EXTB",
+        "asofdate": "2026-08-19",
+        "value": 54321
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDSORA-UTSETTOT",
+        "asofdate": "2026-08-19",
+        "value": "*"
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDPOSMBS-TOT",
+        "asofdate": "2026-08-19",
+        "value": "12500.250"
+      }
+    ]
+  }
+}

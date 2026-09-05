@@ -1,7 +1,8 @@
-"""Manual, bounded capture of the fixed Alpaca ETF option-surface grid.
+"""Bounded capture of the fixed Alpaca major-ETF option-surface grid.
 
 The market module owns the provider plan and publication. This zero-argument
-boundary fixes the canonical project root and store, emits only compact,
+boundary supports the fixed weekday service as well as direct manual use,
+fixes the canonical project root and store, emits only compact,
 credential-free receipts, and deliberately creates or changes no systemd unit.
 """
 
@@ -83,7 +84,7 @@ def _error(
 
 
 def main() -> int:
-    """Run the fixed manual grid without caller-selected paths or universe."""
+    """Run the fixed major-ETF grid without caller-selected paths or universe."""
 
     try:
         receipt = _run()
@@ -93,7 +94,9 @@ def main() -> int:
         return _error("store_unavailable", 69)
     except ResourceLimitError:
         return _error("local_io", 74)
-    except (RegistryError, ConflictError):
+    except RegistryError:
+        return _error("registry_not_ready", 75)
+    except ConflictError:
         return _error("temporary_conflict", 75)
     except Exception:
         return _error("internal_failure", 70)

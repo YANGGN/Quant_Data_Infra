@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 import quant_data.market.stage12_incremental as stage12_incremental
+import quant_data.operations.stage12e_market_close as stage12e_market_close
 from quant_data.errors import ConflictError, ResourceLimitError, ValidationError
 from quant_data.fingerprint import mutation_fingerprint
 from quant_data.market.stage12_incremental import (
@@ -461,7 +462,9 @@ class Stage12BIncrementalCollectorTests(unittest.TestCase):
         common = {
             "scope": self.scope,
             "stage12a_scope": self.stage12a,
-            "schedule_authority_sha256": "e" * 64,
+            "schedule_authority_sha256": (
+                stage12e_market_close.STAGE12E_REQUEST_SCOPE_AUTHORITY_SHA256
+            ),
             "scheduled_instruments": scheduled,
             "scheduled_code_version": "stage12e-test",
         }
@@ -483,6 +486,7 @@ class Stage12BIncrementalCollectorTests(unittest.TestCase):
         rows = json.loads(self.body)
         for row in rows:
             row["symbol"] = "IWM"
+        response_body = json.dumps(rows, separators=(",", ":")).encode("utf-8")
         request = Stage12BFixtureRequest(
             symbol="IWM",
             from_date="2026-08-10",
@@ -493,14 +497,22 @@ class Stage12BIncrementalCollectorTests(unittest.TestCase):
         first = collector.publish(
             collector.prepare(
                 request,
-                self._response(json.dumps(rows, separators=(",", ":")).encode("utf-8")),
+                self._response(response_body),
             )
         )
         self.assertEqual((first.outcome, first.written_versions), ("published", 3))
 
-        rows.reverse()
-        replay = collector.publish(
-            collector.prepare(
+        with mock.patch.object(
+            stage12_incremental, "_CANONICAL_PROJECT_ROOT", self.root
+        ), mock.patch.object(
+            stage12_incremental, "_CANONICAL_MARKET_STORE", self.stores.market
+        ):
+            replay_collector = Stage12BIncrementalCollector._for_canonical_market_close(
+                **{**common, "scheduled_code_version": "stage12e-next"},
+                scheduled_universe_sha256=universe_sha256,
+            )
+        replay = replay_collector.publish(
+            replay_collector.prepare(
                 Stage12BFixtureRequest(
                     symbol="IWM",
                     from_date="2026-08-10",
@@ -508,10 +520,40 @@ class Stage12BIncrementalCollectorTests(unittest.TestCase):
                     session_dates=("2026-08-10", "2026-08-11", "2026-08-12"),
                     captured_at="2026-08-15T02:00:00Z",
                 ),
-                self._response(json.dumps(rows, separators=(",", ":")).encode("utf-8")),
+                self._response(response_body),
             )
         )
         self.assertEqual((replay.outcome, replay.written_versions), ("unchanged", 0))
+        self.assertEqual(self._counts(), (1, 3, 3))
+
+        with mock.patch.object(
+            stage12_incremental, "_CANONICAL_PROJECT_ROOT", self.root
+        ), mock.patch.object(
+            stage12_incremental, "_CANONICAL_MARKET_STORE", self.stores.market
+        ):
+            changed_scope_collector = (
+                Stage12BIncrementalCollector._for_canonical_market_close(
+                    **{
+                        **common,
+                        "schedule_authority_sha256": "f" * 64,
+                        "scheduled_code_version": "stage12e-next",
+                    },
+                    scheduled_universe_sha256=universe_sha256,
+                )
+            )
+        with self.assertRaises(ConflictError):
+            changed_scope_collector.publish(
+                changed_scope_collector.prepare(
+                    Stage12BFixtureRequest(
+                        symbol="IWM",
+                        from_date="2026-08-10",
+                        to_date="2026-08-12",
+                        session_dates=("2026-08-10", "2026-08-11", "2026-08-12"),
+                        captured_at="2026-08-15T03:00:00Z",
+                    ),
+                    self._response(response_body),
+                )
+            )
         self.assertEqual(self._counts(), (1, 3, 3))
 
         with read_connection(self.stores, StoreRole.MARKET) as connection:

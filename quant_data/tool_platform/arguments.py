@@ -176,6 +176,378 @@ class CurrentNewsSearchArgumentsV21(CurrentNewsSearchArgumentsV2):
     )
 
 
+_CURRENT_NEWS_SOURCE_IDS = (
+    "fmp_stock_latest",
+    "fmp_press_releases",
+    "fmp_general",
+    "fed_press",
+    "ecb_press",
+    "bea_news",
+    "eia_press",
+    "alpaca_benzinga",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CurrentNewsSearchArgumentsV22(CurrentNewsSearchArgumentsV21):
+    """Paginate retained current news across the fixed source set."""
+
+    INPUT_KIND: ClassVar[str] = "current_news_search_v2_2"
+
+    source_ids: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=8,
+            item=_InputField(
+                types=("string",),
+                min_length=1,
+                max_length=64,
+                enum=_CURRENT_NEWS_SOURCE_IDS,
+            ),
+            form="array",
+        ),
+        default=(),
+    )
+    cursor: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            required=False,
+            max_length=1_024,
+        ),
+        default=None,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NewsSourceStatusArgumentsV1(_ArgumentMapping):
+    """Read deterministic retained status for the fixed news sources."""
+
+    INPUT_KIND: ClassVar[str] = "news_source_status_v1"
+
+    source_ids: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=8,
+            item=_InputField(
+                types=("string",),
+                min_length=1,
+                max_length=64,
+                enum=_CURRENT_NEWS_SOURCE_IDS,
+            ),
+            form="array",
+        ),
+        default=(),
+    )
+
+
+_DATA_STATUS_STORES = ("market", "macro", "company", "news")
+_DATA_STATUS_VALUES = ("current", "stale", "no_data", "unknown")
+_OPTIONS_V2_UNDERLYINGS = (
+    "SPY", "QQQ", "IWM", "DIA", "XLB", "XLC", "XLE", "XLF",
+    "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY",
+)
+_OPTIONS_V2_TARGET_DTES = frozenset({1, 2, 3, 7, 14, 30, 60, 90, 180, 365})
+
+
+@dataclass(frozen=True, slots=True)
+class DatasetStatusArgumentsV1(_ArgumentMapping):
+    """Filter retained dataset/control-plane status without probing providers."""
+
+    INPUT_KIND: ClassVar[str] = "dataset_status_v1"
+
+    stores: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=4,
+            item=_InputField(types=("string",), enum=_DATA_STATUS_STORES),
+            form="array",
+        ),
+        default=(),
+    )
+    dataset_ids: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=128,
+            item=_InputField(types=("string",), min_length=1, max_length=256),
+            form="array",
+        ),
+        default=(),
+    )
+    statuses: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=4,
+            item=_InputField(types=("string",), enum=_DATA_STATUS_VALUES),
+            form="array",
+        ),
+        default=(),
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",), required=False, minimum=1, maximum=128
+        ),
+        default=128,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class OptionsCaptureSearchArgumentsV2(_ArgumentMapping):
+    """Search retained fixed-universe Alpaca option captures."""
+
+    INPUT_KIND: ClassVar[str] = "options_capture_search_v2"
+
+    underlying_symbols: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=15,
+            item=_InputField(types=("string",), enum=_OPTIONS_V2_UNDERLYINGS),
+            form="array",
+        ),
+        default=(),
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), required=False, enum=("latest", "as_of")),
+        default="latest",
+    )
+    as_of: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            enum=("completed_date", "calendar_date_inclusive"),
+        ),
+        default="completed_date",
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), required=False, minimum=1, maximum=500),
+        default=100,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class OptionsContractSearchArgumentsV2(_ArgumentMapping):
+    """Search standard contracts from one retained Alpaca underlying cohort."""
+
+    INPUT_KIND: ClassVar[str] = "options_contract_search_v2"
+
+    underlying_symbol: str = _typed_field(
+        _InputField(types=("string",), enum=_OPTIONS_V2_UNDERLYINGS)
+    )
+    query: str = _typed_field(
+        _InputField(types=("string",), required=False, max_length=256), default=""
+    )
+    expiration_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    option_type: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"), required=False, enum=("call", "put")
+        ),
+        default=None,
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), required=False, enum=("latest", "as_of")),
+        default="latest",
+    )
+    as_of: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            enum=("completed_date", "calendar_date_inclusive"),
+        ),
+        default="completed_date",
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), required=False, minimum=1, maximum=2_000),
+        default=100,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class OptionsSurfaceSnapshotArgumentsV2(_ArgumentMapping):
+    """Read one coherent retained Alpaca surface capture."""
+
+    INPUT_KIND: ClassVar[str] = "options_surface_snapshot_v2"
+
+    underlying_symbol: str = _typed_field(
+        _InputField(types=("string",), enum=_OPTIONS_V2_UNDERLYINGS)
+    )
+    capture_id: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"), required=False, min_length=1, max_length=256
+        ),
+        default=None,
+    )
+    target_dte: int | None = _typed_field(
+        _InputField(types=("integer", "null"), required=False, minimum=1, maximum=365),
+        default=None,
+    )
+    expiration_date: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    option_type: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"), required=False, enum=("call", "put")
+        ),
+        default=None,
+    )
+    surface_state: str | None = _typed_field(
+        _InputField(
+            types=("string", "null"),
+            required=False,
+            enum=("present", "missing", "excluded"),
+        ),
+        default=None,
+    )
+    mode: str = _typed_field(
+        _InputField(types=("string",), required=False, enum=("latest", "as_of")),
+        default="latest",
+    )
+    as_of: str | None = _typed_field(
+        _InputField(types=("string", "null"), required=False), default=None
+    )
+    date_only_policy: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            enum=("completed_date", "calendar_date_inclusive"),
+        ),
+        default="completed_date",
+    )
+    limit: int = _typed_field(
+        _InputField(types=("integer",), required=False, minimum=1, maximum=5_000),
+        default=500,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NewsItemHistoryArgumentsV1(_ArgumentMapping):
+    """Read the bounded immutable version history for one current-news item."""
+
+    INPUT_KIND: ClassVar[str] = "news_item_history_v1"
+
+    article_id: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=200)
+    )
+    limit: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=1,
+            maximum=500,
+        ),
+        default=100,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NewsAnalysisArgumentsV1(CurrentNewsSearchArgumentsV21):
+    """Select bounded retained headlines for a deterministic news analysis."""
+
+    INPUT_KIND: ClassVar[str] = "news_analysis_v1"
+
+    source_ids: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",),
+            required=False,
+            max_items=8,
+            item=_InputField(
+                types=("string",),
+                min_length=1,
+                max_length=64,
+                enum=_CURRENT_NEWS_SOURCE_IDS,
+            ),
+            form="array",
+        ),
+        default=(),
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NewsStoryClusterArgumentsV1(NewsAnalysisArgumentsV1):
+    """Select headlines for deterministic candidate-story clustering."""
+
+    INPUT_KIND: ClassVar[str] = "news_story_clusters_v1"
+
+    window_hours: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=1,
+            maximum=168,
+        ),
+        default=24,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NewsAttentionArgumentsV1(NewsAnalysisArgumentsV1):
+    """Select headlines for deterministic bucketed attention metrics."""
+
+    INPUT_KIND: ClassVar[str] = "news_attention_v1"
+
+    bucket: str = _typed_field(
+        _InputField(
+            types=("string",),
+            required=False,
+            enum=("hour", "day"),
+        ),
+        default="day",
+    )
+    baseline_periods: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=2,
+            maximum=90,
+        ),
+        default=20,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class NewsEventImpactArgumentsV1(_ArgumentMapping):
+    """Bind one exact current-news version to one stable Stage 10 instrument."""
+
+    INPUT_KIND: ClassVar[str] = "news_event_impact_v1"
+
+    article_version_id: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=200)
+    )
+    instrument_id: str = _typed_field(
+        _InputField(types=("string",), min_length=1, max_length=200)
+    )
+    pre_observations: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=0,
+            maximum=20,
+        ),
+        default=5,
+    )
+    post_observations: int = _typed_field(
+        _InputField(
+            types=("integer",),
+            required=False,
+            minimum=0,
+            maximum=20,
+        ),
+        default=5,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class CompanyFilingSearchArgumentsV2(_ArgumentMapping):
     """Typed keyset-paginated filing search over one exact SEC CIK."""
@@ -2125,6 +2497,17 @@ _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     SearchArguments,
     CurrentNewsSearchArgumentsV2,
     CurrentNewsSearchArgumentsV21,
+    CurrentNewsSearchArgumentsV22,
+    NewsSourceStatusArgumentsV1,
+    DatasetStatusArgumentsV1,
+    OptionsCaptureSearchArgumentsV2,
+    OptionsContractSearchArgumentsV2,
+    OptionsSurfaceSnapshotArgumentsV2,
+    NewsItemHistoryArgumentsV1,
+    NewsAnalysisArgumentsV1,
+    NewsStoryClusterArgumentsV1,
+    NewsAttentionArgumentsV1,
+    NewsEventImpactArgumentsV1,
     CompanyFilingSearchArgumentsV2,
     CompanyShareCountHistoryArgumentsV2,
     Stage10MarketInstrumentSearchArgumentsV2,
@@ -2412,6 +2795,37 @@ def _optional_bounded_string(
     return _validated_string(value, contract, pointer)
 
 
+def _validated_string_array(
+    value: Any,
+    contract: _InputField,
+    pointer: str,
+    *,
+    normalize_upper: bool = False,
+) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise _validation_error(pointer, "type", "Expected an array")
+    if contract.max_items is not None and len(value) > contract.max_items:
+        raise _validation_error(
+            pointer, "max_items", "Array exceeds the supported item limit"
+        )
+    assert contract.item is not None
+    items = tuple(
+        _validated_string(item, contract.item, f"{pointer}/{index}").strip()
+        for index, item in enumerate(value)
+    )
+    if normalize_upper:
+        items = tuple(item.upper() for item in items)
+    if any(not item for item in items):
+        raise _validation_error(
+            pointer, "min_length", "Array values cannot be blank"
+        )
+    if contract.item.enum and any(item not in contract.item.enum for item in items):
+        raise _validation_error(pointer, "enum", "Array contains an unsupported value")
+    if len(items) != len(set(items)):
+        raise _validation_error(pointer, "unique", "Array values must be unique")
+    return items
+
+
 def _validated_parameters(
     value: Any, argument_type: type[_ArgumentMapping], pointer: str
 ) -> tuple[ArgumentParameter, ...]:
@@ -2499,10 +2913,15 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             MappingProxyType({"query": query, "as_of": as_of, "limit": limit}),
         )
 
-    if argument_type in {
+    current_news_selection_types = {
         CurrentNewsSearchArgumentsV2,
         CurrentNewsSearchArgumentsV21,
-    }:
+        CurrentNewsSearchArgumentsV22,
+        NewsAnalysisArgumentsV1,
+        NewsStoryClusterArgumentsV1,
+        NewsAttentionArgumentsV1,
+    }
+    if argument_type in current_news_selection_types:
         query = _validated_string(
             mapping.get("query", ""),
             _field_contract(argument_type, "query"),
@@ -2549,7 +2968,14 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                 "News symbols must be unique",
             )
         source_ids: tuple[str, ...] = ()
-        if argument_type is CurrentNewsSearchArgumentsV21:
+        source_argument_types = {
+            CurrentNewsSearchArgumentsV21,
+            CurrentNewsSearchArgumentsV22,
+            NewsAnalysisArgumentsV1,
+            NewsStoryClusterArgumentsV1,
+            NewsAttentionArgumentsV1,
+        }
+        if argument_type in source_argument_types:
             source_contract = _field_contract(argument_type, "source_ids")
             raw_source_ids = mapping.get("source_ids", ())
             if not isinstance(raw_source_ids, (list, tuple)):
@@ -2646,6 +3072,36 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             _field_contract(argument_type, "limit"),
             "/limit",
         )
+        cursor = None
+        if argument_type is CurrentNewsSearchArgumentsV22:
+            cursor = _optional_bounded_string(
+                mapping.get("cursor"),
+                _field_contract(argument_type, "cursor"),
+                "/cursor",
+            )
+        window_hours = None
+        if argument_type is NewsStoryClusterArgumentsV1:
+            window_hours = _validated_limit(
+                mapping.get("window_hours", 24),
+                _field_contract(argument_type, "window_hours"),
+                "/window_hours",
+            )
+        bucket = None
+        baseline_periods = None
+        if argument_type is NewsAttentionArgumentsV1:
+            bucket_contract = _field_contract(argument_type, "bucket")
+            bucket = _validated_string(
+                mapping.get("bucket", "day"), bucket_contract, "/bucket"
+            )
+            if bucket not in bucket_contract.enum:
+                raise _validation_error(
+                    "/bucket", "enum", "Unsupported attention bucket"
+                )
+            baseline_periods = _validated_limit(
+                mapping.get("baseline_periods", 20),
+                _field_contract(argument_type, "baseline_periods"),
+                "/baseline_periods",
+            )
         return _PreparedArguments(
             argument_type,
             MappingProxyType(
@@ -2660,9 +3116,273 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     "limit": limit,
                     **(
                         {"source_ids": source_ids}
-                        if argument_type is CurrentNewsSearchArgumentsV21
+                        if argument_type in source_argument_types
                         else {}
                     ),
+                    **(
+                        {"cursor": cursor}
+                        if argument_type is CurrentNewsSearchArgumentsV22
+                        else {}
+                    ),
+                    **(
+                        {"window_hours": window_hours}
+                        if argument_type is NewsStoryClusterArgumentsV1
+                        else {}
+                    ),
+                    **(
+                        {
+                            "bucket": bucket,
+                            "baseline_periods": baseline_periods,
+                        }
+                        if argument_type is NewsAttentionArgumentsV1
+                        else {}
+                    ),
+                }
+            ),
+        )
+
+    if argument_type is DatasetStatusArgumentsV1:
+        stores = _validated_string_array(
+            mapping.get("stores", ()),
+            _field_contract(argument_type, "stores"),
+            "/stores",
+        )
+        dataset_ids = _validated_string_array(
+            mapping.get("dataset_ids", ()),
+            _field_contract(argument_type, "dataset_ids"),
+            "/dataset_ids",
+        )
+        statuses = _validated_string_array(
+            mapping.get("statuses", ()),
+            _field_contract(argument_type, "statuses"),
+            "/statuses",
+        )
+        limit = _validated_limit(
+            mapping.get("limit", 128),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "stores": stores,
+                    "dataset_ids": dataset_ids,
+                    "statuses": statuses,
+                    "limit": limit,
+                }
+            ),
+        )
+
+    options_v2_types = {
+        OptionsCaptureSearchArgumentsV2,
+        OptionsContractSearchArgumentsV2,
+        OptionsSurfaceSnapshotArgumentsV2,
+    }
+    if argument_type in options_v2_types:
+        mode_contract = _field_contract(argument_type, "mode")
+        mode = _validated_string(
+            mapping.get("mode", "latest"), mode_contract, "/mode"
+        )
+        if mode not in mode_contract.enum:
+            raise _validation_error("/mode", "enum", "Unsupported options mode")
+        as_of = _optional_temporal(mapping.get("as_of"), "/as_of")
+        if mode == "as_of" and as_of is None:
+            raise _validation_error(
+                "/as_of", "required_for_as_of", "as_of mode requires a cutoff"
+            )
+        if mode != "as_of" and as_of is not None:
+            raise _validation_error(
+                "/as_of", "only_for_as_of", "Only as_of mode may provide a cutoff"
+            )
+        policy_contract = _field_contract(argument_type, "date_only_policy")
+        date_only_policy = _validated_string(
+            mapping.get("date_only_policy", "completed_date"),
+            policy_contract,
+            "/date_only_policy",
+        )
+        if date_only_policy not in policy_contract.enum:
+            raise _validation_error(
+                "/date_only_policy", "enum", "Unsupported date-only policy"
+            )
+        values: dict[str, Any] = {
+            "mode": mode,
+            "as_of": as_of,
+            "date_only_policy": date_only_policy,
+        }
+        if argument_type is OptionsCaptureSearchArgumentsV2:
+            values["underlying_symbols"] = _validated_string_array(
+                mapping.get("underlying_symbols", ()),
+                _field_contract(argument_type, "underlying_symbols"),
+                "/underlying_symbols",
+                normalize_upper=True,
+            )
+            default_limit = 100
+        else:
+            symbol_contract = _field_contract(argument_type, "underlying_symbol")
+            underlying_symbol = _validated_string(
+                mapping["underlying_symbol"], symbol_contract, "/underlying_symbol"
+            ).strip().upper()
+            if underlying_symbol not in symbol_contract.enum:
+                raise _validation_error(
+                    "/underlying_symbol", "enum", "Unsupported options underlying"
+                )
+            values["underlying_symbol"] = underlying_symbol
+            expiration_date = _optional_calendar_date(
+                mapping.get("expiration_date"), "/expiration_date"
+            )
+            values["expiration_date"] = expiration_date
+            option_type = _optional_bounded_string(
+                mapping.get("option_type"),
+                _field_contract(argument_type, "option_type"),
+                "/option_type",
+            )
+            if option_type is not None and option_type not in ("call", "put"):
+                raise _validation_error(
+                    "/option_type", "enum", "Unsupported option type"
+                )
+            values["option_type"] = option_type
+            if argument_type is OptionsContractSearchArgumentsV2:
+                query = _validated_string(
+                    mapping.get("query", ""),
+                    _field_contract(argument_type, "query"),
+                    "/query",
+                ).strip()
+                if any(ord(character) < 32 or ord(character) == 127 for character in query):
+                    raise _validation_error(
+                        "/query", "control_character", "Options query cannot contain control characters"
+                    )
+                values["query"] = query
+                default_limit = 100
+            else:
+                values["capture_id"] = _optional_bounded_string(
+                    mapping.get("capture_id"),
+                    _field_contract(argument_type, "capture_id"),
+                    "/capture_id",
+                )
+                target_dte = _validated_optional_limit(
+                    mapping.get("target_dte"),
+                    _field_contract(argument_type, "target_dte"),
+                    "/target_dte",
+                )
+                if target_dte is not None and target_dte not in _OPTIONS_V2_TARGET_DTES:
+                    raise _validation_error(
+                        "/target_dte", "enum", "Unsupported target DTE"
+                    )
+                values["target_dte"] = target_dte
+                surface_state = _optional_bounded_string(
+                    mapping.get("surface_state"),
+                    _field_contract(argument_type, "surface_state"),
+                    "/surface_state",
+                )
+                if surface_state is not None and surface_state not in (
+                    "present", "missing", "excluded"
+                ):
+                    raise _validation_error(
+                        "/surface_state", "enum", "Unsupported surface state"
+                    )
+                values["surface_state"] = surface_state
+                default_limit = 500
+        values["limit"] = _validated_limit(
+            mapping.get("limit", default_limit),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(argument_type, MappingProxyType(values))
+
+    if argument_type is NewsSourceStatusArgumentsV1:
+        source_contract = _field_contract(argument_type, "source_ids")
+        raw_source_ids = mapping.get("source_ids", ())
+        if not isinstance(raw_source_ids, (list, tuple)):
+            raise _validation_error("/source_ids", "type", "Expected an array")
+        if (
+            source_contract.max_items is not None
+            and len(raw_source_ids) > source_contract.max_items
+        ):
+            raise _validation_error(
+                "/source_ids", "max_items", "Array exceeds the supported item limit"
+            )
+        assert source_contract.item is not None
+        source_ids = tuple(
+            _validated_string(
+                value,
+                source_contract.item,
+                f"/source_ids/{index}",
+            ).strip()
+            for index, value in enumerate(raw_source_ids)
+        )
+        if any(not value for value in source_ids):
+            raise _validation_error(
+                "/source_ids", "min_length", "News source identifiers cannot be blank"
+            )
+        if any(value not in _CURRENT_NEWS_SOURCE_IDS for value in source_ids):
+            raise _validation_error(
+                "/source_ids", "enum", "Unsupported news source identifier"
+            )
+        if len(source_ids) != len(set(source_ids)):
+            raise _validation_error(
+                "/source_ids", "unique", "News source identifiers must be unique"
+            )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType({"source_ids": source_ids}),
+        )
+
+    if argument_type is NewsItemHistoryArgumentsV1:
+        article_id = _validated_string(
+            mapping["article_id"],
+            _field_contract(argument_type, "article_id"),
+            "/article_id",
+        ).strip()
+        if not article_id:
+            raise _validation_error(
+                "/article_id", "min_length", "Article identity cannot be blank"
+            )
+        limit = _validated_limit(
+            mapping.get("limit", 100),
+            _field_contract(argument_type, "limit"),
+            "/limit",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType({"article_id": article_id, "limit": limit}),
+        )
+
+    if argument_type is NewsEventImpactArgumentsV1:
+        article_version_id = _validated_string(
+            mapping["article_version_id"],
+            _field_contract(argument_type, "article_version_id"),
+            "/article_version_id",
+        ).strip()
+        instrument_id = _validated_string(
+            mapping["instrument_id"],
+            _field_contract(argument_type, "instrument_id"),
+            "/instrument_id",
+        ).strip()
+        if not article_version_id or not instrument_id:
+            raise _validation_error(
+                "/article_version_id",
+                "min_length",
+                "Article-version and instrument identities cannot be blank",
+            )
+        pre_observations = _validated_limit(
+            mapping.get("pre_observations", 5),
+            _field_contract(argument_type, "pre_observations"),
+            "/pre_observations",
+        )
+        post_observations = _validated_limit(
+            mapping.get("post_observations", 5),
+            _field_contract(argument_type, "post_observations"),
+            "/post_observations",
+        )
+        return _PreparedArguments(
+            argument_type,
+            MappingProxyType(
+                {
+                    "article_version_id": article_version_id,
+                    "instrument_id": instrument_id,
+                    "pre_observations": pre_observations,
+                    "post_observations": post_observations,
                 }
             ),
         )
@@ -4555,6 +5275,20 @@ def parse_arguments(
         return CurrentNewsSearchArgumentsV2(**dict(values))
     if prepared.argument_type is CurrentNewsSearchArgumentsV21:
         return CurrentNewsSearchArgumentsV21(**dict(values))
+    if prepared.argument_type in {
+        CurrentNewsSearchArgumentsV22,
+        NewsSourceStatusArgumentsV1,
+        DatasetStatusArgumentsV1,
+        OptionsCaptureSearchArgumentsV2,
+        OptionsContractSearchArgumentsV2,
+        OptionsSurfaceSnapshotArgumentsV2,
+        NewsItemHistoryArgumentsV1,
+        NewsAnalysisArgumentsV1,
+        NewsStoryClusterArgumentsV1,
+        NewsAttentionArgumentsV1,
+        NewsEventImpactArgumentsV1,
+    }:
+        return prepared.argument_type(**dict(values))
     if prepared.argument_type is CompanyFilingSearchArgumentsV2:
         return CompanyFilingSearchArgumentsV2(**dict(values))
     if prepared.argument_type is CompanyShareCountHistoryArgumentsV2:
@@ -5071,7 +5805,17 @@ def preflight_dimensions(
     """
 
     prepared = _prepared(input_kind or _inferred_input_kind(public), public)
-    rows = max(int(prepared.values["limit"]), prepared.source_rows)
+    default_rows = (
+        8
+        if prepared.argument_type is NewsSourceStatusArgumentsV1
+        else 10_000
+        if prepared.argument_type is NewsEventImpactArgumentsV1
+        else 1
+    )
+    rows = max(
+        int(prepared.values.get("limit", default_rows)),
+        prepared.source_rows,
+    )
     series = len(prepared.raw_series)
     operations = rows * max(series, 1) ** 2
     if prepared.argument_type in {
@@ -5199,6 +5943,17 @@ __all__ = [
     "SearchArguments",
     "CurrentNewsSearchArgumentsV2",
     "CurrentNewsSearchArgumentsV21",
+    "CurrentNewsSearchArgumentsV22",
+    "NewsSourceStatusArgumentsV1",
+    "DatasetStatusArgumentsV1",
+    "OptionsCaptureSearchArgumentsV2",
+    "OptionsContractSearchArgumentsV2",
+    "OptionsSurfaceSnapshotArgumentsV2",
+    "NewsItemHistoryArgumentsV1",
+    "NewsAnalysisArgumentsV1",
+    "NewsStoryClusterArgumentsV1",
+    "NewsAttentionArgumentsV1",
+    "NewsEventImpactArgumentsV1",
     "CompanyShareCountHistoryArgumentsV2",
     "CompanyFilingSearchArgumentsV2",
     "Stage10MarketInstrumentSearchArgumentsV2",

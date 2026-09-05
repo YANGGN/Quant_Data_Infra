@@ -1,0 +1,29 @@
+[
+  {
+    "report_date_as_yyyy_mm_dd": "2026-08-18T00:00:00.000",
+    "futonly_or_combined": "FutOnly",
+    "cftc_contract_market_code": "123456",
+    "contract_units": "CONTRACTS",
+    "market_and_exchange_names": "TREASURY NOTE - CHICAGO",
+    "commodity_name": "TREASURY NOTE",
+    "commodity_group_name": "FINANCIAL",
+    "open_interest_all": "1000",
+    "dealer_positions_long_all": "100",
+    "dealer_positions_short_all": "200",
+    "dealer_positions_spread_all": "10",
+    "asset_mgr_positions_long": "300",
+    "asset_mgr_positions_short": "250",
+    "asset_mgr_positions_spread": "20",
+    "lev_money_positions_long": "150",
+    "lev_money_positions_short": "175",
+    "lev_money_positions_spread": "30",
+    "other_rept_positions_long": "50",
+    "other_rept_positions_short": null,
+    "other_rept_positions_spread": "5",
+    "tot_rept_positions_long_all": "600",
+    "tot_rept_positions_short": "625",
+    "nonrept_positions_long_all": "400",
+    "nonrept_positions_short_all": "375",
+    "change_in_open_interest_all": "999"
+  }
+]

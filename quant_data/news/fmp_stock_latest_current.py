@@ -441,7 +441,7 @@ def _validate_registry(registry: Registry) -> None:
         if (
             dataset.store != StoreRole.NEWS.value
             or dataset.relations != relations
-            or dataset.tool_ids != ("news.search",)
+            or "news.search" not in dataset.tool_ids
             or dataset.dashboard_ids
             or dataset.export_ids
         ):

@@ -26,6 +26,7 @@ from quant_data.registry import (
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
 from quant_data.tool_platform.catalog import (
+    ADDITIVE_PUBLIC_TOOL_NAMES,
     CURRENT_FAMILY_COUNTS,
     CURRENT_PUBLIC_TOOL_NAMES,
     FAMILY_COUNTS,
@@ -71,10 +72,10 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
         self.assertEqual(self.registry.schema_version, "1.9.0")
-        self.assertEqual(self.registry.registry_version, "2.64.0")
+        self.assertEqual(self.registry.registry_version, "2.69.0")
         self.assertEqual(
             self.registry.raw["tool_version_schema_catalog"]["schema_version"],
-            "2.24.0",
+            "2.26.0",
         )
         regression_v3 = self.registry.tool(
             "econometrics.regression",
@@ -99,16 +100,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         counts = {name: 0 for name in CURRENT_FAMILY_COUNTS}
         for declaration in self.registry.tools:
             counts[declaration["family"]] += 1
-            if declaration["id"] in {
-                "market.get_available_ticker",
-                "market.get_price_series",
-                "market.get_volume_series",
-                "macro.get_release_calendar",
-                "stats.distribution_diagnostics",
-                "stats.covariance_matrix",
-                "stats.bootstrap_confidence_interval",
-                "stats.principal_components",
-            }:
+            if declaration["id"] in ADDITIVE_PUBLIC_TOOL_NAMES:
                 expected_status = "additive_native_v1"
             elif declaration["id"] in {"macro.get_series", "timeseries.describe"}:
                 expected_status = "recovered_fixture_validated"
@@ -126,7 +118,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
                 **FAMILY_COUNTS,
                 "macro": FAMILY_COUNTS["macro"] + 1,
                 "market": FAMILY_COUNTS["market"] + 3,
-                "research": FAMILY_COUNTS["research"] + 4,
+                "research": FAMILY_COUNTS["research"] + 13,
             },
             CURRENT_FAMILY_COUNTS,
         )
@@ -147,7 +139,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         self.assertEqual(after[1], CATALOG_SHA256)
         self.assertEqual(after[1], self.registry.raw["tool_schema_catalog"]["sha256"])
 
-    def test_manifest_has_65_sanitized_read_only_contracts(self) -> None:
+    def test_manifest_has_74_sanitized_read_only_contracts(self) -> None:
         manifest = self.dispatcher.manifest()
         self.assertEqual(
             manifest["milestone"],
@@ -157,7 +149,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
             [item["name"] for item in manifest["tools"]],
             list(CURRENT_PUBLIC_TOOL_NAMES),
         )
-        self.assertEqual(len(manifest["tools"]), 65)
+        self.assertEqual(len(manifest["tools"]), 74)
         for item in manifest["tools"]:
             self.assertNotIn("handler", item)
             self.assertIn("operation_graph_id", item)

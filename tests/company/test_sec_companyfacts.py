@@ -294,6 +294,45 @@ def _generic_submissions_body(
     )
 
 
+def _generic_enriched_submissions_body(
+    *,
+    cik: str,
+    issuer_name: str,
+    current_accession: str,
+    fallback_accession: str,
+    fallback_form: str = "10-K",
+    fallback_filing_date: str = "2026-02-15",
+    fallback_acceptance_time: str | None = "20:00:00Z",
+    fallback_report_date: str | None = "2025-12-31",
+    fallback_primary_document: str | None = "reports/annual.htm",
+) -> bytes:
+    return _body(
+        {
+            "cik": int(cik),
+            "entityType": "operating",
+            "name": issuer_name,
+            "filings": {
+                "recent": {
+                    "accessionNumber": [current_accession, fallback_accession],
+                    "acceptanceDateTime": [
+                        "2026-04-30T21:00:00Z",
+                        None
+                        if fallback_acceptance_time is None
+                        else f"{fallback_filing_date}T{fallback_acceptance_time}",
+                    ],
+                    "filingDate": ["2026-04-30", fallback_filing_date],
+                    "form": ["10-Q", fallback_form],
+                    "primaryDocument": [
+                        "reports/annual-or-quarterly.htm",
+                        fallback_primary_document,
+                    ],
+                    "reportDate": ["2026-03-31", fallback_report_date],
+                }
+            },
+        }
+    )
+
+
 def _generic_companyfacts_body(
     *,
     cik: str,
@@ -759,7 +798,7 @@ class SecAaplCompanyFactsTests(unittest.TestCase):
         membership_scope = _domain_scope(parsed, endpoint="submissions")
         self.assertEqual(len(membership_scope["filing_membership_identity"]), 64)
 
-    def test_corrected_generic_code_can_retry_prior_failed_run_identity(self) -> None:
+    def test_generic_v1_5_can_retry_prior_v1_4_failed_run_identity(self) -> None:
         accession = "0000789019-26-000011"
         submissions = _generic_submissions_body(
             cik=GENERIC_CIK,
@@ -778,7 +817,7 @@ class SecAaplCompanyFactsTests(unittest.TestCase):
             captured_at=self._capture_time(),
         )
         prior_run_id = stable_id(
-            "sec_companyfacts_run",
+            "sec_companyfacts_run_v1_4",
             SEC_COMPANYFACTS_CANONICAL_DATASET_ID,
             parsed.semantic_identity,
         )
@@ -801,7 +840,7 @@ class SecAaplCompanyFactsTests(unittest.TestCase):
                     parsed.captured_at,
                     parsed.captured_at,
                     parsed.fetched_count,
-                    "sec_companyfacts.1.0.0",
+                    "sec_companyfacts.1.4.0",
                 ),
             )
             connection.commit()
@@ -814,7 +853,31 @@ class SecAaplCompanyFactsTests(unittest.TestCase):
             captured_at=self._capture_time(),
         )
         self.assertEqual(receipt.outcome, "succeeded")
-        self.assertNotEqual(receipt.run_id, prior_run_id)
+        self.assertEqual(
+            receipt.run_id,
+            stable_id(
+                "sec_companyfacts_run_v1_5",
+                SEC_COMPANYFACTS_CANONICAL_DATASET_ID,
+                parsed.semantic_identity,
+            ),
+        )
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            code_version = connection.execute(
+                "SELECT code_version FROM ingestion_runs WHERE run_id=?",
+                (receipt.run_id,),
+            ).fetchone()[0]
+        self.assertEqual(code_version, "sec_companyfacts.1.5.0")
+        before_replay = mutation_fingerprint(self.store_map)
+        replay = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=submissions,
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(2),
+        )
+        self.assertEqual((replay.outcome, replay.written_count), ("unchanged", 0))
+        self.assertEqual(before_replay, mutation_fingerprint(self.store_map))
 
     def test_generic_semantic_replay_is_a_total_no_write(self) -> None:
         accession = "0000789019-26-000002"
@@ -949,6 +1012,396 @@ class SecAaplCompanyFactsTests(unittest.TestCase):
                 ).fetchone()[0],
                 1,
             )
+
+    def test_generic_fallback_gains_membership_without_rewriting_filing(self) -> None:
+        current = "0000789019-26-000020"
+        fallback = "0000789019-25-000020"
+        issuer_name = "Generic Issuer Inc."
+        companyfacts = _generic_companyfacts_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            accession=current,
+            fallback_accession=fallback,
+        )
+        first = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=_generic_submissions_body(
+                cik=GENERIC_CIK,
+                issuer_name=issuer_name,
+                accession=current,
+            ),
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(1),
+        )
+        self.assertEqual(first.outcome, "succeeded")
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            original = tuple(
+                connection.execute(
+                    "SELECT * FROM company_sec_filings WHERE accession_number=?",
+                    (fallback,),
+                ).fetchone()
+            )
+
+        enriched_submissions = _generic_enriched_submissions_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            current_accession=current,
+            fallback_accession=fallback,
+        )
+        second = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=enriched_submissions,
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(2),
+        )
+        self.assertEqual(second.outcome, "succeeded")
+
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            retained = tuple(
+                connection.execute(
+                    "SELECT * FROM company_sec_filings WHERE accession_number=?",
+                    (fallback,),
+                ).fetchone()
+            )
+            latest_snapshot_id = connection.execute(
+                """
+                SELECT snapshot_id
+                FROM company_sec_snapshots
+                WHERE snapshot_kind='submissions'
+                ORDER BY captured_at DESC
+                LIMIT 1
+                """
+            ).fetchone()[0]
+            latest_memberships = connection.execute(
+                """
+                SELECT accession_number, source_row
+                FROM company_sec_filing_snapshot_membership
+                WHERE snapshot_id=?
+                ORDER BY source_row
+                """,
+                (latest_snapshot_id,),
+            ).fetchall()
+            companyfacts_snapshots = connection.execute(
+                """
+                SELECT COUNT(*) FROM company_sec_snapshots
+                WHERE snapshot_kind='companyfacts'
+                """
+            ).fetchone()[0]
+        self.assertEqual(retained, original)
+        self.assertEqual(
+            [(row[0], row[1]) for row in latest_memberships],
+            [(current, 1), (fallback, 2)],
+        )
+        self.assertEqual(companyfacts_snapshots, 1)
+
+        before_replay = mutation_fingerprint(self.store_map)
+        replay = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=enriched_submissions,
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(3),
+        )
+        self.assertEqual((replay.outcome, replay.written_count), ("unchanged", 0))
+        self.assertEqual(before_replay, mutation_fingerprint(self.store_map))
+
+    def test_generic_fallback_enrichment_accepts_endpoint_metadata_divergence(self) -> None:
+        current = "0000789019-26-000021"
+        fallback = "0000789019-25-000021"
+        issuer_name = "Generic Issuer Inc."
+        companyfacts = _generic_companyfacts_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            accession=current,
+            fallback_accession=fallback,
+        )
+        self.assertEqual(
+            run_sec_companyfacts(
+                cik=GENERIC_CIK,
+                stores=self.store_map,
+                registry=self.registry,
+                submissions_body=_generic_submissions_body(
+                    cik=GENERIC_CIK,
+                    issuer_name=issuer_name,
+                    accession=current,
+                ),
+                companyfacts_body=companyfacts,
+                captured_at=self._capture_time(1),
+            ).outcome,
+            "succeeded",
+        )
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            original = tuple(
+                connection.execute(
+                    "SELECT * FROM company_sec_filings WHERE accession_number=?",
+                    (fallback,),
+                ).fetchone()
+            )
+
+        for label, overrides in (
+            ("form", {"fallback_form": "10-Q"}),
+            ("filing_date", {"fallback_filing_date": "2026-02-16"}),
+            (
+                "date_precision_and_missing_metadata",
+                {
+                    "fallback_form": "10-Q",
+                    "fallback_filing_date": "2026-02-16",
+                    "fallback_acceptance_time": None,
+                    "fallback_report_date": None,
+                    "fallback_primary_document": None,
+                },
+            ),
+        ):
+            with self.subTest(label=label):
+                receipt = run_sec_companyfacts(
+                    cik=GENERIC_CIK,
+                    stores=self.store_map,
+                    registry=self.registry,
+                    submissions_body=_generic_enriched_submissions_body(
+                        cik=GENERIC_CIK,
+                        issuer_name=issuer_name,
+                        current_accession=current,
+                        fallback_accession=fallback,
+                        **overrides,
+                    ),
+                    companyfacts_body=companyfacts,
+                    captured_at=self._capture_time(2),
+                )
+                self.assertEqual(receipt.outcome, "succeeded")
+                with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+                    retained = tuple(
+                        connection.execute(
+                            "SELECT * FROM company_sec_filings WHERE accession_number=?",
+                            (fallback,),
+                        ).fetchone()
+                    )
+                self.assertEqual(retained, original)
+
+    def test_generic_companyfacts_fallback_drift_preserves_first_observed_filing(
+        self,
+    ) -> None:
+        current = "0000789019-26-000022"
+        fallback = "0000789019-25-000022"
+        issuer_name = "Generic Issuer Inc."
+        first_companyfacts = _generic_companyfacts_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            accession=current,
+            fallback_accession=fallback,
+        )
+        submissions = _generic_submissions_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            accession=current,
+        )
+        self.assertEqual(
+            run_sec_companyfacts(
+                cik=GENERIC_CIK,
+                stores=self.store_map,
+                registry=self.registry,
+                submissions_body=submissions,
+                companyfacts_body=first_companyfacts,
+                captured_at=self._capture_time(1),
+            ).outcome,
+            "succeeded",
+        )
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            original = tuple(
+                connection.execute(
+                    "SELECT * FROM company_sec_filings WHERE accession_number=?",
+                    (fallback,),
+                ).fetchone()
+            )
+
+        changed_companyfacts = _body(
+            {
+                "cik": int(GENERIC_CIK),
+                "entityName": issuer_name,
+                "facts": {
+                    "us-gaap": {
+                        "NetIncomeLoss": {
+                            "units": {
+                                "USD": [
+                                    {
+                                        "accn": fallback,
+                                        "end": "2025-12-31",
+                                        "filed": "2026-02-16",
+                                        "form": "10-K/A",
+                                        "fp": "FY",
+                                        "fy": 2025,
+                                        "start": "2025-01-01",
+                                        "frame": "CY2025",
+                                        "val": 250,
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+            }
+        )
+        second = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=submissions,
+            companyfacts_body=changed_companyfacts,
+            captured_at=self._capture_time(2),
+        )
+        self.assertEqual(second.outcome, "succeeded")
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            retained = tuple(
+                connection.execute(
+                    "SELECT * FROM company_sec_filings WHERE accession_number=?",
+                    (fallback,),
+                ).fetchone()
+            )
+        self.assertEqual(retained, original)
+
+        before_replay = mutation_fingerprint(self.store_map)
+        replay = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=submissions,
+            companyfacts_body=changed_companyfacts,
+            captured_at=self._capture_time(3),
+        )
+        self.assertEqual((replay.outcome, replay.written_count), ("unchanged", 0))
+        self.assertEqual(before_replay, mutation_fingerprint(self.store_map))
+
+    def test_generic_same_issuer_metadata_drift_preserves_filing_and_membership(
+        self,
+    ) -> None:
+        conflicting = "0000789019-26-000023"
+        placeholder = "0000789019-25-000023"
+        issuer_name = "Generic Issuer Inc."
+        companyfacts = _generic_companyfacts_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            accession=conflicting,
+            fallback_accession=placeholder,
+        )
+        self.assertEqual(
+            run_sec_companyfacts(
+                cik=GENERIC_CIK,
+                stores=self.store_map,
+                registry=self.registry,
+                submissions_body=_generic_submissions_body(
+                    cik=GENERIC_CIK,
+                    issuer_name=issuer_name,
+                    accession=conflicting,
+                ),
+                companyfacts_body=companyfacts,
+                captured_at=self._capture_time(1),
+            ).outcome,
+            "succeeded",
+        )
+        later_submissions = _generic_enriched_submissions_body(
+            cik=GENERIC_CIK,
+            issuer_name=issuer_name,
+            current_accession=placeholder,
+            fallback_accession=conflicting,
+        )
+        parsed = parse_sec_companyfacts_bundle(
+            cik=GENERIC_CIK,
+            submissions_body=later_submissions,
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(2),
+        )
+        self.assertEqual(
+            [
+                (filing.accession_number, filing.origin)
+                for filing in sorted(parsed.filings, key=lambda filing: filing.source_row)
+            ],
+            [
+                (placeholder, "submissions_recent"),
+                (conflicting, "submissions_recent"),
+            ],
+        )
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            before_filings = [
+                tuple(row)
+                for row in connection.execute(
+                    "SELECT * FROM company_sec_filings ORDER BY accession_number"
+                )
+            ]
+            before_counts = tuple(
+                connection.execute(
+                    """
+                    SELECT
+                        (SELECT COUNT(*) FROM company_sec_artifacts),
+                        (SELECT COUNT(*) FROM company_sec_snapshots),
+                        (SELECT COUNT(*) FROM company_sec_filings),
+                        (SELECT COUNT(*) FROM company_sec_filing_issuer_membership),
+                        (SELECT COUNT(*) FROM company_sec_filing_snapshot_membership),
+                        (SELECT COUNT(*) FROM company_sec_fact_versions),
+                        (SELECT COUNT(*) FROM company_sec_fact_snapshot_membership)
+                    """
+                ).fetchone()
+            )
+
+        second = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=later_submissions,
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(2),
+        )
+        self.assertEqual(second.outcome, "succeeded")
+
+        with read_connection(self.store_map, StoreRole.COMPANY) as connection:
+            after_filings = [
+                tuple(row)
+                for row in connection.execute(
+                    "SELECT * FROM company_sec_filings ORDER BY accession_number"
+                )
+            ]
+            after_counts = tuple(
+                connection.execute(
+                    """
+                    SELECT
+                        (SELECT COUNT(*) FROM company_sec_artifacts),
+                        (SELECT COUNT(*) FROM company_sec_snapshots),
+                        (SELECT COUNT(*) FROM company_sec_filings),
+                        (SELECT COUNT(*) FROM company_sec_filing_issuer_membership),
+                        (SELECT COUNT(*) FROM company_sec_filing_snapshot_membership),
+                        (SELECT COUNT(*) FROM company_sec_fact_versions),
+                        (SELECT COUNT(*) FROM company_sec_fact_snapshot_membership)
+                    """
+                ).fetchone()
+            )
+        self.assertEqual(after_filings, before_filings)
+        self.assertEqual(
+            after_counts,
+            (
+                before_counts[0] + 1,
+                before_counts[1] + 1,
+                before_counts[2],
+                before_counts[3],
+                before_counts[4] + 2,
+                before_counts[5],
+                before_counts[6],
+            ),
+        )
+
+        before_replay = mutation_fingerprint(self.store_map)
+        replay = run_sec_companyfacts(
+            cik=GENERIC_CIK,
+            stores=self.store_map,
+            registry=self.registry,
+            submissions_body=later_submissions,
+            companyfacts_body=companyfacts,
+            captured_at=self._capture_time(3),
+        )
+        self.assertEqual((replay.outcome, replay.written_count), ("unchanged", 0))
+        self.assertEqual(before_replay, mutation_fingerprint(self.store_map))
 
     def test_generic_joint_filing_keeps_first_observed_metadata_and_memberships(self) -> None:
         first_name = "Joint Filing Parent Inc."

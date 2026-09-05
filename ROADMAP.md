@@ -451,8 +451,9 @@ The following decisions apply to every stage:
   nearest positive expiries are deterministic and duplicate target mappings
   are captured once. It reuses the existing option schema and replay-safe
   publisher, and the local Inspector gains a fixed read-only
-  `options-surfaces` view. The broad collector has no registry job or timer;
-  the separately authorized SPY timer remains SPY-only. The implementation
+  `options-surfaces` view. At registry `2.49.0`, the broad collector had no
+  registry job or host timer and the separately authorized timer remained
+  SPY-only. The implementation
   received one separately authorized bounded live attempt. That attempt made
   17 requests, failed all 15 symbols before any option-chain request, and
   published zero canonical rows. It was not retried. See
@@ -582,6 +583,53 @@ The following decisions apply to every stage:
   hourly per-user timer was linked, enabled, and started. It is active/waiting
   for its first normal `:10` UTC trigger; activation did not run the service,
   contact a provider, or write a store.
+
+- Registry `2.65.0` adds market migration
+  `market:0011_option_raw_evidence` and one private raw-response evidence
+  dataset bound to both Alpaca option collectors. It corrects Alpaca's
+  explicit ordinary 100-share delivery classification, retains exact future
+  response bytes, and leaves true adjusted contracts analytically excluded.
+  Exact projection restores byte-identical registry `2.64.0`; the tool
+  catalogs are unchanged. The retained market store was migrated on
+  2026-08-30 local time without a provider call or timer change.
+
+- Registry `2.66.0` adds cursor-paginated `news.search@2.2.0` and eight
+  bounded local read-only news/research tools for source status, item history,
+  candidate clusters, provider-symbol coverage, attention, deterministic
+  event and sentiment labels, and retrospective raw market impact. Catalog
+  `2.25.0` has 148 contracts across 73 logical names. The increment adds no
+  provider call, canonical write, migration, scheduler, deployment, article
+  body exposure, or causal/abnormal-return claim. Exact projection restores
+  byte-identical registry `2.65.0` and catalog `2.24.0`.
+
+- Registry `2.67.0` adds retained-only
+  `data.get_dataset_status@1.0.0` plus explicit `2.0.0` successors for option
+  capture search, contract search, and coherent surface snapshots. Catalog
+  `2.26.0` has 156 contracts across 74 logical names. Status never probes a
+  provider, credential, or scheduler; options never mix capture cohorts and
+  keep raw responses private. The increment adds no provider call, canonical
+  write, migration, timer, deployment, or public-network surface. Exact
+  projection restores byte-identical registry `2.66.0` and catalog `2.25.0`.
+
+- Registry `2.68.0` adds six bounded, credential-free, `manual_only` private
+  macro-history collectors for CFTC TFF and disaggregated futures-only history,
+  Treasury securities auctions, NY Fed Primary Dealer Statistics, and Federal
+  Reserve H.8 and SLOOS. They reuse the three existing macro output datasets and
+  add no migration, job, scheduler, public tool, or catalog contract. The
+  declaration itself authorizes no provider execution. Exact projection restores
+  byte-identical registry `2.67.0` at SHA-256
+  `a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325`; catalog `2.26.0` remains unchanged.
+
+- On 2026-08-30 the user explicitly authorized updating the enabled,
+  legacy-named `quant-data-alpaca-spy-options.timer` in place to invoke the
+  fixed 15-ETF option grid at the then-current 15:55 America/New_York weekday
+  cadence. On 2026-08-31 the user authorized moving that same fixed timer to
+  16:20 America/New_York so collection begins after the latest ordinary
+  ETF-option session. It remains non-persistent with no retry or catch-up.
+  One invocation is capped at 362 single-attempt requests, 900,016 rows,
+  256 MiB, and 900 seconds with a 16-minute host timeout. Exact provider bytes
+  are retained before normalization; partial grids exit nonzero. The registry
+  collector remains `manual_only`, and the 18:00 Stage 12E FMP job is separate.
 
 - On 2026-08-23 the user separately authorized a fourth host-level recurring
   exception, `quant-data-macro-current-refresh.timer`, at 18:30

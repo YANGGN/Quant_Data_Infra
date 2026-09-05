@@ -1,8 +1,8 @@
 [Unit]
-Description=Run Quant Data weekday SPY indicative option-surface refresh
+Description=Run Quant Data weekday major-ETF indicative option-surface grid refresh
 
 [Timer]
-OnCalendar=Mon..Fri *-*-* 15:55:00 America/New_York
+OnCalendar=Mon..Fri *-*-* 16:20:00 America/New_York
 AccuracySec=1min
 RandomizedDelaySec=0
 Persistent=false

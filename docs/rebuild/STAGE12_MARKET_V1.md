@@ -186,7 +186,22 @@ The runner requests only the current New York session's daily OHLCV for each
 symbol, once. An empty `AAPL` response is the no-market-session sentinel and
 stops the batch before other symbols are requested. For each remaining symbol,
 only its exact reviewed empty or HTTP 402 terminal outcome is accepted;
-unknown missing or error outcomes fail closed.
+unknown missing or error outcomes fail closed. Beginning with runner version
+`1.2.0`, a non-sentinel unapproved empty response or a malformed or
+out-of-contract payload becomes a durable per-symbol `failed_response`
+result without publication. Version `1.4.0` extends that isolation to every
+durably received redirect, invalid media type, invalid status, unapproved
+status, and malformed approved error envelope. Later independent symbols
+continue, but any such result prevents a completion receipt and makes the
+aggregate service exit nonzero. Transport/no-response ambiguity and
+publication/store failures remain fail-fast.
+
+Beginning with runner version `1.3.0`, the full versioned authority remains
+bound to plans and receipts, while raw-response replay protection uses the
+stable v1.1 provider-request authority revision. Implementation-only releases
+therefore do not make byte-identical content appear to belong to a different
+request. A change to any request-defining authority field still changes that
+digest and remains a conflict.
 
 The timer is non-persistent, so missed windows do not catch up. There is no
 hidden retry: each attempted symbol has one bounded request, and network work

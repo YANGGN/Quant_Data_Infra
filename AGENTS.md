@@ -167,10 +167,29 @@ until the reviewed store/ordinal/resource/checksum/reconstruction map exists.
 
 ## Validation and evidence
 
-Run the narrowest meaningful validation first. Expand to adjacent tests only
-when the changed interface has adjacent consumers. Run the full suite only for
-plausibly broad regressions, a required exit gate, uncertain test selection, or
-an explicit user request. Report what ran and what was deliberately not run.
+Use a focused completion gate. Run the narrowest meaningful validation first,
+expand to adjacent tests only when the changed interface has adjacent
+consumers, and add a browser smoke check when user-visible UI behavior changes.
+
+Run the full suite only for a migration, a registry-wide or generated-contract
+change, an accepted contract that names it as an exit gate, or an explicit user
+request. Do not default to the full suite merely because test selection is
+uncertain; inspect the affected interfaces and select focused plus adjacent
+checks.
+
+When a full suite is supplementary rather than a required exit gate, do not
+hold the interactive implementation handoff open solely for that run. After
+the focused gate and final diff review pass, report the implementation complete
+and label the exhaustive run separately as pending, running, passed, or failed.
+Start a slow exhaustive run only in a background or follow-up execution context
+that can report its own outcome, and never imply that a running suite passed.
+If the full suite is a required exit gate, it must pass before claiming
+completion.
+
+Shard a long suite only when its isolation rules permit it. Do not shard tests
+that can interfere through mutable databases, canonical/default paths, locks,
+ports, process-global state, or other shared resources. Report what ran, what
+was deliberately not run, and whether any exhaustive validation remains.
 
 Routine local changes and bounded operational work through established safety
 mechanisms do not need a separate verifier. Independent verification is

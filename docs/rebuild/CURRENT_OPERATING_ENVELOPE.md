@@ -28,18 +28,31 @@ The authority order is the one in the
 [rebuild index](README.md): explicit user decisions, accepted ADRs, focused
 contracts, the roadmap, and then recovery history.
 
-The current accepted registry is revision `2.64.0`, schema `1.9.0`, with
-source SHA-256 `b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`.
-The active versioned catalog is `2.24.0` at SHA-256
+The current accepted registry is revision `2.69.0`, schema `1.9.0`, with
+source SHA-256 `2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f`.
+The active versioned catalog is `2.26.0` at SHA-256
+`fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
+Its immediate `2.68.0` predecessor is retained at SHA-256
+`9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`. The earlier `2.67.0` predecessor is retained at registry SHA-256
+`a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325`; the public catalog remains byte-identical.
+Registry `2.66.0` remains byte-identical at registry SHA-256
+`f7b8c402ce4abce5d024f7fcdc8debde97e25324739f037ef209312bb4d070f3`
+and catalog `2.25.0` SHA-256
+`e35b136e3e47a6211a85d62c75baf6ecd52b9246938a30549ace5c19e0c39700`.
+Registry `2.65.0` remains byte-identical at registry SHA-256
+`c22d9ada8be3c3c7f9538c902bac3ef3467b9fdfa43c23fd7aa1c88200d58614`
+and catalog `2.24.0` SHA-256
 `6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
-Its immediate `2.63.0` predecessor remains byte-identical at registry SHA-256
+Registry `2.64.0` remains byte-identical at registry SHA-256
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`
+with the same `2.24.0` catalog. Registry `2.63.0` remains byte-identical at SHA-256
 `06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72` and
 catalog `2.23.0` SHA-256 `05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d`.
 The former working `2.22.0`/`validated` candidate is rejected under
 [ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md). It never
 established provider, canonical-store, consumer, scheduler, or live-population
 authority. Because it never entered the active configuration lineage, it
-remains absent from the later additive `2.23.0` through `2.64.0` lineage,
+remains absent from the later additive `2.23.0` through `2.68.0` lineage,
 including Treasury `2.23.0`, NY Fed headline-rate `2.24.0`, NY Fed
 repo-facility `2.25.0`, NY Fed SOMA-summary `2.26.0`,
 official macro-conditions `2.27.0`, NY Fed CMDI `2.28.0`, Treasury/EIA/NBER
@@ -212,7 +225,7 @@ contracts, and the nearest-30-DTE indicative chain inside 23-37 DTE and
 120 seconds. A non-trading date stops after the calendar request; a prior-
 session underlying stops before catalog or write, and prior-session contract
 quotes become explicit missing rows. Exact semantic replay writes nothing.
-Normalization `alpaca_spy_option_surface.v2` retains one-through-nine-digit
+Normalization `alpaca_spy_option_surface.v3` retains one-through-nine-digit
 source-native underlying and option quote/trade timestamp lexemes for fixed
 Inspector use and semantic identity. A transient microsecond-compatible copy
 is used only for validation and session-date routing. These fields are not
@@ -299,6 +312,43 @@ enabled without manually starting the service. It is active and waiting for
 2026-08-26 07:15 America/New_York; future invocations retain the same
 single-attempt/no-retry contract.
 
+On 2026-09-02 the generic SEC publisher first advanced to
+`sec_companyfacts.1.2.0`; its same-form/date enrichment rule proved too
+narrow for normal CompanyFacts/submissions endpoint disagreement. Version
+`sec_companyfacts.1.3.0` allowed a later submissions snapshot to add
+membership for the same issuer and accession when the stored row had the exact
+date-only, null-report-period, unavailable-document, base-URL CompanyFacts
+placeholder shape. One explicitly authorized v1.3 pass at
+2026-09-03T04:16Z--04:24Z made 1,027 requests: 397 issuer inputs were unchanged
+and the same 116 inputs still conflicted atomically. It made zero canonical
+output-data writes and retained 116 v1.3 failure-ledger rows. Immutable
+post-checks returned `quick_check=ok` and zero foreign-key violations; v1.3
+therefore did not establish a complete repair.
+
+Version `sec_companyfacts.1.4.0` extended only that same full structural
+placeholder rule to later CompanyFacts fallback snapshots as well as
+submissions snapshots. Its scheduled 2026-09-03 pass made 1,027 requests
+across 513 issuers: 315 succeeded and 198 conflicted, so v1.4 did not establish
+a repair.
+
+Version `sec_companyfacts.1.5.0` extends preservation to a generic accession
+already first-observed for the same issuer, including an ordinary submissions
+row whose official metadata is later revised or represented differently by
+CompanyFacts. It retains the immutable first-observed filing and appends only
+the new snapshot membership. Accessions first observed for another issuer and
+the legacy AAPL path retain their existing strict checks. The
+`sec_companyfacts_run_v1_5` identity permits failed v1.4 inputs to reach this
+path once.
+
+One explicitly authorized v1.5 pass ran from 2026-09-03 21:35 to 22:18 EDT.
+It made 1,027 requests across the same 513 issuers: 512 succeeded and one,
+NextEra Energy, retained an isolated conflict; three of the 519 roster symbols
+remained unmatched. Of the successes, 246 new v1.5 ingestion runs committed
+404,278 writes and the others were semantic no-ops. Immutable post-checks
+returned `quick_check=ok` and zero foreign-key violations. The run exited
+nonzero because it was incomplete and was not retried. Version v1.5 changes no
+migration, provider, credential, timer, roster, or store path.
+
 Revision `2.46.0` implements the local read-only canonical-access foundation.
 It adds explicit `2.0.0` macro search, describe, and series variants while
 leaving omitted-version and explicit-v1 behavior unchanged. Official-vintage
@@ -368,14 +418,93 @@ serializer default. Exact semantic replay writes nothing; a partial run
 isolates invalid or omitted ETF snapshots, reports its completed and failed
 underlyings, and never claims success.
 
+Revision `2.65.0` corrects both Alpaca option collectors to treat one explicit
+delivery of 100 shares of the same underlying at 100% allocation as standard;
+the ETF normalization is now `alpaca_etf_option_surface_grid.v2`. True adjusted
+contracts remain excluded from analytic surfaces. New private relations retain
+each exact JSON response body by content hash and link every response to its
+capture before the normalized surface rows are completed, so exclusion no
+longer erases received price evidence. Migration
+`market:0011_option_raw_evidence` corrects only stored Alpaca contracts whose
+explicit delivery also matches their canonical underlying. Previously
+discarded quotes cannot be recovered; affected historical surfaces receive an
+explicit `source_quote_not_retained_before_raw_option_storage` missing reason
+rather than a fabricated price. This revision changes no credential resolver,
+provider scope, request bound, timer, scheduler, public tool, dashboard,
+export, hosting, or deployment authority. Exact raw-and-normalized replay still
+writes nothing; a byte-distinct response is retained as new evidence even when
+its normalized numeric values are equivalent.
+
+At `2026-08-31T01:42:58.896154Z` (2026-08-30 local time), the verified
+forward migration was applied to the fixed `data/market.sqlite` under the
+physical store lock without a provider request or scheduler action. The
+immutable post-check found migration head 0011 at registry `2.65.0`, all 294
+affected Alpaca contracts classified standard, and all 1,162 pre-storage
+surfaces/open-interest/close observations carrying the explicit legacy
+missing reasons. Both raw relations are registered and contain zero rows until
+a future capture supplies response bytes; all four restored option update
+guards and all four new raw-evidence immutability guards are present.
+
+Revision `2.66.0` adds only bounded local read-only news/research tools and
+`news.search@2.2.0` cursor pagination over already retained data. It introduces
+no provider, credential, migration, canonical write, scheduler, export,
+hosting, or deployment authority. Exact-match story clusters are candidates;
+provider symbols are not silently promoted to canonical entity identities;
+event and sentiment labels are deterministic derived annotations; and event
+impact is retrospective raw close-to-close performance with explicit temporal
+limitations, not a causal or abnormal-return claim. Exact projection restores
+byte-identical registry `2.65.0` and catalog `2.24.0`.
+
+Revision `2.67.0` adds only local read-only Data Status and options-access
+contracts over already retained state. `data.get_dataset_status@1.0.0`
+evaluates retained successful-capture anchors against declared thresholds and
+does not probe a provider, credential, scheduler process, or network. The three
+options v2 successors read the fixed paper/indicative Alpaca ETF cohort without
+mixing captures; raw responses remain private and missing/nonstandard states
+remain explicit. The Inspector `/healthz` route is process liveness only. This
+revision adds no provider execution, canonical write, migration, scheduler,
+export, deployment, or public-network authority. Exact projection restores
+byte-identical registry `2.66.0` and catalog `2.25.0`.
+
+Revision `2.68.0` adds six private, credential-free, bounded `manual_only`
+macro-history collectors for CFTC TFF and disaggregated futures-only history,
+Treasury securities auctions, NY Fed Primary Dealer Statistics, and Federal
+Reserve H.8 and SLOOS. They bind only to existing
+`fixture.macro.rtdsm_employ_evidence`, `fixture.macro.rtdsm_employ`, and
+`fixture.macro.stage3_catalog`, derive locks from those outputs, and have one
+attempt with no retry. H.8 uses seven fixed singleton requests and SLOOS uses
+six, each under one 16 MiB aggregate response cap. This declaration adds no migration, job, scheduler, public
+tool, dashboard, export, catalog, or provider-execution authority. Exact
+projection restores byte-identical registry `2.67.0` at SHA-256
+`a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325`; catalog `2.26.0` remains unchanged. On 2026-09-04, a finite parser-only
+gate made exactly 13 no-retry singleton attempts for H.8 and SLOOS; every
+attempt failed before an HTTP response and no body was accepted, so neither
+source entered the recurring macro-current scope.
+
 The fixed local Inspector adds the read-only `options-surfaces` view with
 allowlisted underlying, target-DTE, expiration, option-type, and surface-state
 filters. It exposes explicit state and missing-reason fields for surface,
 open-interest, close-price, underlying-quote, rate-curve, dividend-set, and
-expiry-model inputs. The existing `spy-options` view and the separately authorized 15:55
-SPY host timer remain unchanged and SPY-only. The broad collector has no job,
-timer, scheduler, public tool, migration, new dataset, export, hosting, or
-deployment scope. Its zero-argument live entry point is
+expiry-model inputs. The existing `spy-options` view remains available. On
+2026-08-30 the user separately authorized updating the enabled, legacy-named
+`quant-data-alpaca-spy-options.timer` in place to invoke the fixed 15-ETF
+collector at its then-current 15:55 weekday cadence. The collector still has no
+registry job or public tool; its `manual_only` declaration is preserved and
+the fixed host unit is the explicit recurring exception. On 2026-08-31 the user
+authorized moving the same fixed timer to 16:20 America/New_York so collection
+begins after the latest ordinary ETF-option session. The focused unit test and
+`systemd-analyze --user verify` passed. The daemon reload made no provider
+request or canonical write, but restarting the active timer unexpectedly
+dispatched the already-passed same-day event at 20:29 EDT despite
+`Persistent=false`. That unplanned incomplete-universe run issued 64 requests,
+retained 54 captures, materialized 8,812 surface rows, and made 27,031 writes.
+It completed SPY, QQQ, IWM, DIA, XLB, and XLC; the other nine fixed underlyings
+failed. It exited 75, was not retried, and its immutable captures were not
+deleted. After completion the failure flag was cleared without another service
+start. The service is `inactive/dead`, retaining its 20:29:50-20:30:17 EDT
+timestamps and exit status 75. The timer is
+`loaded`/`enabled`/`active`/`waiting` for Tuesday 2026-09-01 16:20 EDT.
+Its zero-argument live entry point is
 `python3 -m quant_data.operations.alpaca_etf_options_refresh`. On 2026-08-27
 the one authorized manual attempt issued 17 requests: one OPRA calendar
 request, one shared underlying-snapshot request, and one contract-catalog
@@ -645,14 +774,27 @@ scheduler, store, or historical-population action follows from the retirement.
 - On 2026-08-25 the user separately authorized the fixed Alpaca SPY
   option-surface collector and its 15:55 host timer to append new capture
   cohorts to the existing options schema. It is separate from Stage 12E.
+- On 2026-08-30 the user explicitly authorized updating that enabled,
+  legacy-named timer in place to invoke the fixed 15-ETF grid. On 2026-08-31
+  the user authorized moving it from 15:55 to 16:20 America/New_York on
+  weekdays. It retains `Persistent=false`, no retry or catch-up, and the
+  fixed 362-request, 900,016-row, 256 MiB, 900-second, and 16-minute host
+  bounds. The separate 18:00 Stage 12E FMP job is unchanged.
+- The authorized 2026-08-31 manual run at 20:01 issued 128 requests, completed
+  14 underlyings with XLE partial, retained 110 captures, materialized 12,556
+  surface rows, and made 51,465 writes. It was not retried. The later timer
+  restart unexpectedly dispatched one additional partial run at 20:29: 64
+  requests, six completed underlyings, 54 captures, 8,812 surface rows, and
+  27,031 writes with exit status 75. It was not retried or deleted and must not
+  be silently repeated.
 - On 2026-08-27 the user separately authorized exactly one fixed FMP IWM
   full-history attempt into the additive 96-ETF successor in
   `data/market.sqlite`. That attempt completed with 1,254 rows and passed
   immutable postchecks. The dependent manual fixed 15-ETF, ten-DTE Alpaca
   attempt then issued 17 requests and failed closed for all underlyings before
-  publication, with zero writes. Neither completed attempt may be repeated
-  without a new explicit decision; no timer changed and no completed Stage 10
-  or Stage 12C provider unit was reopened.
+  publication, with zero writes. Those completed 2026-08-27 attempts may not
+  be manually repeated. At that time no timer changed and no completed Stage
+  10 or Stage 12C provider unit was reopened.
 - Stage 12D is complete as a no-transfer, read-only adoption/freeze proof. It
   authorizes no provider, credential, write, copy, backup, promotion, public
   consumer, or scheduler action. See the
@@ -672,11 +814,26 @@ scheduler, store, or historical-population action follows from the retirement.
   the batch as a no-market-session sentinel; the ten pinned historical
   noncoverage symbols remain in scope, valid 200 data is published if
   available, and only their exact reviewed empty/HTTP 402 outcomes are
-  terminal. Other missing or error outcomes fail closed. The timer is
+  terminal. Any durably received response outside policy becomes a failed
+  per-symbol result while later symbols continue; transport/no-response
+  ambiguity and publication/store failures remain fail-fast. The timer is
   non-persistent, has no retry or catch-up, targets only
   `data/market.sqlite`, retains per-unit private evidence, and writes
   nothing on exact semantic replay. It does not repeat historical Stage 10 or
   Stage 12C work and does not enable the frozen Stage 7 `market-close` job.
+- The explicitly authorized September 2 corrective attempts were each
+  single-attempt and were not retried. Runner v1.2 stopped after one
+  byte-identical AAPL response because an implementation-version change had
+  incorrectly changed its raw-response request scope; it made zero writes and
+  its six-file journal was preserved intact. Runner v1.3 fixed that scope and
+  issued 616 of 630 requests: 611 published, EA and IRBO were terminal
+  noncoverage, AVB and EQR were isolated unapproved-empty results, and a
+  malformed 402 error envelope for `^AXJO` stopped ordinal 616 before the
+  final 14 symbols. There is no completion receipt. The full immutable market
+  check returned `quick_check=ok`, zero foreign-key violations, and no
+  WAL/SHM sidecars. Offline-verified v1.4 now isolates every durably received
+  response-policy failure while preserving fail-fast transport and
+  publication/store behavior; it has not received a second live attempt.
 - No other default-path market operation is authorized beyond the exact SPY,
   one-attempt IWM/broad-grid, and Stage 12E daily-refresh exceptions above.
 
@@ -742,9 +899,64 @@ step; full-source CFNAI and INDPRO add one request each through the stable
 current-quarter end. No registry revision, migration, credential mechanism,
 new unit, timer cadence, public route, or export was added.
 
+## Repaired H.4.1 and petroleum current refreshes
+
+On 2026-08-31 the user explicitly authorized repairing the recurring
+invalid-request outcomes for Federal Reserve H.4.1 and the three EIA
+petroleum-fundamentals sources. Two scheduled aggregate runs, on 2026-08-28
+and 2026-08-31, had failed the same four steps while continuing the remaining
+independent sources.
+
+The bounded repair used four single-attempt, no-write provider diagnostics
+followed by four single-attempt canonical publications, with no retry. The
+FRED archive returned valid observations outside the requested rolling
+window; the parser now ignores those rows while retaining only the declared
+inclusive window. Current EIA petroleum responses use MBBL and MBBL/D; the
+parser now accepts those exact source-native labels plus the previously
+retained descriptive equivalents, without changing canonical units, series
+identity, registry bindings, schema, credential handling, or publisher
+semantics.
+
+The H.4.1 publication wrote one new observation version for each of its three
+series, advancing all three to 1,237 current weekly observations through
+2026-08-26. The petroleum publications wrote one new observation version per
+series, advancing total-motor-gasoline stocks to 1,912, distillate stocks to
+2,291, and finished-motor-gasoline product supplied to 1,855 current weekly
+observations, all through 2026-08-21. The descriptor-pinned immutable
+post-check returned integrity ok, zero foreign-key violations, and the
+expected six current-series totals; no SQLite sidecars remained. The stable
+macro-store SHA-256 changed from
+2719a8b0db1d8d88fff7ef4c6ed1dffbaa9207da92782838ea60db2145bfe9aa
+to
+42474cdd2117fc2b6d782decbd8a0119c458fc5af24621fc08d4ed60b35a57e8.
+
+These eight requests and four manual publications are complete and must not
+be repeated manually. No service or timer was started, retried, changed, or
+reloaded; the existing clock-driven macro-current exception retains its fixed
+scope and cadence.
+
+## September 5 fetch repairs
+
+The user's repair-and-live-fetch request added H.8/SLOOS to the existing
+macro wrapper and replaced stale CFNAI workbook fetching with its current FRED
+feed. H.8/SLOOS use the previous quarter's start through the current quarter's
+end; CFNAI starts at 2026-01-01. There are 29 operations and a 94-request cap.
+The existing timer cadence is unchanged. This supersedes the September 4
+unsuccessful H.8/SLOOS gate for current source eligibility.
+
+The finite January-September macro repair and AAPL actions/annual estimates
+pilot are complete and must not be manually repeated. The company collector is
+implemented in registry 2.69.0. On September 5, the user explicitly approved its
+separate weekday 19:00 America/New_York host scheduler exception. The company
+timer is now installed, enabled, and active/waiting; its first scheduled trigger
+is September 7 at 19:00 EDT. Activation did not execute the service or change
+the inspected stores or company operation state.
+The [repair receipt](FETCH_REPAIRS_2026-09-05.md) records scope, limitations,
+verification, private evidence, and the completed scheduler activation.
+
 ## Recurring exceptions
 
-Eight recurring scheduler exceptions are recorded as installed and active. The
+Nine recurring scheduler exceptions are recorded as installed and active. The
 Stage 12E daily-market timer is enabled and waiting for its first normal
 trigger. Normal clock-driven execution is the boundary; agents must not
 manually trigger, change, retry, broaden, reinstall, disable, or repurpose any
@@ -755,10 +967,11 @@ recurring unit.
 | `quant-data-macro-vintages.timer` | 09:05 America/New_York on weekdays. One current BEA GDP/GDI workbook request and one current BLS GDP/CPI request; no retry, migration, credential, or historical-archive fetch. |
 | `quant-data-employment-vintages.timer` | First Friday of each month at 10:05 America/New_York. One credential-free BLS request for the fixed payroll and unemployment series; no retry, migration, or Philadelphia Fed historical-workbook fetch. |
 | `quant-data-fmp-macro-calendar.timer` | 08:15 and 08:45 America/New_York on weekdays. One bounded current-window FMP calendar request with no retry. The response is retained as wholesale raw evidence before independent GDP/CPI and employment normalization. |
-| `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twenty-three established macro collector operations run sequentially with a total provider-request cap of 31, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; NY Fed overnight rates including SOFR distribution, volume, index, and compounded averages; Federal Reserve IORB, target bounds, H.4.1, and INDPRO; repo facilities and SOMA; Chicago Fed NFCI/ANFCI components and CFNAI; BIS credit conditions; CMDI; Treasury cash, Debt to the Penny, and Monthly Treasury Statement receipts, outlays, and deficit/surplus; EIA gas storage, weekly crude-oil stocks, weekly gasoline and distillate stocks, finished-gasoline product supplied, and monthly electricity retail; NBER recession chronology; BLS PPI, earnings, productivity, and ECI; and BEA personal income, disposable personal income, and personal consumption expenditures. |
-| `quant-data-alpaca-spy-options.timer` | 15:55 America/New_York on weekdays, with an in-process OPRA trading-calendar gate. It targets only `data/market.sqlite`, makes at most four single-attempt requests, enforces 10,000 rows, 8 MiB, and 120 seconds, uses the paper account and indicative option feed with an IEX SPY spot reference, and writes nothing on exact semantic replay. |
+| `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twenty-nine established macro collector operations run sequentially with a total provider-request cap of 94, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; both CFTC futures-only positioning families; Treasury securities auctions; NY Fed overnight rates including SOFR distribution, volume, index, and compounded averages, plus Primary Dealer Statistics; Federal Reserve IORB, target bounds, H.4.1, H.8, SLOOS, and INDPRO; repo facilities and SOMA; Chicago Fed NFCI/ANFCI components and CFNAI; BIS credit conditions; CMDI; Treasury cash, Debt to the Penny, and Monthly Treasury Statement receipts, outlays, and deficit/surplus; EIA gas storage, weekly crude-oil stocks, weekly gasoline and distillate stocks, finished-gasoline product supplied, and monthly electricity retail; NBER recession chronology; BLS PPI, earnings, productivity, and ECI; and BEA personal income, disposable personal income, and personal consumption expenditures. |
+| `quant-data-alpaca-spy-options.timer` | Legacy unit name retained for the authorized in-place 15-ETF grid update. It runs at 16:20 America/New_York on weekdays with `Persistent=false`, an OPRA gate, and no retry or catch-up. It targets only `data/market.sqlite`, the fixed paper/indicative feed, the 15 named ETF identities, and ten fixed DTE targets. One invocation is capped at 362 requests, 900,016 rows, 256 MiB, and 900 seconds with a 16-minute host timeout; raw response bytes precede normalization, partial grids exit nonzero, and exact semantic replay writes nothing. |
 | `quant-data-sec-company-fundamentals.timer` | 07:15 America/New_York on weekdays. It reads the fixed Stage 10 equity roster, performs one bounded SEC ticker discovery, processes sequential submissions/CompanyFacts pairs without retry, and targets only `data/company.sqlite`. |
-| `quant-data-market-close.timer` | Enabled and active/waiting. On 2026-08-29 it was daemon-reloaded, enabled, and started; `LastTrigger` is empty, the service is `inactive/dead` with no execution timestamps, and activation made no state directory, provider request, or canonical write. Its next trigger is Monday 2026-08-31 18:00:00 EDT. On weekdays at 18:00 America/New_York, it snapshots every current FMP provider-native Stage 10 `equity`/`etf`/`index` identity. The 2026-08-29 preflight contained 630 (519 equity, 96 ETF, and 15 index); the dynamic batch is bounded to 800 and begins with `AAPL`. It makes one current-session daily-OHLCV request per symbol. An empty `AAPL` stops the batch. Pinned historical noncoverage symbols remain eligible; only their reviewed empty/HTTP 402 outcomes are terminal and other errors fail closed. It is non-persistent, has no retry or catch-up, targets only `data/market.sqlite`, retains per-unit private evidence, and writes nothing on exact semantic replay. |
+| `quant-data-company-market-refresh.timer` | 19:00 America/New_York on weekdays. The zero-argument wrapper reads at most 700 retained FMP equities and existing company identities, makes one SEC ticker discovery, and fetches dividends, splits, and one annual-estimates page for each unambiguous existing identity. It publishes only to `data/company.sqlite`, creates no identities, and is capped at 2,101 requests, 128 MiB, and 30 minutes with a 31-minute host timeout. Partial coverage exits nonzero, exact semantic replay writes nothing, and there is no retry or catch-up. |
+| `quant-data-market-close.timer` | Enabled and active/waiting. On 2026-08-29 it was daemon-reloaded, enabled, and started; `LastTrigger` is empty, the service is `inactive/dead` with no execution timestamps, and activation made no state directory, provider request, or canonical write. Its next trigger is Monday 2026-08-31 18:00:00 EDT. On weekdays at 18:00 America/New_York, it snapshots every current FMP provider-native Stage 10 `equity`/`etf`/`index` identity. The 2026-08-29 preflight contained 630 (519 equity, 96 ETF, and 15 index); the dynamic batch is bounded to 800 and begins with `AAPL`. It makes one current-session daily-OHLCV request per symbol. An empty `AAPL` stops the batch. Pinned historical noncoverage symbols remain eligible; only their reviewed empty/HTTP 402 outcomes are terminal. Any durably received per-symbol response outside the accepted status, redirect, media, envelope, or payload policy is retained as a failed result while later independent symbols continue; any such result prevents completion and exits nonzero. Transport/no-response ambiguity and publication/store failures remain fail-fast. It is non-persistent, has no retry or catch-up, targets only `data/market.sqlite`, retains per-unit private evidence, and writes nothing on exact semantic replay. |
 | `quant-data-current-news-refresh.timer` | Hourly at `:10` UTC. It runs the fixed eight-source current-news batch over FMP stock/press/general, Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga feeds. Coverage derives from the bounded current market universe, requests have no retry, missing credentials are source-local unavailable outcomes, exact replay writes nothing, and the timer is non-persistent with no catch-up. |
 
 These exceptions do not enable any recovered Stage 7 job, provider or series

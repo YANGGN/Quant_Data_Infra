@@ -49,11 +49,15 @@ employment-vintage timer. A further explicit decision authorized the fixed FMP
 macro-calendar timer described below. On 2026-08-23 the user separately
 authorized the fixed weekday aggregate macro-current timer described below.
 On 2026-08-25 the user separately authorized the fixed Alpaca SPY option-
-surface timer. On 2026-08-25 the user also authorized scheduled SEC market-
+surface timer. On 2026-08-30 the user separately authorized updating that
+legacy-named timer in place to run the fixed 15-ETF option grid described
+below. On 2026-08-25 the user also authorized scheduled SEC market-
 equity CompanyFacts fetching; the implementation fixes it to the weekday timer
 described below. The original exceptions retain their documented states. The
 Stage 12E market timer was enabled and is waiting for its first normal trigger
 on 2026-08-29; it does not broaden the disabled recovered job catalog.
+On 2026-09-05 the user explicitly approved the separate weekday 19:00 company
+actions and analyst-estimates timer described below.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
 
@@ -146,27 +150,33 @@ historical vintage collector above or the FMP calendar exception.
 
 `quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
 exception. It runs at 18:30 America/New_York, Monday through Friday, with
-`Persistent=false`. Its zero-argument wrapper invokes twenty-three
+`Persistent=false`. Its zero-argument wrapper invokes twenty-nine
 established macro collector operations sequentially, without retry, and
 returns a nonzero aggregate exit when any operation fails. One invocation has
-a fixed provider-request cap of 31: the electricity-retail operation is bounded at eight EIA
-pages, the BIS operation makes two requests, and each other operation,
-including Treasury Debt to the Penny, Monthly Treasury Statement fiscal
-balance, weekly crude-oil stocks, total-motor-gasoline stocks, distillate-
-fuel-oil stocks, and finished-motor-gasoline product supplied, makes one.
+a fixed provider-request cap of 94: NY Fed Primary Dealer Statistics is
+bounded at 33 requests, each CFTC family at eight, electricity retail at eight
+EIA pages, H.8 at seven, SLOOS at six, BIS at two, and each other operation
+at one. The September 5 repair accepted all 13 H.8/SLOOS responses through the
+corrected existing FRED transport, superseding the failed September 4 gate.
+See [the repair receipt](FETCH_REPAIRS_2026-09-05.md).
 
 The recurring scope is fixed as follows:
 
+- a 21-day inclusive window ending on the latest Friday for both CFTC
+  futures-only positioning families;
 - a stable current-quarter envelope, beginning 44 days before quarter start
   and ending on quarter end, for FMP Treasury curve, NY Fed overnight rates
   including SOFR distribution, volume, index, and compounded averages, NY Fed
   repo facilities, NY Fed SOMA, Federal Reserve IORB and target bounds,
-  Federal Reserve H.4.1, and Treasury Fiscal Data cash balance, Debt to the
-  Penny, and Monthly Treasury Statement receipts, outlays, and
-  deficit/surplus;
+  Federal Reserve H.4.1, Treasury Fiscal Data cash balance, Debt to the
+  Penny, Monthly Treasury Statement receipts, outlays, and deficit/surplus,
+  Treasury securities auctions, and NY Fed Primary Dealer Statistics under
+  the fixed current series break `SBN2024`;
+- the previous quarter's start through the current quarter's end for H.8/SLOOS;
+- one FRED CFNAI request from `2026-01-01` through the current quarter's end;
 - the source-native full response through that same quarter end for Chicago Fed
   NFCI/ANFCI and the NFCI risk, credit, and leverage components from
-  `1971-01-08`, headline CFNAI from `1967-03-01`, FRED INDPRO from
+  `1971-01-08`, FRED INDPRO from
   `1919-01-01`, and NY Fed CMDI from `2005-01-07`; BIS U.S. credit
   conditions from `1961-Q1` through the current quarter; and the fixed
   full-source EIA Lower-48 working gas-storage, EIA weekly U.S. crude-oil,
@@ -179,9 +189,10 @@ The recurring scope is fixed as follows:
   disposable personal income, and personal consumption expenditures.
 
 The wrapper targets only `data/macro.sqlite` and reuses the existing FMP,
-EIA, and BEA credential resolvers. CFNAI and INDPRO are credential-free; their
-addition changes no schema, migration, dataset ownership, provider family, or
-credential mechanism. Each collector completes its network parsing before its
+EIA, and BEA credential resolvers. CFNAI, INDPRO, CFTC, Treasury auctions,
+and Primary Dealer Statistics are credential-free; their addition changes
+no schema, migration, dataset ownership, provider family, or credential
+mechanism. Each collector completes its network parsing before its
 short physical-store publication lock, and unchanged normalized content causes
 zero writes. Stable quarter bounds preserve that semantic identity between
 daily polls while retaining a 44-day overlap at each quarter boundary. This
@@ -190,31 +201,75 @@ calendar wrappers and therefore does not duplicate the other three
 recurring exceptions. The underlying registry collector declarations remain
 manual-only; this exact hardened host unit is the recurring exception.
 
-## Active Alpaca SPY option-surface refresh
+## Active in-place Alpaca ETF option-surface refresh
 
 On 2026-08-25 the user explicitly authorized the fixed
 `quant-data-alpaca-spy-options.timer`. It was linked and enabled after the
 focused offline tests, independent verification, and host timer status check
-passed. Its first scheduled trigger is 2026-08-25 at 15:55 EDT.
+passed. On 2026-08-30 the user explicitly authorized updating that enabled
+legacy-named timer in place to invoke
+`quant_data.operations.alpaca_etf_options_refresh` instead of the SPY-only
+wrapper at its then-current 15:55 America/New_York weekday cadence. No
+immediate run was part of that update. The first normal trigger on 2026-08-31
+failed at registry preflight before credentials, provider access, or the store.
+A separately authorized manual run at 20:01 issued 128 requests, completed 14
+underlyings with XLE partial, retained 110 captures, materialized 12,556
+surface rows, and made 51,465 writes. It was not retried.
 
-The timer is fixed at 15:55 America/New_York, Monday through Friday, with
+On 2026-08-31 the user authorized moving the same fixed timer from 15:55 to
+16:20 America/New_York so collection begins after the latest ordinary
+ETF-option session. The focused unit test and
+`systemd-analyze --user verify` passed. The daemon reload made no provider
+request or store write. Restarting the active timer unexpectedly dispatched
+the already-passed same-day event at 20:29 EDT despite `Persistent=false`.
+That unplanned incomplete-universe run issued 64 requests, retained 54
+captures, materialized 8,812 surface rows, and made 27,031 writes. It completed
+SPY, QQQ, IWM, DIA, XLB, and XLC; XLE, XLF, XLI, XLK, XLP, XLRE, XLU, XLV,
+and XLY failed. It exited 75, was not retried, and its immutable captures were
+not deleted. After completion the failure flag was cleared without starting
+the service. The service is `inactive/dead` and retains its
+20:29:50-20:30:17 EDT timestamps and status 75. The timer is
+`loaded`/`enabled`/`active`/`waiting` for Tuesday 2026-09-01 16:20 EDT.
+No further service start was made.
+
+The timer is fixed at 16:20 America/New_York, Monday through Friday, with
 `Persistent=false`. An in-process OPRA calendar request gates actual trading
 days; a holiday stops after that one request. The operation has no retry or
 automatic catch-up.
+Before credentials or provider access, the option wrapper requires one
+publisher-stable registry/catalog load. The canonical generator holds one
+project-local exclusive advisory lock across generation and all three atomic
+file replacements; the option wrapper waits at most 30 seconds for the matching
+shared lock, validates the bundle once, and releases the lock before credentials
+or provider access. This synchronization makes no provider request and opens no
+database. It is not a checksum or configuration retry: an invalid bundle after
+lock acquisition fails immediately as `registry_not_ready`. Provider requests
+remain single-attempt with no retry or catch-up.
 
-The wrapper fixes the project root, `data/market.sqlite`, SPY, the paper
-account, the indicative option feed, and the existing
-`ALPACA_API_KEY`/`ALPACA_API_SECRET` credential resolver. One invocation
-makes at most four requests: OPRA calendar, IEX SPY snapshot, bounded paper
-option contracts, and one exact-expiry indicative option chain.
 
-The collector enforces 10,000 rows, 8 MiB total response bytes, and 120
-seconds. All network work and parsing complete before the physical market-
-store write lock. Exact semantic replay writes nothing. It reuses the existing
-option tables and Stage 10 SPY identity, adds no migration, and does not enable
-the recovered `options-close` or market-close jobs. Alpaca's indicative
-quotes and delayed/derived trades are inspection evidence, not an executable
-price, trading signal, or valuation input.
+The wrapper fixes the project root, `data/market.sqlite`, paper account,
+indicative option feed, and existing
+`ALPACA_API_KEY`/`ALPACA_API_SECRET` credential resolver. Its universe is
+exactly `SPY`, `QQQ`, `IWM`, `DIA`, `XLB`, `XLC`, `XLE`, `XLF`,
+`XLI`, `XLK`, `XLP`, `XLRE`, `XLU`, `XLV`, and `XLY`. Target DTEs
+are `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and
+`365`.
+
+One invocation makes at most 362 single-attempt requests and is bounded by
+900,016 rows, 256 MiB, and 900 seconds; the host timeout is 16 minutes. Exact
+provider-response bytes are retained before normalized surfaces are completed.
+A partial grid reports completed and failed underlyings, preserves completed
+captures, and exits nonzero rather than claiming full success. Network fetch
+and parsing remain outside each short physical market-store publication lock,
+and exact semantic replay writes nothing.
+
+The registry collector declaration remains `manual_only`; this one hardened
+host unit is the explicit recurring exception. It replaces, rather than runs
+alongside, the SPY wrapper, so SPY is not requested twice. It does not enable
+the recovered `options-close` job or alter the separate 18:00 Stage 12E FMP
+market-close job. Alpaca's indicative quotes and delayed/derived trades are
+inspection evidence, not an executable price, trading signal, or valuation
+input.
 
 ## Active Stage 12E market-close refresh
 
@@ -242,8 +297,21 @@ per selected symbol. An empty `AAPL` response is a no-market-session sentinel
 and stops the batch before other symbols are requested. The ten pinned
 historical noncoverage symbols remain eligible: valid 200 data is published if
 it becomes available, while only their exact reviewed empty or HTTP 402
-outcomes are terminal. Other missing or error outcomes fail closed. There is
-no hidden retry or automatic catch-up.
+outcomes are terminal. A non-sentinel unapproved empty response or malformed
+or out-of-contract payload is retained as a per-symbol `failed_response`
+without publication, and later independent symbols continue. Version `1.4.0`
+extends that isolation to every durably received redirect, invalid media type,
+invalid status, unapproved status, and malformed approved error envelope.
+Any such result prevents completion and makes the aggregate service exit
+nonzero. Transport/no-response ambiguity and publication/store failures still
+stop immediately. There is no hidden retry or automatic catch-up.
+
+Runner versions beginning with `1.3.0` keep the full implementation
+authority on plans and receipts but use the stable v1.1 provider-request
+authority revision for
+raw-response replay protection. Code-only releases can therefore replay
+byte-identical content as unchanged; a request-defining authority change still
+changes the scope digest and fails closed.
 
 Network parsing completes before the short physical lock and transaction on
 the fixed `data/market.sqlite`; exact semantic replay writes nothing. Each
@@ -288,6 +356,55 @@ two unmatched symbols, and one ticker-confirmation mismatch. A scheduled
 invocation processes the fixed full roster again; semantic replay makes
 unchanged successful issuers zero-write, while previously failed issuers get a
 new attempt. There is still no retry within an invocation.
+
+Generic publisher version `1.4.0` allowed later submissions or CompanyFacts
+fallback records to preserve an exact same-issuer CompanyFacts placeholder.
+Its scheduled 2026-09-03 pass completed the fixed 1,027 requests but left 198
+of 513 issuers in isolated conflict.
+
+Version `1.5.0` preserves any generic filing already first-observed for the
+same issuer when a later official endpoint revises its metadata, while still
+appending the new snapshot membership. First-observed-other-issuer joint
+filings and legacy AAPL remain strict. One explicitly authorized manual pass
+from 21:35 to 22:18 EDT on 2026-09-03 completed the same 1,027 requests: 512
+issuers succeeded and only NextEra Energy retained an isolated conflict.
+Three roster symbols remained unmatched. The pass committed 404,278 writes
+across 246 new v1.5 ingestion runs; its other successes were semantic no-ops.
+Immutable post-checks returned `quick_check=ok` and zero foreign-key
+violations. The incomplete aggregate exited nonzero and was not retried. The
+timer was not changed and remains enabled, active, and waiting for its normal
+2026-09-04 07:15 EDT trigger.
+
+## Active company actions and analyst-estimates refresh
+
+On 2026-09-05 the user explicitly approved creating and enabling
+`quant-data-company-market-refresh.timer` for Monday-Friday at 19:00
+America/New_York. Its zero-argument service invokes
+`python3 -m quant_data.operations.company_market_refresh` from the fixed project
+root. The timer is non-persistent, has no randomized delay or catch-up, and the
+service has `Restart=no` and a 31-minute host timeout around the wrapper's
+30-minute run limit.
+
+Each run reads at most 700 retained FMP equities and existing company
+identities through the established physical-store read mechanisms, performs
+one bounded SEC ticker discovery, and requests dividends, splits, and one
+annual-estimates page for each unambiguous symbol with an existing CIK.
+The fixed aggregate limits are 2,101 requests and 128 MiB, with no retry.
+No identities are created. Publication targets only `data/company.sqlite`,
+retains raw evidence before normalization, reuses the existing physical-store
+locks and replay-safe publishers, and performs no network work under a
+database write lock or transaction. Exact semantic replay writes nothing.
+Partial coverage is reported explicitly and produces a nonzero aggregate exit.
+
+The two registry collector bindings remain manual-only. This separate host
+exception does not enable recovered `expectations` or `company-weekly` jobs,
+change ownership/schema, or authorize manual population repeats.
+The units were linked, daemon-reloaded, and the timer alone enabled/started.
+Post-activation inspection found the timer enabled and active/waiting with its
+next trigger on 2026-09-07 at 19:00 EDT; the service remained inactive/dead
+without execution timestamps. All 22 inspected store/sidecar and company
+operation-state filesystem stamps and the company state path set were unchanged.
+See the [repair and activation evidence](FETCH_REPAIRS_2026-09-05.md).
 
 ## Safety principles
 

@@ -4,6 +4,7 @@ import http.client
 import hashlib
 import tempfile
 import unittest
+from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest import mock
@@ -19,7 +20,11 @@ from quant_data.news.fmp_stock_latest import (
     FmpStockLatestRequest,
     _parse_rows,
 )
-from quant_data.registry import load_registry
+from quant_data.registry import (
+    data_status_options_registry_profile,
+    load_registry,
+    news_research_registry_profile,
+)
 from quant_data.stores import StoreMap, StoreRole, StoreWriteLock, read_connection
 
 
@@ -102,6 +107,40 @@ class FmpStockLatestTests(unittest.TestCase):
             self.registry,
             clock=lambda: FIXED_TIME,
         )
+
+    def test_data_status_binding_is_exact_and_current_only(self) -> None:
+        self._importer()
+
+        for predecessor in (
+            data_status_options_registry_profile(self.registry),
+            news_research_registry_profile(self.registry),
+        ):
+            self.assertIn(predecessor.registry_version, {"2.65.0", "2.66.0"})
+            FmpStockLatestImporter(
+                self.store_map,
+                predecessor,
+                clock=lambda: FIXED_TIME,
+            )
+
+        invalid_datasets = tuple(
+            replace(dataset, tool_ids=("data.get_dataset_status", "news.search"))
+            if dataset.id
+            in {
+                "news.fmp.stock_latest_evidence",
+                "news.fmp.stock_latest_articles",
+            }
+            else dataset
+            for dataset in self.registry.datasets
+        )
+        with self.assertRaisesRegex(
+            ValidationError,
+            "only the reviewed data-status binding",
+        ):
+            FmpStockLatestImporter(
+                self.store_map,
+                replace(self.registry, datasets=invalid_datasets),
+                clock=lambda: FIXED_TIME,
+            )
 
     def test_one_request_intent_raw_capture_private_versions_and_precision(self) -> None:
         transport = _Transport(self.body, self.store_map.news)

@@ -146,7 +146,18 @@ class AlpacaSpyOptionsTests(unittest.TestCase):
             "close_price": "8.20",
             "close_price_date": "2026-07-31",
             "root_symbol": "SPY",
-            "deliverables": [],
+            "deliverables": [
+                {
+                    "allocation_percentage": "100",
+                    "amount": "100",
+                    "asset_id": "fixture-spy-equity",
+                    "delayed_settlement": False,
+                    "settlement_method": "CCC",
+                    "settlement_type": "T+1",
+                    "symbol": "SPY",
+                    "type": "equity",
+                }
+            ],
         }
 
     @classmethod
@@ -311,6 +322,22 @@ class AlpacaSpyOptionsTests(unittest.TestCase):
         self.assertEqual(
             [contract["contract_multiplier"] for contract in parsed.contracts],
             [100, 100],
+        )
+        self.assertEqual(
+            [contract["deliverable_kind"] for contract in parsed.contracts],
+            ["standard", "standard"],
+        )
+        quotes = {
+            row["provider_contract_id"]: row["quote"]
+            for row in parsed.surface_rows
+        }
+        self.assertEqual(
+            (
+                quotes["alpaca-target-call"]["bid_price"],
+                quotes["alpaca-target-call"]["ask_price"],
+                quotes["alpaca-target-call"]["last_price"],
+            ),
+            ("8.1", "8.3", "8.2"),
         )
         open_interest = {
             row["provider_contract_id"]: row["open_interest"]["value"]
@@ -606,10 +633,31 @@ class AlpacaSpyOptionsTests(unittest.TestCase):
                 FROM option_surface_captures
                 """
             ).fetchone()
+            raw_by_name = {
+                row[0]: bytes(row[1])
+                for row in connection.execute(
+                    """
+                    SELECT membership.response_name, response.response_body
+                    FROM option_capture_raw_responses AS membership
+                    JOIN option_raw_responses AS response USING (raw_response_id)
+                    ORDER BY membership.source_order
+                    """
+                )
+            }
         self.assertEqual(tuple(bridge), (_STAGE10_SPY_ID, "etf", "SPY"))
         self.assertEqual(
             tuple(capture),
             (ALPACA_REQUESTED_FEED, ALPACA_RESOLVED_FEED, ALPACA_ENVIRONMENT),
+        )
+        bodies = self._bodies()
+        self.assertEqual(
+            raw_by_name,
+            {
+                "calendar": bodies["calendar"],
+                "underlying": bodies["underlying"],
+                "contracts": bodies["contracts"],
+                "option_chain": bodies["snapshots"],
+            },
         )
 
         before_replay = mutation_fingerprint(self.stores)
@@ -619,6 +667,75 @@ class AlpacaSpyOptionsTests(unittest.TestCase):
         self.assertEqual(replay.written_count, 0)
         self.assertIsNone(replay.run_id)
         self.assertEqual(before_replay["sha256"], mutation_fingerprint(self.stores)["sha256"])
+
+    def test_true_adjusted_contract_is_excluded_but_raw_price_is_retained(self) -> None:
+        bodies = self._bodies()
+        catalog = json.loads(bodies["contracts"])
+        target_put = next(
+            row
+            for row in catalog["option_contracts"]
+            if row["id"] == "alpaca-target-put"
+        )
+        target_put["deliverables"] = [
+            {
+                "allocation_percentage": "100",
+                "amount": "50",
+                "symbol": "SPY",
+                "type": "equity",
+            },
+            {
+                "allocation_percentage": "0",
+                "amount": "25",
+                "symbol": "USD",
+                "type": "cash",
+            },
+        ]
+        contracts_body = _json_bytes(catalog)
+        parsed = parse_alpaca_spy_options_capture(
+            calendar_body=bodies["calendar"],
+            underlying_body=bodies["underlying"],
+            contracts_body=contracts_body,
+            snapshots_body=bodies["snapshots"],
+            session_date=_SESSION_DATE,
+            requested_at=_CAPTURED,
+            completed_at=_CAPTURED,
+        )
+        adjusted = next(
+            row
+            for row in parsed.surface_rows
+            if row["provider_contract_id"] == "alpaca-target-put"
+        )
+        self.assertEqual(adjusted["surface_state"], "excluded")
+        self.assertEqual(adjusted["exclusion_reason"], "nonstandard_deliverable")
+        self.assertTrue(all(value is None for value in adjusted["quote"].values()))
+
+        receipt = AlpacaSpyOptionsPublisher(self.stores, self.registry).publish(parsed)
+        self.assertEqual(receipt.outcome, "succeeded")
+        with read_connection(self.stores, StoreRole.MARKET) as connection:
+            raw_chain = connection.execute(
+                """
+                SELECT response.response_body
+                FROM option_capture_raw_responses AS membership
+                JOIN option_raw_responses AS response USING (raw_response_id)
+                WHERE membership.response_name='option_chain'
+                """
+            ).fetchone()[0]
+            canonical = connection.execute(
+                """
+                SELECT surface.surface_state, surface.bid_price, surface.ask_price,
+                       surface.last_price
+                FROM option_surface_snapshots AS surface
+                JOIN option_contracts AS contract USING (contract_id)
+                WHERE contract.provider_contract_id='alpaca-target-put'
+                """
+            ).fetchone()
+        self.assertEqual(bytes(raw_chain), bodies["snapshots"])
+        self.assertEqual(
+            json.loads(raw_chain)["snapshots"]["SPY260902P00650000"]
+            ["latestQuote"]["bp"],
+            "7.90",
+        )
+        self.assertEqual(tuple(canonical), ("excluded", None, None, None))
 
     def test_pagination_marker_fails_closed_before_any_store_write(self) -> None:
         bodies = self._bodies()

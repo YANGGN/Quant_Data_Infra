@@ -14,6 +14,8 @@ from quant_data.contracts import TruncationV1, WarningV1
 from quant_data.registry import Registry
 
 from .catalog import (
+    ADDITIVE_DATA_STATUS_TOOLS,
+    ADDITIVE_NEWS_RESEARCH_TOOLS,
     ADDITIVE_PUBLIC_TOOL_NAMES,
     ADDITIVE_STAGE10_STATISTICS_TOOLS,
     CURRENT_PUBLIC_TOOL_NAMES,
@@ -21,6 +23,7 @@ from .catalog import (
     PUBLIC_TOOL_NAMES,
     VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
     VERSIONED_NEWS_TOOLS,
+    VERSIONED_OPTIONS_ACCESS_TOOLS,
     VERSIONED_CANONICAL_MACRO_TOOLS,
     VERSIONED_COMPANY_FILING_TOOLS,
     VERSIONED_COMPANY_SHARE_COUNT_TOOLS,
@@ -152,8 +155,12 @@ def invoke_operation(
         and name in VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS
     )
     versioned_news = (
-        context.tool_version in {"2.0.0", "2.1.0"}
+        context.tool_version in {"2.0.0", "2.1.0", "2.2.0"}
         and name in VERSIONED_NEWS_TOOLS
+    )
+    versioned_options_access = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_OPTIONS_ACCESS_TOOLS
     )
     if name not in REGISTERED_STAGE5_OPERATIONS and not (
         versioned_macro
@@ -166,6 +173,7 @@ def invoke_operation(
         or versioned_company_share_count
         or versioned_market_instrument_search
         or versioned_news
+        or versioned_options_access
     ):
         raise LookupError("Operation graph is not registered")
     context.checkpoint()
@@ -214,16 +222,39 @@ def invoke_operation(
         expected_graph = {
             "2.0.0": "tool_platform.news.search.v2",
             "2.1.0": "tool_platform.news.search.v2_1",
+            "2.2.0": "tool_platform.news.search.v2_2",
         }[context.tool_version]
         if context.operation_graph_id != expected_graph:
             raise LookupError("Selected current-news operation graph is invalid")
-        from .news_access import invoke_news_search_v2, invoke_news_search_v21
+        from .news_access import (
+            invoke_news_search_v2,
+            invoke_news_search_v21,
+            invoke_news_search_v22,
+        )
 
+        if context.tool_version == "2.2.0":
+            return invoke_news_search_v22(
+                name, arguments, context, registry
+            )
         if context.tool_version == "2.1.0":
             return invoke_news_search_v21(
                 name, arguments, context, registry
             )
         return invoke_news_search_v2(name, arguments, context, registry)
+    if versioned_options_access:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected options-v2 operation graph is invalid")
+        from .options_access import invoke_options_v2
+
+        return invoke_options_v2(name, arguments, context, registry)
+    if name in ADDITIVE_NEWS_RESEARCH_TOOLS:
+        expected_graph = f"tool_platform.{name}.v1"
+        if context.tool_version != "1.0.0" or context.operation_graph_id != expected_graph:
+            raise LookupError("Selected news-research operation graph is invalid")
+        from .news_research import invoke_news_research_tool
+
+        return invoke_news_research_tool(name, arguments, context, registry)
     if context.tool_version == "2.0.0" and name == "macro.get_release_calendar":
         expected_graph = "tool_platform.macro.get_release_calendar.v2"
         if context.operation_graph_id != expected_graph:
@@ -321,6 +352,10 @@ def invoke_operation(
             or context.operation_graph_id != expected_graph
         ):
             raise LookupError("Selected additive operation graph is invalid")
+        if name in ADDITIVE_DATA_STATUS_TOOLS:
+            from .data_status_access import invoke_dataset_status
+
+            return invoke_dataset_status(name, arguments, context, registry)
         if name in ADDITIVE_STAGE10_STATISTICS_TOOLS:
             from .market_analysis_adapter import (
                 invoke_stage10_analysis_foundation,

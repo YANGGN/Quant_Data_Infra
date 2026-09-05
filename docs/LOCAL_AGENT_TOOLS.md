@@ -29,20 +29,48 @@ this package to the consuming project's imports. Use this sequence:
 
 1. Run `manifest` to obtain the machine-readable inventory and schemas.
 2. Run `list` for a compact logical-tool inventory.
-3. Run `describe TOOL --tool-version VERSION` before constructing a new
-   request.
+3. Select the highest advertised `major.minor.patch` version for the logical
+   tool, then run `describe TOOL --tool-version VERSION`.
 4. Send one strict JSON envelope to `call` on standard input.
 5. Parse standard output as JSON even when the process exits nonzero.
 6. Keep the complete response, receipt, warnings, truncation, and lineage with
    any downstream result.
 
-At the current multi-source-news checkpoint, registry `2.64.0` exposes the
-same 65 logical names. Its source SHA-256 is
-`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`;
-catalog `2.24.0` has SHA-256
-`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
+At the current macro-database-expansion checkpoint, registry `2.68.0` exposes 74
+logical names. Its source SHA-256 is
+`9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`;
+catalog `2.26.0` has SHA-256
+`fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
 This snapshot is informative; `manifest` and `describe` remain the runtime
 authority if the project advances.
+
+## Browser Inspector
+
+For local visual inspection of the same current manifest and canonical data,
+start the loopback-only UI from this project:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-inspector
+```
+
+Then open the printed `http://127.0.0.1:8765/` URL. Data views remain fixed
+and bounded. The Agent Tools section presents each current logical tool once,
+pinned to its highest advertised semantic version. It generates request
+controls from that latest schema, shows lifecycle and workload bounds, and
+preserves the complete response in a bounded nested preview plus a complete
+paged strict-JSON view. Typed time series returned by one tool can be reused
+by another tool within that browser session.
+
+Use the Current news shortcut for a bounded latest `news.search@2.2.0`
+table with text, symbol, source, date, and cursor filters. It exposes retained
+headline metadata and truncation through the public contract without exposing
+article bodies or raw evidence. The advanced tool view retains lineage and
+warnings. The Inspector binds only to loopback and has no SQL, database-path,
+credential, provider-request, ingestion, scheduler, or write control.
+Use `/data-status` for retained capture/outcome freshness across registered
+datasets and fixed news sources. It does not probe providers, credentials, or
+scheduler processes. `/healthz` reports Inspector process liveness only; it
+does not claim data freshness or provider health.
 
 The linked [actual-data audit](rebuild/CURRENT_TOOL_ACTUAL_DATA_AUDIT_2026-08-28.md)
 is a pre-v2.7, 119-route checkpoint: it called all 119 routes separately. All
@@ -63,80 +91,108 @@ lifecycle information.
 ```bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools manifest
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools list
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series --tool-version 1.0.0
 ```
 
-Use `list` for a compact inventory. Use `describe TOOL` before every new tool
-integration: it returns the exact input and output schemas, examples, limits,
-and version information for that selected tool. Do not parse
+Use `list` for a compact inventory. Before every new integration, use
+`manifest` to identify the semantic maximum of the selected tool's
+`versions` array (or its sole `version`), then use
+`describe TOOL --tool-version VERSION`. It returns the exact input and output
+schemas, examples, limits, and version information for that latest contract.
+Do not parse
 `config/system_registry.json` or the generated schema files as a cross-project
 integration interface; they are project-internal sources used to produce the
 manifest.
 
-Some logical tools expose several semantic versions. The default is the
-manifest's primary version. To inspect an alternate version, select one that
-the manifest advertises:
+Always pass the selected latest version to both `describe` and `call`,
+including when that version is `1.0.0`. Do not omit `tool_version`: the
+manifest's top-level `version` is a compatibility default and is not a
+latest-version alias. Historical versions remain callable only for explicit
+compatibility work and are intentionally omitted from this guide and the
+Browser Inspector.
 
-```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_returns --tool-version 2.0.0
-```
+## Latest contracts
 
-When a workflow requires v2 behavior, always send the exact advertised
-`tool_version`; do not infer that omission selects the numerically highest
-version. Most reconstructed logical names intentionally retain their frozen
-v1 default when the selector is omitted.
+This is the latest-only projection for registry `2.68.0`. If the registry
+advances, the semantic maximum advertised by the runtime `manifest` overrides
+this checkpoint.
 
-The active inventory is intentionally read from the manifest rather than
-hard-coded here. The canonical-access foundation includes these native data
-tools:
-
-```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_available_ticker
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.search_instruments --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_volume_series
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.1.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.2.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.3.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.4.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.5.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.6.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.1.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.search_filings --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_share_count_history --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_release_calendar --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.cross_sectional_performance --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.cross_sectional_performance --tool-version 2.1.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.revision_analysis --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.standardize_surprises --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe rates.get_funding_conditions --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe rates.get_repo_facility_usage --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe rates.curve_analytics --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_liquidity_snapshot --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_liquidity_impulse --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_credit_conditions --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.regime_snapshot --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe research.liquidity_credit_state --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_electricity_retail_sales --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_electricity_retail_sales --tool-version 2.1.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_weekly_fundamentals --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe energy.get_weekly_fundamentals --tool-version 2.1.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_fundamentals --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_fundamentals --tool-version 2.1.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.search_series --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.describe_series --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe macro.get_series --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe data.quality_audit --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe timeseries.transform --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.distribution_diagnostics
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.covariance_matrix
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.bootstrap_confidence_interval
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe stats.principal_components
-```
+| Logical tool | Latest version |
+| --- | --- |
+| `macro.search_series` | `2.0.0` |
+| `macro.describe_series` | `2.0.0` |
+| `macro.get_series` | `2.0.0` |
+| `macro.get_release_calendar` | `2.0.0` |
+| `macro.get_intraday_releases` | `1.0.0` |
+| `macro.release_surprises` | `1.0.0` |
+| `macro.revision_analysis` | `2.0.0` |
+| `macro.align_us_recessions` | `1.0.0` |
+| `macro.standardize_surprises` | `2.0.0` |
+| `macro.get_liquidity_snapshot` | `2.0.0` |
+| `macro.get_liquidity_impulse` | `2.0.0` |
+| `macro.get_credit_conditions` | `2.0.0` |
+| `macro.regime_snapshot` | `2.0.0` |
+| `timeseries.transform` | `2.0.0` |
+| `timeseries.describe` | `2.0.0` |
+| `timeseries.align` | `2.0.0` |
+| `timeseries.correlation` | `2.0.0` |
+| `econometrics.regression` | `3.0.0` |
+| `econometrics.stationarity` | `2.1.0` |
+| `econometrics.rolling_regression` | `2.1.0` |
+| `econometrics.structural_breaks` | `2.0.0` |
+| `econometrics.local_projection` | `1.0.0` |
+| `company.search_issuers` | `1.0.0` |
+| `company.search_filings` | `2.0.0` |
+| `company.get_fundamentals` | `2.1.0` |
+| `company.get_corporate_actions` | `1.0.0` |
+| `company.get_share_count_history` | `2.0.0` |
+| `company.get_earnings_calendar` | `1.0.0` |
+| `company.get_consensus_history` | `1.0.0` |
+| `company.get_guidance_history` | `1.0.0` |
+| `company.get_estimate_revisions` | `1.0.0` |
+| `company.get_earnings_setup` | `1.0.0` |
+| `energy.get_electricity_retail_sales` | `2.1.0` |
+| `energy.get_weekly_fundamentals` | `2.1.0` |
+| `market.search_instruments` | `2.0.0` |
+| `market.get_available_ticker` | `1.0.0` |
+| `market.get_price_series` | `1.0.0` |
+| `market.get_volume_series` | `1.0.0` |
+| `market.get_returns` | `2.0.0` |
+| `market.get_forward_returns` | `2.0.0` |
+| `market.technical_indicators` | `2.7.0` |
+| `market.cross_sectional_performance` | `2.1.0` |
+| `rates.get_funding_conditions` | `2.0.0` |
+| `rates.get_repo_facility_usage` | `2.0.0` |
+| `rates.curve_analytics` | `2.0.0` |
+| `options.search_captures` | `2.0.0` |
+| `options.search_contracts` | `2.0.0` |
+| `options.get_surface_snapshot` | `2.0.0` |
+| `options.surface_diagnostics` | `1.0.0` |
+| `options.screen_contracts` | `1.0.0` |
+| `options.strategy_scenario` | `1.0.0` |
+| `research.point_in_time_panel` | `2.0.0` |
+| `data.get_dataset_status` | `1.0.0` |
+| `data.quality_audit` | `2.0.0` |
+| `research.event_study` | `2.0.0` |
+| `alpha.signal_diagnostics` | `2.0.0` |
+| `research.walk_forward_backtest` | `2.0.0` |
+| `research.robustness_suite` | `2.0.0` |
+| `stats.distribution_diagnostics` | `1.0.0` |
+| `stats.covariance_matrix` | `1.0.0` |
+| `stats.bootstrap_confidence_interval` | `1.0.0` |
+| `stats.principal_components` | `1.0.0` |
+| `stats.multiple_testing` | `2.0.0` |
+| `forecast.evaluate` | `2.0.0` |
+| `news.search` | `2.2.0` |
+| `news.get_source_status` | `1.0.0` |
+| `news.get_item_history` | `1.0.0` |
+| `news.story_clusters` | `1.0.0` |
+| `news.entity_coverage` | `1.0.0` |
+| `news.attention_metrics` | `1.0.0` |
+| `news.classify_events` | `1.0.0` |
+| `news.headline_sentiment` | `1.0.0` |
+| `research.news_event_impact` | `1.0.0` |
+| `research.liquidity_credit_state` | `2.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one
@@ -165,16 +221,16 @@ writes exactly one strict JSON response to standard output. It accepts no
 request filename or command-line arguments.
 
 ```bash
-printf '%s\n' '{"api_version":"1.0","tool":"market.get_available_ticker","arguments":{}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"market.get_available_ticker","tool_version":"1.0.0","arguments":{}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
 printf '%s\n' '{"api_version":"1.0","tool":"market.search_instruments","tool_version":"2.0.0","arguments":{"query":"Apple","asset_type":"equity","cursor":null,"limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
-printf '%s\n' '{"api_version":"1.0","tool":"market.get_price_series","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"market.get_price_series","tool_version":"1.0.0","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
-printf '%s\n' '{"api_version":"1.0","tool":"market.get_volume_series","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"market.get_volume_series","tool_version":"1.0.0","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
 printf '%s\n' '{"api_version":"1.0","tool":"macro.search_series","tool_version":"2.0.0","arguments":{"query":"gdp","limit":100}}' \
@@ -186,7 +242,7 @@ printf '%s\n' '{"api_version":"1.0","tool":"macro.describe_series","tool_version
 printf '%s\n' '{"api_version":"1.0","tool":"macro.get_series","tool_version":"2.0.0","arguments":{"series_id":"macro.gdp.real_qoq_saar_pct","mode":"as_of","as_of":"2026-07-31T23:59:59Z","date_only_policy":"completed_date","limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
-printf '%s\n' '{"api_version":"1.0","tool":"macro.get_release_calendar","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"macro.get_release_calendar","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
 printf '%s\n' '{"api_version":"1.0","tool":"company.search_filings","tool_version":"2.0.0","arguments":{"query":"0000320193","as_of":null,"cursor":null,"limit":100}}' \
@@ -195,10 +251,7 @@ printf '%s\n' '{"api_version":"1.0","tool":"company.search_filings","tool_versio
 printf '%s\n' '{"api_version":"1.0","tool":"company.get_share_count_history","tool_version":"2.0.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
-printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.0.0","arguments":{"query":"","symbols":["AAPL"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' \
-  | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-
-printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.1.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.2.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ```
 
@@ -213,38 +266,77 @@ weighted-average diluted share metrics. Instant and weighted-average facts
 remain distinct; the tool does not split-adjust values or infer missing
 metrics.
 
-### Current news v2 quick start
+### Current news and analytics quick start
 
-Use the general `manifest` command above, then inspect the selected version.
-`news.search@2.0.0` remains the separate FMP stock-latest reader; it does not
-silently widen to other sources. `news.search@2.1.0` searches the retained
-fixed feeds together and adds optional `source_ids` (up to eight values).
-Both versions accept optional `query`, `symbols`, `start_date`, `end_date`,
-`mode`, `as_of`, `date_only_policy`, and `limit`; `as_of` is required only
-when `mode` is `as_of`, while `limit` is 1 through 500.
+Use `news.search@2.2.0` for the current fixed-source reader with opaque
+keyset pagination. Historical contracts are compatibility-only and are not
+shown here. The current version accepts optional `query`, `symbols`,
+`source_ids`, `start_date`,
+`end_date`, `mode`, `as_of`, `date_only_policy`, `cursor`, and `limit`.
+`as_of` is required only in `as_of` mode; `limit` is 1 through 500.
+
+The fixed source IDs are `fmp_stock_latest`, `fmp_press_releases`,
+`fmp_general`, `fed_press`, `ecb_press`, `bea_news`, `eia_press`, and
+`alpaca_benzinga`. These are the only accepted `source_ids`. The inactive
+legacy `fmp_news_articles` relation is private evidence, not a public source.
 
 ~~~bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools manifest
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.1.0
-printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.0.0","arguments":{"query":"","symbols":["AAPL"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.1.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.2.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.get_source_status --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.get_item_history --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.story_clusters --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.entity_coverage --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.attention_metrics --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.classify_events --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.headline_sentiment --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe research.news_event_impact --tool-version 1.0.0
+
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.2.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"news.get_source_status","tool_version":"1.0.0","arguments":{"source_ids":[]}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"news.story_clusters","tool_version":"1.0.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":[],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100,"window_hours":24}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ~~~
 
-The supported v2.1 source IDs are `fmp_stock_latest`, `fmp_press_releases`,
-`fmp_general`, `fed_press`, `ecb_press`, `bea_news`, `eia_press`, and
-`alpaca_benzinga`. The current market-coverage selection uses retained
-equities, ETFs, and indexes from the local market database. Alpaca receives
-only equity and ETF symbols; indexes are explicitly unsupported there. The
-inactive legacy `fmp_news_articles` relation is private evidence only: it is
-not a supported `source_id`, public reader, tool input, collector output,
-dashboard input, or export.
+To obtain every page, read `result.truncation.next_cursor` and send it back
+as `cursor` while keeping every other search field unchanged. The cursor is
+opaque and query-bound; it cannot be reused with another query. A new capture
+can change later `latest` pages, so use `as_of` when a retained local-capture
+cutoff matters.
 
-The result exposes only retained headline metadata, capture availability,
-lineage, warnings, and truncation. It never returns provider raw bytes or
-article bodies. The CLI stays read-only and never fetches from a provider. For
-a source with no retained capture, `unavailable` or an empty result is an
-honest outcome.
+`news.get_source_status` reports retained attempt, outcome, capture, and
+coverage metadata; it is not a live provider-health probe. `news.get_item_history`
+accepts one `article_id` returned by search and exposes its bounded immutable
+version/capture-membership history. Use an `article_version_id` from that
+history together with a stable Stage 10 `instrument_id` for
+`research.news_event_impact`:
+
+~~~bash
+printf '%s\n' '{"api_version":"1.0","tool":"news.get_item_history","tool_version":"1.0.0","arguments":{"article_id":"ARTICLE_ID_FROM_SEARCH","limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"research.news_event_impact","tool_version":"1.0.0","arguments":{"article_version_id":"ARTICLE_VERSION_ID_FROM_HISTORY","instrument_id":"STAGE10_INSTRUMENT_ID","pre_observations":5,"post_observations":5}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+~~~
+
+`news.story_clusters` produces candidate clusters only from exact canonical
+URLs or normalized headlines within a bounded time window; it is not canonical
+deduplication. `news.entity_coverage` aggregates provider symbols only:
+they are not named-entity recognition and do not establish historical
+instrument identity. `news.attention_metrics` is descriptive bucket/source
+coverage with explicit zero buckets and can return `insufficient_history`.
+`news.classify_events` and `news.headline_sentiment` use fixed, transparent
+rule/lexicon versions over retained headline metadata; their labels are not
+provider facts, model predictions, recommendations, or trading signals.
+
+`research.news_event_impact` is a retrospective observed close-to-close
+window beginning at the next observed session after the local capture date.
+It is not a causal estimate, abnormal return, intraday study, session-calendar
+claim, or forecast, and it can honestly return `not_established` when the
+selected version, current symbol mapping, or retained market window is
+insufficient.
+
+All news tools expose retained headline metadata, capture availability,
+lineage, warnings, and truncation only. They never return provider raw bytes
+or article bodies, never fetch from a provider, and remain read-only. An empty,
+`unavailable`, `insufficient_history`, or `not_established` result is an
+honest data-dependent outcome.
 
 The operator-only manual batch is
 `python3 scripts/refresh_current_news.py`. It uses `FMP_API_KEY` for FMP and
@@ -258,16 +350,14 @@ retry or catch-up. Other agents may inspect it with `systemctl --user status`
 or `list-timers`, but must not manually trigger, retry, broaden, reinstall,
 disable, or repurpose it.
 
-### Investment-analysis v2 quick start
+### Investment-analysis latest quick start
 
-The following read-only successors must be selected explicitly with
-`"tool_version":"2.0.0"`; omitting the selector retains the frozen v1
-behavior. Each example is one complete strict-JSON envelope that can be sent
-to the same `call` command shown above.
+The following examples use each logical tool's current latest contract. Each
+is one complete strict-JSON envelope that can be sent to the same `call`
+command shown above.
 
 ~~~bash
 printf '%s\n' '{"api_version":"1.0","tool":"macro.get_release_calendar","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null,"event_name":null,"cursor":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-printf '%s\n' '{"api_version":"1.0","tool":"market.cross_sectional_performance","tool_version":"2.0.0","arguments":{"tickers":["AAPL","MSFT"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"macro.revision_analysis","tool_version":"2.0.0","arguments":{"series_id":"macro.gdp.real_qoq_saar_pct","start_date":null,"end_date":null,"limit":500}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"macro.standardize_surprises","tool_version":"2.0.0","arguments":{"kind":"us_cpi_headline_mom","release_stage":null,"start_date":null,"end_date":null,"limit":500}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"rates.get_funding_conditions","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"spread_left":"EFFR","spread_right":"SOFR","limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
@@ -278,14 +368,11 @@ printf '%s\n' '{"api_version":"1.0","tool":"macro.get_liquidity_impulse","tool_v
 printf '%s\n' '{"api_version":"1.0","tool":"macro.get_credit_conditions","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"macro.regime_snapshot","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"include_context":true,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"research.liquidity_credit_state","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"include_context":true,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-printf '%s\n' '{"api_version":"1.0","tool":"energy.get_electricity_retail_sales","tool_version":"2.0.0","arguments":{"metric":"sales","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-printf '%s\n' '{"api_version":"1.0","tool":"energy.get_weekly_fundamentals","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-printf '%s\n' '{"api_version":"1.0","tool":"company.get_fundamentals","tool_version":"2.0.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"metric_codes":[],"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ~~~
-### Analytics v2.1 quick start
+### Current 2.1 analytics
 
-Select these additive successors explicitly; the unchanged logical tool
-names still default to their frozen v1 behavior.
+These four logical tools currently advertise `2.1.0` as their latest
+contract.
 
 ~~~bash
 printf '%s\n' '{"api_version":"1.0","tool":"market.cross_sectional_performance","tool_version":"2.1.0","arguments":{"tickers":["AAPL","MSFT"],"benchmark_ticker":"MSFT","window":20,"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":"2026-07-01","end_date":"2026-08-20"}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
@@ -301,10 +388,10 @@ It has no weights, positions, portfolio, prediction, or imputation semantics.
 The energy successors compare each retained observation with the same series
 12 monthly or 52 weekly observations earlier. They preserve source-native
 units; unavailable history and a zero reference level remain explicit.
-Company v2.1 computes only `net_margin` and `liabilities_to_assets` from
-reviewed normalized SEC facts. It requires compatible same-duration or
-same-instant periods and the same base unit; it does not calculate TTM,
-calendarized, averaged-balance, or imputed ratios.
+The latest company-fundamentals contract computes only `net_margin` and
+`liabilities_to_assets` from reviewed normalized SEC facts. It requires
+compatible same-duration or same-instant periods and the same base unit; it
+does not calculate TTM, calendarized, averaged-balance, or imputed ratios.
 
 
 The calendar successor pages a retained release-calendar query. Follow only
@@ -331,10 +418,10 @@ no score, weights, classifier, or investment recommendation.
 
 The energy readers expose only the retained Stage 11 U.S. all-sector
 electricity-retail metrics and weekly petroleum-fundamentals history. The
-company v2.0 reader exposes only normalized reviewed SEC facts for one exact
-ten-digit CIK; it does not calculate ratios, TTM values, calendarized facts,
-or inferred adjustments. The two v2.1 ratios are described above. All fifteen
-v2.0 requests are bounded. A valid request
+latest company reader exposes normalized reviewed SEC facts for one exact
+ten-digit CIK plus only the two ratios described above; it does not calculate
+TTM values, calendarized facts, or inferred adjustments. All requests above
+are bounded. A valid request
 can return no records or a typed not-established outcome when the requested
 data is not retained or not available under its declared cutoff.
 
@@ -359,31 +446,28 @@ provider-native volume series selected from the exact same Stage 10 rows. Its
 unit is not normalized, and volume-adjustment and session-calendar semantics
 are explicitly not established.
 
-`market.technical_indicators` must be selected explicitly at version `2.0.0`,
-`2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`, `2.5.0`, `2.6.0`, or `2.7.0`;
-omitted version selection preserves the reconstructed v1
-`not_established` behavior. All eight successors are store-free. Version 2.1 adds `supertrend_ai`, version
-2.2 adds `swing_structure_forecast`, version 2.3 adds `kdj`, version 2.4 adds
-`williams_vix_fix`, version 2.5 adds `wavetrend_crosses`, and version 2.6 adds
-`parabolic_sar`; version 2.7 adds `rolling_regression_line`. Pass its
+`market.technical_indicators` must be selected at its latest version,
+`2.7.0`. This additive, store-free contract includes `supertrend_ai`,
+`swing_structure_forecast`, `kdj`, `williams_vix_fix`,
+`wavetrend_crosses`, `parabolic_sar`, and
+`rolling_regression_line` alongside the base indicator set. Pass its
 `series` array the complete typed scalar series taken from the `series` fields
 of the price and, when required, volume responses. Do not strip or alter their
 metadata, audit, observations, provenance, or lineage digests. Supplying the
 full four-series OHLC response is supported even for a close-only calculation.
 
-Version 2.0 calculates exactly one indicator specification per call and returns
-one through three aligned scalar series. The required source fields are:
+The latest contract calculates exactly one indicator specification per call.
+The required source fields are:
 
 - `close` for every indicator;
 - `high`, `low`, and `close` for true range, ATR, Donchian,
-  stochastic, ADX, accumulation/distribution, v2.1 SuperTrend AI, v2.2
-  Swing Structure Forecast, v2.3 KDJ, v2.5 WaveTrend with Crosses, and v2.6
-  Parabolic SAR;
-- `low` and `close` for v2.4 Williams Vix Fix; and
+  stochastic, ADX, accumulation/distribution, SuperTrend AI,
+  Swing Structure Forecast, KDJ, WaveTrend with Crosses, and Parabolic SAR;
+- `low` and `close` for Williams Vix Fix; and
 - `volume` as well as `close` for OBV, or as well as high/low/close for
   accumulation/distribution.
 
-For v2.0, the `indicator` value is one of `sma`, `ema`,
+The `indicator` value includes `sma`, `ema`,
 `rolling_standard_deviation`, `rolling_z_score`, `true_range`,
 `average_true_range`, `rate_of_change`,
 `relative_strength_index`, `macd`, `bollinger_bands`,
@@ -407,17 +491,15 @@ signals.
 
 ### Technical-indicator quick start
 
-Pin the explicit successor and inspect it before integrating:
+Inspect the latest contract before integrating:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
-The API envelope remains version `1.0`; the separately selected tool version
-is `2.0.0` through `2.7.0`. Every v2 call must therefore contain
-`"api_version":"1.0"` and the exact `"tool_version"` returned by
-`describe`. Omitting `tool_version` selects the reconstructed v1 contract
-instead.
+The API envelope remains version `1.0`; the selected tool version is
+`2.7.0`. Every call must contain `"api_version":"1.0"` and
+`"tool_version":"2.7.0"`.
 
 The table below is a navigation aid; the current `describe` result remains
 the machine-readable authority. `close` is required in every call, even when
@@ -450,12 +532,12 @@ parameter not listed for the chosen indicator must still be present as
 | `on_balance_volume` | close, volume | none | `on_balance_volume` |
 | `accumulation_distribution` | high, low, close, volume | none | `accumulation_distribution` |
 
-#### SuperTrend AI at v2.1
+#### SuperTrend AI
 
-Inspect and pin the additive successor for this calculation:
+The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.1.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
 `supertrend_ai` requires high, low, and close plus these non-null fields:
@@ -483,12 +565,12 @@ workload. Pine's default inclusive `0..1000` clustering loop is fixed as a
 candle gradients, labels, signals, tables, and dashboard settings are not part
 of the analytical result.
 
-#### Swing Structure Forecast at v2.2
+#### Swing Structure Forecast
 
-Inspect and pin the additive successor for this calculation:
+The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.2.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
 `swing_structure_forecast` requires high, low, and close plus these non-null
@@ -522,12 +604,12 @@ prefix. It does not invent a future trading date. Forecast-bar placement,
 beams, target boxes, dots, Fibonacci drawings, support/resistance objects,
 alerts, colors, and labels are excluded presentation behavior.
 
-#### KDJ at v2.3
+#### KDJ
 
-Inspect and pin the additive successor for this calculation:
+The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.3.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
 `kdj` requires high, low, and close plus these non-null fields:
@@ -547,12 +629,12 @@ Public calls reject source observations containing null or missing values.
 Plot colors, background shading, and the 20/80 guide lines are presentation
 behavior and are excluded.
 
-#### Williams Vix Fix at v2.4
+#### Williams Vix Fix
 
-Inspect and pin the additive successor for this calculation:
+The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.4.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
 `williams_vix_fix` requires low and close plus these non-null fields. The
@@ -574,12 +656,12 @@ Bollinger threshold uses population standard deviation, and every threshold
 uses a full rolling window. A zero highest close is explicit missingness.
 Display toggles, colors, and plot styles are excluded presentation behavior.
 
-#### WaveTrend with Crosses at v2.5
+#### WaveTrend with Crosses
 
-Inspect and pin the additive successor for this calculation:
+The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.5.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
 `wavetrend_crosses` requires high, low, and close plus these non-null fields:
@@ -599,12 +681,12 @@ otherwise. A zero smoothed channel deviation is explicit
 colors, area fill, cross circles, and bar colors are presentation behavior and
 are excluded.
 
-#### Parabolic SAR at v2.6
+#### Parabolic SAR
 
-Inspect and pin the additive successor for this calculation:
+The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.6.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
 ```
 
 `parabolic_sar` requires high, low, and close plus finite `start`,
@@ -620,10 +702,10 @@ the prior two lows or highs. Missing OHLC resets recursive state. Plot crosses,
 colors, timeframe controls, and chart-gap presentation are excluded.
 
 
-#### Rolling regression line at v2.7
+#### Rolling regression line
 
-Inspect the explicit successor before constructing a request; runtime
-`describe` is the schema authority:
+Inspect the latest contract before constructing a request; runtime `describe`
+is the schema authority:
 
 ```bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
@@ -642,10 +724,10 @@ causal and retains the full input grid: warm-up rows report
 that gap leaves the trailing window.
 
 
-This standard-library v2.0 example is suitable for an agent running from another
-local project. It reads a bounded, non-truncated SPY window and passes the
-complete typed OHLC series to Bollinger Bands without reconstructing or
-editing any series metadata:
+This latest-contract standard-library example is suitable for an agent running
+from another local project. It reads a bounded, non-truncated SPY window and
+passes the complete typed OHLC series to Bollinger Bands without reconstructing
+or editing any series metadata:
 
 ```python
 import json
@@ -654,14 +736,13 @@ import subprocess
 TOOLS = "/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools"
 
 
-def call(tool, arguments, *, tool_version=None):
+def call(tool, arguments, *, tool_version):
     envelope = {
         "api_version": "1.0",
         "tool": tool,
+        "tool_version": tool_version,
         "arguments": arguments,
     }
-    if tool_version is not None:
-        envelope["tool_version"] = tool_version
     completed = subprocess.run(
         [TOOLS, "call"],
         input=json.dumps(envelope, allow_nan=False, separators=(",", ":")),
@@ -689,7 +770,11 @@ selection = {
     "date_only_policy": "completed_date",
     "limit": 10_000,
 }
-price_response = call("market.get_price_series", selection)
+price_response = call(
+    "market.get_price_series",
+    selection,
+    tool_version="1.0.0",
+)
 price_result = price_response["result"]
 if price_result["truncation"]["applied"]:
     raise RuntimeError("Choose a smaller date range; indicator inputs cannot be truncated")
@@ -704,9 +789,22 @@ indicator_response = call(
         "slow_window": None,
         "signal_window": None,
         "standard_deviation_multiplier": 2,
+        "minimum_factor": None,
+        "maximum_factor": None,
+        "factor_step": None,
+        "performance_memory": None,
+        "cluster": None,
+        "sample_count": None,
+        "aggregation_method": None,
+        "percentile_window": None,
+        "percentile_high_factor": None,
+        "percentile_low_factor": None,
+        "start": None,
+        "increment": None,
+        "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.0.0",
+    tool_version="2.7.0",
 )
 
 for output in indicator_response["result"]["series"]:
@@ -732,9 +830,17 @@ supertrend_response = call(
         "factor_step": 0.5,
         "performance_memory": 10,
         "cluster": "best",
+        "sample_count": None,
+        "aggregation_method": None,
+        "percentile_window": None,
+        "percentile_high_factor": None,
+        "percentile_low_factor": None,
+        "start": None,
+        "increment": None,
+        "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.1.0",
+    tool_version="2.7.0",
 )
 
 for output in supertrend_response["result"]["series"]:
@@ -761,9 +867,15 @@ swing_response = call(
         "cluster": None,
         "sample_count": 20,
         "aggregation_method": "weighted",
+        "percentile_window": None,
+        "percentile_high_factor": None,
+        "percentile_low_factor": None,
+        "start": None,
+        "increment": None,
+        "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.2.0",
+    tool_version="2.7.0",
 )
 
 for output in swing_response["result"]["series"]:
@@ -790,9 +902,15 @@ kdj_response = call(
         "cluster": None,
         "sample_count": None,
         "aggregation_method": None,
+        "percentile_window": None,
+        "percentile_high_factor": None,
+        "percentile_low_factor": None,
+        "start": None,
+        "increment": None,
+        "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.3.0",
+    tool_version="2.7.0",
 )
 
 for output in kdj_response["result"]["series"]:
@@ -828,7 +946,7 @@ psar_response = call(
         "maximum": 0.2,
         "limit": 10_000,
     },
-    tool_version="2.6.0",
+    tool_version="2.7.0",
 )
 
 for output in psar_response["result"]["series"]:
@@ -845,24 +963,21 @@ in instrument, dates, mode, cutoff, capture identity, or period grid, the
 indicator call correctly fails closed. Do not trim, merge, or synthesize
 source metadata, audits, observations, provenance, or lineage.
 
-A successful technical-indicator successor call returns the wrapper fields
+A successful latest technical-indicator call returns the wrapper fields
 `api_version`, `execution`, `tool`, `result`, and `receipt`. The result is a
-`QueryResultV1` with one to
-three derived `result.series` entries for v2.0, one to five for v2.1, one to
-ten for v2.2, three for v2.3 KDJ, four for v2.4 Williams Vix Fix, four for v2.5
-WaveTrend, one for v2.6 Parabolic SAR, or one for the v2.7 rolling regression
-line, in the component order shown above,
-one `technical_indicator_component` record per series, diagnostics, warnings,
-lineage, and `truncation.applied: false`. Each derived series identifies its
-indicator, component, parameters, and source fields in metadata. Its
+`QueryResultV1` with the selected indicator's aligned component series in the
+documented order, one `technical_indicator_component` record per series,
+diagnostics, warnings, lineage, and `truncation.applied: false`. Each derived
+series identifies its indicator, component, parameters, and source fields in
+metadata. Its
 observations retain the complete input grid; warm-up and undefined points use
 `value: null` plus `missing_reason`. Keep the full wrapper and receipt with
 downstream work rather than retaining only the numeric values.
 
-The canonical macro interface is explicit version `2.0.0`. Start with
+The latest canonical macro interface is version `2.0.0`. Start with
 `macro.search_series`, then `macro.describe_series`, and pass the returned
-exact `series_id` to `macro.get_series`. Omitted version selection preserves
-legacy v1 behavior. The v2 reader supports `latest`, `as_of`, and
+exact `series_id` to `macro.get_series`, explicitly passing `2.0.0` to
+each call. The reader supports `latest`, `as_of`, and
 `first_release`; `as_of` uses stored availability rather than period dates,
 and `first_release` fails closed unless the selected storage model retains an
 explicit flag and evidence. Official-vintage IDs never fall back to a generic
@@ -877,10 +992,9 @@ support or imply first-release selection.
 The Step 2-4 analytical tools do not open a database. Pass them the complete
 typed trailing-return series returned by the explicitly selected
 `market.get_returns@2.0.0` contract, preserving its audit, lineage, return
-definition, and point-in-time metadata exactly. Select `2.0.0` explicitly for
-`data.quality_audit` and `timeseries.transform`; omitted version selection
-continues to mean their legacy v1 contracts. The four `stats.*` tools are
-native `1.0.0` names.
+definition, and point-in-time metadata exactly. Select the latest `2.0.0`
+contracts explicitly for `data.quality_audit` and `timeseries.transform`.
+The four base `stats.*` tools use their latest `1.0.0` contracts.
 
 Use `data.quality_audit@2.0.0` before inference when coverage, explicit
 missingness, duplicates, ordering, availability, truncation, or lineage needs
@@ -900,7 +1014,7 @@ not-established results for insufficient samples, zero variance, interior
 missingness, or rank limitations as outcomes rather than silently changing
 the sample.
 
-For a non-default semantic version, include the version in the envelope:
+Always include the latest semantic version in the envelope:
 
 ```json
 {
@@ -921,6 +1035,60 @@ caller-supplied paths, SQL, PRAGMAs, credentials, providers, or imports. A
 successful command exits `0`; client/request failures exit `2`; unavailable
 stores or internal failures exit `1`. Errors are also a sanitized JSON object
 on stdout, so agents should parse stdout regardless of the exit status.
+
+## Private manual macro collectors
+
+The following credential-free, live collector CLIs are private and
+`manual_only`. They are deliberately outside the read-only
+`bin/quant-data-tools` interface, which must never be used to fetch or write
+provider data. This documentation does not confer provider-execution,
+canonical-store-write, scheduler, retry, or timer authority: run one only when
+the current user request explicitly authorizes its finite scope.
+
+The manual aggregate wrapper is:
+
+```bash
+python3 -m quant_data.operations.macro_database_expansion_refresh --as-of YYYY-MM-DD --series-break SBNYYYY
+```
+
+Its fixed workload is serial, one attempt with no retry, capped at 63 provider
+requests, and targets only the fixed canonical macro store
+`data/macro.sqlite`. It accepts an explicit NY Fed primary-dealer series break
+in the form `SBNYYYY`; it does not accept a caller-selected store path.
+
+The six existing individual forms are:
+
+```bash
+# CFTC TFF futures-only: at most 21 inclusive days and 8 requests.
+python3 -m quant_data.operations.cftc_cot_history --report-family tff_futures_only --from YYYY-MM-DD --to YYYY-MM-DD
+
+# CFTC disaggregated futures-only: at most 21 inclusive days and 8 requests.
+python3 -m quant_data.operations.cftc_cot_history --report-family disaggregated_futures_only --from YYYY-MM-DD --to YYYY-MM-DD
+
+# Treasury securities auctions: at most 366 inclusive days and 1 request.
+python3 -m quant_data.operations.treasury_securities_auctions_history --from YYYY-MM-DD --to YYYY-MM-DD
+
+# NY Fed Primary Dealer Statistics: at most 5,000 inclusive days, an explicit
+# SBNYYYY series break, and 33 requests.
+python3 -m quant_data.operations.nyfed_primary_dealer_statistics_history --series-break SBNYYYY --from YYYY-MM-DD --to YYYY-MM-DD
+
+# Federal Reserve H.8: at most 5,000 inclusive days and 7 singleton requests.
+python3 -m quant_data.operations.federal_reserve_credit_conditions_history --source-key federal_reserve_h8 --from YYYY-MM-DD --to YYYY-MM-DD
+
+# Federal Reserve SLOOS: at most 5,000 inclusive days and 6 singleton requests.
+python3 -m quant_data.operations.federal_reserve_credit_conditions_history --source-key federal_reserve_sloos --from YYYY-MM-DD --to YYYY-MM-DD
+```
+
+The active `quant-data-macro-current-refresh.timer` now runs 27 operations
+with an 81-request cap. Its four live-validated additions are both CFTC
+futures-only families, Treasury securities auctions, and NY Fed Primary Dealer
+Statistics using fixed `SBN2024`. H.8 and SLOOS remain manual-only and are not
+called by the timer: on 2026-09-04, all 13 authorized singleton attempts from
+this host ended before an HTTP response, with zero retries and zero accepted
+bodies. After an authorized run, query retained results only through the
+existing read-only `macro.search_series`, `macro.describe_series`,
+`macro.get_series`, and `data.get_dataset_status` tools (or the Inspector's
+read-only `/data-status` view), never by opening the macro store directly.
 
 ## Read-only data boundary
 
@@ -965,8 +1133,7 @@ Use tools as a sequence of validated typed results:
 4. Retrieve provider-native volume with `market.get_volume_series` when the
    analysis needs it.
 5. For descriptive technical analysis, pass those unmodified typed series to
-   the explicitly described `market.technical_indicators` successor version,
-   one indicator specification per call.
+   `market.technical_indicators@2.7.0`, one indicator specification per call.
 6. Use the selected return tool version to produce compatible return series.
 7. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
    limitation before inference.
@@ -975,8 +1142,9 @@ Use tools as a sequence of validated typed results:
 9. Preserve each response's receipt, lineage, point-in-time policy, and
    warnings with the final research artifact.
 
-For macro work, search and describe with explicit v2 first, retrieve the
-series under a declared `latest`, `as_of`, or evidenced `first_release` mode,
+For macro work, search and describe with the latest `2.0.0` contracts first,
+retrieve the series under a declared `latest`, `as_of`, or evidenced
+`first_release` mode,
 then align only frequency-compatible, non-truncated outputs. Use the calendar
 tool separately when release timing is part of the design; do not infer
 release timing from observation periods.

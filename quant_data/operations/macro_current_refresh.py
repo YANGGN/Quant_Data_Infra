@@ -30,18 +30,21 @@ from ..json_codec import dumps_strict
 _VERSION: Final = "1.0.0"
 _NEW_YORK: Final = ZoneInfo("America/New_York")
 _ROLLING_WINDOW_DAYS: Final = 45
-REQUEST_CAP: Final = 31
+REQUEST_CAP: Final = 94
 _INDUSTRIAL_PRODUCTION_START_DATE: Final = "1919-01-01"
 _CHICAGO_START_DATE: Final = "1971-01-08"
-_CFNAI_START_DATE: Final = "1967-03-01"
+_CFNAI_START_DATE: Final = "2026-01-01"
 _CMDI_START_DATE: Final = "2005-01-07"
 _BIS_START_PERIOD: Final = "1961-Q1"
+_PRIMARY_DEALER_SERIES_BREAK: Final = "SBN2024"
 _SOURCE_IDS: Final = (
     "fmp_treasury_curve",
     "nyfed_overnight_rates",
     "nyfed_repo_facilities",
     "nyfed_soma",
     "federal_reserve_h41",
+    "federal_reserve_h8",
+    "federal_reserve_sloos",
     "federal_reserve_policy_rates",
     "industrial_production",
     "chicagofed_financial_conditions",
@@ -60,6 +63,10 @@ _SOURCE_IDS: Final = (
     "nber_us_recession",
     "bls_price_wage_productivity",
     "bea_personal_income",
+    "cftc_tff_futures_only",
+    "cftc_disaggregated_futures_only",
+    "treasury_securities_auctions",
+    "nyfed_primary_dealer_statistics",
 )
 _FAILURE_PRECEDENCE: Final = (64, 69, 74, 75, 70)
 
@@ -114,6 +121,10 @@ class MacroCurrentRefreshReport:
 def _live_collectors() -> dict[str, Collector]:
     """Load canonical collector entrypoints only for a live invocation."""
 
+    from .federal_reserve_credit_conditions_history import (
+        populate_federal_reserve_credit_conditions_live,
+    )
+    from .cftc_cot_history import populate_cftc_cot_live
     from .eia_electricity_retail_history import (
         populate_eia_electricity_retail_live,
     )
@@ -124,6 +135,9 @@ def _live_collectors() -> dict[str, Collector]:
         populate_fmp_treasury_curve_history_live,
     )
     from .nyfed_overnight_rates_history import populate_nyfed_overnight_rates_live
+    from .nyfed_primary_dealer_statistics_history import (
+        populate_nyfed_primary_dealer_statistics_live,
+    )
     from .nyfed_repo_facilities_history import populate_nyfed_repo_facilities_live
     from .nyfed_soma_history import populate_nyfed_soma_live
     from .official_conditions_history import (
@@ -145,6 +159,9 @@ def _live_collectors() -> dict[str, Collector]:
         populate_treasury_fiscal_balance_live,
         populate_treasury_tga_live,
     )
+    from .treasury_securities_auctions_history import (
+        populate_treasury_securities_auctions_history_live,
+    )
 
     return {
         "fmp_treasury_curve": populate_fmp_treasury_curve_history_live,
@@ -152,6 +169,8 @@ def _live_collectors() -> dict[str, Collector]:
         "nyfed_repo_facilities": populate_nyfed_repo_facilities_live,
         "nyfed_soma": populate_nyfed_soma_live,
         "federal_reserve_h41": populate_federal_reserve_h41_live,
+        "federal_reserve_h8": populate_federal_reserve_credit_conditions_live,
+        "federal_reserve_sloos": populate_federal_reserve_credit_conditions_live,
         "federal_reserve_policy_rates": populate_federal_reserve_policy_rates_live,
         "industrial_production": (
             populate_federal_reserve_industrial_production_live
@@ -180,6 +199,14 @@ def _live_collectors() -> dict[str, Collector]:
         "nber_us_recession": populate_nber_us_recession_live,
         "bls_price_wage_productivity": populate_bls_price_wage_productivity_live,
         "bea_personal_income": populate_bea_personal_income_live,
+        "cftc_tff_futures_only": populate_cftc_cot_live,
+        "cftc_disaggregated_futures_only": populate_cftc_cot_live,
+        "treasury_securities_auctions": (
+            populate_treasury_securities_auctions_history_live
+        ),
+        "nyfed_primary_dealer_statistics": (
+            populate_nyfed_primary_dealer_statistics_live
+        ),
     }
 
 
@@ -211,15 +238,21 @@ def _planned_calls(
     local_date: date,
 ) -> tuple[tuple[str, int, dict[str, str]], ...]:
     quarter_start, quarter_end = _quarter_bounds(local_date)
+    credit_start = _quarter_bounds(quarter_start - timedelta(days=1))[0].isoformat()
     envelope_start = quarter_start - timedelta(days=_ROLLING_WINDOW_DAYS - 1)
     start_date = envelope_start.isoformat()
     end_date = quarter_end.isoformat()
+    cftc_anchor = local_date - timedelta(days=(local_date.weekday() - 4) % 7)
+    cftc_end_date = cftc_anchor.isoformat()
+    cftc_start_date = (cftc_anchor - timedelta(days=20)).isoformat()
     return (
         ("fmp_treasury_curve", 1, {"start_date": start_date, "end_date": end_date}),
         ("nyfed_overnight_rates", 1, {"start_date": start_date, "end_date": end_date}),
         ("nyfed_repo_facilities", 1, {"start_date": start_date, "end_date": end_date}),
         ("nyfed_soma", 1, {"start_date": start_date, "end_date": end_date}),
         ("federal_reserve_h41", 1, {"start_date": start_date, "end_date": end_date}),
+        ("federal_reserve_h8", 7, {"source_key": "federal_reserve_h8", "start_date": credit_start, "end_date": end_date}),
+        ("federal_reserve_sloos", 6, {"source_key": "federal_reserve_sloos", "start_date": credit_start, "end_date": end_date}),
         ("federal_reserve_policy_rates", 1, {"start_date": start_date, "end_date": end_date}),
         (
             "industrial_production",
@@ -257,6 +290,38 @@ def _planned_calls(
         ("nber_us_recession", 1, {}),
         ("bls_price_wage_productivity", 1, {}),
         ("bea_personal_income", 1, {}),
+        (
+            "cftc_tff_futures_only",
+            8,
+            {
+                "report_family": "tff_futures_only",
+                "start_date": cftc_start_date,
+                "end_date": cftc_end_date,
+            },
+        ),
+        (
+            "cftc_disaggregated_futures_only",
+            8,
+            {
+                "report_family": "disaggregated_futures_only",
+                "start_date": cftc_start_date,
+                "end_date": cftc_end_date,
+            },
+        ),
+        (
+            "treasury_securities_auctions",
+            1,
+            {"start_date": start_date, "end_date": end_date},
+        ),
+        (
+            "nyfed_primary_dealer_statistics",
+            33,
+            {
+                "series_break": _PRIMARY_DEALER_SERIES_BREAK,
+                "start_date": start_date,
+                "end_date": end_date,
+            },
+        ),
     )
 
 

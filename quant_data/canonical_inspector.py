@@ -1,4 +1,4 @@
-"""Loopback-only read inspector for canonical market, macro, and company stores.
+"""Loopback-only read inspector for canonical data and current public tools.
 
 This is intentionally separate from the frozen Stage 6 portal.  Browser input
 selects only fixed, bounded read templates; it can never select a database
@@ -13,14 +13,16 @@ import html
 import os
 import re
 import sqlite3
+import sys
 import stat
+from collections.abc import Sequence
 from contextlib import contextmanager
 from datetime import date
 from decimal import Decimal
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Iterator, Mapping
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
 from .boundary.application import (
     HttpResponse,
@@ -30,7 +32,18 @@ from .boundary.application import (
     create_server,
 )
 from .dashboard.application import INTER_FONT_SHA256
-from .errors import Issue, ResourceLimitError, StoreUnavailableError, ValidationError
+from .dashboard.current_tool_page import (
+    latest_tool_version,
+    render_current_agent_tools_page,
+)
+from .dashboard.data_status_page import render_data_status_page
+from .errors import (
+    Issue,
+    QuantDataError,
+    ResourceLimitError,
+    StoreUnavailableError,
+    ValidationError,
+)
 from .json_codec import dumps_strict, loads_strict
 from .macro.fmp_calendar_wholesale import parse_fmp_us_calendar_wholesale
 from .macro.fmp_release_surprises import (
@@ -70,11 +83,12 @@ from .market.alpaca_options import (
     ALPACA_ETF_OPTIONS_DTE_TARGETS as _OPTIONS_SURFACE_TARGET_DTES,
     ALPACA_ETF_OPTIONS_UNIVERSE as _OPTIONS_SURFACE_UNDERLYINGS,
 )
+from .news.tool_repository import CURRENT_NEWS_TOOL_SOURCE_IDS
 from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map, stable_id
 
 
-_CURRENT_REGISTRY = "2.64.0"
+_CURRENT_REGISTRY = "2.68.0"
 _CURRENT_SCHEMA = "1.9.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
@@ -225,6 +239,21 @@ _OPTIONS_SURFACE_TARGET_DTE_TEXT = frozenset(
 )
 _MAX_LIMIT = 100
 _MAX_PAGE = 1000
+_CURRENT_NEWS_TOOL_VERSION = "2.2.0"
+_CURRENT_DATA_STATUS_TOOL_VERSION = "1.0.0"
+_CURRENT_NEWS_QUERY_FIELDS = frozenset(
+    {"query", "symbol", "source_id", "start_date", "end_date", "cursor", "limit"}
+)
+_CURRENT_NEWS_SOURCE_LABELS = {
+    "fmp_stock_latest": "FMP stock news",
+    "fmp_press_releases": "FMP press releases",
+    "fmp_general": "FMP general news",
+    "fed_press": "Federal Reserve",
+    "ecb_press": "European Central Bank",
+    "bea_news": "Bureau of Economic Analysis",
+    "eia_press": "Energy Information Administration",
+    "alpaca_benzinga": "Alpaca / Benzinga",
+}
 
 
 class CanonicalInspectorReadService:
@@ -2199,7 +2228,7 @@ class CanonicalInspectorReadService:
 
 
 class CanonicalInspectorApplication(Stage1Application):
-    """GET-only HTML/JSON surface for the fixed canonical inspection views."""
+    """Read-only HTML/JSON surface for fixed views and public tool calls."""
 
     def __init__(self, store_map: StoreMap, registry: Registry) -> None:
         if registry.registry_version != _CURRENT_REGISTRY or registry.schema_version != _CURRENT_SCHEMA:
@@ -2213,6 +2242,14 @@ class CanonicalInspectorApplication(Stage1Application):
         self._assets = {
             "/assets/dashboard.css": (css, "text/css; charset=utf-8"),
             "/assets/inter-variable.woff2": (font, "font/woff2"),
+            "/assets/inspector-tools.css": (
+                (_ASSET_ROOT / "inspector_tools.css").read_bytes(),
+                "text/css; charset=utf-8",
+            ),
+            "/assets/inspector-tools.js": (
+                (_ASSET_ROOT / "inspector_tools.js").read_bytes(),
+                "application/javascript; charset=utf-8",
+            ),
         }
 
     def _handle_get(
@@ -2224,11 +2261,144 @@ class CanonicalInspectorApplication(Stage1Application):
             if query:
                 raise ValidationError("Inspector assets do not accept query fields")
             return HttpResponse(HTTPStatus.OK, asset[0], asset[1])
+        if path == "/healthz":
+            if query:
+                raise ValidationError("Inspector liveness does not accept query fields")
+            return self._json_response(
+                HTTPStatus.OK,
+                self._generic_success(
+                    {
+                        "status": "ok",
+                        "service": "quant-data-inspector",
+                        "scope": "process_liveness_only",
+                        "data_freshness": "not_checked",
+                        "provider_health": "not_checked",
+                        "scheduler_health": "not_checked",
+                    },
+                    route="healthz",
+                ),
+            )
         if path == "/api/rows":
             result = self._reads.inspect(query)
             return self._json_response(
                 HTTPStatus.OK,
                 self._generic_success(result, route="canonical_inspector"),
+            )
+        if path in {"/data-status", "/api/data-status"}:
+            if query:
+                raise ValidationError("Data status does not accept query fields")
+            try:
+                result = self.dispatcher.call(
+                    "data.get_dataset_status",
+                    {
+                        "stores": [],
+                        "dataset_ids": [],
+                        "statuses": [],
+                        "limit": 128,
+                    },
+                    tool_version=_CURRENT_DATA_STATUS_TOOL_VERSION,
+                )
+                error = None
+            except QuantDataError as exc:
+                result = {}
+                error = exc.safe_message
+            if path == "/api/data-status":
+                if error is not None:
+                    raise StoreUnavailableError(error)
+                return self._json_response(
+                    HTTPStatus.OK,
+                    self._generic_success(result, route="data_status"),
+                )
+            return HttpResponse(
+                HTTPStatus.OK,
+                render_data_status_page(
+                    result,
+                    registry_revision=self._registry.revision,
+                    error=error,
+                ).encode("utf-8"),
+                "text/html; charset=utf-8",
+            )
+        if path == "/api/agent-tools":
+            return super()._handle_get(path, query, {})
+        if path == "/news":
+            status_result: Mapping[str, Any] = {}
+            status_error: str | None = None
+            try:
+                arguments = _current_news_arguments(query)
+                result = self.dispatcher.call(
+                    "news.search",
+                    arguments,
+                    tool_version=_CURRENT_NEWS_TOOL_VERSION,
+                )
+                error = None
+            except QuantDataError as exc:
+                result = {}
+                error = exc.safe_message
+            try:
+                status_result = self.dispatcher.call(
+                    "news.get_source_status",
+                    {"source_ids": []},
+                    tool_version="1.0.0",
+                )
+            except QuantDataError as exc:
+                status_error = exc.safe_message
+            return HttpResponse(
+                HTTPStatus.OK,
+                _render_current_news_page(
+                    result,
+                    query,
+                    self._registry.revision,
+                    error,
+                    status_result,
+                    status_error,
+                ).encode("utf-8"),
+                "text/html; charset=utf-8",
+            )
+        if path == "/agent-tools":
+            unknown = sorted(set(query) - {"tool", "tool_version"})
+            if unknown:
+                raise ValidationError(
+                    "Agent Tools query contains an unsupported field",
+                    issues=(
+                        Issue(
+                            f"/{unknown[0]}",
+                            "additional_properties",
+                            "Field is not supported",
+                        ),
+                    ),
+                )
+            tool = query.get("tool")
+            tool_version = query.get("tool_version")
+            manifest = self.dispatcher.manifest()
+            names = {
+                item.get("name")
+                for item in manifest.get("tools", ())
+                if isinstance(item, Mapping)
+            }
+            if tool is not None and tool not in names:
+                raise ValidationError("Agent Tools selection is invalid")
+            if tool_version is not None:
+                if tool is None:
+                    raise ValidationError(
+                        "Agent Tools version requires a selected tool"
+                    )
+                declaration = next(
+                    item
+                    for item in manifest["tools"]
+                    if isinstance(item, Mapping) and item.get("name") == tool
+                )
+                if tool_version != latest_tool_version(declaration):
+                    raise ValidationError(
+                        "Agent Tools exposes only the latest tool version"
+                    )
+            return HttpResponse(
+                HTTPStatus.OK,
+                render_current_agent_tools_page(
+                    manifest,
+                    self._registry,
+                    requested_tool=tool,
+                ).encode("utf-8"),
+                "text/html; charset=utf-8",
             )
         if path == "/":
             try:
@@ -2264,8 +2434,20 @@ class CanonicalInspectorApplication(Stage1Application):
         headers: Mapping[str, str],
         body: bytes,
     ) -> HttpResponse:
+        if path == "/api/agent-tools/call":
+            return super()._handle_post(path, query, headers, body)
         del query, headers, body
-        if path in {"/", "/api/rows", *self._assets}:
+        if path in {
+            "/",
+            "/healthz",
+            "/data-status",
+            "/api/data-status",
+            "/news",
+            "/agent-tools",
+            "/api/rows",
+            "/api/agent-tools",
+            *self._assets,
+        }:
             raise MethodNotAllowedError("HTTP method is not supported")
         raise RouteNotFoundError("Route was not found")
 
@@ -2280,7 +2462,12 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
         environment={},
     )
     stores = resolve_store_map(registry, project_root=root, environment={})
-    for role in (StoreRole.MARKET, StoreRole.MACRO, StoreRole.COMPANY):
+    for role in (
+        StoreRole.MARKET,
+        StoreRole.MACRO,
+        StoreRole.COMPANY,
+        StoreRole.NEWS,
+    ):
         expected = root / "data" / f"{role.value}.sqlite"
         if expected.is_symlink() or not expected.is_file():
             raise StoreUnavailableError(f"Canonical {role.value} store is unavailable")
@@ -2463,6 +2650,327 @@ def _decimal(value: Decimal | None) -> str | None:
     return None if value is None else format(value, "f")
 
 
+def _current_news_arguments(query: Mapping[str, str]) -> dict[str, Any]:
+    unknown = sorted(set(query) - _CURRENT_NEWS_QUERY_FIELDS)
+    if unknown:
+        raise ValidationError(
+            "Current news query contains an unsupported field",
+            issues=(
+                Issue(
+                    f"/{unknown[0]}",
+                    "additional_properties",
+                    "Field is not supported",
+                ),
+            ),
+        )
+    text_query = _text_filter(query.get("query"), "/query", 500)
+    symbol = _text_filter(query.get("symbol"), "/symbol", 32).upper()
+    if symbol and _SYMBOL.fullmatch(symbol) is None:
+        raise ValidationError("Current news symbol is invalid")
+    source_id = _text_filter(query.get("source_id"), "/source_id", 64)
+    if source_id and source_id not in CURRENT_NEWS_TOOL_SOURCE_IDS:
+        raise ValidationError("Current news source is invalid")
+    start = _optional_date(query.get("start_date"), "/start_date")
+    end = _optional_date(query.get("end_date"), "/end_date")
+    if start and end and start > end:
+        raise ValidationError("Current news date range is invalid")
+    cursor = _text_filter(query.get("cursor"), "/cursor", 4096) or None
+    limit = _bounded_int(query.get("limit", "25"), "/limit", 1, _MAX_LIMIT)
+    return {
+        "query": text_query,
+        "symbols": [symbol] if symbol else [],
+        "source_ids": [source_id] if source_id else [],
+        "mode": "latest",
+        "as_of": None,
+        "date_only_policy": "completed_date",
+        "start_date": start,
+        "end_date": end,
+        "cursor": cursor,
+        "limit": limit,
+    }
+
+
+def _current_news_rows(result: Mapping[str, Any]) -> tuple[dict[str, Any], ...]:
+    records = result.get("records", ())
+    if not isinstance(records, Sequence) or isinstance(
+        records, (str, bytes, bytearray)
+    ):
+        return ()
+    rendered: list[dict[str, Any]] = []
+    for record in records:
+        if not isinstance(record, Mapping):
+            continue
+        fields = record.get("fields", ())
+        if not isinstance(fields, Sequence) or isinstance(
+            fields, (str, bytes, bytearray)
+        ):
+            continue
+        row: dict[str, Any] = {}
+        for field in fields:
+            if not isinstance(field, Mapping):
+                continue
+            name = field.get("name")
+            if isinstance(name, str) and name not in row:
+                row[name] = field.get("value")
+        rendered.append(row)
+    return tuple(rendered)
+
+
+def _current_news_symbols(value: Any) -> str:
+    if not isinstance(value, str):
+        return "" if value is None else str(value)
+    try:
+        decoded = loads_strict(value, max_bytes=4096)
+    except QuantDataError:
+        return value
+    if isinstance(decoded, list) and all(isinstance(item, str) for item in decoded):
+        return ", ".join(decoded)
+    return value
+
+
+def _safe_source_url(value: Any) -> str | None:
+    if not isinstance(value, str) or len(value) > 4096:
+        return None
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return value
+
+
+def _status_object(value: Any) -> Mapping[str, Any]:
+    if not isinstance(value, str):
+        return value if isinstance(value, Mapping) else {}
+    try:
+        decoded = loads_strict(value, max_bytes=16_384)
+    except QuantDataError:
+        return {}
+    return decoded if isinstance(decoded, Mapping) else {}
+
+
+def _status_capture_time(value: Any) -> str:
+    captured = _status_object(value).get("captured_at")
+    if isinstance(captured, Mapping):
+        captured = captured.get("value")
+    return captured if isinstance(captured, str) else "—"
+
+
+def _status_outcome(value: Any) -> str:
+    outcome = _status_object(value)
+    kind = outcome.get("outcome_kind")
+    recorded = outcome.get("recorded_at")
+    if isinstance(recorded, Mapping):
+        recorded = recorded.get("value")
+    if isinstance(kind, str) and isinstance(recorded, str):
+        return f"{kind} · {recorded}"
+    return kind if isinstance(kind, str) else "—"
+
+
+def _render_news_status_panel(
+    result: Mapping[str, Any], error: str | None
+) -> str:
+    rows = _current_news_rows(result)
+    notice = (
+        f'<div class="state-notice warning" role="alert">{html.escape(error)}</div>'
+        if error
+        else ""
+    )
+    body = "".join(
+        "<tr><th scope=\"row\"><code>"
+        + _html_value(row.get("source_id"))
+        + "</code></th><td>"
+        + _html_value(row.get("provider"))
+        + "</td><td>"
+        + _html_value(row.get("status"))
+        + "</td><td>"
+        + _html_value(_status_capture_time(row.get("latest_successful_capture")))
+        + "</td><td>"
+        + _html_value(_status_outcome(row.get("latest_outcome")))
+        + "</td><td>"
+        + _html_value(row.get("article_count"))
+        + "</td></tr>"
+        for row in rows
+    )
+    if not body:
+        body = '<tr><td colspan="6">No retained source status is available.</td></tr>'
+    return (
+        '<section class="panel"><div class="panel-header"><div>'
+        '<p class="panel-kicker">Local retained status · not live provider health</p>'
+        '<h2>News source status</h2><p>Latest retained attempts, outcomes, and '
+        'successful captures. This does not test credentials, scheduler processes, '
+        'or fetch a provider.</p></div><a href="/data-status">All data status</a></div>'
+        + notice
+        + '<div class="table-scroll"><table><thead><tr><th>Source</th><th>Provider</th>'
+        '<th>Latest status</th><th>Last successful capture</th><th>Latest outcome</th>'
+        '<th>Articles</th></tr></thead><tbody>'
+        + body
+        + "</tbody></table></div></section>"
+    )
+
+
+def _render_current_news_page(
+    result: Mapping[str, Any],
+    raw_query: Mapping[str, str],
+    revision: str,
+    error: str | None,
+    status_result: Mapping[str, Any],
+    status_error: str | None,
+) -> str:
+    navigation = "".join(
+        '<a href="/?' + html.escape(urlencode({"view": item}), quote=True) + '">'
+        + html.escape(_VIEW_LABELS[item])
+        + "</a>"
+        for item in _VIEWS
+    )
+    navigation += (
+        '<a href="/news" aria-current="page">Current news</a>'
+        '<a href="/data-status">Data status</a>'
+        '<a href="/agent-tools">Agent Tools</a>'
+    )
+    notice = (
+        f'<div class="state-notice warning" role="alert">{html.escape(error)}</div>'
+        if error
+        else ""
+    )
+    selected_source = raw_query.get("source_id", "")
+    source_options = '<option value="">All fixed sources</option>' + "".join(
+        '<option value="'
+        + html.escape(source_id, quote=True)
+        + '"'
+        + (" selected" if selected_source == source_id else "")
+        + ">"
+        + html.escape(_CURRENT_NEWS_SOURCE_LABELS[source_id])
+        + "</option>"
+        for source_id in CURRENT_NEWS_TOOL_SOURCE_IDS
+    )
+    selected_limit = raw_query.get("limit", "25")
+    limit_options = "".join(
+        f'<option value="{limit}"'
+        + (" selected" if selected_limit == str(limit) else "")
+        + f">{limit}</option>"
+        for limit in (10, 25, 50, 100)
+    )
+    form = (
+        '<form class="query-form" method="get" action="/news"><fieldset>'
+        '<legend>Current headline filters</legend><div class="form-grid">'
+        + _input("query", "Headline or summary", raw_query.get("query"))
+        + _input(
+            "symbol",
+            "Exact symbol",
+            raw_query.get("symbol"),
+            placeholder="AAPL",
+        )
+        + f'<label>Source<select name="source_id">{source_options}</select></label>'
+        + _input(
+            "start_date",
+            "Published from",
+            raw_query.get("start_date"),
+            input_type="date",
+        )
+        + _input(
+            "end_date",
+            "Published through",
+            raw_query.get("end_date"),
+            input_type="date",
+        )
+        + f'<label>Rows<select name="limit">{limit_options}</select></label>'
+        + '</div><div class="form-actions"><button type="submit">Show news</button>'
+        '<a href="/news">Clear filters</a></div></fieldset></form>'
+    )
+    rows = _current_news_rows(result)
+    body_parts: list[str] = []
+    for row in rows:
+        published = row.get("published_normalized_at") or row.get(
+            "published_date_raw"
+        )
+        summary = row.get("summary")
+        headline = "<strong>" + _html_value(row.get("headline")) + "</strong>"
+        if isinstance(summary, str) and summary:
+            headline += "<br><small>" + html.escape(summary) + "</small>"
+        source_url = _safe_source_url(row.get("source_url"))
+        source_link = (
+            '<a href="'
+            + html.escape(source_url, quote=True)
+            + '" target="_blank" rel="noopener noreferrer">Open source</a>'
+            if source_url
+            else '<span class="null">—</span>'
+        )
+        body_parts.append(
+            "<tr><td>"
+            + _html_value(published)
+            + "</td><td>"
+            + _html_value(row.get("feed_id"))
+            + "</td><td>"
+            + headline
+            + "</td><td>"
+            + _html_value(_current_news_symbols(row.get("symbols")))
+            + "</td><td>"
+            + _html_value(row.get("available_at"))
+            + "</td><td>"
+            + source_link
+            + "</td></tr>"
+        )
+    body = "".join(body_parts)
+    if not body:
+        body = (
+            '<tr><td colspan="6">'
+            "No retained headlines match this selection."
+            "</td></tr>"
+        )
+    truncation = result.get("truncation", {})
+    if not isinstance(truncation, Mapping):
+        truncation = {}
+    total = truncation.get("total_known_count")
+    total_copy = (
+        f"{total:,} retained rows match this selection."
+        if isinstance(total, int) and not isinstance(total, bool)
+        else "Retained rows matching this selection."
+    )
+    pager_links: list[str] = []
+    if raw_query.get("cursor"):
+        newest = {
+            key: value for key, value in raw_query.items() if key != "cursor"
+        }
+        pager_links.append(
+            '<a href="/news?'
+            + html.escape(urlencode(newest), quote=True)
+            + '">Newest</a>'
+        )
+    next_cursor = truncation.get("next_cursor")
+    if truncation.get("has_more") is True and isinstance(next_cursor, str):
+        following = {
+            key: value for key, value in raw_query.items() if key != "cursor"
+        }
+        following["cursor"] = next_cursor
+        pager_links.append(
+            '<a href="/news?'
+            + html.escape(urlencode(following), quote=True)
+            + '">Next</a>'
+        )
+    pager = (
+        '<div class="form-actions">' + " · ".join(pager_links) + "</div>"
+        if pager_links
+        else ""
+    )
+    status_panel = _render_news_status_panel(status_result, status_error)
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Current news · Canonical Data Inspector</title><link rel="stylesheet" href="/assets/dashboard.css"></head>
+<body><a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell">
+<header class="site-header"><a class="brand" href="/"><span class="brand-mark">QD</span><strong>Canonical Data Inspector</strong></a>
+<p class="shell-status"><span aria-hidden="true">●</span> Local read-only · registry {html.escape(revision)}</p></header>
+<nav class="primary-nav" aria-label="Inspector views">{navigation}</nav>
+<main id="main-content"><section class="page-intro"><p class="eyebrow">Retained headlines · inspection only</p>
+<h1>Current news</h1><p>Browse bounded headline metadata from the fixed canonical news database. Article bodies, raw provider responses, database paths, writes, and live provider calls are not exposed.</p></section>
+{notice}{status_panel}<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Filters</p><h2>Choose what to inspect</h2></div></div>{form}</section>
+<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Latest retained metadata</p><h2>{len(rows):,} headlines on this page</h2><p>{html.escape(total_copy)}</p></div>
+<a href="/agent-tools?tool=news.search">Advanced tool view</a></div>
+<div class="table-scroll"><table><thead><tr><th>Published</th><th>Source</th><th>Headline</th><th>Symbols</th><th>Available locally</th><th>Link</th></tr></thead><tbody>{body}</tbody></table></div>{pager}</section>
+</main><footer class="site-footer"><p>Loopback only · read only · current news.search@{_CURRENT_NEWS_TOOL_VERSION}</p></footer></div></body></html>"""
+
+
 def _render_page(
     result: Mapping[str, Any],
     raw_query: Mapping[str, str],
@@ -2475,6 +2983,11 @@ def _render_page(
         + (' aria-current="page"' if item == view else "")
         + f">{html.escape(_VIEW_LABELS[item])}</a>"
         for item in _VIEWS
+    )
+    navigation += (
+        '<a href="/news">Current news</a>'
+        '<a href="/data-status">Data status</a>'
+        '<a href="/agent-tools">Agent Tools</a>'
     )
     notice = (
         f'<div class="state-notice warning" role="alert">{html.escape(error)}</div>'
@@ -2506,7 +3019,7 @@ def _render_page(
 <p class="shell-status"><span aria-hidden="true">●</span> Local read-only · registry {html.escape(revision)}</p></header>
 <nav class="primary-nav" aria-label="Inspector views">{navigation}</nav>
 <main id="main-content"><section class="page-intro"><p class="eyebrow">Operational data · inspection only</p>
-<h1>{html.escape(_VIEW_LABELS[view])}</h1><p>Fixed, bounded queries over the canonical market, macro, and company databases. Database paths, SQL, writes, and provider calls are not available here.</p></section>
+<h1>{html.escape(_VIEW_LABELS[view])}</h1><p>Fixed, bounded queries over the canonical market, macro, and company databases, plus the canonical news database. Database paths, SQL, writes, and provider calls are not available here.</p></section>
 {notice}<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Filters</p><h2>Choose what to inspect</h2></div></div>{form}</section>
 <section class="panel"><div class="panel-header"><div><p class="panel-kicker">Results</p><h2>{total:,} matching rows</h2></div>
 <a href="/api/rows?{html.escape(urlencode(api_query), quote=True)}">View JSON</a></div>
@@ -2877,8 +3390,23 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--port", type=int, default=8765)
     arguments = parser.parse_args(argv)
-    application = build_canonical_inspector(arguments.project_root)
-    server = create_server(application, host="127.0.0.1", port=arguments.port)
+    try:
+        application = build_canonical_inspector(arguments.project_root)
+        server = create_server(
+            application,
+            host="127.0.0.1",
+            port=arguments.port,
+        )
+    except QuantDataError as exc:
+        print(f"Canonical Data Inspector unavailable: {exc.safe_message}", file=sys.stderr)
+        return 69
+    except OSError:
+        print(
+            "Canonical Data Inspector unavailable: the requested loopback "
+            "port cannot be opened",
+            file=sys.stderr,
+        )
+        return 69
     print(f"Canonical Data Inspector: http://127.0.0.1:{server.server_port}/", flush=True)
     try:
         server.serve_forever()

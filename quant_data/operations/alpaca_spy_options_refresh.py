@@ -31,6 +31,10 @@ from ..market.alpaca_options import (
     run_alpaca_spy_option_surface,
 )
 from ..registry import CANONICAL_REGISTRY_PATH, load_registry
+from ..registry_bundle_lock import (
+    REGISTRY_BUNDLE_LOCK_TIMEOUT_SECONDS,
+    registry_bundle_lock,
+)
 from ..stores import StoreRole, resolve_store_map
 
 
@@ -114,21 +118,26 @@ def _receipt_mapping(value: object) -> dict[str, Any]:
 
 
 def _canonical_dependencies() -> tuple[object, object]:
-    """Load only the reviewed registry and its fixed canonical store map."""
+    """Validate one publisher-stable registry/catalog bundle before provider access."""
 
-    registry = load_registry(
-        CANONICAL_REGISTRY_PATH,
-        project_root=PROJECT_ROOT,
-        environment={},
-    )
-    stores = resolve_store_map(
-        registry,
-        project_root=PROJECT_ROOT,
-        environment={},
-    )
-    if stores.path(StoreRole.MARKET) != MARKET_STORE.resolve(strict=False):
-        raise ValidationError("Alpaca option-surface canonical market target is invalid")
-    return registry, stores
+    with registry_bundle_lock(
+        PROJECT_ROOT,
+        exclusive=False,
+        timeout_seconds=REGISTRY_BUNDLE_LOCK_TIMEOUT_SECONDS,
+    ):
+        registry = load_registry(
+            CANONICAL_REGISTRY_PATH,
+            project_root=PROJECT_ROOT,
+            environment={},
+        )
+        stores = resolve_store_map(
+            registry,
+            project_root=PROJECT_ROOT,
+            environment={},
+        )
+        if stores.path(StoreRole.MARKET) != MARKET_STORE.resolve(strict=False):
+            raise ValidationError("Alpaca option-surface canonical market target is invalid")
+        return registry, stores
 
 
 def _run() -> dict[str, Any]:

@@ -22,7 +22,11 @@ from ..temporal import (
     parse_date,
 )
 from .current_multi_source import CURRENT_MULTI_SOURCE_FEED_IDS
-from .current_repository import CurrentNewsQuery
+from .current_repository import (
+    CurrentNewsKeysetAnchor,
+    CurrentNewsQuery,
+    record_is_after_current_news_anchor,
+)
 
 
 CURRENT_MULTI_SOURCE_REPOSITORY_EVIDENCE_DATASET_ID = "news.current_multi_source_evidence"
@@ -324,9 +328,12 @@ class CurrentMultiSourceNewsRepository:
         query: CurrentNewsQuery,
         *,
         source_ids: tuple[str, ...] = (),
+        after: CurrentNewsKeysetAnchor | None = None,
     ) -> CurrentMultiSourceNewsSelection:
         if not isinstance(query, CurrentNewsQuery):
             raise ValidationError("Multi-source news selection requires a typed current-news query")
+        if after is not None and not isinstance(after, CurrentNewsKeysetAnchor):
+            raise ValidationError("Multi-source news selection anchor is invalid")
         source_ids = _source_ids(source_ids)
         self._require_datasets()
         with quiet_immutable_read_connection(
@@ -356,6 +363,12 @@ class CurrentMultiSourceNewsRepository:
             and _matches(record, query)
         ]
         _sort(filtered)
+        if after is not None:
+            filtered = [
+                record
+                for record in filtered
+                if record_is_after_current_news_anchor(record, after)
+            ]
         rendered = [
             {
                 key: value
@@ -376,6 +389,8 @@ class CurrentMultiSourceNewsRepository:
             "truncated": len(filtered) > query.limit,
             "warnings": sorted(warnings),
         }
+        if after is not None:
+            receipt["after"] = after.receipt_mapping()
         return CurrentMultiSourceNewsSelection(
             records=tuple(rendered),
             total_selected_count=len(filtered),

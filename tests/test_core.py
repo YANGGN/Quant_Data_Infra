@@ -61,11 +61,11 @@ def copy_registry_project_resources(project: Path) -> None:
 
 
 class RegistryAndFixtureTests(unittest.TestCase):
-    def test_registry_has_active_65_tools_and_frozen_57_name_compatibility(self) -> None:
+    def test_registry_has_active_74_tools_and_frozen_57_name_compatibility(self) -> None:
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
         self.assertEqual(registry.status, "validated")
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 65)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 74)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
             list(CURRENT_PUBLIC_TOOL_NAMES),

@@ -50,8 +50,19 @@ _MODE_FILE: Final = 0o600
 _MAX_JSON_BYTES: Final = 256 * 1024
 _MAX_COMPLETION_BYTES: Final = 1024 * 1024
 _CONTRACT_PREFIX: Final = "quant_data.stage12e_market_close"
-_VERSION: Final = "1.1.0"
+_VERSION: Final = "1.4.0"
 _SCHEDULED_ASSET_TYPES: Final = frozenset({"equity", "etf", "index"})
+_ISOLATED_RESPONSE_FAILURES: Final = frozenset(
+    {
+        "invalid_error_envelope",
+        "invalid_media_type",
+        "invalid_payload",
+        "invalid_status",
+        "redirected_response",
+        "unapproved_empty",
+        "unapproved_status",
+    }
+)
 _FIXTURE_CAPABILITY = object()
 _CANONICAL_CAPABILITY = object()
 _TERMINAL_BINDINGS: Final = (
@@ -93,6 +104,22 @@ _AUTHORITY: Final = {
     "version": _VERSION,
 }
 STAGE12E_AUTHORITY_SHA256: Final = _sha256_json(_AUTHORITY)
+
+# This digest identifies an FMP request for raw-response replay protection.
+# Keep its legacy revision stable across implementation-only releases; bump it
+# only when a request-defining authority field changes.
+_REQUEST_SCOPE_VERSION: Final = "1.1.0"
+
+
+def _request_scope_authority_sha256(authority: Mapping[str, object]) -> str:
+    request_scope_authority = dict(authority)
+    request_scope_authority["version"] = _REQUEST_SCOPE_VERSION
+    return _sha256_json(request_scope_authority)
+
+
+STAGE12E_REQUEST_SCOPE_AUTHORITY_SHA256: Final = _request_scope_authority_sha256(
+    _AUTHORITY
+)
 
 
 def _utc_text(value: datetime) -> str:
@@ -926,63 +953,90 @@ class _Runner:
     ) -> Mapping[str, object]:
         status = spool.get("status")
         media_type = spool.get("media_type")
+        publication: dict[str, object] | None = None
+        failure_kind: str | None = None
         if spool.get("redirected") is not False:
-            raise StoreUnavailableError("Stage 12E provider redirect is not allowed")
-        if (
+            outcome = "failed_response"
+            failure_kind = "redirected_response"
+        elif (
             not isinstance(media_type, str)
             or media_type.split(";", 1)[0].strip().casefold() != "application/json"
         ):
-            raise StoreUnavailableError("Stage 12E provider media type is invalid")
-        if isinstance(status, bool) or not isinstance(status, int):
-            raise ConflictError("Stage 12E provider status is invalid")
-        publication: dict[str, object] | None = None
-        if status == 200:
-            parsed = loads_strict(body, max_bytes=MAX_RESPONSE_BYTES)
-            if parsed == []:
-                if unit.ordinal == 1:
-                    outcome = "no_market_session"
-                elif _TERMINAL_RESPONSE_POLICY.get(unit.symbol) == (
-                    "noncoverage_empty",
-                    200,
-                ):
-                    outcome = "terminal_noncoverage"
-                else:
-                    raise StoreUnavailableError(
-                        "Stage 12E provider returned an unapproved empty response"
-                    )
+            outcome = "failed_response"
+            failure_kind = "invalid_media_type"
+        elif isinstance(status, bool) or not isinstance(status, int):
+            outcome = "failed_response"
+            failure_kind = "invalid_status"
+        elif status == 200:
+            try:
+                parsed = loads_strict(body, max_bytes=MAX_RESPONSE_BYTES)
+            except (ResourceLimitError, ValidationError):
+                outcome = "failed_response"
+                failure_kind = "invalid_payload"
             else:
-                prepared = self._collector.prepare(
-                    Stage12BFixtureRequest(
-                        symbol=unit.symbol,
-                        from_date=self._session,
-                        to_date=self._session,
-                        session_dates=(self._session,),
-                        captured_at=str(spool["captured_at"]),
-                    ),
-                    Stage12BFixtureResponse(
-                        status=status,
-                        media_type=media_type,
-                        body=body,
-                        elapsed_seconds=float(str(spool["elapsed_seconds"])),
-                    ),
-                )
-                receipt: Stage12BPublicationReceipt = self._collector.publish(prepared)
-                if receipt.outcome not in {"published", "unchanged"}:
-                    raise ConflictError("Stage 12E publication outcome is invalid")
-                outcome = receipt.outcome
-                publication = {
-                    "capture_id": receipt.capture_id,
-                    "semantic_identity": receipt.semantic_identity,
-                    "written_versions": receipt.written_versions,
-                }
+                if parsed == []:
+                    if unit.ordinal == 1:
+                        outcome = "no_market_session"
+                    elif _TERMINAL_RESPONSE_POLICY.get(unit.symbol) == (
+                        "noncoverage_empty",
+                        200,
+                    ):
+                        outcome = "terminal_noncoverage"
+                    else:
+                        outcome = "failed_response"
+                        failure_kind = "unapproved_empty"
+                else:
+                    try:
+                        prepared = self._collector.prepare(
+                            Stage12BFixtureRequest(
+                                symbol=unit.symbol,
+                                from_date=self._session,
+                                to_date=self._session,
+                                session_dates=(self._session,),
+                                captured_at=str(spool["captured_at"]),
+                            ),
+                            Stage12BFixtureResponse(
+                                status=status,
+                                media_type=media_type,
+                                body=body,
+                                elapsed_seconds=float(str(spool["elapsed_seconds"])),
+                            ),
+                        )
+                    except ValidationError as error:
+                        if not error.issues or any(
+                            issue.pointer != "/response/body"
+                            and not issue.pointer.startswith("/response/body/")
+                            for issue in error.issues
+                        ):
+                            raise
+                        outcome = "failed_response"
+                        failure_kind = "invalid_payload"
+                    else:
+                        receipt: Stage12BPublicationReceipt = self._collector.publish(
+                            prepared
+                        )
+                        if receipt.outcome not in {"published", "unchanged"}:
+                            raise ConflictError("Stage 12E publication outcome is invalid")
+                        outcome = receipt.outcome
+                        publication = {
+                            "capture_id": receipt.capture_id,
+                            "semantic_identity": receipt.semantic_identity,
+                            "written_versions": receipt.written_versions,
+                        }
         elif _TERMINAL_RESPONSE_POLICY.get(unit.symbol) == (
             "noncoverage_http_402_authorized",
             402,
         ) and status == 402:
-            self._error_envelope(body)
-            outcome = "terminal_noncoverage"
+            try:
+                self._error_envelope(body)
+            except (ResourceLimitError, ValidationError):
+                outcome = "failed_response"
+                failure_kind = "invalid_error_envelope"
+            else:
+                outcome = "terminal_noncoverage"
         else:
-            raise StoreUnavailableError("Stage 12E provider response is outside policy")
+            outcome = "failed_response"
+            failure_kind = "unapproved_status"
         material: dict[str, object] = {
             "http_status": status,
             "identifier": unit.identifier,
@@ -993,6 +1047,8 @@ class _Runner:
             "symbol": unit.symbol,
             "version": _VERSION,
         }
+        if failure_kind is not None:
+            material["failure_kind"] = failure_kind
         if unit.instrument_id is not None:
             material["instrument_id"] = unit.instrument_id
             material["asset_type"] = unit.asset_type
@@ -1016,6 +1072,21 @@ class _Runner:
         if not no_session and len(results) != len(units):
             raise ConflictError("Stage 12E cannot complete before all units close")
         outcomes = [str(result["outcome"]) for result in results.values()]
+        isolated_failures = [
+            result
+            for result in results.values()
+            if result.get("outcome") == "failed_response"
+        ]
+        if isolated_failures:
+            if any(
+                result.get("failure_kind") not in _ISOLATED_RESPONSE_FAILURES
+                or result.get("publication") is not None
+                for result in isolated_failures
+            ):
+                raise ConflictError("Stage 12E failed-response result is invalid")
+            raise StoreUnavailableError(
+                "Stage 12E one or more ticker responses failed validation"
+            )
         receipt = _envelope(
             f"{_CONTRACT_PREFIX}_completion",
             {
@@ -1150,7 +1221,11 @@ class _Runner:
                         return self._report(
                             self._complete(session_root, plan, units, results), issued
                         )
-                    if result.get("outcome") not in {"published", "unchanged"}:
+                    if result.get("outcome") not in {
+                        "failed_response",
+                        "published",
+                        "unchanged",
+                    }:
                         raise StoreUnavailableError("Stage 12E AAPL sentinel did not publish")
             return self._report(
                 self._complete(session_root, plan, units, results), issued
@@ -1171,7 +1246,7 @@ class _Runner:
         collector = Stage12BIncrementalCollector._for_canonical_market_close(
             scope=stage12b,
             stage12a_scope=stage12a,
-            schedule_authority_sha256=STAGE12E_AUTHORITY_SHA256,
+            schedule_authority_sha256=STAGE12E_REQUEST_SCOPE_AUTHORITY_SHA256,
             scheduled_instruments={
                 item.symbol: (item.instrument_id, item.asset_type)
                 for item in universe.instruments

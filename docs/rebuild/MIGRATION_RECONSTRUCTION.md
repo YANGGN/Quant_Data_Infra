@@ -159,6 +159,27 @@ declares the same values. Population evidence and its historical sequencing
 qualification are recorded separately in
 [Stage 10 evidence](STAGE10_EVIDENCE.md).
 
+## Private Alpaca option raw-evidence allocation
+
+Registry `2.65.0` allocates one forward market migration for exact Alpaca
+option response bytes, capture membership, and the narrowly proven correction
+of explicit ordinary 100-share deliverables. It does not alter the applied
+Stage 4 option migration bytes or expose raw evidence through a tool,
+dashboard, export, or public route. Historical quote values that were not
+retained are not reconstructed.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `market:0011_option_raw_evidence` | market | 11 | `quant_data/migrations/market/0011_option_raw_evidence.sql` | `f6a4685963e1eddffb7fd92944e19e4bbeda0c89bc196d85a2308f1f408d8129` | `fixture_validated` | Applied to `data/market.sqlite` at `2026-08-31T01:42:58.896154Z`; 294 contracts corrected, 1,162 historical surfaces explicitly missing, raw relations empty pending a future capture |
+
+The migration owns `option_raw_responses` and
+`option_capture_raw_responses`. The first is content-addressed exact response
+evidence; the second binds a canonical option capture to each named response
+in source order. Both are immutable. The corrective statements match only an
+Alpaca, 100-multiplier contract with one 100-share, 100%-allocation equity
+delivery whose root and delivery symbol equal the stored canonical underlying.
+All other contracts remain untouched.
+
 ## Fixture-validated Stage 11 allocation
 
 The user has authorized one additive macro-store allocation for the bounded

@@ -95,7 +95,7 @@ class FmpStockLatestRegistryTests(unittest.TestCase):
         )
         for dataset in datasets.values():
             self.assertEqual(dataset.store, "news")
-            self.assertFalse(dataset.tool_ids)
+            self.assertEqual(dataset.tool_ids, ("data.get_dataset_status",))
             self.assertFalse(dataset.dashboard_ids)
             self.assertFalse(dataset.export_ids)
 

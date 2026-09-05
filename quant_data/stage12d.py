@@ -651,6 +651,7 @@ def _run_fixture_rehearsal(
         project_root=project,
         environment={},
     )
+    registry = stage12d_registry_profile(registry)
     scope = require_stage12d_market_no_transfer_adoption_scope(
         load_stage12d_market_no_transfer_adoption_scope(project / _STAGE12D_SCOPE_PATH)
     )

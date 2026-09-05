@@ -19,7 +19,11 @@ from quant_data.registry import (
     canonical_access_registry_profile,
     company_filing_pagination_registry_profile,
     current_news_registry_profile,
+    data_status_options_registry_profile,
+    macro_database_expansion_registry_profile,
     multi_source_current_news_registry_profile,
+    news_research_registry_profile,
+    option_raw_evidence_registry_profile,
     econometrics_model_suite_v3_registry_profile,
     bea_personal_income_registry_profile,
     fmp_calendar_incremental_registry_profile,
@@ -61,10 +65,25 @@ V1_CATALOG_SHA256 = (
     "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 )
 V2_CATALOG_SHA256 = (
-    "6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46"
+    "fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28"
 )
 CURRENT_REGISTRY_SHA256 = (
-    "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
+    "2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f"
+)
+REGISTRY_267_SOURCE_SHA256 = (
+    "a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325"
+)
+REGISTRY_266_SOURCE_SHA256 = (
+    "f7b8c402ce4abce5d024f7fcdc8debde97e25324739f037ef209312bb4d070f3"
+)
+CATALOG_225_SHA256 = (
+    "e35b136e3e47a6211a85d62c75baf6ecd52b9246938a30549ace5c19e0c39700"
+)
+REGISTRY_265_SOURCE_SHA256 = (
+    "c22d9ada8be3c3c7f9538c902bac3ef3467b9fdfa43c23fd7aa1c88200d58614"
+)
+CATALOG_224_SHA256 = (
+    "6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46"
 )
 REGISTRY_262_SOURCE_SHA256 = (
     "59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2"
@@ -272,12 +291,19 @@ class MarketReturnVersioningTests(unittest.TestCase):
             ):
                 generated_bytes(root)
 
-            registry_263_predecessor = multi_source_current_news_registry_profile(
+            registry_267_predecessor = macro_database_expansion_registry_profile(
                 self.registry
+            )
+            self.assertEqual(
+                (
+                    registry_267_predecessor.registry_version,
+                    registry_267_predecessor.source_sha256,
+                ),
+                ("2.67.0", REGISTRY_267_SOURCE_SHA256),
             )
             registry_path.write_text(
                 json.dumps(
-                    registry_263_predecessor.raw,
+                    registry_267_predecessor.raw,
                     ensure_ascii=True,
                     indent=2,
                     sort_keys=True,
@@ -299,10 +325,161 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 ).encode("utf-8"),
             )
             self.assertEqual(
-                json.loads(registry_bytes)["registry_version"], "2.64.0"
+                json.loads(registry_bytes)["registry_version"], "2.69.0"
             )
             self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
             self.assertEqual(v2_bytes, V2_CATALOG.read_bytes())
+
+            registry_266_predecessor = data_status_options_registry_profile(
+                self.registry
+            )
+            self.assertEqual(
+                (
+                    registry_266_predecessor.registry_version,
+                    registry_266_predecessor.source_sha256,
+                ),
+                ("2.66.0", REGISTRY_266_SOURCE_SHA256),
+            )
+            registry_path.write_text(
+                json.dumps(
+                    registry_266_predecessor.raw,
+                    ensure_ascii=True,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
+            self.assertEqual(
+                registry_bytes,
+                (
+                    json.dumps(
+                        registry_267_predecessor.raw,
+                        ensure_ascii=True,
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n"
+                ).encode("utf-8"),
+            )
+            self.assertEqual(
+                json.loads(registry_bytes)["registry_version"], "2.67.0"
+            )
+            self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
+            self.assertEqual(v2_bytes, V2_CATALOG.read_bytes())
+
+            registry_265_predecessor = news_research_registry_profile(
+                self.registry
+            )
+            self.assertEqual(
+                (
+                    registry_265_predecessor.registry_version,
+                    registry_265_predecessor.source_sha256,
+                ),
+                ("2.65.0", REGISTRY_265_SOURCE_SHA256),
+            )
+            registry_path.write_text(
+                json.dumps(
+                    registry_265_predecessor.raw,
+                    ensure_ascii=True,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
+            self.assertEqual(
+                registry_bytes,
+                (
+                    json.dumps(
+                        registry_266_predecessor.raw,
+                        ensure_ascii=True,
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n"
+                ).encode("utf-8"),
+            )
+            self.assertEqual(
+                json.loads(registry_bytes)["registry_version"], "2.66.0"
+            )
+            self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
+            self.assertEqual(
+                hashlib.sha256(v2_bytes).hexdigest(), CATALOG_225_SHA256
+            )
+            self.assertEqual(json.loads(v2_bytes)["schema_version"], "2.25.0")
+
+            registry_264_predecessor = option_raw_evidence_registry_profile(
+                self.registry
+            )
+            registry_path.write_text(
+                json.dumps(
+                    registry_264_predecessor.raw,
+                    ensure_ascii=True,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
+            self.assertEqual(
+                registry_bytes,
+                (
+                    json.dumps(
+                        registry_265_predecessor.raw,
+                        ensure_ascii=True,
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n"
+                ).encode("utf-8"),
+            )
+            self.assertEqual(
+                json.loads(registry_bytes)["registry_version"], "2.65.0"
+            )
+            self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
+            self.assertEqual(
+                hashlib.sha256(v2_bytes).hexdigest(), CATALOG_224_SHA256
+            )
+            self.assertEqual(json.loads(v2_bytes)["schema_version"], "2.24.0")
+
+            registry_263_predecessor = multi_source_current_news_registry_profile(
+                self.registry
+            )
+            registry_path.write_text(
+                json.dumps(
+                    registry_263_predecessor.raw,
+                    ensure_ascii=True,
+                    indent=2,
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            registry_bytes, v1_bytes, v2_bytes = generated_bytes(root)
+            self.assertEqual(
+                registry_bytes,
+                (
+                    json.dumps(
+                        registry_264_predecessor.raw,
+                        ensure_ascii=True,
+                        indent=2,
+                        sort_keys=True,
+                    )
+                    + "\n"
+                ).encode("utf-8"),
+            )
+            self.assertEqual(
+                json.loads(registry_bytes)["registry_version"], "2.64.0"
+            )
+            self.assertEqual(v1_bytes, V1_CATALOG.read_bytes())
+            self.assertEqual(
+                hashlib.sha256(v2_bytes).hexdigest(), CATALOG_224_SHA256
+            )
+            self.assertEqual(json.loads(v2_bytes)["schema_version"], "2.24.0")
 
             registry_262_predecessor = current_news_registry_profile(
                 self.registry
@@ -986,12 +1163,12 @@ class MarketReturnVersioningTests(unittest.TestCase):
         )
 
 
-    def test_current_registry_has_forty_one_versioned_tools_and_fifty_six_variants(
+    def test_current_registry_has_forty_four_versioned_tools_and_sixty_one_variants(
         self,
     ) -> None:
         self.assertEqual(
             (self.registry.schema_version, self.registry.registry_version),
-            ("1.9.0", "2.64.0"),
+            ("1.9.0", "2.69.0"),
         )
         self.assertEqual(self.registry.source_sha256, CURRENT_REGISTRY_SHA256)
         technical_v23_predecessor = (
@@ -1459,6 +1636,9 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "company.search_filings",
                 "company.get_share_count_history",
                 "market.search_instruments",
+                "options.search_captures",
+                "options.search_contracts",
+                "options.get_surface_snapshot",
                 "news.search",
                 "macro.get_release_calendar",
                 "market.cross_sectional_performance",
@@ -1574,13 +1754,13 @@ class MarketReturnVersioningTests(unittest.TestCase):
                     self.registry.tool(name, "2.0.0")["operation_graph_id"],
                     f"tool_platform.{name}.v2",
                 )
-        self.assertEqual(len(self.registry.tool_version_policies), 41)
+        self.assertEqual(len(self.registry.tool_version_policies), 44)
         self.assertEqual(
             sum(
                 len(policy["variants"])
                 for policy in self.registry.tool_version_policies
             ),
-            57,
+            61,
         )
         technical_v21 = self.registry.tool(
             "market.technical_indicators", "2.1.0"
@@ -1726,8 +1906,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
         v1 = loads_strict(V1_CATALOG.read_bytes())
         v2 = loads_strict(V2_CATALOG.read_bytes())
         self.assertEqual(len(v1["contracts"]), 114)
-        self.assertEqual(v2["schema_version"], "2.24.0")
-        self.assertEqual(len(v2["contracts"]), 130)
+        self.assertEqual(v2["schema_version"], "2.26.0")
+        self.assertEqual(len(v2["contracts"]), 156)
         self.assertEqual(
             {item["tool"] for item in v2["contracts"]},
             {
@@ -1779,11 +1959,23 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "company.get_fundamentals",
                 "research.liquidity_credit_state",
                 "news.search",
+                "news.get_source_status",
+                "news.get_item_history",
+                "news.story_clusters",
+                "news.entity_coverage",
+                "news.attention_metrics",
+                "news.classify_events",
+                "news.headline_sentiment",
+                "research.news_event_impact",
+                "data.get_dataset_status",
+                "options.search_captures",
+                "options.search_contracts",
+                "options.get_surface_snapshot",
             },
         )
         self.assertEqual(
             sum(item["id"].endswith(":1.0.0") for item in v2["contracts"]),
-            16,
+            34,
         )
         self.assertEqual(
             {
@@ -1800,11 +1992,20 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "stats.covariance_matrix",
                 "stats.bootstrap_confidence_interval",
                 "stats.principal_components",
+                "news.get_source_status",
+                "news.get_item_history",
+                "news.story_clusters",
+                "news.entity_coverage",
+                "news.attention_metrics",
+                "news.classify_events",
+                "news.headline_sentiment",
+                "research.news_event_impact",
+                "data.get_dataset_status",
             },
         )
         self.assertEqual(
             sum(item["id"].endswith(":2.2.0") for item in v2["contracts"]),
-            2,
+            4,
         )
         self.assertEqual(
             {
@@ -1812,7 +2013,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 for item in v2["contracts"]
                 if item["id"].endswith(":2.2.0")
             },
-            {"market.technical_indicators"},
+            {"market.technical_indicators", "news.search"},
         )
         self.assertEqual(
             sum(item["id"].endswith(":2.3.0") for item in v2["contracts"]),
@@ -1866,7 +2067,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
 
         self.assertEqual(
             sum(item["id"].endswith(":2.0.0") for item in v2["contracts"]),
-            82,
+            88,
         )
         self.assertEqual(
             sum(item["id"].endswith(":2.1.0") for item in v2["contracts"]),
@@ -1904,14 +2105,14 @@ class MarketReturnVersioningTests(unittest.TestCase):
             {"econometrics.regression"},
         )
 
-    def test_manifest_exposes_65_names_and_marks_only_versioned_v1_variants_deprecated(self) -> None:
+    def test_manifest_exposes_74_names_and_marks_only_versioned_v1_variants_deprecated(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
             dispatcher = ToolDispatcher(
                 explicit_store_map(Path(temporary) / "stores"), self.registry
             )
             manifest = dispatcher.manifest()
-        self.assertEqual(len(manifest["tools"]), 65)
-        self.assertEqual(len({item["name"] for item in manifest["tools"]}), 65)
+        self.assertEqual(len(manifest["tools"]), 74)
+        self.assertEqual(len({item["name"] for item in manifest["tools"]}), 74)
         price_series = next(
             item
             for item in manifest["tools"]
@@ -1953,6 +2154,9 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "company.search_filings",
             "company.get_share_count_history",
             "market.search_instruments",
+            "options.search_captures",
+            "options.search_contracts",
+            "options.get_surface_snapshot",
             "macro.get_release_calendar",
             "market.cross_sectional_performance",
             "macro.revision_analysis",
@@ -1991,6 +2195,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 expected_versions.extend(
                     ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")
                 )
+            if name == "news.search":
+                expected_versions.append("2.2.0")
             if name == "econometrics.regression":
                 expected_versions.append("3.0.0")
             self.assertEqual(
@@ -2478,7 +2684,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         self.assertEqual(malformed_payload["error"]["code"], "invalid_request")
         self.assertEqual(
             malformed_payload["receipt"],
-            {"registry_revision": "2.64.0"},
+            {"registry_revision": "2.69.0"},
         )
         for response in non_string:
             with self.subTest(body=response.body):
@@ -2487,7 +2693,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 self.assertEqual(payload["error"]["code"], "invalid_request")
                 self.assertEqual(
                     payload["receipt"],
-                    {"registry_revision": "2.64.0"},
+                    {"registry_revision": "2.69.0"},
                 )
 
 

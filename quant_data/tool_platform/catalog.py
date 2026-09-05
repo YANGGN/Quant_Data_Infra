@@ -21,7 +21,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.24.0"
+VERSIONED_CATALOG_VERSION = "2.26.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -29,12 +29,25 @@ ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.bootstrap_confidence_interval",
     "stats.principal_components",
 )
+ADDITIVE_NEWS_RESEARCH_TOOLS = (
+    "news.get_source_status",
+    "news.get_item_history",
+    "news.story_clusters",
+    "news.entity_coverage",
+    "news.attention_metrics",
+    "news.classify_events",
+    "news.headline_sentiment",
+    "research.news_event_impact",
+)
+ADDITIVE_DATA_STATUS_TOOLS = ("data.get_dataset_status",)
 ADDITIVE_PUBLIC_TOOL_NAMES = (
     "macro.get_release_calendar",
     "market.get_available_ticker",
     "market.get_price_series",
     "market.get_volume_series",
     *ADDITIVE_STAGE10_STATISTICS_TOOLS,
+    *ADDITIVE_NEWS_RESEARCH_TOOLS,
+    *ADDITIVE_DATA_STATUS_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -78,6 +91,11 @@ VERSIONED_COMPANY_FILING_TOOLS = ("company.search_filings",)
 VERSIONED_COMPANY_SHARE_COUNT_TOOLS = ("company.get_share_count_history",)
 VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS = ("market.search_instruments",)
 VERSIONED_NEWS_TOOLS = ("news.search",)
+VERSIONED_OPTIONS_ACCESS_TOOLS = (
+    "options.search_captures",
+    "options.search_contracts",
+    "options.get_surface_snapshot",
+)
 VERSIONED_MARKET_RETURN_TOOLS = (
     "market.get_returns",
     "market.get_forward_returns",
@@ -121,6 +139,7 @@ VERSIONED_TOOL_NAMES = (
     *VERSIONED_COMPANY_FILING_TOOLS,
     *VERSIONED_COMPANY_SHARE_COUNT_TOOLS,
     *VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
+    *VERSIONED_OPTIONS_ACCESS_TOOLS,
     *VERSIONED_NEWS_TOOLS,
     *VERSIONED_INVESTMENT_ANALYSIS_TOOLS,
 )
@@ -202,7 +221,7 @@ CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
     "market": 8,
-    "research": 14,
+    "research": 23,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
 _CURRENT_PUBLIC_NAMES.insert(
@@ -224,6 +243,15 @@ _CURRENT_PUBLIC_NAMES[
     "stats.bootstrap_confidence_interval",
     "stats.principal_components",
 ]
+_CURRENT_NEWS_INSERTION = _CURRENT_PUBLIC_NAMES.index("news.search") + 1
+_CURRENT_PUBLIC_NAMES[_CURRENT_NEWS_INSERTION:_CURRENT_NEWS_INSERTION] = list(
+    ADDITIVE_NEWS_RESEARCH_TOOLS
+)
+_CURRENT_DATA_STATUS_INSERTION = _CURRENT_PUBLIC_NAMES.index("data.quality_audit")
+_CURRENT_PUBLIC_NAMES.insert(
+    _CURRENT_DATA_STATUS_INSERTION,
+    "data.get_dataset_status",
+)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -347,9 +375,82 @@ _DATASETS: dict[str, tuple[str, ...]] = {
 }
 
 
+DATA_STATUS_DATASETS = (
+    "fixture.market.daily_price_evidence",
+    "fixture.market.instruments",
+    "fixture.market.daily_prices",
+    "market.fmp.daily_price_evidence",
+    "market.fmp.instruments",
+    "market.fmp.daily_prices",
+    "market.stage10.source_evidence",
+    "market.stage10.instruments",
+    "market.stage10.universes",
+    "market.stage10.daily_prices",
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.market.catalog_evidence",
+    "fixture.market.instrument_classifications",
+    "fixture.market.controlled_universes",
+    "fixture.macro.stage3_catalog",
+    "fixture.macro.gdp_vintages",
+    "fixture.macro.treasury_yield_curves",
+    "fixture.macro.economic_calendar",
+    "fixture.macro.soma_evidence",
+    "fixture.macro.soma_summary",
+    "fixture.macro.eia_retail_evidence",
+    "fixture.macro.eia_retail",
+    "fixture.macro.eia_weekly_evidence",
+    "fixture.macro.eia_weekly",
+    "fixture.macro.recession_periods",
+    "macro.bea.nipa_history_evidence",
+    "macro.bea.nipa_history",
+    "macro.eia.electricity_retail_history_evidence",
+    "macro.eia.electricity_retail_history",
+    "macro.eia.petroleum_weekly_stock_history_evidence",
+    "macro.eia.petroleum_weekly_stock_history",
+    "macro.official_vintages_evidence",
+    "macro.official_vintages",
+    "macro.fmp.economic_calendar_evidence",
+    "macro.fmp.economic_calendar_incremental_evidence",
+    "macro.fmp.economic_calendar_incremental_events",
+    "fixture.market.option_capture_evidence",
+    "fixture.market.options",
+    "fixture.company.sec_evidence",
+    "fixture.company.issuers",
+    "fixture.company.filings",
+    "fixture.company.fundamentals",
+    "fixture.company.action_evidence",
+    "fixture.company.corporate_actions",
+    "fixture.company.expectation_evidence",
+    "fixture.company.expectations",
+    "fixture.company.filing_issuer_membership",
+    "fixture.news.evidence",
+    "fixture.news.items",
+    "fixture.news.search_index",
+    "news.fmp.stock_latest_evidence",
+    "news.fmp.stock_latest_articles",
+    "news.fmp.stock_latest_current_evidence",
+    "news.fmp.stock_latest_current_articles",
+    "news.current_multi_source_evidence",
+    "news.current_multi_source_articles",
+    "market.alpaca.option_raw_evidence",
+)
+
+
 def current_tool_profiles() -> tuple[ToolProfile, ...]:
     """Return the recovered inventory plus reviewed additive native tools."""
 
+    news_datasets = (
+        "news.fmp.stock_latest_current_evidence",
+        "news.fmp.stock_latest_current_articles",
+        "news.current_multi_source_evidence",
+        "news.current_multi_source_articles",
+    )
+    market_identity_datasets = (
+        "market.stage10.instruments",
+        "market.stage10.daily_prices",
+        "market.stage10.source_evidence",
+    )
     additive = (
         ToolProfile(
             name="macro.get_release_calendar",
@@ -422,6 +523,69 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
             input_kind="stage10_principal_components_v1",
             stores=(),
             datasets=(),
+        ),
+        ToolProfile(
+            name="news.get_source_status",
+            family="research",
+            input_kind="news_source_status_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="news.get_item_history",
+            family="research",
+            input_kind="news_item_history_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="news.story_clusters",
+            family="research",
+            input_kind="news_story_clusters_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="news.entity_coverage",
+            family="research",
+            input_kind="news_analysis_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="news.attention_metrics",
+            family="research",
+            input_kind="news_attention_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="news.classify_events",
+            family="research",
+            input_kind="news_analysis_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="news.headline_sentiment",
+            family="research",
+            input_kind="news_analysis_v1",
+            stores=("news",),
+            datasets=news_datasets,
+        ),
+        ToolProfile(
+            name="research.news_event_impact",
+            family="research",
+            input_kind="news_event_impact_v1",
+            stores=("news", "market"),
+            datasets=(*news_datasets, *market_identity_datasets),
+        ),
+        ToolProfile(
+            name="data.get_dataset_status",
+            family="research",
+            input_kind="dataset_status_v1",
+            stores=("market", "macro", "company", "news"),
+            datasets=DATA_STATUS_DATASETS,
         ),
     )
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
@@ -1022,6 +1186,100 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *price_entries,
         volume_entry,
         *_build_analysis_foundation_entries(),
+        *_build_news_research_entries(),
+        *_build_data_status_entries(),
+    )
+
+
+def _build_data_status_entries() -> tuple[dict[str, Any], ...]:
+    """Build the retained-only four-store dataset status tool."""
+
+    name = "data.get_dataset_status"
+    profile = next(item for item in current_tool_profiles() if item.name == name)
+    graph = profile.operation_graph_id
+    empty_series_schema = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {},
+        "required": [],
+    }
+    output_schema = query_result_schema(name, empty_series_schema)
+    output_schema["properties"]["series"]["maxItems"] = 0
+    return (
+        {
+            "id": name,
+            "family": "research",
+            "api_version": "1.0",
+            "version": "1.0.0",
+            "operation_version": "1.0.0",
+            "lifecycle": "experimental",
+            "compatibility": {
+                "status": "additive_native_v1",
+                "predecessor": None,
+            },
+            "description": (
+                "Read bounded retained capture/outcome freshness status for "
+                "registered datasets across the four host-selected stores."
+            ),
+            "assumptions": [
+                "host_selected_read_only_stores",
+                "retained_control_plane_status_only",
+                "declared_freshness_thresholds",
+                "successful_capture_basis_only",
+                "no_provider_request",
+                "no_credential_probe",
+                "no_scheduler_or_process_probe",
+                "no_source_period_inference",
+            ],
+            "handler": graph,
+            "operation_graph_id": graph,
+            "read_only": True,
+            "stores": list(profile.stores),
+            "datasets": list(profile.datasets),
+            "input_type": "DatasetStatusArgumentsV1",
+            "input_schema_id": _versioned_schema_id(
+                name, "input", version="1.0.0"
+            ),
+            "input_schema": typed_input_schema("dataset_status_v1", {}),
+            "output_type": "QueryResultV1",
+            "output_schema_id": _versioned_schema_id(
+                name, "output", version="1.0.0"
+            ),
+            "output_schema": output_schema,
+            "examples": [
+                {"stores": [], "dataset_ids": [], "statuses": [], "limit": 128}
+            ],
+            "workload_bounds": {
+                "max_rows": 128,
+                "max_series": 1,
+                "max_operations": 128,
+                "max_request_bytes": 1048576,
+                "max_response_bytes": 8388608,
+            },
+            "cost_model": {
+                "expression": "rows + series + operations",
+                "deterministic": True,
+            },
+            "timeout_class": "interactive_5s",
+            "availability_policy": {
+                "modes": ["retained_latest"],
+                "point_in_time_default": "retained_latest",
+            },
+            "live_capability": {
+                "possible": False,
+                "capability_id": None,
+                "offline_status": "not_applicable",
+            },
+            "contracts": {
+                "availability": "retained_control_plane_evidence",
+                "point_in_time": "evaluation_time_over_retained_state",
+                "returns": "not_applicable",
+            },
+            "composable": {"input_types": [], "output_types": ["QueryResultV1"]},
+            "observability": "metadata_only",
+            "owner": "tool_platform",
+            "review_requirements": ["schema", "semantics", "read_only"],
+        },
     )
 
 
@@ -1207,6 +1465,232 @@ def _build_analysis_foundation_entries() -> tuple[dict[str, Any], ...]:
                 },
                 "observability": "metadata_only",
                 "owner": "tool_platform",
+                "review_requirements": ["schema", "semantics", "read_only"],
+            }
+        )
+    return tuple(entries)
+
+
+def _build_news_research_entries() -> tuple[dict[str, Any], ...]:
+    """Build the small read-only current-news analytics suite."""
+
+    from .market_statistics import stage10_market_statistic_series_schema
+
+    common_selection = {
+        "query": "",
+        "symbols": ["AAPL"],
+        "source_ids": [],
+        "mode": "latest",
+        "as_of": None,
+        "date_only_policy": "completed_date",
+        "start_date": None,
+        "end_date": None,
+        "limit": 100,
+    }
+    contracts = (
+        {
+            "name": "news.get_source_status",
+            "input_kind": "news_source_status_v1",
+            "input_type": "NewsSourceStatusArgumentsV1",
+            "description": "Read retained attempt, outcome, capture, and coverage status for fixed news sources.",
+            "example": {"source_ids": []},
+            "assumptions": [
+                "store_retained_status_only",
+                "scheduler_credential_unavailable_not_persisted",
+                "latest_outcome_separate_from_latest_successful_capture",
+            ],
+            "availability": "current_retained_operational_evidence",
+            "point_in_time": "not_applicable_status_projection",
+        },
+        {
+            "name": "news.get_item_history",
+            "input_kind": "news_item_history_v1",
+            "input_type": "NewsItemHistoryArgumentsV1",
+            "description": "Read the bounded immutable version and capture-membership history for one retained news item.",
+            "example": {"article_id": "current-news-article-id", "limit": 100},
+            "assumptions": [
+                "immutable_content_version_history",
+                "capture_membership_is_not_retraction",
+            ],
+            "availability": "local_capture",
+            "point_in_time": "version_history_not_a_selection_mode",
+        },
+        {
+            "name": "news.story_clusters",
+            "input_kind": "news_story_clusters_v1",
+            "input_type": "NewsStoryClusterArgumentsV1",
+            "description": "Group retained headlines into deterministic cross-source candidate story clusters.",
+            "example": {**common_selection, "window_hours": 24},
+            "assumptions": [
+                "candidate_clusters_not_canonical_deduplication",
+                "exact_canonical_url_or_normalized_headline_only",
+                "no_fuzzy_or_model_similarity",
+            ],
+            "availability": "local_capture",
+            "point_in_time": "inherits_news_selection",
+        },
+        {
+            "name": "news.entity_coverage",
+            "input_kind": "news_analysis_v1",
+            "input_type": "NewsAnalysisArgumentsV1",
+            "description": "Aggregate retained provider-symbol coverage without claiming named-entity or instrument resolution.",
+            "example": common_selection,
+            "assumptions": [
+                "provider_symbols_not_named_entity_recognition",
+                "instrument_identity_not_resolved",
+            ],
+            "availability": "local_capture",
+            "point_in_time": "inherits_news_selection",
+        },
+        {
+            "name": "news.attention_metrics",
+            "input_kind": "news_attention_v1",
+            "input_type": "NewsAttentionArgumentsV1",
+            "description": "Compute deterministic bucketed candidate-story counts, source breadth, and transparent baseline z-scores.",
+            "example": {
+                **common_selection,
+                "bucket": "day",
+                "baseline_periods": 20,
+            },
+            "assumptions": [
+                "attention_is_descriptive_not_sentiment_or_signal",
+                "insufficient_history_is_explicit",
+                "zero_buckets_are_included",
+            ],
+            "availability": "local_capture",
+            "point_in_time": "inherits_news_selection",
+        },
+        {
+            "name": "news.classify_events",
+            "input_kind": "news_analysis_v1",
+            "input_type": "NewsAnalysisArgumentsV1",
+            "description": "Apply a fixed transparent keyword and source taxonomy to retained headline metadata.",
+            "example": common_selection,
+            "assumptions": [
+                "deterministic_rules_not_source_facts",
+                "fixed_taxonomy_version",
+                "unclassified_fallback",
+            ],
+            "availability": "local_capture",
+            "point_in_time": "inherits_news_selection",
+        },
+        {
+            "name": "news.headline_sentiment",
+            "input_kind": "news_analysis_v1",
+            "input_type": "NewsAnalysisArgumentsV1",
+            "description": "Score retained headline and summary tone with a small transparent finance lexicon.",
+            "example": common_selection,
+            "assumptions": [
+                "headline_and_retained_summary_only",
+                "lexical_tone_not_model_prediction",
+                "fixed_lexicon_version",
+            ],
+            "availability": "local_capture",
+            "point_in_time": "inherits_news_selection",
+        },
+        {
+            "name": "research.news_event_impact",
+            "input_kind": "news_event_impact_v1",
+            "input_type": "NewsEventImpactArgumentsV1",
+            "description": "Measure a retrospective observed-session return window after one exact retained news version.",
+            "example": {
+                "article_version_id": "current-news-article-version-id",
+                "instrument_id": "stage10-instrument-id",
+                "pre_observations": 5,
+                "post_observations": 5,
+            },
+            "assumptions": [
+                "caller_selects_stable_instrument_identity",
+                "next_observed_session_after_local_capture_date",
+                "retrospective_outcome_not_causal_or_abnormal_return",
+                "session_calendar_not_established",
+            ],
+            "availability": "news_local_capture_and_current_market_knowledge",
+            "point_in_time": "retrospective_not_a_trade_time_forecast",
+        },
+    )
+    series_schema = stage10_market_statistic_series_schema()
+    entries: list[dict[str, Any]] = []
+    for contract in contracts:
+        name = str(contract["name"])
+        profile = next(
+            item for item in current_tool_profiles() if item.name == name
+        )
+        output_schema = query_result_schema(name, series_schema)
+        output_schema["properties"]["series"]["maxItems"] = 0
+        entries.append(
+            {
+                "id": name,
+                "family": "research",
+                "api_version": "1.0",
+                "version": "1.0.0",
+                "operation_version": "1.0.0",
+                "lifecycle": "experimental",
+                "compatibility": {
+                    "status": "additive_native_v1",
+                    "predecessor": None,
+                },
+                "description": contract["description"],
+                "assumptions": [
+                    "host_selected_read_only_stores",
+                    "fixed_current_news_sources",
+                    "no_provider_request",
+                    "article_bodies_and_raw_provider_bytes_remain_private",
+                    *contract["assumptions"],
+                ],
+                "handler": profile.operation_graph_id,
+                "operation_graph_id": profile.operation_graph_id,
+                "read_only": True,
+                "stores": list(profile.stores),
+                "datasets": list(profile.datasets),
+                "input_type": contract["input_type"],
+                "input_schema_id": _versioned_schema_id(
+                    name, "input", version="1.0.0"
+                ),
+                "input_schema": typed_input_schema(contract["input_kind"], {}),
+                "output_type": "QueryResultV1",
+                "output_schema_id": _versioned_schema_id(
+                    name, "output", version="1.0.0"
+                ),
+                "output_schema": output_schema,
+                "examples": [contract["example"]],
+                "workload_bounds": {
+                    "max_rows": 10_000,
+                    "max_series": 1,
+                    "max_operations": 500_000,
+                    "max_request_bytes": 1_048_576,
+                    "max_response_bytes": 8_388_608,
+                },
+                "cost_model": {
+                    "expression": "rows + series + operations",
+                    "deterministic": True,
+                },
+                "timeout_class": "interactive_5s",
+                "availability_policy": {
+                    "modes": ["latest", "as_of"],
+                    "default_date_only_policy": "completed_date",
+                    "point_in_time_default": contract["point_in_time"],
+                },
+                "live_capability": {
+                    "possible": False,
+                    "capability_id": None,
+                    "offline_status": "not_applicable",
+                },
+                "contracts": {
+                    "availability": contract["availability"],
+                    "point_in_time": contract["point_in_time"],
+                    "returns": (
+                        "retrospective_close_to_close_simple"
+                        if name == "research.news_event_impact"
+                        else "not_applicable"
+                    ),
+                },
+                "composable": {
+                    "input_types": [],
+                    "output_types": ["QueryResultV1"],
+                },
+                "observability": "metadata_only",
+                "owner": "tool_platform" if len(profile.stores) > 1 else "news",
                 "review_requirements": ["schema", "semantics", "read_only"],
             }
         )
@@ -2656,6 +3140,11 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
         )
     )
     result.extend(
+        _build_options_access_policies(
+            analysis_series_schema=analysis_series_schema,
+        )
+    )
+    result.extend(
         _build_news_search_policies(
             analysis_series_schema=analysis_series_schema,
         )
@@ -3135,12 +3624,52 @@ def _build_news_search_policies(
         **variant["contracts"],
         "coverage": "retained_partial_captures_across_fixed_current_sources",
     }
+    graph_v22 = "tool_platform.news.search.v2_2"
+    variant_v22 = copy.deepcopy(variant_v21)
+    variant_v22.update(
+        {
+            "version": "2.2.0",
+            "operation_version": "2.2.0",
+            "compatibility": {
+                "status": "successor_additive_v2_2",
+                "predecessor": "2.1.0",
+            },
+            "description": (
+                "Paginate retained fixed-source headline metadata with an "
+                "opaque query-bound keyset cursor."
+            ),
+            "handler": graph_v22,
+            "operation_graph_id": graph_v22,
+            "input_type": "CurrentNewsSearchArgumentsV22",
+            "input_schema_id": _versioned_schema_id(
+                name, "input", "2.2.0"
+            ),
+            "input_schema": typed_input_schema(
+                "current_news_search_v2_2", {}
+            ),
+            "output_schema_id": _versioned_schema_id(
+                name, "output", "2.2.0"
+            ),
+            "examples": [
+                {**variant_v21["examples"][0], "cursor": None}
+            ],
+        }
+    )
+    variant_v22["assumptions"] = [
+        *variant_v21["assumptions"],
+        "opaque_query_bound_keyset_cursor",
+        "latest_mode_pages_may_shift_after_a_new_capture",
+    ]
+    variant_v22["contracts"] = {
+        **variant_v21["contracts"],
+        "pagination": "stable_keyset_for_one_unchanged_retained_selection",
+    }
     return (
         {
             "tool": name,
             "default_version": "1.0.0",
             "selector_field": "tool_version",
-            "variants": [variant, variant_v21],
+            "variants": [variant, variant_v21, variant_v22],
             "deprecations": [
                 {
                     "version": "1.0.0",
@@ -3148,9 +3677,10 @@ def _build_news_search_policies(
                     "message": (
                         "news.search version 1.0.0 remains available for the "
                         "frozen Stage 4 fixture; select version 2.0.0 for "
-                        "retained current FMP headline metadata."
+                        "retained current data; select version 2.2.0 for "
+                        "multi-source cursor pagination."
                     ),
-                    "replacement": {"tool": name, "version": "2.0.0"},
+                    "replacement": {"tool": name, "version": "2.2.0"},
                     "removal": {
                         "status": "not_scheduled",
                         "milestone": None,
@@ -3508,6 +4038,189 @@ def _build_market_instrument_search_policies(
             ],
         },
     )
+
+
+def _build_options_access_policies(
+    *,
+    analysis_series_schema: Mapping[str, Any],
+) -> tuple[dict[str, Any], ...]:
+    """Build typed successors for the retained Alpaca option-surface cohort."""
+
+    common_datasets = [
+        "fixture.market.instruments",
+        "fixture.market.option_capture_evidence",
+        "fixture.market.options",
+    ]
+    common_assumptions = [
+        "host_selected_market_store",
+        "fixed_fifteen_etf_universe",
+        "paper_environment",
+        "alpaca_indicative_feed",
+        "standard_deliverables_only_for_present_surface_rows",
+        "missing_and_nonstandard_exclusions_remain_explicit",
+        "one_coherent_capture_cohort_per_surface_request",
+        "raw_provider_response_content_remains_private",
+        "no_provider_request",
+    ]
+    specs = {
+        "options.search_captures": {
+            "kind": "options_capture_search_v2",
+            "type": "OptionsCaptureSearchArgumentsV2",
+            "description": (
+                "Search retained Alpaca option-surface captures for the fixed "
+                "ETF universe with explicit latest or as-of selection."
+            ),
+            "example": {
+                "underlying_symbols": ["SPY", "QQQ"],
+                "mode": "latest",
+                "as_of": None,
+                "date_only_policy": "completed_date",
+                "limit": 100,
+            },
+            "max_rows": 500,
+            "max_operations": 110_000,
+            "selection": "capture_cohorts",
+        },
+        "options.search_contracts": {
+            "kind": "options_contract_search_v2",
+            "type": "OptionsContractSearchArgumentsV2",
+            "description": (
+                "Search retained standard option contracts for one fixed ETF "
+                "underlying without mixing capture cohorts."
+            ),
+            "example": {
+                "underlying_symbol": "SPY",
+                "query": "SPY",
+                "expiration_date": None,
+                "option_type": None,
+                "mode": "latest",
+                "as_of": None,
+                "date_only_policy": "completed_date",
+                "limit": 100,
+            },
+            "max_rows": 2000,
+            "max_operations": 130_000,
+            "selection": "standard_contracts",
+        },
+        "options.get_surface_snapshot": {
+            "kind": "options_surface_snapshot_v2",
+            "type": "OptionsSurfaceSnapshotArgumentsV2",
+            "description": (
+                "Read one coherent retained Alpaca option surface, including "
+                "explicit missing and excluded contract states."
+            ),
+            "example": {
+                "underlying_symbol": "SPY",
+                "capture_id": None,
+                "target_dte": 30,
+                "expiration_date": None,
+                "option_type": None,
+                "surface_state": None,
+                "mode": "latest",
+                "as_of": None,
+                "date_only_policy": "completed_date",
+                "limit": 500,
+            },
+            "max_rows": 5000,
+            "max_operations": 80_000,
+            "selection": "single_capture_surface",
+        },
+    }
+    policies: list[dict[str, Any]] = []
+    for name in VERSIONED_OPTIONS_ACCESS_TOOLS:
+        spec = specs[name]
+        graph = f"tool_platform.{name}.v2"
+        empty_series_schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {},
+            "required": [],
+        }
+        output_schema = query_result_schema(name, empty_series_schema)
+        output_schema["properties"]["series"]["maxItems"] = 0
+        variant = {
+            "id": name,
+            "family": "options",
+            "api_version": "1.0",
+            "version": "2.0.0",
+            "operation_version": "2.0.0",
+            "lifecycle": "experimental",
+            "compatibility": {
+                "status": "successor_breaking_v2",
+                "predecessor": "1.0.0",
+            },
+            "description": spec["description"],
+            "assumptions": list(common_assumptions),
+            "handler": graph,
+            "operation_graph_id": graph,
+            "read_only": True,
+            "stores": ["market"],
+            "datasets": list(common_datasets),
+            "input_type": spec["type"],
+            "input_schema_id": _versioned_schema_id(name, "input"),
+            "input_schema": typed_input_schema(spec["kind"], {}),
+            "output_type": "QueryResultV1",
+            "output_schema_id": _versioned_schema_id(name, "output"),
+            "output_schema": output_schema,
+            "examples": [copy.deepcopy(spec["example"])],
+            "workload_bounds": {
+                "max_rows": spec["max_rows"],
+                "max_series": 1,
+                "max_operations": spec["max_operations"],
+                "max_request_bytes": 1048576,
+                "max_response_bytes": 8388608,
+            },
+            "cost_model": {
+                "expression": "rows + series + operations",
+                "deterministic": True,
+            },
+            "timeout_class": "interactive_5s",
+            "availability_policy": {
+                "modes": ["latest", "as_of"],
+                "default_date_only_policy": "completed_date",
+                "point_in_time_default": "latest",
+                "as_of_point_in_time_status": "safe_for_retained_local_captures",
+            },
+            "live_capability": {
+                "possible": False,
+                "capability_id": None,
+                "offline_status": "not_applicable",
+            },
+            "contracts": {
+                "availability": "local_capture",
+                "point_in_time": "exact_optional_capture_cutoff",
+                "returns": "not_applicable",
+                "selection": spec["selection"],
+                "deliverables": "standard_present_rows_with_explicit_exclusions",
+            },
+            "composable": {"input_types": [], "output_types": ["QueryResultV1"]},
+            "observability": "metadata_only",
+            "owner": "market",
+            "review_requirements": ["schema", "semantics", "read_only"],
+        }
+        policies.append(
+            {
+                "tool": name,
+                "default_version": "1.0.0",
+                "selector_field": "tool_version",
+                "variants": [variant],
+                "deprecations": [
+                    {
+                        "version": "1.0.0",
+                        "code": "tool_version_deprecated",
+                        "message": (
+                            f"{name} version 1.0.0 remains available for the "
+                            "frozen Stage 4 fixture; select version 2.0.0 for "
+                            "the retained Alpaca ETF option cohort."
+                        ),
+                        "replacement": {"tool": name, "version": "2.0.0"},
+                        "removal": {"status": "not_scheduled", "milestone": None},
+                    }
+                ],
+            }
+        )
+    return tuple(policies)
+
 
 def _build_investment_analysis_policies(
     *,
@@ -4236,6 +4949,7 @@ VERSIONED_OPERATION_GRAPH_IDS = frozenset(
         "tool_platform.energy.get_weekly_fundamentals.v2_1",
         "tool_platform.company.get_fundamentals.v2_1",
         "tool_platform.news.search.v2_1",
+        "tool_platform.news.search.v2_2",
     ]
 )
 
@@ -4243,8 +4957,10 @@ VERSIONED_OPERATION_GRAPH_IDS = frozenset(
 __all__ = (
     "CATALOG_ID",
     "CATALOG_VERSION",
+    "ADDITIVE_DATA_STATUS_TOOLS",
     "ADDITIVE_PUBLIC_TOOL_NAMES",
     "ADDITIVE_STAGE10_STATISTICS_TOOLS",
+    "ADDITIVE_NEWS_RESEARCH_TOOLS",
     "CURRENT_FAMILY_COUNTS",
     "CURRENT_PUBLIC_TOOL_NAMES",
     "FAMILY_COUNTS",
@@ -4272,6 +4988,7 @@ __all__ = (
     "VERSIONED_RESEARCH_STATE_TOOLS",
     "VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS",
     "VERSIONED_NEWS_TOOLS",
+    "VERSIONED_OPTIONS_ACCESS_TOOLS",
     "VERSIONED_TECHNICAL_INDICATOR_TOOLS",
     "VERSIONED_TIMESERIES_ANALYSIS_TOOLS",
     "VERSIONED_TOOL_NAMES",

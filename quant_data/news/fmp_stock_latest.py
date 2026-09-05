@@ -362,6 +362,10 @@ def _validate_registry(registry: Registry) -> None:
             ("1.9.0", "2.62.0"),
             ("1.9.0", "2.63.0"),
             ("1.9.0", "2.64.0"),
+            ("1.9.0", "2.65.0"),
+            ("1.9.0", "2.66.0"),
+            ("1.9.0", "2.67.0"),
+            ("1.9.0", "2.68.0"),
         }
     ):
         raise ValidationError("FMP stock-latest importer requires the reviewed canonical registry")
@@ -387,14 +391,22 @@ def _validate_registry(registry: Registry) -> None:
     datasets = {item.id: item for item in registry.datasets}
     if set((FMP_STOCK_LATEST_EVIDENCE_DATASET_ID, FMP_STOCK_LATEST_ARTICLES_DATASET_ID)) - set(datasets):
         raise ValidationError("FMP stock-latest datasets are not registered")
+    expected_tool_ids = (
+        ("data.get_dataset_status",)
+        if registry.registry_version in {"2.67.0", "2.68.0"}
+        else ()
+    )
     if any(
         datasets[item].store != StoreRole.NEWS.value
-        or datasets[item].tool_ids
+        or datasets[item].tool_ids != expected_tool_ids
         or datasets[item].dashboard_ids
         or datasets[item].export_ids
         for item in (FMP_STOCK_LATEST_EVIDENCE_DATASET_ID, FMP_STOCK_LATEST_ARTICLES_DATASET_ID)
     ):
-        raise ValidationError("FMP stock-latest datasets must remain private news relations")
+        raise ValidationError(
+            "FMP stock-latest datasets must remain private news relations "
+            "with only the reviewed data-status binding"
+        )
 
 
 class FmpStockLatestAttempt:

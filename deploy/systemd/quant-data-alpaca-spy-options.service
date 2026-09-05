@@ -1,5 +1,5 @@
 [Unit]
-Description=Quant Data weekday SPY indicative option-surface refresh
+Description=Quant Data weekday major-ETF indicative option-surface grid refresh
 Wants=network-online.target
 After=network-online.target
 ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/market.sqlite
@@ -8,8 +8,8 @@ ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/marke
 Type=oneshot
 WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/python3 -m quant_data.operations.alpaca_spy_options_refresh
-TimeoutStartSec=5min
+ExecStart=/usr/bin/python3 -m quant_data.operations.alpaca_etf_options_refresh
+TimeoutStartSec=16min
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true

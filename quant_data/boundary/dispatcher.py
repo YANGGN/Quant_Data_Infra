@@ -88,6 +88,7 @@ _STAGE5_INPUT_KINDS = {
 _VERSIONED_INPUT_KINDS = {
     ("news.search", "2.0.0"): "current_news_search_v2",
     ("news.search", "2.1.0"): "current_news_search_v2_1",
+    ("news.search", "2.2.0"): "current_news_search_v2_2",
     ("macro.search_series", "2.0.0"): "canonical_macro_search_v2",
     ("macro.describe_series", "2.0.0"): "canonical_macro_describe_v2",
     ("macro.get_series", "2.0.0"): "canonical_macro_series_v2",
@@ -146,6 +147,9 @@ _VERSIONED_INPUT_KINDS = {
     ("company.search_filings", "2.0.0"): "company_filing_search_v2",
     ("company.get_share_count_history", "2.0.0"): "company_share_count_history_v2",
     ("market.search_instruments", "2.0.0"): "stage10_market_instrument_search_v2",
+    ("options.search_captures", "2.0.0"): "options_capture_search_v2",
+    ("options.search_contracts", "2.0.0"): "options_contract_search_v2",
+    ("options.get_surface_snapshot", "2.0.0"): "options_surface_snapshot_v2",
     **{
         (name, "2.0.0"): "stage10_market_return_v2"
         for name in VERSIONED_MARKET_RETURN_TOOLS

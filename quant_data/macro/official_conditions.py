@@ -460,6 +460,7 @@ class _SourceDefinition:
     manifest: tuple[OfficialSeriesSpec, ...]
     max_requests: int
     configuration_env: tuple[str, ...] = ()
+    minimum_requests: int | None = None
 
 
 _DEFINITIONS: Final = {
@@ -517,6 +518,11 @@ _DEFINITIONS: Final = {
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         CFNAI_MANIFEST,
         1,
+    ),
+    "cfnai_fred": _SourceDefinition(
+        "cfnai_fred", "chicagofed", CHICAGO_COLLECTOR_ID, CHICAGO_HANDLER,
+        "chicagofed_cfnai_fred_v1", "fred/graph/fredgraph.csv/CFNAI",
+        "text/csv", CFNAI_MANIFEST, 1,
     ),
     "bis": _SourceDefinition(
         "bis",
@@ -681,6 +687,7 @@ class OfficialObservation:
     value_text: str | None
     missing_reason: str | None
     source_row: int
+    dimensions: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -707,6 +714,81 @@ class OfficialConditionsPublishReport:
     first_period: str
     last_period: str
 
+
+def _definition(source_key: str) -> _SourceDefinition | None:
+    """Return a built-in definition or one of the fixed lazy source bindings."""
+
+    definition = _DEFINITIONS.get(source_key)
+    if definition is not None:
+        return definition
+    if source_key == "treasury_securities_auctions":
+        from .treasury_securities_auctions import (
+            TREASURY_SECURITIES_AUCTIONS_SOURCE_METADATA,
+        )
+
+        metadata = TREASURY_SECURITIES_AUCTIONS_SOURCE_METADATA
+        return _SourceDefinition(
+            metadata.key,
+            metadata.provider,
+            metadata.collector_id,
+            metadata.handler,
+            metadata.normalization_version,
+            metadata.source_reference,
+            metadata.artifact_media_type,
+            metadata.manifest,
+            metadata.max_requests,
+        )
+    if source_key == "nyfed_primary_dealer_statistics":
+        from .nyfed_primary_dealer_statistics import (
+            PRIMARY_DEALER_SOURCE_METADATA,
+        )
+
+        metadata = PRIMARY_DEALER_SOURCE_METADATA
+        return _SourceDefinition(
+            metadata.key,
+            metadata.provider,
+            metadata.collector_id,
+            metadata.handler,
+            metadata.normalization_version,
+            metadata.source_reference,
+            metadata.artifact_media_type,
+            metadata.manifest,
+            metadata.max_requests,
+            metadata.configuration_env,
+            minimum_requests=2,
+        )
+    if source_key in {"federal_reserve_h8", "federal_reserve_sloos"}:
+        from .federal_reserve_credit_conditions import (
+            H8_SOURCE_METADATA,
+            SLOOS_SOURCE_METADATA,
+        )
+
+        metadata = (
+            H8_SOURCE_METADATA
+            if source_key == "federal_reserve_h8"
+            else SLOOS_SOURCE_METADATA
+        )
+        return _SourceDefinition(
+            metadata.key,
+            metadata.provider,
+            metadata.collector_id,
+            metadata.handler,
+            metadata.normalization_version,
+            metadata.source_reference,
+            metadata.artifact_media_type,
+            metadata.manifest,
+            metadata.max_requests,
+            metadata.configuration_env,
+        )
+    return None
+
+
+def _response_count_is_valid(
+    definition: _SourceDefinition, response_count: int
+) -> bool:
+    if definition.minimum_requests is None:
+        return response_count == definition.max_requests
+    return definition.minimum_requests <= response_count <= definition.max_requests
 
 def _fail(message: str) -> ValidationError:
     return ValidationError(message)
@@ -758,6 +840,36 @@ def _value(
     if value.casefold() in missing_tokens:
         return None, "source_missing"
     return _normalized_decimal(value), None
+
+
+def _normalized_dimensions(
+    value: object,
+) -> tuple[tuple[str, str], ...]:
+    """Require a small, canonical, string-only observation dimension set."""
+
+    if not isinstance(value, tuple) or len(value) > 64:
+        raise _fail("Official source dimensions are invalid")
+    result: list[tuple[str, str]] = []
+    keys: set[str] = set()
+    for item in value:
+        if (
+            not isinstance(item, tuple)
+            or len(item) != 2
+            or not isinstance(item[0], str)
+            or not isinstance(item[1], str)
+            or not item[0]
+            or not item[1]
+            or len(item[0]) > 128
+            or len(item[1]) > 4_096
+            or item[0] in keys
+        ):
+            raise _fail("Official source dimensions are invalid")
+        keys.add(item[0])
+        result.append((item[0], item[1]))
+    normalized = tuple(sorted(result))
+    if normalized != value:
+        raise _fail("Official source dimensions must be canonical")
+    return normalized
 
 
 def _decode_csv(body: bytes, *, source: str) -> str:
@@ -846,6 +958,7 @@ def _semantic_material(
                 "period_end": item.period_end,
                 "value": item.value_text,
                 "missing_reason": item.missing_reason,
+                "dimensions": dict(item.dimensions),
             }
             for item in observations
         ],
@@ -860,8 +973,10 @@ def _capture(
     scope: Mapping[str, object],
     observations: list[OfficialObservation],
 ) -> OfficialConditionsCapture:
-    definition = _DEFINITIONS[source_key]
-    if len(bodies) != definition.max_requests:
+    definition = _definition(source_key)
+    if definition is None or not _response_count_is_valid(
+        definition, len(bodies)
+    ):
         raise _fail("Official source response count is invalid")
     if not observations:
         raise _fail("Official source returned no selected observations")
@@ -875,6 +990,7 @@ def _capture(
             item.period_start,
             item.period_end,
             ordinal[item.series_id],
+            item.dimensions,
         )
     )
     normalized = tuple(
@@ -887,6 +1003,7 @@ def _capture(
             value_text=item.value_text,
             missing_reason=item.missing_reason,
             source_row=index,
+            dimensions=_normalized_dimensions(item.dimensions),
         )
         for index, item in enumerate(observations, start=1)
     )
@@ -945,9 +1062,10 @@ def _parse_fred_h41_csv(
             raise _fail("Federal Reserve H.4.1 row is incomplete")
         observed = parse_date(row[0].strip(), pointer="/time_period")
         if observed < start or observed > end:
-            raise _fail(
-                "Federal Reserve H.4.1 row is outside the requested window"
-            )
+            # FRED graph exports may return the complete series even when
+            # cosd/coed are supplied. The request contract is the selected
+            # inclusive window, so valid rows outside it are ignored.
+            continue
         observed_text = observed.isoformat()
         for column, (_fred_id, spec) in enumerate(series, start=1):
             identity = (spec.series_id, observed_text)
@@ -1061,9 +1179,10 @@ def parse_federal_reserve_policy_rates(
             raise _fail("Federal Reserve policy-rate row is incomplete")
         observed = parse_date(row[0].strip(), pointer="/time_period")
         if observed < start or observed > end:
-            raise _fail(
-                "Federal Reserve policy-rate row is outside the requested window"
-            )
+            # FRED graph exports may return the complete series even when
+            # cosd/coed are supplied. The request contract is the selected
+            # inclusive window, so valid rows outside it are ignored.
+            continue
         observed_text = observed.isoformat()
         for column, spec in enumerate(FED_POLICY_RATE_MANIFEST, start=1):
             identity = (spec.series_id, observed_text)
@@ -1139,11 +1258,16 @@ def parse_federal_reserve_industrial_production(
         if len(row) != 2:
             raise _fail("Federal Reserve industrial-production row is incomplete")
         observed = parse_date(row[0].strip(), pointer="/time_period")
-        if observed.day != 1 or observed < start or observed > end:
+        if observed.day != 1:
             raise _fail(
                 "Federal Reserve industrial-production row is outside the "
                 "requested window"
             )
+        if observed < start or observed > end:
+            # FRED graph exports may return the complete series even when
+            # cosd/coed are supplied. The request contract is the selected
+            # inclusive window, so valid rows outside it are ignored.
+            continue
         source_period, period_start, period_end = _month_bounds(
             (observed.year, observed.month)
         )
@@ -1500,6 +1624,43 @@ def parse_nyfed_cmdi(
             "series": ["Market CMDI", "IG CMDI", "HY CMDI"],
             "completeness": "complete",
         },
+        observations=observations,
+    )
+
+
+def parse_fred_chicagofed_national_activity(
+    body: bytes, *, captured_at: str, start_date: str, end_date: str,
+) -> OfficialConditionsCapture:
+    """Parse the Chicago Fed headline series distributed by FRED.
+
+    Chicago Fed remains the series origin; the response artifact and scope name
+    FRED as its distributor. Observation dates carry monthly precision and
+    availability starts at local capture time.
+    """
+    start, end = _bounded_dates(start_date, end_date, source="FRED CFNAI")
+    reader = csv.reader(io.StringIO(_decode_csv(body, source="FRED CFNAI"), newline=""))
+    if next(reader, None) != ["observation_date", "CFNAI"]:
+        raise _fail("FRED CFNAI CSV header is invalid")
+    spec = CFNAI_MANIFEST[0]
+    observations: list[OfficialObservation] = []
+    seen: set[str] = set()
+    for row in reader:
+        if len(row) != 2 or len(observations) >= 1200:
+            raise _fail("FRED CFNAI CSV row is invalid")
+        observed = parse_date(row[0], pointer="/observation_date")
+        if observed.day != 1 or not start <= observed <= end or row[0] in seen:
+            raise _fail("FRED CFNAI observation date is invalid")
+        seen.add(row[0])
+        period, first, last = _month_bounds((observed.year, observed.month))
+        value, missing = _value(row[1], missing_tokens=frozenset({".", ""}))
+        observations.append(OfficialObservation(
+            spec.series_id, spec.provider_code, period, first, last, value, missing, 0,
+        ))
+    return _capture(
+        "cfnai_fred", (("fred_CFNAI", body),), captured_at=captured_at,
+        scope={"from": start.isoformat(), "to": end.isoformat(), "series": ["CFNAI"],
+               "origin": "chicagofed", "distributor": "fred",
+               "availability_basis": "local_capture", "completeness": "complete"},
         observations=observations,
     )
 
@@ -1867,21 +2028,21 @@ _EIA_GAS_LEGACY_SERIES_ID: Final = "NG.NW2_EPG0_SWO_R48_BCF.W"
 _EIA_PETROLEUM_SOURCES: Final = {
     "eia_total_motor_gasoline_stocks": (
         "PET.WGTSTUS1.W",
-        "Thousand Barrels",
+        frozenset({"MBBL", "Thousand Barrels"}),
         "total_motor_gasoline_stocks",
         "EIA total motor gasoline stocks",
         EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[0],
     ),
     "eia_distillate_fuel_oil_stocks": (
         "PET.WDISTUS1.W",
-        "Thousand Barrels",
+        frozenset({"MBBL", "Thousand Barrels"}),
         "distillate_fuel_oil_stocks",
         "EIA distillate fuel oil stocks",
         EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[1],
     ),
     "eia_finished_motor_gasoline_product_supplied": (
         "PET.WGFUPUS2.W",
-        "Thousand Barrels per Day",
+        frozenset({"MBBL/D", "Thousand Barrels per Day"}),
         "finished_motor_gasoline_product_supplied",
         "EIA finished motor gasoline product supplied",
         EIA_PETROLEUM_FUNDAMENTALS_MANIFEST[2],
@@ -2017,7 +2178,7 @@ def _parse_eia_weekly_petroleum_series(
 ) -> OfficialConditionsCapture:
     (
         legacy_id,
-        source_unit,
+        source_units,
         part_name,
         source,
         spec,
@@ -2061,7 +2222,7 @@ def _parse_eia_weekly_petroleum_series(
             raise _fail(f"{source} response row is invalid")
         if (
             row.get("series") != spec.provider_code
-            or row.get("units") != source_unit
+            or row.get("units") not in source_units
         ):
             raise _fail(f"{source} series or unit is invalid")
         period_value = row.get("period")
@@ -2810,8 +2971,10 @@ def _validated_capture(
 ]:
     if not isinstance(capture, OfficialConditionsCapture):
         raise _fail("Official conditions capture binding is invalid")
-    definition = _DEFINITIONS.get(capture.source_key)
-    if definition is None or len(capture.parts) != definition.max_requests:
+    definition = _definition(capture.source_key)
+    if definition is None or not _response_count_is_valid(
+        definition, len(capture.parts)
+    ):
         raise _fail("Official conditions capture binding is invalid")
     for part in capture.parts:
         if (
@@ -2845,13 +3008,14 @@ def _validated_capture(
         )
     )
     spec_by_id = {item.series_id: item for item in definition.manifest}
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[tuple[str, str, str, tuple[tuple[str, str], ...]]] = set()
     for index, observation in enumerate(capture.observations, start=1):
         spec = spec_by_id.get(observation.series_id)
         identity = (
             observation.series_id,
             observation.period_start,
             observation.period_end,
+            observation.dimensions,
         )
         if (
             spec is None
@@ -2859,6 +3023,8 @@ def _validated_capture(
             or observation.source_row != index
             or observation.period_start > observation.period_end
             or identity in seen
+            or observation.dimensions
+            != _normalized_dimensions(observation.dimensions)
             or (
                 (observation.value_text is None)
                 == (observation.missing_reason is None)
@@ -2891,7 +3057,7 @@ class OfficialConditionsPublisher:
         registry: object,
         _canonical: bool = False,
     ) -> None:
-        definition = _DEFINITIONS.get(source_key)
+        definition = _definition(source_key)
         if (
             definition is None
             or not isinstance(project_root, Path)
@@ -3095,6 +3261,13 @@ class OfficialConditionsPublisher:
         )
         for observation in capture.observations:
             spec = spec_by_id[observation.series_id]
+            _ensure_dimensions(
+                connection,
+                observation,
+                capture.captured_at,
+                snapshot_id,
+                run_id,
+            )
             version_id, appended = _append_or_reuse_observation(
                 connection,
                 definition,
@@ -3223,6 +3396,52 @@ def _ensure_series(
     return False
 
 
+def _ensure_dimensions(
+    connection: sqlite3.Connection,
+    observation: OfficialObservation,
+    captured_at: str,
+    snapshot_id: str,
+    run_id: str,
+) -> None:
+    """Register only source-supplied dimension values before their facts."""
+
+    for ordinal, (key, value) in enumerate(observation.dimensions):
+        existing = connection.execute(
+            """
+            SELECT dimension_id
+            FROM macro_series_dimensions
+            WHERE series_id=? AND dimension_key=? AND dimension_value=?
+            """,
+            (observation.series_id, key, value),
+        ).fetchone()
+        if existing is not None:
+            continue
+        connection.execute(
+            """
+            INSERT INTO macro_series_dimensions (
+                dimension_id, series_id, dimension_key, dimension_value, ordinal,
+                metadata_json, available_at, available_precision,
+                source_snapshot_id, run_id
+            ) VALUES (?, ?, ?, ?, ?, '{}', ?, 'datetime', ?, ?)
+            """,
+            (
+                stable_id(
+                    "official_conditions_dimension",
+                    observation.series_id,
+                    key,
+                    value,
+                ),
+                observation.series_id,
+                key,
+                value,
+                ordinal,
+                captured_at,
+                snapshot_id,
+                run_id,
+            ),
+        )
+
+
 def _source_vintage_identity(
     definition: _SourceDefinition, observation: OfficialObservation
 ) -> str:
@@ -3320,7 +3539,7 @@ def _append_or_reuse_observation(
     captured_at: str,
     run_id: str,
 ) -> tuple[str, bool]:
-    dimensions_json = dumps_strict({})
+    dimensions_json = dumps_strict(dict(observation.dimensions))
     dimensions_digest = _sha256_text(dimensions_json)
     source_identity = _source_vintage_identity(definition, observation)
     existing = connection.execute(
@@ -3374,6 +3593,7 @@ def _append_or_reuse_observation(
                 {
                     "value": observation.value_text,
                     "missing_reason": observation.missing_reason,
+                    "dimensions_digest": dimensions_digest,
                     "available_at": captured_at,
                 }
             )
