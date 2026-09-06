@@ -30,7 +30,7 @@ STAGE9_SOURCE_SHA256 = "46ff0f92f92380c203aacaf54e511ed219f3bc43edaaba0fb5a6fbe2
 
 class Stage10RegistryTests(unittest.TestCase):
     def _raw(self) -> dict[str, object]:
-        value = loads_strict(REGISTRY_PATH.read_bytes())
+        value = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         self.assertIsInstance(value, dict)
         return value
 
@@ -49,7 +49,7 @@ class Stage10RegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.70.0"))
+        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.71.0"))
         registry = stage10_registry_profile(registry)
         self.assertEqual((registry.schema_version, registry.registry_version), ("1.6.0", "2.8.0"))
         self.assertEqual(registry.store("market").default_path, "data/market_data.sqlite")

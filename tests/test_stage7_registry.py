@@ -87,7 +87,7 @@ EXPECTED_TIMEOUTS = {
 
 class Stage7RegistryTests(unittest.TestCase):
     def _load_mutation(self, mutate):
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         mutate(raw)
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:
             path = Path(directory) / "registry.json"

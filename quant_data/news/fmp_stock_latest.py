@@ -367,6 +367,7 @@ def _validate_registry(registry: Registry) -> None:
             ("1.9.0", "2.67.0"),
             ("1.9.0", "2.68.0"),
             ("1.9.0", "2.70.0"),
+            ("1.9.0", "2.71.0"),
         }
     ):
         raise ValidationError("FMP stock-latest importer requires the reviewed canonical registry")
@@ -394,7 +395,7 @@ def _validate_registry(registry: Registry) -> None:
         raise ValidationError("FMP stock-latest datasets are not registered")
     expected_tool_ids = (
         ("data.get_dataset_status",)
-        if registry.registry_version in {"2.67.0", "2.68.0", "2.70.0"}
+        if registry.registry_version in {"2.67.0", "2.68.0", "2.70.0", "2.71.0"}
         else ()
     )
     if any(

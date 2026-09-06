@@ -22,7 +22,7 @@ MIGRATION_SHA256 = "f2565061f5b908255838be875c05112b8bf91033295b87a5b955f9de2d14
 
 class FmpStockLatestRegistryTests(unittest.TestCase):
     def _raw(self) -> dict[str, object]:
-        value = loads_strict(REGISTRY_PATH.read_bytes())
+        value = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         self.assertIsInstance(value, dict)
         return value
 

@@ -113,7 +113,7 @@ Browser Inspector.
 
 ## Latest contracts
 
-This is the latest-only projection for registry `2.70.0`. If the registry
+This is the latest-only projection for registry `2.71.0`. If the registry
 advances, the semantic maximum advertised by the runtime `manifest` overrides
 this checkpoint.
 
@@ -194,6 +194,8 @@ this checkpoint.
 | `research.news_event_impact` | `1.0.0` |
 | `research.liquidity_credit_state` | `2.0.0` |
 | `portfolio.get_etf_allocator_snapshot` | `1.0.0` |
+| `price_realtime` | `1.0.0` |
+| `company.get_research_inputs` | `1.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one
@@ -214,6 +216,37 @@ Each returned record has these stable fields:
 - `provider`
 - `currency_segment`
 - `price_variant`
+
+## FMP quotes and company research inputs
+
+The local launcher enables `price_realtime@1.0.0` with
+`{"ticker":"MSFT"}`. Each call makes one FMP quote request, with no retry
+or store writes. Inspect `price`, `quoted_at`, `captured_at`,
+`quote_age_seconds`, nullable bid/ask, and warnings. This is the latest
+reported trade. Currency is `SOURCE_UNSPECIFIED` when FMP omits it.
+Generic server/Inspector hosts leave this live capability disabled.
+
+For statement-level inputs use `company.get_research_inputs@1.0.0`:
+
+```json
+{"api_version":"1.0","tool":"company.get_research_inputs","tool_version":"1.0.0","arguments":{"cik":"0000789019","endpoints":["income-statement"],"period":"quarter","limit":12}}
+```
+
+MSFT is CIK `0000789019`; AAPL is `0000320193`. Endpoint filters are
+`income-statement`, `balance-sheet-statement`, `cash-flow-statement`,
+`financial-statement-full-as-reported`, `revenue-product-segmentation`,
+`analyst-estimates`, and `earnings`. Request one endpoint and period at a
+time when assembling a packet, and inspect truncation; the result maximum
+is 100 rows. Source fields are preserved in `payload_json`, alongside
+period, fiscal labels, currency, capture time, content hash and row pointer.
+
+`company.get_fundamentals@2.1.0` retains its net-margin and
+liabilities-to-assets ratio contract. The new tool supplies additional
+statement and earnings inputs and distinguishes annual FY from quarterly
+Q4. As-of uses local capture time; new data does not become a contemporaneous
+2025 snapshot. Preserve currency, accepted-date, period and source-limit
+warnings. See the [contract](rebuild/FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md)
+and [handoff](rebuild/FMP_RESEARCH_INPUT_HANDOFF_2026-09-06.md).
 
 ## Calling a tool
 
@@ -1100,8 +1133,10 @@ registered operation uses a parameterized read-only gateway and can open only
 the store(s) declared for that tool. It cannot initialise, migrate, repair, or
 write a store.
 
-The command does not perform provider requests or use credentials. A tool that
-cannot establish a result from its available evidence may return a typed
+Retained-data tools make no provider requests or credential reads. The explicit
+`price_realtime` invocation is the live FMP quote exception described above;
+it cannot write stores. A tool that cannot establish a result from its available
+evidence may return a typed
 `not_established` result rather than invented data; treat that as an analytical
 outcome, not an invitation to bypass the boundary.
 

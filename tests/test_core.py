@@ -65,7 +65,7 @@ class RegistryAndFixtureTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
         self.assertEqual(registry.status, "validated")
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 75)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 77)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
             list(CURRENT_PUBLIC_TOOL_NAMES),
@@ -116,7 +116,7 @@ class RegistryAndFixtureTests(unittest.TestCase):
             self.assertEqual(fixture.expected_warnings, ())
 
     def test_registry_rejects_unknown_nested_fields_and_role_swapped_path_env(self) -> None:
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "registry.json"
             raw["stores"][0]["unexpected"] = True
@@ -370,7 +370,7 @@ class StoreAndMigrationTests(unittest.TestCase):
             )
             resource.write_bytes(resource_bytes)
             registry_path = project / "config" / "system_registry.json"
-            raw = loads_strict(registry_path.read_bytes())
+            raw = loads_strict(registry_path.read_bytes(), max_bytes=16 * 1024 * 1024)
             raw["migrations"][0]["sha256"] = hashlib.sha256(resource_bytes).hexdigest()
             registry_path.write_text(dumps_strict(raw), encoding="utf-8")
             copied_registry = load_registry(
@@ -410,7 +410,7 @@ INSERT INTO child(id, parent_id) VALUES ('child', 'missing');
 """
             resource.write_bytes(resource_bytes)
             registry_path = project / "config" / "system_registry.json"
-            raw = loads_strict(registry_path.read_bytes())
+            raw = loads_strict(registry_path.read_bytes(), max_bytes=16 * 1024 * 1024)
             raw["migrations"][0]["sha256"] = hashlib.sha256(resource_bytes).hexdigest()
             registry_path.write_text(dumps_strict(raw), encoding="utf-8")
             copied_registry = load_registry(

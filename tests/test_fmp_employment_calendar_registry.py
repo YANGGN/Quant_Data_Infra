@@ -73,10 +73,10 @@ class FmpEmploymentCalendarRegistryTests(unittest.TestCase):
     def test_canonical_employment_calendar_collector_is_exact_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.70.0")
+        self.assertEqual(registry.revision, "2.71.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (44, 59, 66),
+            (45, 61, 68),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID

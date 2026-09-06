@@ -18,7 +18,7 @@ from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.market.etf_calculations import ETF_SYMBOLS, FEATURE_NAMES
 from quant_data.market import etf_snapshot
 from quant_data.migrations import initialize_all
-from quant_data.registry import RegistryError, load_registry, etf_snapshot_registry_profile
+from quant_data.registry import RegistryError, load_registry, etf_snapshot_registry_profile, fmp_research_registry_profile
 from quant_data.schema import validate_schema
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import StoreRole, writer_connection
@@ -191,11 +191,12 @@ class EtfSnapshotTests(unittest.TestCase):
                 self.app = Stage1Application(self.stores, self.registry)
 
     def test_projection_rejects_tampered_current_tool_with_recomputed_hash(self):
-        raw = copy.deepcopy(dict(self.registry.raw))
+        baseline = fmp_research_registry_profile(self.registry)
+        raw = copy.deepcopy(dict(baseline.raw))
         declaration = next(tool for tool in raw["tools"] if tool["id"] == TOOL)
         declaration["description"] += " tampered"
         source = (json.dumps(raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode()
-        altered = replace(self.registry, raw=raw, tools=tuple(raw["tools"]),
+        altered = replace(baseline, raw=raw, tools=tuple(raw["tools"]),
                           source_sha256=hashlib.sha256(source).hexdigest())
         with self.assertRaisesRegex(RegistryError, "ETF snapshot registry source drifted"):
             etf_snapshot_registry_profile(altered)
@@ -213,8 +214,11 @@ class EtfSnapshotTests(unittest.TestCase):
             (root / "config/system_registry.json").write_text(
                 json.dumps(previous.raw, ensure_ascii=True, indent=2, sort_keys=True) + "\n")
             generated, _, catalog = generated_bytes(root)
-        self.assertEqual(generated, (PROJECT_ROOT / "config/system_registry.json").read_bytes())
-        self.assertEqual(catalog, (PROJECT_ROOT / "quant_data/generated/tool_contract_schemas_v2.json").read_bytes())
+        # This historical successor advances 2.69 to the frozen 2.70 release.
+        self.assertEqual(hashlib.sha256(generated).hexdigest(),
+            "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3")
+        self.assertEqual(hashlib.sha256(catalog).hexdigest(),
+            "6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b")
         manifest = self.app.dispatcher.manifest()
         advertised = [tool for tool in manifest["tools"] if tool["name"] == TOOL]
         self.assertEqual(len(advertised), 1)

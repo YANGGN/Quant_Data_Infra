@@ -24,7 +24,7 @@ CORE_DATASET_IDS = (
 RAW_EVIDENCE_DATASET_ID = "market.alpaca.option_raw_evidence"
 CURRENT_DATASET_IDS = (*CORE_DATASET_IDS, RAW_EVIDENCE_DATASET_ID)
 CURRENT_SOURCE_SHA256 = (
-    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
+    "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
 )
 PREVIOUS_SOURCE_SHA256 = (
     "3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524"
@@ -41,7 +41,7 @@ class AlpacaEtfOptionsRegistryTests(unittest.TestCase):
         current = self._registry()
         self.assertEqual(
             (current.schema_version, current.revision, current.source_sha256),
-            ("1.9.0", "2.70.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.71.0", CURRENT_SOURCE_SHA256),
         )
         collector = next(
             item for item in current.collectors if item["id"] == COLLECTOR_ID

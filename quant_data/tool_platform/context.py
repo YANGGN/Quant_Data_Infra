@@ -142,6 +142,7 @@ class ToolExecutionContext:
     clock: Clock
     receipt_sink: ReceiptSink | None = None
     execution: str = "offline_fixture"
+    quote_fetcher: Callable[[str], Any] | None = None
 
     def __post_init__(self) -> None:
         for value in (

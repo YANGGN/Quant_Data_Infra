@@ -2385,8 +2385,8 @@ class CanonicalInspectorTests(unittest.TestCase):
         manifest_response = self.application.handle("GET", "/api/agent-tools")
         self.assertEqual(manifest_response.status, 200)
         manifest = loads_strict(manifest_response.body)
-        self.assertEqual(manifest["registry_revision"], "2.70.0")
-        self.assertEqual(len(manifest["tools"]), 75)
+        self.assertEqual(manifest["registry_revision"], "2.71.0")
+        self.assertEqual(len(manifest["tools"]), 77)
         technical = next(
             item
             for item in manifest["tools"]
@@ -2451,7 +2451,7 @@ class CanonicalInspectorTests(unittest.TestCase):
         )
         self.assertEqual(page.status, 200)
         document = page.body.decode("utf-8")
-        self.assertIn("<p>Logical tools</p><strong>75</strong>", document)
+        self.assertIn("<p>Logical tools</p><strong>77</strong>", document)
         self.assertIn('name="tool_version"', document)
         self.assertIn(
             'name="tool_version" value="2.7.0" readonly required',
@@ -2605,7 +2605,7 @@ class CanonicalInspectorTests(unittest.TestCase):
                 ),
             )
             expected[tool["name"]] = latest["version"]
-        self.assertEqual(len(expected), 75)
+        self.assertEqual(len(expected), 77)
         self.assertEqual(documented, expected)
 
     def test_current_news_v21_runs_through_inspector_without_store_mutation(

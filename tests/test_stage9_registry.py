@@ -27,7 +27,7 @@ STAGE8_SOURCE_SHA256 = (
 
 class Stage9RegistryTests(unittest.TestCase):
     def _raw(self) -> dict[str, object]:
-        value = loads_strict(REGISTRY_PATH.read_bytes())
+        value = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         self.assertIsInstance(value, dict)
         return value
 

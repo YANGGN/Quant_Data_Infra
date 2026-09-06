@@ -28,7 +28,7 @@ REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
 
 class RegistryIdentifierTests(unittest.TestCase):
     def _load_mutation(self, mutate):
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         mutate(raw)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "registry.json"
@@ -98,7 +98,7 @@ class RegistryIdentifierTests(unittest.TestCase):
 
         self.assertEqual(len(registry.stores), 4)
         self.assertEqual(registry.schema_version, "1.9.0")
-        self.assertEqual(registry.registry_version, "2.70.0")
+        self.assertEqual(registry.registry_version, "2.71.0")
         news_predecessor = news_research_registry_profile(registry)
         self.assertEqual(news_predecessor.registry_version, "2.65.0")
         self.assertEqual(
@@ -137,9 +137,9 @@ class RegistryIdentifierTests(unittest.TestCase):
             ("stage1.overview", "stage6.gdp_vintages",
              "stage6.table_inspector", "stage6.agent_tools"),
         )
-        self.assertEqual(len(registry.migrations), 44)
-        self.assertEqual(len(registry.datasets), 59)
-        self.assertEqual(len(registry.collectors), 66)
+        self.assertEqual(len(registry.migrations), 45)
+        self.assertEqual(len(registry.datasets), 61)
+        self.assertEqual(len(registry.collectors), 68)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
@@ -202,7 +202,7 @@ class RegistryIdentifierTests(unittest.TestCase):
             PUBLIC_TOOL_NAMES,
         )
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 75)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 77)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
             list(CURRENT_PUBLIC_TOOL_NAMES),

@@ -21,7 +21,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.27.0"
+VERSIONED_CATALOG_VERSION = "2.28.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -39,6 +39,7 @@ ADDITIVE_NEWS_RESEARCH_TOOLS = (
     "news.headline_sentiment",
     "research.news_event_impact",
 )
+ADDITIVE_FMP_RESEARCH_TOOLS = ("price_realtime", "company.get_research_inputs")
 ADDITIVE_ETF_TOOLS = ("portfolio.get_etf_allocator_snapshot",)
 ADDITIVE_DATA_STATUS_TOOLS = ("data.get_dataset_status",)
 ADDITIVE_PUBLIC_TOOL_NAMES = (
@@ -50,6 +51,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_NEWS_RESEARCH_TOOLS,
     *ADDITIVE_DATA_STATUS_TOOLS,
     *ADDITIVE_ETF_TOOLS,
+    *ADDITIVE_FMP_RESEARCH_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -222,7 +224,8 @@ FAMILY_COUNTS = {
 CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
-    "market": 8,
+    "market": 9,
+    "company": 11,
     "research": 24,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
@@ -255,6 +258,7 @@ _CURRENT_PUBLIC_NAMES.insert(
     "data.get_dataset_status",
 )
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_ETF_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FMP_RESEARCH_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -596,6 +600,12 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
         input_kind="etf_allocator_snapshot_v1", stores=("market",),
         datasets=market_identity_datasets,
     ),)
+    additive += (
+        ToolProfile(name="price_realtime", family="market", input_kind="price_realtime_v1",
+                    stores=(), datasets=(), live_capability="fmp_quote_live"),
+        ToolProfile(name="company.get_research_inputs", family="company", input_kind="fmp_research_inputs_v1",
+                    stores=("company",), datasets=("company.fmp.research_evidence", "company.fmp.research_inputs")),
+    )
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -1197,7 +1207,44 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *_build_news_research_entries(),
         *_build_data_status_entries(),
         *_build_etf_snapshot_entries(),
+        *_build_fmp_research_entries(),
     )
+
+
+def _build_fmp_research_entries() -> tuple[dict[str, Any], ...]:
+    entries = []
+    for name in ADDITIVE_FMP_RESEARCH_TOOLS:
+        profile = next(item for item in current_tool_profiles() if item.name == name)
+        quote = name == "price_realtime"
+        entry = copy.deepcopy(_build_data_status_entries()[0])
+        entry.update({
+            "id": name, "family": profile.family, "owner": profile.family,
+            "description": ("Fetch one nonpersistent FMP latest reported quote for a ticker; returns source time and age."
+                            if quote else "Read context-preserving FMP statements, segments, current estimates and earnings with retained capture lineage."),
+            "handler": profile.operation_graph_id, "operation_graph_id": profile.operation_graph_id,
+            "stores": list(profile.stores), "datasets": list(profile.datasets),
+            "input_type": "PriceRealtimeArgumentsV1" if quote else "FmpResearchInputsArgumentsV1",
+            "input_schema_id": _versioned_schema_id(name, "input", version="1.0.0"),
+            "input_schema": typed_input_schema(profile.input_kind, {}),
+            "output_schema_id": _versioned_schema_id(name, "output", version="1.0.0"),
+            "output_schema": query_result_schema(name, {"type": "object", "additionalProperties": False, "properties": {}, "required": []}),
+            "examples": [{"ticker": "MSFT"}] if quote else [{"cik": "0000789019", "period": "quarter", "endpoints": ["income-statement"], "limit": 12}],
+            "assumptions": (["local_host_explicit_live_capability", "one_request_no_retry", "no_store_access_or_persistence",
+                              "latest_reported_trade_not_executable_bid_ask", "provider_quote_time_and_age_explicit"]
+                            if quote else ["host_selected_immutable_company_store", "local_capture_cutoff",
+                              "annual_and_quarter_contexts_distinct", "source_native_payload_and_currency",
+                              "accepted_date_without_timezone_not_a_cutoff", "historical_consensus_not_established"]),
+            "workload_bounds": {"max_rows": 1 if quote else 100, "max_series": 1, "max_operations": 1 if quote else 100,
+                                "max_request_bytes": 1048576, "max_response_bytes": 8388608},
+            "availability_policy": {"modes": ["live"] if quote else ["latest", "as_of"], "point_in_time_default": "live" if quote else "latest"},
+            "live_capability": {"possible": quote, "capability_id": profile.live_capability, "offline_status": "disabled" if quote else "not_applicable"},
+            "contracts": {"availability": "provider_quote_capture" if quote else "retained_local_capture",
+                          "point_in_time": "live_only" if quote else "capture_cutoff", "returns": "not_applicable"},
+        })
+        entry["output_schema"]["properties"]["series"]["maxItems"] = 0
+        entry["output_schema"]["properties"]["records"]["maxItems"] = 1 if quote else 100
+        entries.append(entry)
+    return tuple(entries)
 
 
 def _build_etf_snapshot_entries() -> tuple[dict[str, Any], ...]:

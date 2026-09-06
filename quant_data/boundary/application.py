@@ -119,6 +119,7 @@ class Stage1Application:
         registry: Registry,
         *,
         cancellation: CancellationToken | None = None,
+        quote_fetcher=None,
     ) -> None:
         self._store_map = store_map
         self._registry = registry
@@ -126,6 +127,7 @@ class Stage1Application:
             store_map,
             registry,
             cancellation=cancellation,
+            quote_fetcher=quote_fetcher,
         )
 
     @property

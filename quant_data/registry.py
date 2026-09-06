@@ -13,6 +13,9 @@ from typing import Any, Mapping
 
 from .errors import Issue, RegistryError, ValidationError
 from .json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
+
+# Host-owned registry metadata grows independently of public JSON request limits.
+_MAX_REGISTRY_BYTES = 16 * 1024 * 1024
 from .schema import validate_schema
 from .stores import STORE_ROLES
 from .tool_platform.catalog import (
@@ -25,6 +28,7 @@ from .tool_platform.catalog import (
     CATALOG_VERSION,
     CURRENT_FAMILY_COUNTS,
     CURRENT_PUBLIC_TOOL_NAMES,
+    ADDITIVE_FMP_RESEARCH_TOOLS,
     FAMILY_COUNTS,
     LEGACY_TOOL_NAMES,
     OPERATION_GRAPH_IDS,
@@ -555,7 +559,8 @@ _PLACEHOLDER_SUCCESSOR_VERSIONED_TOOL_IDS = frozenset(
 _TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
     "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
-_PRE_ETF_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
+_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in ADDITIVE_FMP_RESEARCH_TOOLS)
+_PRE_ETF_TOOL_NAMES = tuple(name for name in _PRE_FMP_RESEARCH_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
 _PRE_DATA_STATUS_OPTIONS_TOOL_NAMES = tuple(
     name
     for name in _PRE_ETF_TOOL_NAMES
@@ -1933,7 +1938,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2719,7 +2724,7 @@ def load_registry(
         payload = source.read_bytes()
     except OSError as exc:
         raise RegistryError("Registry file is unavailable") from exc
-    raw = _validate_top_level(loads_strict(payload, max_bytes=MAX_JSON_BYTES))
+    raw = _validate_top_level(loads_strict(payload, max_bytes=_MAX_REGISTRY_BYTES))
     schema_contracts = _load_tool_schema_catalog(raw, root)
     versioned_schema_contracts = _load_tool_schema_catalog(
         raw,
@@ -2727,7 +2732,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=158,
+        expected_count=162,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -4465,6 +4470,10 @@ def load_registry(
                     "official_conditions",
                     "Official conditions collector drifted",
                 )
+        elif collector_id in {"fmp.company.research_inputs", "fmp.market.research_gap_repair"}:
+            from quant_data.company.fmp_research_registry import COLLECTORS
+            if collector != next(c for c in COLLECTORS if c["id"] == collector_id):
+                raise _error(pointer, "fmp_research", "FMP research collector drifted")
         elif collector_id in _COMPANY_MARKET_COLLECTOR_SPECS:
             if collector != _COMPANY_MARKET_COLLECTOR_SPECS[collector_id]:
                 raise _error(pointer, "company_market_data", "Company market-data collector drifted")
@@ -5760,8 +5769,59 @@ def _pre_registry_266_policies() -> tuple[dict[str, Any], ...]:
     return tuple(policies)
 
 
+_FMP_RESEARCH_REGISTRY_SOURCE_SHA256 = "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
+
+def fmp_research_registry_profile(registry: Registry) -> Registry:
+    """Remove only this lane and reproduce the byte-exact 2.70 predecessor."""
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.71.0"):
+        return registry
+    from quant_data.company.fmp_research_registry import COLLECTORS, DATASET_IDS, MIGRATION_ID
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode()
+    if (hashlib.sha256(render(registry.raw)).hexdigest() != _FMP_RESEARCH_REGISTRY_SOURCE_SHA256
+        or registry.source_sha256 != _FMP_RESEARCH_REGISTRY_SOURCE_SHA256):
+        raise RegistryError("FMP research registry source drifted")
+    if ([dict(t) for t in registry.tools] != registry.raw["tools"]
+        or [dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or {d.id: (list(d.tool_ids), list(d.collector_ids)) for d in registry.datasets}
+           != {d["id"]: (d["tool_ids"], d["collector_ids"]) for d in registry.raw["datasets"]}
+        or {s.id: list(s.migration_order) for s in registry.stores}
+           != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: m.sha256 for m in registry.migrations}
+           != {m["id"]: m["sha256"] for m in registry.raw["migrations"]}):
+        raise RegistryError("FMP research parsed bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.70.0"
+    collector_ids = {c["id"] for c in COLLECTORS}
+    raw["tools"] = [t for t in raw["tools"] if t["id"] not in ADDITIVE_FMP_RESEARCH_TOOLS]
+    raw["presentation_order"]["tools"] = list(_PRE_FMP_RESEARCH_TOOL_NAMES)
+    raw["collectors"] = [c for c in raw["collectors"] if c["id"] not in collector_ids]
+    raw["datasets"] = [d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    bindings = {}
+    for d in raw["datasets"]:
+        d["collector_ids"] = [c for c in d["collector_ids"] if c not in collector_ids]
+        bindings[d["id"]] = tuple(d["collector_ids"])
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != MIGRATION_ID]
+    for s in raw["stores"]:
+        s["migration_order"] = [m for m in s["migration_order"] if m != MIGRATION_ID]
+    raw["tool_version_schema_catalog"] = {
+        "schema_id": VERSIONED_CATALOG_ID, "schema_version": "2.27.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": "6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b",
+    }
+    if hashlib.sha256(render(raw)).hexdigest() != _ETF_SNAPSHOT_REGISTRY_SOURCE_SHA256:
+        raise RegistryError("FMP research historical projection drifted")
+    return replace(registry, registry_version="2.70.0", raw=raw,
+        source_sha256=_ETF_SNAPSHOT_REGISTRY_SOURCE_SHA256,
+        tools=tuple(t for t in registry.tools if t["id"] not in ADDITIVE_FMP_RESEARCH_TOOLS),
+        collectors=tuple(c for c in registry.collectors if c["id"] not in collector_ids),
+        datasets=tuple(replace(d, collector_ids=bindings[d.id]) for d in registry.datasets if d.id not in DATASET_IDS),
+        migrations=tuple(m for m in registry.migrations if m.id != MIGRATION_ID),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != MIGRATION_ID)) for s in registry.stores))
+
+
 def etf_snapshot_registry_profile(registry: Registry) -> Registry:
     """Remove only the ETF public tool to reproduce the exact 2.69 predecessor."""
+    registry = fmp_research_registry_profile(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.70.0"):
         return registry
     render = lambda value: (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode()

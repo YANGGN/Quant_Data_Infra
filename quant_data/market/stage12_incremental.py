@@ -19,6 +19,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Mapping
+from types import MappingProxyType
 
 from ..errors import ConflictError, Issue, ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict, loads_strict
@@ -43,6 +44,33 @@ _SCHEDULED_COLLECTOR_ID = "stage12e.market_close"
 _SCHEDULED_SOURCE_REFERENCE = "fmp.scheduled.historical-price-eod.full"
 _SCHEDULED_MAX_SYMBOL_COUNT = 800
 _SCHEDULED_ASSET_TYPES = frozenset({"equity", "etf", "index"})
+_RESEARCH_REPAIR_COLLECTOR_ID = "fmp.market.research_gap_repair"
+_RESEARCH_REPAIR_SOURCE_REFERENCE = "fmp.historical-price-eod.full.research-gap-20260906"
+_RESEARCH_REPAIR_CODE_VERSION = "1.0.0"
+_RESEARCH_REPAIR_MAX_CALENDAR_DAYS = 16
+_RESEARCH_REPAIR_MAX_SESSION_DATES = 12
+_RESEARCH_REPAIR_MAX_BYTES = 1_048_576
+_RESEARCH_REPAIR_MAX_SECONDS = 90
+_RESEARCH_REPAIR_AUTHORITY_SHA256 = "ed199e9fa1dd46c903184fa593e3b6ee6ed8f93955cf005701f691ad674bb49e"
+_RESEARCH_REPAIR_PLAN_SHA256 = "6d70bac127dd5de8f8ea2c91644f5508f84082590db86a98da77bfcb27936853"
+_RESEARCH_REPAIR_INSTRUMENTS = MappingProxyType(
+    {
+        "AAPL": ("equity", "2026-08-17", "2026-08-28", (
+            "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21",
+            "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28",
+        )),
+        "MSFT": ("equity", "2026-08-17", "2026-09-01", (
+            "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21",
+            "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28",
+            "2026-08-31", "2026-09-01",
+        )),
+        "SPY": ("etf", "2026-08-17", "2026-09-01", (
+            "2026-08-17", "2026-08-18", "2026-08-19", "2026-08-20", "2026-08-21",
+            "2026-08-24", "2026-08-25", "2026-08-26", "2026-08-27", "2026-08-28",
+            "2026-08-31", "2026-09-01",
+        )),
+    }
+)
 
 _ROW_KEYS = frozenset(
     {
@@ -246,6 +274,10 @@ class Stage12BIncrementalCollector:
         scope: Stage12BIncrementalMarketScope,
         stage12a_scope: Stage12MarketV1Scope,
         stage12a_scope_source: str | Path,
+        _research_repair: bool = False,
+        _research_repair_authority_sha256: str | None = None,
+        _research_repair_plan_sha256: str | None = None,
+        _research_repair_instruments: Mapping[str, tuple[str, str, str, tuple[str, ...]]] | None = None,
     ) -> None:
         if isinstance(fixture_root, bool) or not isinstance(fixture_root, (str, Path)):
             raise ValidationError("An explicit fixture root is required")
@@ -298,6 +330,16 @@ class Stage12BIncrementalCollector:
         self._scheduled_instruments: dict[str, tuple[str, str]] | None = None
         self._scheduled_universe_sha256: str | None = None
         self._scheduled_code_version: str | None = None
+        self._research_repair = False
+        self._research_repair_authority_sha256: str | None = None
+        self._research_repair_plan_sha256: str | None = None
+        self._research_repair_instruments: dict[str, tuple[str, str, str, tuple[str, ...]]] | None = None
+        if _research_repair:
+            self._configure_research_repair(
+                authority_sha256=_research_repair_authority_sha256,
+                plan_sha256=_research_repair_plan_sha256,
+                instruments=_research_repair_instruments,
+            )
 
     @staticmethod
     def _validated_scheduled_instruments(
@@ -424,6 +466,77 @@ class Stage12BIncrementalCollector:
         collector._schedule_authority_sha256 = schedule_authority_sha256
         collector._scheduled_instruments = validated_scheduled_instruments
         collector._scheduled_universe_sha256 = scheduled_universe_sha256
+        collector._research_repair = False
+        collector._research_repair_authority_sha256 = None
+        collector._research_repair_plan_sha256 = None
+        collector._research_repair_instruments = None
+        return collector
+
+    @staticmethod
+    def _require_sha256(value: object, *, label: str) -> str:
+        if not isinstance(value, str) or len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
+            raise ValidationError(f"Stage 12 research repair {label} digest is invalid")
+        return value
+
+    @classmethod
+    def _validated_research_repair_instruments(cls, value: Mapping[str, tuple[str, str, str, tuple[str, ...]]] | None) -> dict[str, tuple[str, str, str, tuple[str, ...]]]:
+        if not isinstance(value, Mapping) or dict(value) != dict(_RESEARCH_REPAIR_INSTRUMENTS):
+            raise ValidationError("Stage 12 research repair plan is invalid")
+        result = {}
+        for symbol, descriptor in value.items():
+            if not isinstance(descriptor, tuple) or len(descriptor) != 4:
+                raise ValidationError("Stage 12 research repair plan is invalid")
+            asset_type, from_date, to_date, sessions = descriptor
+            if asset_type not in _SCHEDULED_ASSET_TYPES or not isinstance(sessions, tuple):
+                raise ValidationError("Stage 12 research repair plan is invalid")
+            parsed_from = _date_text(from_date, pointer="/research_repair/from")
+            parsed_to = _date_text(to_date, pointer="/research_repair/to")
+            parsed_sessions = tuple(_date_text(item, pointer="/research_repair/session_dates") for item in sessions)
+            if (parsed_sessions != tuple(sorted(parsed_sessions)) or len(parsed_sessions) != len(set(parsed_sessions)) or not parsed_sessions or len(parsed_sessions) > _RESEARCH_REPAIR_MAX_SESSION_DATES or any(day < parsed_from or day > parsed_to for day in parsed_sessions) or (date.fromisoformat(parsed_to) - date.fromisoformat(parsed_from)).days + 1 > _RESEARCH_REPAIR_MAX_CALENDAR_DAYS):
+                raise ValidationError("Stage 12 research repair plan is invalid")
+            result[symbol] = (asset_type, parsed_from, parsed_to, parsed_sessions)
+        return result
+
+    def _configure_research_repair(self, *, authority_sha256: str | None, plan_sha256: str | None, instruments: Mapping[str, tuple[str, str, str, tuple[str, ...]]] | None) -> None:
+        if self._scheduled_instruments is not None:
+            raise ValidationError("Stage 12 research repair cannot share the scheduled collector")
+        pinned_authority = self._require_sha256(authority_sha256, label="authority")
+        pinned_plan = self._require_sha256(plan_sha256, label="plan")
+        if pinned_authority != _RESEARCH_REPAIR_AUTHORITY_SHA256:
+            raise ValidationError("Stage 12 research repair authority is not the approved authority")
+        if pinned_plan != _RESEARCH_REPAIR_PLAN_SHA256:
+            raise ValidationError("Stage 12 research repair plan is not the approved plan")
+        self._research_repair = True
+        self._research_repair_authority_sha256 = pinned_authority
+        self._research_repair_plan_sha256 = pinned_plan
+        self._research_repair_instruments = self._validated_research_repair_instruments(instruments)
+
+    @classmethod
+    def _for_canonical_research_repair(cls, *, scope: Stage12BIncrementalMarketScope, stage12a_scope: Stage12MarketV1Scope, research_repair_authority_sha256: str, research_repair_plan_sha256: str, research_repair_instruments: Mapping[str, tuple[str, str, str, tuple[str, ...]]]) -> "Stage12BIncrementalCollector":
+        """Build the private fixed-target publisher for the Sep. 6 repair."""
+        if cls is not Stage12BIncrementalCollector:
+            raise ValidationError("Stage 12 research repair collector cannot be subclassed")
+        validated_stage12a = require_stage12a_binding(scope, stage12a_scope, scope_source=_CANONICAL_STAGE12A_SCOPE)
+        try:
+            root = _CANONICAL_PROJECT_ROOT; store = _CANONICAL_MARKET_STORE
+            if root.is_symlink() or store.is_symlink() or root.resolve(strict=True) != root or store.resolve(strict=True) != store:
+                raise ValidationError("Stage 12 research repair canonical paths must be physical")
+            root_stat = root.stat(); store_stat = store.stat()
+        except (OSError, RuntimeError, ValueError) as exc:
+            raise StoreUnavailableError("Stage 12 research repair canonical market store is unavailable") from exc
+        if not root.is_dir() or not stat.S_ISREG(store_stat.st_mode):
+            raise StoreUnavailableError("Stage 12 research repair canonical market store is unavailable")
+        if int(store_stat.st_nlink) != 1:
+            raise ConflictError("Stage 12 research repair canonical market store has a hard-link alias")
+        collector = object.__new__(cls)
+        collector._fixture_root = root; collector._store_path = store; collector._scope = scope
+        collector._fixture_root_identity = cls._physical_identity(root_stat); collector._store_identity = cls._physical_identity(store_stat)
+        collector._stage12a_scope = validated_stage12a; collector._owner = object()
+        collector._schedule_authority_sha256 = None; collector._scheduled_instruments = None
+        collector._scheduled_universe_sha256 = None; collector._scheduled_code_version = None
+        collector._research_repair = False; collector._research_repair_authority_sha256 = None
+        collector._research_repair_plan_sha256 = None; collector._research_repair_instruments = None
+        collector._configure_research_repair(authority_sha256=research_repair_authority_sha256, plan_sha256=research_repair_plan_sha256, instruments=research_repair_instruments)
         return collector
 
     @property
@@ -687,7 +800,13 @@ class Stage12BIncrementalCollector:
         if symbol != symbol.upper() or any(character.isspace() for character in symbol):
             raise _issue("/symbol", "symbol", "Fixture symbol must be one frozen uppercase roster symbol")
         scheduled_identity = None
-        if self._scheduled_instruments is None:
+        repair_identity = None
+        if self._research_repair:
+            assert self._research_repair_instruments is not None
+            repair_identity = self._research_repair_instruments.get(symbol)
+            if repair_identity is None:
+                raise _issue("/symbol", "repair_plan", "Symbol is outside the authorized research repair plan")
+        elif self._scheduled_instruments is None:
             roster = {item.symbol: item for item in self._stage12a_scope.roster}
             if symbol not in roster:
                 raise _issue("/symbol", "roster", "Fixture symbol is outside the frozen Stage 12A roster")
@@ -699,17 +818,22 @@ class Stage12BIncrementalCollector:
         to_date = _date_text(request.to_date, pointer="/to_date")
         start = date.fromisoformat(from_date)
         end = date.fromisoformat(to_date)
-        if end < start or (end - start).days + 1 > self._scope.fixture_plan.max_inclusive_calendar_days:
-            raise _issue("/to_date", "window", "Fixture window must be ordered and at most seven inclusive calendar days")
         if not isinstance(request.session_dates, tuple):
             raise _issue("/session_dates", "type", "Session dates must be an explicit tuple")
-        if not (self._scope.fixture_plan.min_session_dates <= len(request.session_dates) <= self._scope.fixture_plan.max_session_dates):
-            raise _issue("/session_dates", "count", "Fixture request has an invalid number of session dates")
         sessions = tuple(_date_text(value, pointer=f"/session_dates/{index}") for index, value in enumerate(request.session_dates))
         if sessions != tuple(sorted(sessions)) or len(set(sessions)) != len(sessions):
             raise _issue("/session_dates", "ordering", "Session dates must be unique and strictly sorted")
         if any(day < from_date or day > to_date for day in sessions):
             raise _issue("/session_dates", "window", "Session dates must remain inside the requested window")
+        if repair_identity is not None:
+            expected_from, expected_to, expected_sessions = repair_identity[1:]
+            if (from_date, to_date, sessions) != (expected_from, expected_to, expected_sessions):
+                raise _issue("/session_dates", "repair_plan", "Request differs from the authorized research repair plan")
+        else:
+            if end < start or (end - start).days + 1 > self._scope.fixture_plan.max_inclusive_calendar_days:
+                raise _issue("/to_date", "window", "Fixture window must be ordered and at most seven inclusive calendar days")
+            if not (self._scope.fixture_plan.min_session_dates <= len(sessions) <= self._scope.fixture_plan.max_session_dates):
+                raise _issue("/session_dates", "count", "Fixture request has an invalid number of session dates")
         captured_at = _captured_at_text(request.captured_at)
         request_scope: dict[str, object] = {
             "endpoint_path": _FMP_ENDPOINT,
@@ -728,6 +852,10 @@ class Stage12BIncrementalCollector:
             request_scope["scheduled_instrument_id"] = scheduled_identity[0]
             request_scope["scheduled_asset_type"] = scheduled_identity[1]
             request_scope["scheduled_universe_sha256"] = self._scheduled_universe_sha256
+        if repair_identity is not None:
+            request_scope["research_repair_authority_sha256"] = self._research_repair_authority_sha256
+            request_scope["research_repair_plan_sha256"] = self._research_repair_plan_sha256
+            request_scope["research_repair_asset_type"] = repair_identity[0]
         return request_scope, captured_at
 
     def _parse_response(
@@ -750,10 +878,9 @@ class Stage12BIncrementalCollector:
                 "bound",
                 "Fixture elapsed time must be finite and nonnegative",
             )
-        if elapsed_seconds > self._scope.collector.max_seconds:
-            raise ResourceLimitError(
-                "Fixture response exceeds the reviewed Stage 12B elapsed-time bound"
-            )
+        max_seconds = _RESEARCH_REPAIR_MAX_SECONDS if self._research_repair else self._scope.collector.max_seconds
+        if elapsed_seconds > max_seconds:
+            raise ResourceLimitError("Stage 12B response exceeds the reviewed elapsed-time bound")
         if isinstance(response.status, bool) or not isinstance(response.status, int) or response.status != 200:
             raise _issue("/response/status", "status", "Fixture response must have HTTP status 200")
         media_type = _require_text(response.media_type, pointer="/response/media_type", maximum=128)
@@ -761,14 +888,18 @@ class Stage12BIncrementalCollector:
             raise _issue("/response/media_type", "media_type", "Fixture response must be application/json")
         if not isinstance(response.body, bytes):
             raise _issue("/response/body", "type", "Fixture response body must be immutable bytes")
-        if len(response.body) > self._scope.collector.max_bytes:
-            raise ResourceLimitError("Fixture response exceeds the reviewed Stage 12B byte bound")
-        payload = loads_strict(response.body, max_bytes=self._scope.collector.max_bytes)
+        max_bytes = _RESEARCH_REPAIR_MAX_BYTES if self._research_repair else self._scope.collector.max_bytes
+        if len(response.body) > max_bytes:
+            raise ResourceLimitError("Stage 12B response exceeds the reviewed byte bound")
+        payload = loads_strict(response.body, max_bytes=max_bytes)
         if not isinstance(payload, list):
             raise _issue("/response/body", "shape", "Fixture response top level must be a list")
-        if len(payload) > self._scope.collector.max_rows:
+        max_rows = _RESEARCH_REPAIR_MAX_SESSION_DATES if self._research_repair else self._scope.collector.max_rows
+        if len(payload) > max_rows:
             raise _issue("/response/body", "rows", "Fixture response exceeds the reviewed Stage 12B row bound")
         if not payload:
+            if self._research_repair:
+                raise _issue("/response/body", "completeness", "Research repair response must be a complete nonempty batch")
             return ()
         symbol = request_scope["symbol"]
         assert isinstance(symbol, str)
@@ -854,7 +985,12 @@ class Stage12BIncrementalCollector:
         ).fetchone()
         if row is None:
             raise ValidationError("Stage 12B fixture publication requires a preseeded frozen instrument")
-        if self._scheduled_instruments is None:
+        if self._research_repair:
+            assert self._research_repair_instruments is not None
+            expected = self._research_repair_instruments.get(symbol)
+            if expected is None or str(row["asset_type"]) != expected[0] or str(row["currency_segment"]) != "provider_native":
+                raise ValidationError("Preseeded instrument does not match the authorized research repair identity")
+        elif self._scheduled_instruments is None:
             roster = {item.symbol: item for item in self._stage12a_scope.roster}
             roster_item = roster[symbol]
             if str(row["asset_type"]) != roster_item.asset_type or str(row["currency_segment"]) != "provider_native":
@@ -883,8 +1019,17 @@ class Stage12BIncrementalCollector:
         self._require_changed_rows_are_later(connection, state, instrument_id)
         semantic = state.semantic_identity
         scheduled = self._scheduled_instruments is not None
-        identifier_prefix = "stage12e" if scheduled else "stage12b"
-        if scheduled:
+        repair = self._research_repair
+        if repair:
+            self._require_research_repair_rows_missing(connection, state, instrument_id)
+        identifier_prefix = "research-price-gap" if repair else ("stage12e" if scheduled else "stage12b")
+        if repair:
+            assert self._research_repair_plan_sha256 is not None
+            scope_manifest_sha256 = self._research_repair_plan_sha256
+            collector_id = _RESEARCH_REPAIR_COLLECTOR_ID
+            source_reference = _RESEARCH_REPAIR_SOURCE_REFERENCE
+            code_version = _RESEARCH_REPAIR_CODE_VERSION
+        elif scheduled:
             assert self._scheduled_universe_sha256 is not None
             assert self._scheduled_code_version is not None
             scope_manifest_sha256 = self._scheduled_universe_sha256
@@ -1078,6 +1223,19 @@ class Stage12BIncrementalCollector:
                 (run_id, semantic, dataset_id),
             )
         return Stage12BPublicationReceipt("published", semantic, capture_id, written_versions)
+
+    def _require_research_repair_rows_missing(self, connection: sqlite3.Connection, state: _PreparedState, instrument_id: str) -> None:
+        for row in state.rows:
+            existing = connection.execute(
+                """
+                SELECT 1 FROM stage10_daily_prices
+                WHERE instrument_id = ? AND trade_date = ? AND provider = 'fmp'
+                  AND price_variant = ? AND currency_segment = 'provider_native'
+                """,
+                (instrument_id, row.trade_date, STAGE12B_PRICE_VARIANT),
+            ).fetchone()
+            if existing is not None:
+                raise ConflictError("Research repair price session is already current")
 
     def _require_changed_rows_are_later(
         self,

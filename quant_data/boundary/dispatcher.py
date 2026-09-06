@@ -270,7 +270,9 @@ class ToolDispatcher:
         registry: Registry,
         *,
         cancellation: CancellationToken | None = None,
+        quote_fetcher=None,
     ) -> None:
+        self._quote_fetcher = quote_fetcher
         self._store_map = store_map
         self._registry = registry
         self._cancellation = (
@@ -793,7 +795,8 @@ class ToolDispatcher:
                 max_operations=int(bounds["max_operations"]),
                 max_output_bytes=int(bounds["max_response_bytes"]),
             ),
-            capabilities=CapabilitySet(),
+            capabilities=CapabilitySet(frozenset({"fmp_quote_live"}) if self._quote_fetcher is not None and name == "price_realtime" else frozenset()),
+            quote_fetcher=self._quote_fetcher if name == "price_realtime" else None,
             deadline=deadline,
             cancellation=self._cancellation,
             clock=clock,

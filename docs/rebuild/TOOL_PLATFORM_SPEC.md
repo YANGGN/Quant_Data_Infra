@@ -1243,3 +1243,14 @@ genuine historical reconstruction: the real public request returned all 25
 identities with blocked feature readiness and unchanged store stamps.
 This tool adds no provider, credential, ingestion, migration, scheduler,
 public network route, investment approval, or app-project modification.
+
+
+## September 6 additive FMP research and quote lane
+
+The [FMP contract](FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md) adds retained
+`company.get_research_inputs@1.0.0` and the explicitly owner-authorized
+local `price_realtime@1.0.0` capability. This is an additional live exception
+to the earlier intraday-release-only scope. Generic hosts remain disabled;
+only the local launcher supplies the quote capability. Discovery is offline.
+Host registry metadata has a separate 16 MiB bound; public JSON bounds
+remain unchanged.

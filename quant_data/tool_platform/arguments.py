@@ -2708,6 +2708,12 @@ def input_schema(input_kind: str, series_schema: Mapping[str, Any]) -> dict[str,
     re-declaring (or weakening) its observation bound here.
     """
 
+    if input_kind == "price_realtime_v1":
+        from .realtime_quote import quote_input_schema
+        return quote_input_schema()
+    if input_kind == "fmp_research_inputs_v1":
+        from quant_data.company.fmp_research import research_inputs_schema
+        return research_inputs_schema()
     return _object_schema(_argument_type_for(input_kind), series_schema)
 
 
@@ -5302,6 +5308,12 @@ def parse_arguments(
     before any decoder invocation.
     """
 
+    if input_kind == "price_realtime_v1":
+        from .realtime_quote import parse_quote_arguments
+        return parse_quote_arguments(public)
+    if input_kind == "fmp_research_inputs_v1":
+        from quant_data.company.fmp_research import parse_research_inputs_arguments
+        return parse_research_inputs_arguments(public)
     prepared = _prepared(input_kind, public)
     values = prepared.values
     if prepared.argument_type is SearchArguments:
@@ -5842,6 +5854,10 @@ def preflight_dimensions(
     count, matching the platform's correlation/alignment workload ceiling.
     """
 
+    if input_kind in {"price_realtime_v1", "fmp_research_inputs_v1"}:
+        parsed = parse_arguments(input_kind, public, lambda value: value)
+        rows = int(parsed.get("limit", 1))
+        return {"rows": rows, "series": 0, "operations": rows}
     prepared = _prepared(input_kind or _inferred_input_kind(public), public)
     if prepared.argument_type is EtfAllocatorSnapshotArgumentsV1:
         return {"rows": len(prepared.values["symbols"]) * 400, "series": 1, "operations": 5_000_000}

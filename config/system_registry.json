@@ -3145,6 +3145,107 @@
         "max_rows": 10,
         "max_seconds": 30
       }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "company.fmp_research_inputs",
+      "id": "fmp.company.research_inputs",
+      "input_datasets": [
+        "market.stage10.instruments",
+        "fixture.company.issuers"
+      ],
+      "mutation_policy": {
+        "mode": "append_versions_and_capture_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "company.fmp.research_evidence",
+        "company.fmp.research_inputs"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order",
+          "raw_response_identity"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_records"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 1048576,
+        "max_requests": 1,
+        "max_rows": 100,
+        "max_seconds": 30
+      }
+    },
+    {
+      "configuration_env": [
+        "FMP_API_KEY"
+      ],
+      "handler": "market.research_gap_repair",
+      "id": "fmp.market.research_gap_repair",
+      "input_datasets": [
+        "market.stage10.instruments"
+      ],
+      "mutation_policy": {
+        "mode": "append_versions_and_capture_membership",
+        "unchanged": "zero_persistent_writes"
+      },
+      "network": true,
+      "output_datasets": [
+        "market.stage10.source_evidence",
+        "market.stage10.daily_prices"
+      ],
+      "physical_locks": "derived_from_output_store_paths",
+      "retry_policy": {
+        "backoff": "none_single_attempt",
+        "honor_retry_after": false,
+        "max_attempts": 1,
+        "transient_classes": []
+      },
+      "schedule_eligibility": {
+        "mode": "manual_only"
+      },
+      "semantic_identity": {
+        "excludes": [
+          "api_key",
+          "captured_at",
+          "http_headers",
+          "source_row_order",
+          "raw_response_identity"
+        ],
+        "includes": [
+          "request_scope",
+          "normalization_version",
+          "normalized_records"
+        ]
+      },
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_bytes": 3145728,
+        "max_requests": 3,
+        "max_rows": 34,
+        "max_seconds": 90
+      }
     }
   ],
   "compatibility_target": {
@@ -3991,7 +4092,8 @@
         "market.stage12b.fmp_daily_incremental_fixture",
         "market.stage12c.fmp_daily_incremental_manual",
         "fmp.market.iwm_etf_daily_history",
-        "fmp.market.iwm_etf_daily_history_backfill"
+        "fmp.market.iwm_etf_daily_history_backfill",
+        "fmp.market.research_gap_repair"
       ],
       "dashboard_ids": [],
       "export_ids": [],
@@ -4245,7 +4347,8 @@
         "market.stage12b.fmp_daily_incremental_fixture",
         "market.stage12c.fmp_daily_incremental_manual",
         "fmp.market.iwm_etf_daily_history",
-        "fmp.market.iwm_etf_daily_history_backfill"
+        "fmp.market.iwm_etf_daily_history_backfill",
+        "fmp.market.research_gap_repair"
       ],
       "dashboard_ids": [],
       "export_ids": [],
@@ -8542,6 +8645,154 @@
         "data.get_dataset_status"
       ],
       "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.company.research_inputs"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "company.fmp.research_evidence",
+      "identity": {
+        "stable_fields": [
+          "issuer_id",
+          "endpoint",
+          "request_scope",
+          "semantic_identity"
+        ],
+        "version_fields": [
+          "snapshot_id"
+        ]
+      },
+      "layer": "evidence",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "company_fmp_research_snapshots"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "not_applicable",
+        "required_warnings": [],
+        "rules": [
+          "content_identity",
+          "issuer_scope",
+          "capture_cutoff",
+          "source_row_pointer"
+        ],
+        "units": "not_applicable"
+      },
+      "revision_policy": "immutable_capture",
+      "store": "company",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "not_applicable",
+        "observation_fields": [
+          "captured_at"
+        ],
+        "observation_precision": "datetime",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [
+        "company.get_research_inputs"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "active": true,
+      "collector_ids": [
+        "fmp.company.research_inputs"
+      ],
+      "dashboard_ids": [],
+      "export_ids": [],
+      "freshness": {
+        "cadence": "manual",
+        "expected_lag": "P0D",
+        "health_severity": "warning",
+        "if_new": true,
+        "measured_from": "successful_capture",
+        "stale_after": "P30D"
+      },
+      "id": "company.fmp.research_inputs",
+      "identity": {
+        "stable_fields": [
+          "issuer_id",
+          "endpoint",
+          "request_period",
+          "period_end",
+          "fiscal_year",
+          "fiscal_period",
+          "event_date"
+        ],
+        "version_fields": [
+          "research_row_id",
+          "snapshot_id"
+        ]
+      },
+      "layer": "canonical",
+      "physical": {
+        "relations": [
+          {
+            "kind": "table",
+            "name": "company_fmp_research_rows"
+          }
+        ]
+      },
+      "quality_contract": {
+        "missingness": "explicit_reason",
+        "required_warnings": [],
+        "rules": [
+          "annual_quarter_context",
+          "native_currency",
+          "capture_cutoff",
+          "source_lineage"
+        ],
+        "units": "source_native_no_conversion"
+      },
+      "revision_policy": "append_version",
+      "store": "company",
+      "temporal": {
+        "availability_fields": [
+          "captured_at"
+        ],
+        "availability_precision": "datetime",
+        "history_basis": "local_capture",
+        "missingness": "explicit_reason",
+        "observation_fields": [
+          "period_end"
+        ],
+        "observation_precision": "date",
+        "range_semantics": "inclusive",
+        "timezone_rule": "source_native_no_conversion",
+        "vintage_modes": [
+          "latest",
+          "as_of"
+        ]
+      },
+      "tool_ids": [
+        "company.get_research_inputs"
+      ],
+      "version": "1.0.0"
     }
   ],
   "exports": [
@@ -10455,6 +10706,18 @@
       "store": "company"
     },
     {
+      "dependencies": [
+        "company:0007_filing_issuer_view"
+      ],
+      "id": "company:0008_fmp_research_inputs",
+      "ordinal": 8,
+      "reconstruction_state": "fixture_validated",
+      "resource": "quant_data/migrations/company/0008_fmp_research_inputs.sql",
+      "semantic_scope": "Add immutable FMP research evidence and context-preserving company statement, segment, current estimate and earnings rows; preserve prior SEC facts.",
+      "sha256": "17b35efa1ba21b3526e6b0fda361736ac6a11b79cfd7109c92ea6b75dfee2831",
+      "store": "company"
+    },
+    {
       "dependencies": [],
       "id": "news:0001_foundation",
       "ordinal": 1,
@@ -10643,10 +10906,12 @@
       "news.headline_sentiment",
       "research.news_event_impact",
       "research.liquidity_credit_state",
-      "portfolio.get_etf_allocator_snapshot"
+      "portfolio.get_etf_allocator_snapshot",
+      "price_realtime",
+      "company.get_research_inputs"
     ]
   },
-  "registry_version": "2.70.0",
+  "registry_version": "2.71.0",
   "schema_id": "quant_data.system_registry",
   "schema_version": "1.9.0",
   "status": "validated",
@@ -10785,7 +11050,8 @@
         "company:0004_corporate_actions",
         "company:0005_corporate_action_integrity",
         "company:0006_earnings_expectations",
-        "company:0007_filing_issuer_view"
+        "company:0007_filing_issuer_view",
+        "company:0008_fmp_research_inputs"
       ],
       "path_env": "QUANT_COMPANY_DB_PATH",
       "write_coordination": {
@@ -10849,8 +11115,8 @@
   "tool_version_schema_catalog": {
     "resource": "quant_data/generated/tool_contract_schemas_v2.json",
     "schema_id": "quant_data.tool_contract_catalog.v2",
-    "schema_version": "2.27.0",
-    "sha256": "6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b"
+    "schema_version": "2.28.0",
+    "sha256": "61755e015ba4f52eb2571d729c390137303021ff074241e5164cc36d2258f7ed"
   },
   "tool_versions": [
     {
@@ -234456,6 +234722,1618 @@
         "max_request_bytes": 1048576,
         "max_response_bytes": 8388608,
         "max_rows": 10000,
+        "max_series": 1
+      }
+    },
+    {
+      "api_version": "1.0",
+      "assumptions": [
+        "local_host_explicit_live_capability",
+        "one_request_no_retry",
+        "no_store_access_or_persistence",
+        "latest_reported_trade_not_executable_bid_ask",
+        "provider_quote_time_and_age_explicit"
+      ],
+      "availability_policy": {
+        "modes": [
+          "live"
+        ],
+        "point_in_time_default": "live"
+      },
+      "compatibility": {
+        "predecessor": null,
+        "status": "additive_native_v1"
+      },
+      "composable": {
+        "input_types": [],
+        "output_types": [
+          "QueryResultV1"
+        ]
+      },
+      "contracts": {
+        "availability": "provider_quote_capture",
+        "point_in_time": "live_only",
+        "returns": "not_applicable"
+      },
+      "cost_model": {
+        "deterministic": true,
+        "expression": "rows + series + operations"
+      },
+      "datasets": [],
+      "description": "Fetch one nonpersistent FMP latest reported quote for a ticker; returns source time and age.",
+      "examples": [
+        {
+          "ticker": "MSFT"
+        }
+      ],
+      "family": "market",
+      "handler": "tool_platform.price_realtime.v1",
+      "id": "price_realtime",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "ticker": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "ticker"
+        ],
+        "type": "object"
+      },
+      "input_schema_id": "urn:quant-data:tool:price_realtime:input:1.0.0",
+      "input_type": "PriceRealtimeArgumentsV1",
+      "lifecycle": "experimental",
+      "live_capability": {
+        "capability_id": "fmp_quote_live",
+        "offline_status": "disabled",
+        "possible": true
+      },
+      "observability": "metadata_only",
+      "operation_graph_id": "tool_platform.price_realtime.v1",
+      "operation_version": "1.0.0",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "contract": {
+            "const": "quant_data.query_result",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "1.0.0",
+            "type": "string"
+          },
+          "diagnostics": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "message": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "metrics": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": [
+                          "string",
+                          "number",
+                          "integer",
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "metrics"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "exclusions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "reason": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "subject_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "subject_id",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "lineage": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "canonical_version_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dataset_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "semantic_id": {
+                  "maxLength": 300,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "snapshot_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "store_role": {
+                  "enum": [
+                    "market",
+                    "macro",
+                    "company",
+                    "news"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "dataset_id",
+                "store_role",
+                "semantic_id",
+                "evidence_id",
+                "snapshot_id",
+                "canonical_version_id"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "matrices": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "column_labels": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                "name": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "row_labels": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                },
+                "values": {
+                  "items": {
+                    "items": {
+                      "type": [
+                        "string",
+                        "number",
+                        "integer",
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "name",
+                "row_labels",
+                "column_labels",
+                "values"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "records": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "fields": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": [
+                          "string",
+                          "number",
+                          "integer",
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                "record_type": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "record_type",
+                "fields"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1,
+            "type": "array"
+          },
+          "research_contract": {
+            "additionalProperties": false,
+            "properties": {
+              "contract": {
+                "additionalProperties": false,
+                "properties": {
+                  "analysis_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "analysis_kind": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "availability_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "contract": {
+                    "const": "quant_data.research_contract",
+                    "type": "string"
+                  },
+                  "contract_version": {
+                    "const": "1.0.0",
+                    "type": "string"
+                  },
+                  "exclusions": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "reason": {
+                          "maxLength": 500,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "subject_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "subject_id",
+                        "reason"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "type": "array"
+                  },
+                  "execution_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "input_lineage": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "canonical_version_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "dataset_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "evidence_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "semantic_id": {
+                          "maxLength": 300,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "snapshot_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "store_role": {
+                          "enum": [
+                            "market",
+                            "macro",
+                            "company",
+                            "news"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "dataset_id",
+                        "store_role",
+                        "semantic_id",
+                        "evidence_id",
+                        "snapshot_id",
+                        "canonical_version_id"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "type": "array"
+                  },
+                  "model_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "model_version": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "parameters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "integer",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "point_in_time_status": {
+                    "enum": [
+                      "safe",
+                      "unsafe",
+                      "not_applicable",
+                      "not_established"
+                    ],
+                    "type": "string"
+                  },
+                  "sample": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "integer",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "temporal": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "availability_basis": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "cutoff": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "date_only_policy": {
+                        "enum": [
+                          "completed_date",
+                          "calendar_date_inclusive"
+                        ],
+                        "type": "string"
+                      },
+                      "mode": {
+                        "enum": [
+                          "latest",
+                          "as_of",
+                          "first_release"
+                        ],
+                        "type": "string"
+                      },
+                      "point_in_time_status": {
+                        "enum": [
+                          "safe",
+                          "unsafe",
+                          "not_applicable",
+                          "not_established"
+                        ],
+                        "type": "string"
+                      },
+                      "unsafe_reasons": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 100,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "cutoff",
+                      "date_only_policy",
+                      "availability_basis",
+                      "point_in_time_status",
+                      "unsafe_reasons"
+                    ],
+                    "type": "object"
+                  },
+                  "uncertainty": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "integer",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "unsafe_reasons": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "vintage_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "contract",
+                  "contract_version",
+                  "analysis_id",
+                  "analysis_kind",
+                  "model_id",
+                  "model_version",
+                  "parameters",
+                  "temporal",
+                  "point_in_time_status",
+                  "unsafe_reasons",
+                  "vintage_policy",
+                  "availability_policy",
+                  "execution_policy",
+                  "sample",
+                  "exclusions",
+                  "uncertainty",
+                  "input_lineage"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "enum": [
+                  "not_applicable",
+                  "declared"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "contract"
+            ],
+            "type": "object"
+          },
+          "series": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "maxItems": 0,
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "not_established"
+            ],
+            "type": "string"
+          },
+          "tool": {
+            "const": "price_realtime",
+            "type": "string"
+          },
+          "truncation": {
+            "additionalProperties": false,
+            "properties": {
+              "applied": {
+                "type": "boolean"
+              },
+              "has_more": {
+                "type": "boolean"
+              },
+              "limit": {
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "next_cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "returned_count": {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total_known_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "applied",
+              "limit",
+              "returned_count",
+              "total_known_count",
+              "has_more",
+              "next_cursor"
+            ],
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "message": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract",
+          "contract_version",
+          "tool",
+          "status",
+          "records",
+          "series",
+          "matrices",
+          "diagnostics",
+          "warnings",
+          "exclusions",
+          "lineage",
+          "truncation",
+          "research_contract"
+        ],
+        "type": "object"
+      },
+      "output_schema_id": "urn:quant-data:tool:price_realtime:output:1.0.0",
+      "output_type": "QueryResultV1",
+      "owner": "market",
+      "read_only": true,
+      "review_requirements": [
+        "schema",
+        "semantics",
+        "read_only"
+      ],
+      "stores": [],
+      "timeout_class": "interactive_5s",
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_operations": 1,
+        "max_request_bytes": 1048576,
+        "max_response_bytes": 8388608,
+        "max_rows": 1,
+        "max_series": 1
+      }
+    },
+    {
+      "api_version": "1.0",
+      "assumptions": [
+        "host_selected_immutable_company_store",
+        "local_capture_cutoff",
+        "annual_and_quarter_contexts_distinct",
+        "source_native_payload_and_currency",
+        "accepted_date_without_timezone_not_a_cutoff",
+        "historical_consensus_not_established"
+      ],
+      "availability_policy": {
+        "modes": [
+          "latest",
+          "as_of"
+        ],
+        "point_in_time_default": "latest"
+      },
+      "compatibility": {
+        "predecessor": null,
+        "status": "additive_native_v1"
+      },
+      "composable": {
+        "input_types": [],
+        "output_types": [
+          "QueryResultV1"
+        ]
+      },
+      "contracts": {
+        "availability": "retained_local_capture",
+        "point_in_time": "capture_cutoff",
+        "returns": "not_applicable"
+      },
+      "cost_model": {
+        "deterministic": true,
+        "expression": "rows + series + operations"
+      },
+      "datasets": [
+        "company.fmp.research_evidence",
+        "company.fmp.research_inputs"
+      ],
+      "description": "Read context-preserving FMP statements, segments, current estimates and earnings with retained capture lineage.",
+      "examples": [
+        {
+          "cik": "0000789019",
+          "endpoints": [
+            "income-statement"
+          ],
+          "limit": 12,
+          "period": "quarter"
+        }
+      ],
+      "family": "company",
+      "handler": "tool_platform.company.get_research_inputs.v1",
+      "id": "company.get_research_inputs",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "cik": {
+            "maxLength": 10,
+            "minLength": 10,
+            "type": "string"
+          },
+          "endpoints": {
+            "items": {
+              "enum": [
+                "analyst-estimates",
+                "balance-sheet-statement",
+                "cash-flow-statement",
+                "earnings",
+                "financial-statement-full-as-reported",
+                "income-statement",
+                "revenue-product-segmentation"
+              ],
+              "type": "string"
+            },
+            "maxItems": 7,
+            "type": "array"
+          },
+          "limit": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "mode": {
+            "enum": [
+              "latest",
+              "as_of"
+            ],
+            "type": "string"
+          },
+          "period": {
+            "enum": [
+              "annual",
+              "quarter",
+              "all"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "cik"
+        ],
+        "type": "object"
+      },
+      "input_schema_id": "urn:quant-data:tool:company.get_research_inputs:input:1.0.0",
+      "input_type": "FmpResearchInputsArgumentsV1",
+      "lifecycle": "experimental",
+      "live_capability": {
+        "capability_id": null,
+        "offline_status": "not_applicable",
+        "possible": false
+      },
+      "observability": "metadata_only",
+      "operation_graph_id": "tool_platform.company.get_research_inputs.v1",
+      "operation_version": "1.0.0",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "contract": {
+            "const": "quant_data.query_result",
+            "type": "string"
+          },
+          "contract_version": {
+            "const": "1.0.0",
+            "type": "string"
+          },
+          "diagnostics": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "message": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "metrics": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": [
+                          "string",
+                          "number",
+                          "integer",
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "code",
+                "message",
+                "metrics"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "exclusions": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "reason": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "subject_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "subject_id",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "lineage": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "canonical_version_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "dataset_id": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "evidence_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "semantic_id": {
+                  "maxLength": 300,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "snapshot_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "store_role": {
+                  "enum": [
+                    "market",
+                    "macro",
+                    "company",
+                    "news"
+                  ],
+                  "type": "string"
+                }
+              },
+              "required": [
+                "dataset_id",
+                "store_role",
+                "semantic_id",
+                "evidence_id",
+                "snapshot_id",
+                "canonical_version_id"
+              ],
+              "type": "object"
+            },
+            "maxItems": 1000,
+            "type": "array"
+          },
+          "matrices": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "column_labels": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                "name": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "row_labels": {
+                  "items": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                },
+                "values": {
+                  "items": {
+                    "items": {
+                      "type": [
+                        "string",
+                        "number",
+                        "integer",
+                        "boolean",
+                        "null"
+                      ]
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "maxItems": 10000,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "name",
+                "row_labels",
+                "column_labels",
+                "values"
+              ],
+              "type": "object"
+            },
+            "maxItems": 20,
+            "type": "array"
+          },
+          "records": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "fields": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": [
+                          "string",
+                          "number",
+                          "integer",
+                          "boolean",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                "record_type": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "record_type",
+                "fields"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          },
+          "research_contract": {
+            "additionalProperties": false,
+            "properties": {
+              "contract": {
+                "additionalProperties": false,
+                "properties": {
+                  "analysis_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "analysis_kind": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "availability_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "contract": {
+                    "const": "quant_data.research_contract",
+                    "type": "string"
+                  },
+                  "contract_version": {
+                    "const": "1.0.0",
+                    "type": "string"
+                  },
+                  "exclusions": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "reason": {
+                          "maxLength": 500,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "subject_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "subject_id",
+                        "reason"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "type": "array"
+                  },
+                  "execution_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "input_lineage": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "canonical_version_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "dataset_id": {
+                          "maxLength": 200,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "evidence_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "semantic_id": {
+                          "maxLength": 300,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "snapshot_id": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "store_role": {
+                          "enum": [
+                            "market",
+                            "macro",
+                            "company",
+                            "news"
+                          ],
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "dataset_id",
+                        "store_role",
+                        "semantic_id",
+                        "evidence_id",
+                        "snapshot_id",
+                        "canonical_version_id"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 1000,
+                    "type": "array"
+                  },
+                  "model_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "model_version": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "parameters": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "integer",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "point_in_time_status": {
+                    "enum": [
+                      "safe",
+                      "unsafe",
+                      "not_applicable",
+                      "not_established"
+                    ],
+                    "type": "string"
+                  },
+                  "sample": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "integer",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "temporal": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "availability_basis": {
+                        "minLength": 1,
+                        "type": "string"
+                      },
+                      "cutoff": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "date_only_policy": {
+                        "enum": [
+                          "completed_date",
+                          "calendar_date_inclusive"
+                        ],
+                        "type": "string"
+                      },
+                      "mode": {
+                        "enum": [
+                          "latest",
+                          "as_of",
+                          "first_release"
+                        ],
+                        "type": "string"
+                      },
+                      "point_in_time_status": {
+                        "enum": [
+                          "safe",
+                          "unsafe",
+                          "not_applicable",
+                          "not_established"
+                        ],
+                        "type": "string"
+                      },
+                      "unsafe_reasons": {
+                        "items": {
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "maxItems": 100,
+                        "type": "array"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "cutoff",
+                      "date_only_policy",
+                      "availability_basis",
+                      "point_in_time_status",
+                      "unsafe_reasons"
+                    ],
+                    "type": "object"
+                  },
+                  "uncertainty": {
+                    "items": {
+                      "additionalProperties": false,
+                      "properties": {
+                        "name": {
+                          "maxLength": 100,
+                          "minLength": 1,
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number",
+                            "integer",
+                            "boolean",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "unsafe_reasons": {
+                    "items": {
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "type": "array"
+                  },
+                  "vintage_policy": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "contract",
+                  "contract_version",
+                  "analysis_id",
+                  "analysis_kind",
+                  "model_id",
+                  "model_version",
+                  "parameters",
+                  "temporal",
+                  "point_in_time_status",
+                  "unsafe_reasons",
+                  "vintage_policy",
+                  "availability_policy",
+                  "execution_policy",
+                  "sample",
+                  "exclusions",
+                  "uncertainty",
+                  "input_lineage"
+                ],
+                "type": "object"
+              },
+              "status": {
+                "enum": [
+                  "not_applicable",
+                  "declared"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "contract"
+            ],
+            "type": "object"
+          },
+          "series": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {},
+              "required": [],
+              "type": "object"
+            },
+            "maxItems": 0,
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "not_established"
+            ],
+            "type": "string"
+          },
+          "tool": {
+            "const": "company.get_research_inputs",
+            "type": "string"
+          },
+          "truncation": {
+            "additionalProperties": false,
+            "properties": {
+              "applied": {
+                "type": "boolean"
+              },
+              "has_more": {
+                "type": "boolean"
+              },
+              "limit": {
+                "maximum": 10000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "next_cursor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "returned_count": {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total_known_count": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "applied",
+              "limit",
+              "returned_count",
+              "total_known_count",
+              "has_more",
+              "next_cursor"
+            ],
+            "type": "object"
+          },
+          "warnings": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "message": {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "maxItems": 100,
+            "type": "array"
+          }
+        },
+        "required": [
+          "contract",
+          "contract_version",
+          "tool",
+          "status",
+          "records",
+          "series",
+          "matrices",
+          "diagnostics",
+          "warnings",
+          "exclusions",
+          "lineage",
+          "truncation",
+          "research_contract"
+        ],
+        "type": "object"
+      },
+      "output_schema_id": "urn:quant-data:tool:company.get_research_inputs:output:1.0.0",
+      "output_type": "QueryResultV1",
+      "owner": "company",
+      "read_only": true,
+      "review_requirements": [
+        "schema",
+        "semantics",
+        "read_only"
+      ],
+      "stores": [
+        "company"
+      ],
+      "timeout_class": "interactive_5s",
+      "version": "1.0.0",
+      "workload_bounds": {
+        "max_operations": 100,
+        "max_request_bytes": 1048576,
+        "max_response_bytes": 8388608,
+        "max_rows": 100,
         "max_series": 1
       }
     }

@@ -55,8 +55,8 @@ HISTORICAL_RETRY = {
 class Stage11RegistryTests(unittest.TestCase):
     def test_canonical_stage11_and_frozen_stage10_projection(self) -> None:
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
-        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.70.0"))
-        self.assertEqual((len(registry.migrations), len(registry.datasets), len(registry.collectors)), (44, 59, 66))
+        self.assertEqual((registry.schema_version, registry.registry_version), ("1.9.0", "2.71.0"))
+        self.assertEqual((len(registry.migrations), len(registry.datasets), len(registry.collectors)), (45, 61, 68))
         self.assertEqual(registry.store("market").default_path, "data/market.sqlite")
         self.assertEqual(registry.store("macro").default_path, "data/macro.sqlite")
         self.assertEqual(registry.store("company").default_path, "data/company.sqlite")
@@ -235,7 +235,7 @@ class Stage11RegistryTests(unittest.TestCase):
         self.assertIs(stage12b_registry_profile(stage12a), stage12a)
 
     def test_stage12b_fixture_declaration_rejects_adversarial_drift(self) -> None:
-        source = loads_strict(REGISTRY_PATH.read_bytes())
+        source = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         self.assertIsInstance(source, dict)
 
         def collector(raw):
@@ -271,7 +271,7 @@ class Stage11RegistryTests(unittest.TestCase):
                     load_registry(path, project_root=PROJECT_ROOT, environment={})
 
     def test_canonical_stage11_retry_policy_is_closed(self) -> None:
-        source = loads_strict(REGISTRY_PATH.read_bytes())
+        source = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         self.assertIsInstance(source, dict)
         cases = (
             ("classes", ["connection", "http_429", "http_5xx"]),

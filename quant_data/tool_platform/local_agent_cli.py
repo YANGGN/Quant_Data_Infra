@@ -53,7 +53,8 @@ def create_local_application() -> Stage1Application:
         project_root=PROJECT_ROOT,
         environment={},
     )
-    return Stage1Application(store_map, registry)
+    from quant_data.tool_platform.realtime_quote import local_quote_fetcher
+    return Stage1Application(store_map, registry, quote_fetcher=local_quote_fetcher(PROJECT_ROOT))
 
 
 def _validated_command(argv: Sequence[str]) -> tuple[str, str | None, str | None]:

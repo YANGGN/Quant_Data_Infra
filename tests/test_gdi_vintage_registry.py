@@ -17,7 +17,7 @@ MIGRATION_SHA256 = (
     "e92da1620b2da10e15d76ee9a3817fc081d0363f6cd7b87653f2340a8f756e71"
 )
 CURRENT_SOURCE_SHA256 = (
-    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
+    "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
 )
 PRE_GDI_SOURCE_SHA256 = (
     "4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6"
@@ -32,7 +32,7 @@ class GdiVintageRegistryTests(unittest.TestCase):
             environment={},
         )
 
-        self.assertEqual(registry.revision, "2.70.0")
+        self.assertEqual(registry.revision, "2.71.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -40,7 +40,7 @@ class GdiVintageRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (44, 59, 66),
+            (45, 61, 68),
         )
         migration = next(
             item for item in registry.migrations if item.id == MIGRATION_ID

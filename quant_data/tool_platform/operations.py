@@ -177,10 +177,11 @@ def invoke_operation(
     ):
         raise LookupError("Operation graph is not registered")
     context.checkpoint()
+    requested_rows = 1 if name == "price_realtime" else _limit(arguments)
     context.budget.require(
-        rows=_limit(arguments),
+        rows=requested_rows,
         series=_series_count(arguments),
-        operations=min(_limit(arguments) * max(_series_count(arguments), 1), 5_000_000),
+        operations=min(requested_rows * max(_series_count(arguments), 1), 5_000_000),
     )
     if versioned_macro:
         expected_graph = f"tool_platform.{name}.v2"
@@ -352,6 +353,12 @@ def invoke_operation(
             or context.operation_graph_id != expected_graph
         ):
             raise LookupError("Selected additive operation graph is invalid")
+        if name == "price_realtime":
+            from .realtime_quote import invoke_quote
+            return invoke_quote(arguments, context)
+        if name == "company.get_research_inputs":
+            from quant_data.company.fmp_research import read_research_inputs
+            return read_research_inputs(context, arguments)
         if name == "portfolio.get_etf_allocator_snapshot":
             from .etf_snapshot import invoke_etf_snapshot
             return invoke_etf_snapshot(name, arguments, context, registry)

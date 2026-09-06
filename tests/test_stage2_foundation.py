@@ -107,7 +107,7 @@ class Stage2RegistryTests(unittest.TestCase):
             self.assertTrue(dataset.quality_contract)
 
     def _load_mutation(self, mutate) -> None:
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         mutate(raw)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "registry.json"
@@ -714,7 +714,7 @@ class Stage2ControlPlaneAndCompositionTests(unittest.TestCase):
 
     def test_dataset_identity_drift_and_undeclared_relations_fail_closed(self) -> None:
         before = mutation_fingerprint(self.store_map)
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         raw["datasets"][0]["identity"]["stable_fields"].append("provider")
         path = self.root / "mutated-registry.json"
         path.write_text(dumps_strict(raw), encoding="utf-8")

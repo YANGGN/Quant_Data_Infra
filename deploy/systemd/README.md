@@ -58,8 +58,9 @@ outcomes are terminal, and other missing or error outcomes fail closed. A
 non-sentinel unapproved empty response or malformed or out-of-contract HTTP
 200 payload is recorded as a per-symbol failure without publication; later
 independent symbols continue, but the aggregate writes no completion receipt
-and exits nonzero. Redirect, status/media-policy, transport, and
-publication/store failures remain fail-fast.
+and exits nonzero. Durably received redirect and status/media-policy failures
+are also isolated per symbol. Transport ambiguity without a durable response
+and publication/store failures remain fail-fast.
 
 The service writes only through the fixed canonical `data/market.sqlite`
 publisher; exact semantic replay writes nothing, and per-symbol evidence is

@@ -1255,3 +1255,38 @@ open can create or update sidecars and is not presumed mutation-free.
 
 If these sources conflict, do not select the permissive interpretation. Stop,
 identify the exact conflict, and request the smallest decision needed.
+
+
+## September 6, 2026 — FMP research repair and local live quote
+
+The owner authorized MSFT/AAPL FMP input repair, MSFT/AAPL/SPY price-gap
+repair, a local `price_realtime(ticker)` tool and an agent handoff. Historical
+estimates/consensus are deferred. The finite collection is capped at 40 FMP
+requests with no retry. The owner also authorized restarting Ubuntu WSL
+after its connection failure; normal recurring-unit scope and schedules
+remain unchanged. See the [focused contract](FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md)
+and companion handoff for exact scope and actual activation evidence.
+
+### FMP repair completion evidence
+
+Canonical publication completed at `2026-09-06T18:32:28.751777Z`:
+company migration 0008, 26 research snapshots / 385 source rows, and 34 missing
+MSFT/AAPL/SPY daily-price versions. Full offline coverage was 1,607 unique
+successful cases across retained/resumed runs, with independent review.
+Post-publication public readers and immutable checks passed. All 29 bounded
+retained-response replay checks returned unchanged and zero canonical writes;
+company and market main-file hashes, sizes and mtimes were identical.
+
+The finite FMP ledger closed at **35 attempts / cap 40**, with no retry:
+25 new company responses, four HTTP 402 availability checks, three price
+responses and three quote checks. One existing AAPL annual estimate response
+was reused without a request. This completed population is not authorization
+to repeat collection or backfill; a new repeat requires its own finite scope.
+`price_realtime` performs one request per explicit local invocation.
+
+Ubuntu was restarted twice under the owner's authorization after host control
+connection failures. No recurring unit was manually triggered or reconfigured
+by this repair. An authorized normal hourly news run completed during testing;
+the affected unchanged data-guard test was rerun successfully afterward.
+See the [completed handoff](FMP_RESEARCH_INPUT_HANDOFF_2026-09-06.md)
+for receipts, tool usage, source conflicts and remaining gaps.

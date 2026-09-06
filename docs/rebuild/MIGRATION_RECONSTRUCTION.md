@@ -435,3 +435,20 @@ Stage 4 resources above, without asserting historical SQL parity.
    candidate population and receipt are complete. Every
    future migration allocation remains serialized under the next applicable
    roadmap gate.
+
+## FMP company research-input allocation — 2026-09-06
+
+The user authorized the bounded FMP repair for MSFT and AAPL research inputs.
+This forward-only company allocation preserves all applied company migrations.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `company:0008_fmp_research_inputs` | company | 8 | `quant_data/migrations/company/0008_fmp_research_inputs.sql` | `17b35efa1ba21b3526e6b0fda361736ac6a11b79cfd7109c92ea6b75dfee2831` | `fixture_validated` | Applied at 2026-09-06T18:28:16.997079Z after full offline coverage and independent review; immutable ledger/checksum and new-table integrity verified |
+
+The allocation owns `company_fmp_research_snapshots` and
+`company_fmp_research_rows`: immutable retained-response lineage and versioned
+source rows, with separate annual/quarter identities and local capture cutoffs.
+It does not redefine SEC fundamentals, establish historical consensus, infer
+accounting basis or currency, change other store ownership, or add a recurring
+collector. The exact provider scope and request cap are recorded in the
+[FMP research-input contract](FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md).

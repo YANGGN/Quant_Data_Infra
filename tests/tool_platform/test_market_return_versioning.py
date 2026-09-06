@@ -66,10 +66,10 @@ V1_CATALOG_SHA256 = (
     "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 )
 V2_CATALOG_SHA256 = (
-    "6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b"
+    "61755e015ba4f52eb2571d729c390137303021ff074241e5164cc36d2258f7ed"
 )
 CURRENT_REGISTRY_SHA256 = (
-    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
+    "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
 )
 REGISTRY_268_SOURCE_SHA256 = (
     "9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e"
@@ -1191,7 +1191,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
     ) -> None:
         self.assertEqual(
             (self.registry.schema_version, self.registry.registry_version),
-            ("1.9.0", "2.70.0"),
+            ("1.9.0", "2.71.0"),
         )
         self.assertEqual(self.registry.source_sha256, CURRENT_REGISTRY_SHA256)
         technical_v23_predecessor = (
@@ -1929,11 +1929,13 @@ class MarketReturnVersioningTests(unittest.TestCase):
         v1 = loads_strict(V1_CATALOG.read_bytes())
         v2 = loads_strict(V2_CATALOG.read_bytes())
         self.assertEqual(len(v1["contracts"]), 114)
-        self.assertEqual(v2["schema_version"], "2.27.0")
-        self.assertEqual(len(v2["contracts"]), 158)
+        self.assertEqual(v2["schema_version"], "2.28.0")
+        self.assertEqual(len(v2["contracts"]), 162)
         self.assertEqual(
             {item["tool"] for item in v2["contracts"]},
             {
+                "company.get_research_inputs",
+                "price_realtime",
                 "portfolio.get_etf_allocator_snapshot",
                 "market.get_price_series",
                 "market.get_volume_series",
@@ -1999,7 +2001,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         )
         self.assertEqual(
             sum(item["id"].endswith(":1.0.0") for item in v2["contracts"]),
-            36,
+            40,
         )
         self.assertEqual(
             {
@@ -2008,6 +2010,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 if item["id"].endswith(":1.0.0")
             },
             {
+                "company.get_research_inputs",
+                "price_realtime",
                 "portfolio.get_etf_allocator_snapshot",
                 "market.get_available_ticker",
                 "market.get_price_series",
@@ -2136,8 +2140,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 explicit_store_map(Path(temporary) / "stores"), self.registry
             )
             manifest = dispatcher.manifest()
-        self.assertEqual(len(manifest["tools"]), 75)
-        self.assertEqual(len({item["name"] for item in manifest["tools"]}), 75)
+        self.assertEqual(len(manifest["tools"]), 77)
+        self.assertEqual(len({item["name"] for item in manifest["tools"]}), 77)
         price_series = next(
             item
             for item in manifest["tools"]
@@ -2709,7 +2713,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         self.assertEqual(malformed_payload["error"]["code"], "invalid_request")
         self.assertEqual(
             malformed_payload["receipt"],
-            {"registry_revision": "2.70.0"},
+            {"registry_revision": "2.71.0"},
         )
         for response in non_string:
             with self.subTest(body=response.body):
@@ -2718,7 +2722,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 self.assertEqual(payload["error"]["code"], "invalid_request")
                 self.assertEqual(
                     payload["receipt"],
-                    {"registry_revision": "2.70.0"},
+                    {"registry_revision": "2.71.0"},
                 )
 
 

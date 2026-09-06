@@ -32,10 +32,10 @@ class FmpMacroCalendarRegistryTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.revision, "2.70.0")
+        self.assertEqual(registry.revision, "2.71.0")
         self.assertEqual(
             (len(registry.migrations), len(registry.datasets), len(registry.collectors)),
-            (44, 59, 66),
+            (45, 61, 68),
         )
         collector = next(
             item for item in registry.collectors if item["id"] == COLLECTOR_ID
@@ -121,7 +121,7 @@ class FmpMacroCalendarRegistryTests(unittest.TestCase):
         ).encode("utf-8")
         self.assertEqual(hashlib.sha256(payload).hexdigest(), PRE_FMP_SOURCE_SHA256)
 
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         collector = next(item for item in raw["collectors"] if item["id"] == COLLECTOR_ID)
         collector["handler"] = "macro.unreviewed"
         with tempfile.TemporaryDirectory(dir="/tmp") as directory:

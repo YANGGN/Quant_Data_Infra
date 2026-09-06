@@ -22,7 +22,7 @@ DATASET_IDS = (
     "fixture.macro.stage3_catalog",
 )
 CURRENT_SOURCE_SHA256 = (
-    "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
+    "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
 )
 PRE_EXTENSION_SOURCE_SHA256 = (
     "9ed2affcaa84c6420c7650c10a02361fad2bd892b33a5df2797e033e300ef86d"
@@ -40,7 +40,7 @@ class BeaPersonalIncomeRegistryTests(unittest.TestCase):
     def test_collector_is_private_bounded_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.70.0")
+        self.assertEqual(registry.revision, "2.71.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -48,7 +48,7 @@ class BeaPersonalIncomeRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (44, 59, 66),
+            (45, 61, 68),
         )
         collector = next(
             item
