@@ -375,7 +375,9 @@ def _classification_for_name(
         return None, 10, ambiguous
 
     known_exclusion = (
-        "gdpnow" in normalized
+        # Cleveland Fed CPI measures are not BLS headline/core CPI releases.
+        (normalized.startswith("cleveland ") and "cpi" in normalized.split())
+        or "gdpnow" in normalized
         or "price index" in normalized
         or "deflator" in normalized
         or "gdp sales" in normalized
@@ -387,6 +389,7 @@ def _classification_for_name(
         in {
             "cpi",
             "cpi s a",
+            "cpi n s a mom",
             "core cpi",
             "consumer price index cpi",
             "consumer price index",

@@ -56,12 +56,11 @@ independent post-proof reconciliation did not reopen SQLite or compute a new
 full-database hash; this is not backup or recovery evidence. Stage 12D created
 no second database, copy, move, replacement, backup, migration, registry bump,
 promotion pointer, provider/network access, public exposure, or scheduler
-change. Registry `2.14.0`/schema `1.8.0` and `data/market.sqlite` remain
-authoritative. Stage 12E's reviewed daily-market timer was daemon-reloaded,
-enabled, and started on 2026-08-29. It is active and waiting for its first
-normal trigger, Monday 2026-08-31 18:00:00 EDT; the service has not run and no
-provider request or canonical write occurred during activation. It does not
-create public exposure or repeat historical market population.
+change within that proof. Registry `2.14.0`/schema `1.8.0` binds the historical
+Stage 12C/D evidence; `data/market.sqlite` remains the canonical market default.
+Later Stage 12E authority and dated activation evidence are indexed in the
+[current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions).
+Those records do not constitute a fresh check of host state.
 
 ### FMP credentials for future authorized runs
 
@@ -102,11 +101,28 @@ strict-JSON response in pages.
 The Current news page renders a bounded latest selection through the fixed
 `news.search@2.2.0` public contract, with source, symbol, date, text, and
 cursor filters. Retained raw response bytes and article bodies remain private.
-The Data status page reports retained capture/outcome freshness without
-probing providers, credentials, or schedulers. `GET /healthz` is a process-
+The Data status page reports retained capture/outcome freshness alongside
+Refresh Cadence and Next Scheduled Fetch from a read-only snapshot of the nine
+fixed local project timers. Cadence uses each loaded timer's calendar and time
+zone; the next batch start is shown in UTC. Inactive/unmapped schedules show
+Not scheduled, and unavailable timer data is explicit. Refresh the page to
+update the snapshot. Timer triggers may skip holidays or yield unchanged data;
+they are separate from source publication frequency and retained freshness.
+Last successful capture is displayed in New York time, labelled EST or EDT
+according to the date, with the original timestamp retained in the page markup.
+Next Scheduled Fetch remains explicitly UTC. The retained-status JSON API
+keeps its original timestamps. `GET /healthz` is a process-
 liveness endpoint only and makes no data-freshness or provider-health claim.
 The launcher has no SQL, database-path, credential, provider-request,
 ingestion, or write control.
+
+The Inspector shares grouped navigation across Data views, Current news, Data
+status, and Agent Tools. Data tables retain every returned field and its exact
+value; select a record to inspect its fields alongside the table, including
+separate availability and capture timestamps. Close the record panel to return
+keyboard focus to its row. Narrow screens use a collapsible navigation menu
+and contained table scrolling. Filters, pagination, and complete data tables
+remain available without JavaScript.
 
 The authorized Stage 8 scope is one manual, fixture-only JSON Atlas snapshot
 built from explicit synthetic store roots and query-only SQLite online-backup
@@ -443,7 +459,7 @@ surprise table. The completed manual history used exactly 56 contiguous windows
 of at most 90 days from `2013-01-01` through `2026-08-17`, retaining 941 FMP
 events and 941 versions: 216 core MoM, 217 core YoY, 214 headline MoM, 217
 headline YoY, and 77 GDP. The reviewed target alias map is exact, with no fuzzy
-target matching, and ignores bare CPI, GDP Price Index, and GDP Consumer Spending labels.
+target matching, and ignores bare CPI, Cleveland-qualified CPI, CPI n.s.a. MoM, GDP Price Index, and GDP Consumer Spending labels.
 
 Historical FMP consensus uses the explicit `event_at_utc` availability
 assumption. GDP surprise is computed on demand as one best-available record per
@@ -654,8 +670,8 @@ no retry; all eight source steps succeeded, including 13 Alpaca/Benzinga
 batches. The batch retained 1,069 generic-source articles in addition to the
 229 FMP stock-latest articles. The manual entry point is
 `python3 scripts/refresh_current_news.py`. On 2026-08-30 the reviewed per-user
-systemd units were linked, daemon-reloaded, enabled, and started. The timer is
-`loaded`/`enabled`/`active`/`waiting` for its first normal `:10` UTC
+systemd units were linked, daemon-reloaded, enabled, and started. That check
+recorded `loaded`/`enabled`/`active`/`waiting` for the first normal `:10` UTC
 trigger; activation did not start the service, contact a provider, or write a
 store. Its exact projection removes
 migrations 0007/0008, the three 2.64 datasets, its collector, and v2.1, then
@@ -731,5 +747,6 @@ consumer, or authorize a scheduler. The final neutral source check used
 [no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
 and [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Its two read-only
 proofs were filesystem-neutral and created only their immutable private
-receipts. Stage 12E's bounded daily-market timer is enabled and waiting for
-its first normal clock-driven run; no live daily-batch receipt is claimed.
+receipts. Later Stage 12E authorization and operational evidence are indexed
+in the [operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions),
+separately from these historical proofs.

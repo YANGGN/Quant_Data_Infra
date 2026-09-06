@@ -16,8 +16,9 @@ and private candidate receipt are complete, with promotion and public exposure
 still closed; the bounded Stage 12A authority/path gate and Stage 12B
 fixture-only collector are implemented and independently verified; Stages 12C
 and 12D are complete and independently verified as bounded no-copy/no-transfer
-results; Stage 12E authorized and implemented, with its timer enabled and
-waiting for the first normal trigger
+results; Stage 12E authority and dated activation evidence are indexed in the
+[current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md).
+Recorded activation is not a fresh check of current host state.
 
 On 2026-08-29 the user removed formal four-store backup/restore
 certification from the restoration exit criteria for this personal project.
@@ -580,8 +581,8 @@ The following decisions apply to every stage:
   schema guard, with no consumer or source ID. The bounded 2026-08-30 16:00 UTC
   proof completed all 20 requests without retry and retained 1,069 generic
   articles; all eight source steps succeeded. On 2026-08-30 the reviewed
-  hourly per-user timer was linked, enabled, and started. It is active/waiting
-  for its first normal `:10` UTC trigger; activation did not run the service,
+  hourly per-user timer was linked, enabled, and started. That check recorded
+  active/waiting for its first normal `:10` UTC trigger; activation did not run the service,
   contact a provider, or write a store.
 
 - Registry `2.65.0` adds market migration
@@ -1236,8 +1237,8 @@ in [Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
 
 Status: **Stages 12A and 12B implemented and independently verified within
 their offline boundaries; Stages 12C and 12D complete and independently
-verified; Stage 12E authorized and implemented, with its timer enabled and
-waiting for the first normal trigger.** The focused
+verified; subsequent Stage 12E authority and dated activation evidence are
+indexed in the operating envelope.** The focused
 [Stage 12C two-session contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md),
 [Stage 12C evidence record](docs/rebuild/STAGE12C_EVIDENCE.md),
 [Stage 12D no-transfer contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md),
@@ -1308,12 +1309,12 @@ and immutable [evidence record](docs/rebuild/STAGE12C_EVIDENCE.md).
   new full-database hash. No copy, move, replacement, transfer, backup,
   migration, registry bump, promotion pointer, provider/network access, public
   exposure, or scheduler change occurred.
-- **12E — enabled daily market refresh (waiting for first trigger):** On
-  2026-08-29 the reviewed weekday 18:00 America/New_York host unit was
-  daemon-reloaded, enabled, and started. The timer is
-  `loaded`/`enabled`/`active`/`waiting`; its first next trigger is Monday
-  2026-08-31 18:00:00 EDT, `LastTrigger` is empty, and the service has not
-  run. Each normal clock-driven run snapshots every current FMP
+- **12E — separately authorized daily market refresh:** On 2026-08-29 the
+  reviewed weekday 18:00 America/New_York host unit was daemon-reloaded,
+  enabled, and started. The dated activation evidence and subsequent
+  operational decisions are indexed in the
+  [operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions).
+  Each normal clock-driven run snapshots every current FMP
   provider-native Stage 10 `equity`/`etf`/`index` identity before network
   access. The 2026-08-29 preflight contained 630 identities (519 equity, 96
   ETF, and 15 index); the bounded snapshot is dynamic, capped at 800, and
@@ -1375,8 +1376,8 @@ authorized Stage 12C, which is now complete under its
 be repeated. Stage 12D is complete and independently verified under its
 [no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
 and [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Stage 12E is
-separately authorized and implemented; its timer is enabled and waiting for
-the first normal clock-driven run.
+separately authorized; its dated activation and subsequent operational records
+are indexed in the operating envelope.
 
 ## 17. Cross-stage quality gates
 

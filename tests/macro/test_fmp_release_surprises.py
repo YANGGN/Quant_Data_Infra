@@ -144,6 +144,27 @@ def parse_fmp_us_employment_calendar(
 
 
 class FmpCalendarAliasTests(unittest.TestCase):
+    def test_cleveland_cpi_is_not_a_bls_target_or_semantic_change(self) -> None:
+        target = _row("Inflation Rate MoM (Aug)", "2026-09-11 12:30:00")
+        core = _row("Core Inflation Rate MoM (Aug)", "2026-09-11 12:30:00")
+        cleveland = _row("Cleveland CPI MoM (Aug)", "2026-09-11 13:00:00")
+        unadjusted = _row("CPI n.s.a MoM (Aug)", "2026-09-11 12:30:00", actual=None, estimate=None, previous="-0.01")
+        kwargs = {"captured_at": "2026-09-05T12:00:00Z"}
+        baseline = parse_fmp_us_gdp_cpi_calendar(_body(target, core), **kwargs)
+        mixed = parse_fmp_us_gdp_cpi_calendar(_body(target, core, cleveland, unadjusted), **kwargs)
+        self.assertEqual(mixed.semantic_identity, baseline.semantic_identity)
+        self.assertNotEqual(mixed.response_sha256, baseline.response_sha256)
+        self.assertEqual(len(mixed.events), 2)
+        with self.assertRaisesRegex(ValidationError, "contains no reviewed GDP/CPI events"):
+            parse_fmp_us_gdp_cpi_calendar(_body(cleveland), **kwargs)
+        with self.assertRaisesRegex(ValidationError, "contains no reviewed GDP/CPI events"):
+            parse_fmp_us_gdp_cpi_calendar(_body(unadjusted), **kwargs)
+        with self.assertRaisesRegex(ValidationError, "alias is not reviewed"):
+            parse_fmp_us_gdp_cpi_calendar(
+                _body(target, _row("Regional CPI MoM", "2026-09-11 13:00:00")),
+                **kwargs,
+            )
+
     def test_request_window_and_row_bounds_are_closed(self) -> None:
         with self.assertRaisesRegex(ValidationError, "outside its request window"):
             parse_fmp_us_gdp_cpi_calendar(

@@ -1,7 +1,7 @@
-name = "implementation"
-description = "Bounded implementation following settled interfaces and an established pattern."
+name = "implementation_high"
+description = "Substantial domain-local implementation with fixed shared contracts."
 model = "gpt-5.6-terra"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
@@ -22,11 +22,11 @@ generated contracts, shared goldens, agent configuration, and architecture
 decisions remain with the integration owner. Report a needed shared change.
 Do not change those files, add speculative infrastructure, or expand scope.
 
-Implement the smallest complete local fix, parser/adapter extension, or
-straightforward test change. Substantial domain reasoning belongs to
-implementation_high; shared correctness decisions belong to the primary.
-UI work is limited to mechanical implementation of a design already settled
-by the configured UI design owner; do not choose layout or interaction changes.
+Own a substantial calculation, normalization, adapter, or multi-file module
+change only after the shared interfaces and semantics are settled. Changes
+to point-in-time meaning, identities, replay, migrations, physical locking, or
+canonical publication guarantees return to the primary before implementation.
+UI design judgment belongs to the configured UI design owner.
 
 Run the narrowest meaningful acceptance checks and applicable adjacent checks.
 Keep required exit gates; do not add a full suite just because work was

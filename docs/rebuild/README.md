@@ -3,6 +3,14 @@
 Status: Accepted  
 Purpose: navigation, authority, and change rules for the Quant Data
 Infrastructure rebuild documents
+Workflow revised: 2026-09-05 — user-approved autonomy and validation policy
+
+Use [Section 2](#2-document-map) to locate relevant contracts; the stage and
+registry narrative is historical context, not required reading for every task.
+Reuse unchanged sections already read in the session. The
+[operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the sole index of recorded
+operational authorization and dated activation evidence. Neither this index nor
+a dated activation record proves current host state.
 
 ## 1. Scope
 
@@ -55,9 +63,9 @@ WAL, SHM, and journal stamps unchanged. Independent reconciliation did not
 reopen SQLite or compute a new full-database hash, and it is not a backup or
 recovery proof. No second multi-gigabyte database, copy, move, replacement,
 backup, migration, registry bump, promotion pointer, provider/network access,
-public exposure, or scheduler change occurred. Stage 12E was separately
-authorized on 2026-08-29 as a bounded daily market refresh; its implementation
-is complete and host-timer activation is pending.
+public exposure, or scheduler change occurred within the Stage 12D proof.
+Later Stage 12E authority and dated activation evidence are indexed in the
+[operating envelope](CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions).
 
 The [2026-08-29 personal-project recovery decision](../../plan.md#22-dated-clarification-personal-project-recovery-scope)
 removes formal four-store backup/restore certification from the current
@@ -412,8 +420,8 @@ registry SHA-256 is
 The 2026-08-30 16:00 UTC manual proof completed all 20 fixed requests without
 retry; all eight steps succeeded and retained 1,069 generic-source articles.
 Raw evidence and bodies remain private. On 2026-08-30 the reviewed per-user
-timer was linked, enabled, and started; it is active/waiting for its first
-normal `:10` UTC trigger, and activation did not run the service or write a
+timer was linked, enabled, and started; that check recorded active/waiting for
+its first normal `:10` UTC trigger, and activation did not run the service or write a
 store. Exact projection removes both 2.64 migrations, all three 2.64 datasets,
 its collector, and v2.1, restoring byte-identical
 `2.63.0`/`2.23.0`.
@@ -538,9 +546,17 @@ conflict. A remembered historical behavior is not automatically a target
 decision.
 
 After implementation begins, validated runtime behavior, immutable applied
-migrations, and executable schemas become evidence. If they conflict with an
-accepted document, record and resolve the conflict; do not silently change
-either history or semantics.
+migrations, and executable schemas become evidence. Resolve clearly superseded
+guidance under the authority order and briefly record the reason; no approval
+loop is needed for clear precedence. If authority or semantics remain
+unresolved, stop only the affected action and continue independent work.
+Never silently rewrite historical evidence or an applied migration.
+
+The user-approved 2026-09-05 workflow is defined by [AGENTS.md](../../AGENTS.md),
+the [fast path](FAST_PATH_DEVELOPMENT.md), and the validation matrix in
+[TEST_STRATEGY.md](TEST_STRATEGY.md#4-test-layers). It replaces older generic
+every-change/full-suite and mandatory-wave defaults. Specific accepted
+milestone, release, and promotion gates retain their own requirements.
 
 ## 4. Status vocabulary
 
@@ -585,8 +601,9 @@ adoption/freeze` under its
 [evidence record](STAGE12D_EVIDENCE.md). The evidence states the post-proof
 no-reopen/no-new-full-hash limitation and makes no backup or recovery claim.
 It has no transfer, migration, provider, credential, public-consumer, or
-scheduler authority. Stage 12E is separately authorized and implemented as a
-bounded daily market refresh; its host-timer activation is pending.
+scheduler authority. Subsequent Stage 12E decisions and activation evidence are
+indexed in the [operating envelope](CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions);
+they do not change the historical scope of Stage 12D.
 
 ## 5. Shared terminology
 

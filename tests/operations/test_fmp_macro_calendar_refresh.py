@@ -272,6 +272,47 @@ class FmpMacroCalendarRefreshTests(unittest.TestCase):
         )
         return runner, selected_publisher, selected_employment_publisher, selected_transport
 
+    def test_tracking_distinguishes_fetch_success_from_normalization_failure(self) -> None:
+        def failing_parser(*args, **kwargs):
+            raise ValidationError("fixture normalization failure")
+        runner, publisher, employment, transport = self._runner(employment_parser=failing_parser)
+        attempts = []
+        runner._attempt_observer = lambda **attempt: attempts.append(attempt)
+        with self.assertRaises(ValidationError):
+            runner.run()
+        self.assertEqual(len(transport.calls), 1)
+        self.assertEqual([item["outcome"] for item in attempts], ["published", "failed"])
+        self.assertTrue(all(item["successful_fetch_at"] == "2026-08-18T12:15:00.000000Z" for item in attempts))
+        self.assertEqual(publisher.calls, [])
+        self.assertEqual(employment.calls, [])
+        self.assertNotIn(SECRET, str(attempts))
+
+    def test_tracking_records_unchanged_and_transport_failure_without_retry(self) -> None:
+        runner, publisher, employment, transport = self._runner()
+        publisher.outcome = employment.outcome = self.wholesale_publisher.outcome = "unchanged"
+        attempts = []
+        runner._attempt_observer = lambda **attempt: attempts.append(attempt)
+        runner.run()
+        self.assertEqual([item["outcome"] for item in attempts], ["unchanged", "unchanged"])
+        transport.response = FmpMacroCalendarTransportResponse(status=503, media_type="application/json", body=b"[]")
+        attempts.clear()
+        with self.assertRaises(Exception):
+            runner.run()
+        self.assertEqual(len(transport.calls), 2)
+        self.assertEqual([item["outcome"] for item in attempts], ["failed", "failed"])
+        self.assertTrue(all(item["successful_fetch_at"] is None for item in attempts))
+
+    def test_receipt_failure_never_repeats_provider_or_publication(self) -> None:
+        runner, publisher, employment, transport = self._runner()
+        def failing_observer(**attempt):
+            raise StoreUnavailableError("Refresh status could not be recorded")
+        runner._attempt_observer = failing_observer
+        with self.assertRaises(StoreUnavailableError):
+            runner.run()
+        self.assertEqual(len(transport.calls), 1)
+        self.assertEqual(len(publisher.calls), 1)
+        self.assertEqual(len(employment.calls), 1)
+
     def test_one_request_uses_stable_first_block_and_redacts_key(self) -> None:
         employment_parser = _Parser(self.events, self.lock_state)
         runner, publisher, employment_publisher, transport = self._runner(

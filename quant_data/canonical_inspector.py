@@ -15,7 +15,7 @@ import re
 import sqlite3
 import sys
 import stat
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from datetime import date
 from decimal import Decimal
@@ -37,6 +37,7 @@ from .dashboard.current_tool_page import (
     render_current_agent_tools_page,
 )
 from .dashboard.data_status_page import render_data_status_page
+from .dashboard.inspector_shell import render_inspector_shell, render_inspector_table
 from .errors import (
     Issue,
     QuantDataError,
@@ -44,6 +45,7 @@ from .errors import (
     StoreUnavailableError,
     ValidationError,
 )
+from .inspector_schedules import read_local_refresh_schedules
 from .json_codec import dumps_strict, loads_strict
 from .macro.fmp_calendar_wholesale import parse_fmp_us_calendar_wholesale
 from .macro.fmp_release_surprises import (
@@ -2230,7 +2232,13 @@ class CanonicalInspectorReadService:
 class CanonicalInspectorApplication(Stage1Application):
     """Read-only HTML/JSON surface for fixed views and public tool calls."""
 
-    def __init__(self, store_map: StoreMap, registry: Registry) -> None:
+    def __init__(
+        self, store_map: StoreMap, registry: Registry, *,
+        schedule_reader: Callable[[], Mapping[str, Mapping[str, str | None]]] | None = None,
+        metadata_reader: Callable[[], Mapping[str, Mapping[str, Any]]] | None = None,
+    ) -> None:
+        self._schedule_reader = schedule_reader
+        self._metadata_reader = metadata_reader
         if registry.registry_version != _CURRENT_REGISTRY or registry.schema_version != _CURRENT_SCHEMA:
             raise ValidationError("Canonical inspector requires the current registry")
         super().__init__(store_map, registry)
@@ -2241,6 +2249,14 @@ class CanonicalInspectorApplication(Stage1Application):
             raise StoreUnavailableError("Canonical inspector local assets are invalid")
         self._assets = {
             "/assets/dashboard.css": (css, "text/css; charset=utf-8"),
+            "/assets/inspector.css": (
+                (_ASSET_ROOT / "inspector.css").read_bytes(),
+                "text/css; charset=utf-8",
+            ),
+            "/assets/inspector.js": (
+                (_ASSET_ROOT / "inspector.js").read_bytes(),
+                "application/javascript; charset=utf-8",
+            ),
             "/assets/inter-variable.woff2": (font, "font/woff2"),
             "/assets/inspector-tools.css": (
                 (_ASSET_ROOT / "inspector_tools.css").read_bytes(),
@@ -2315,6 +2331,8 @@ class CanonicalInspectorApplication(Stage1Application):
                     result,
                     registry_revision=self._registry.revision,
                     error=error,
+                    schedules=self._schedule_reader() if self._schedule_reader else None,
+                    metadata=self._metadata_reader() if self._metadata_reader else None,
                 ).encode("utf-8"),
                 "text/html; charset=utf-8",
             )
@@ -2473,7 +2491,15 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
             raise StoreUnavailableError(f"Canonical {role.value} store is unavailable")
         if stores.path(role) != expected.resolve(strict=True):
             raise ValidationError("Canonical inspector store binding is invalid")
-    return CanonicalInspectorApplication(stores, registry)
+    from .inspector_status import read_inspector_status
+
+    return CanonicalInspectorApplication(
+        stores, registry, schedule_reader=lambda: read_local_refresh_schedules(registry),
+        metadata_reader=lambda: read_inspector_status(
+            stores, registry=registry,
+            operations_root=root / "data" / ".operations" / "refresh-status"
+        ),
+    )
 
 
 @contextmanager
@@ -2773,7 +2799,7 @@ def _render_news_status_panel(
 ) -> str:
     rows = _current_news_rows(result)
     notice = (
-        f'<div class="state-notice warning" role="alert">{html.escape(error)}</div>'
+        f'<div class="state-notice state-error" role="alert">{html.escape(error)}</div>'
         if error
         else ""
     )
@@ -2818,19 +2844,8 @@ def _render_current_news_page(
     status_result: Mapping[str, Any],
     status_error: str | None,
 ) -> str:
-    navigation = "".join(
-        '<a href="/?' + html.escape(urlencode({"view": item}), quote=True) + '">'
-        + html.escape(_VIEW_LABELS[item])
-        + "</a>"
-        for item in _VIEWS
-    )
-    navigation += (
-        '<a href="/news" aria-current="page">Current news</a>'
-        '<a href="/data-status">Data status</a>'
-        '<a href="/agent-tools">Agent Tools</a>'
-    )
     notice = (
-        f'<div class="state-notice warning" role="alert">{html.escape(error)}</div>'
+        f'<div class="state-notice state-error" role="alert">{html.escape(error)}</div>'
         if error
         else ""
     )
@@ -2853,8 +2868,8 @@ def _render_current_news_page(
         for limit in (10, 25, 50, 100)
     )
     form = (
-        '<form class="query-form" method="get" action="/news"><fieldset>'
-        '<legend>Current headline filters</legend><div class="form-grid">'
+        '<form class="query-form inspector-query" method="get" action="/news"><fieldset>'
+        '<legend class="inspector-sr-only">Current headline filters</legend><div class="form-grid">'
         + _input("query", "Headline or summary", raw_query.get("query"))
         + _input(
             "symbol",
@@ -2955,20 +2970,18 @@ def _render_current_news_page(
         else ""
     )
     status_panel = _render_news_status_panel(status_result, status_error)
-    return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Current news · Canonical Data Inspector</title><link rel="stylesheet" href="/assets/dashboard.css"></head>
-<body><a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell">
-<header class="site-header"><a class="brand" href="/"><span class="brand-mark">QD</span><strong>Canonical Data Inspector</strong></a>
-<p class="shell-status"><span aria-hidden="true">●</span> Local read-only · registry {html.escape(revision)}</p></header>
-<nav class="primary-nav" aria-label="Inspector views">{navigation}</nav>
-<main id="main-content"><section class="page-intro"><p class="eyebrow">Retained headlines · inspection only</p>
-<h1>Current news</h1><p>Browse bounded headline metadata from the fixed canonical news database. Article bodies, raw provider responses, database paths, writes, and live provider calls are not exposed.</p></section>
-{notice}{status_panel}<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Filters</p><h2>Choose what to inspect</h2></div></div>{form}</section>
-<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Latest retained metadata</p><h2>{len(rows):,} headlines on this page</h2><p>{html.escape(total_copy)}</p></div>
+    status_open = " open" if status_error else ""
+    body = f"""
+{notice}<section class="inspector-filters" aria-label="Headline filters">{form}</section>
+<section class="panel inspector-results"><div class="panel-header"><div><h2>{len(rows):,} headlines on this page</h2><p>{html.escape(total_copy)}</p></div>
 <a href="/agent-tools?tool=news.search">Advanced tool view</a></div>
-<div class="table-scroll"><table><thead><tr><th>Published</th><th>Source</th><th>Headline</th><th>Symbols</th><th>Available locally</th><th>Link</th></tr></thead><tbody>{body}</tbody></table></div>{pager}</section>
-</main><footer class="site-footer"><p>Loopback only · read only · current news.search@{_CURRENT_NEWS_TOOL_VERSION}</p></footer></div></body></html>"""
+<div class="inspector-table-workspace" data-inspector-table-workspace><div class="table-scroll" tabindex="0" role="region" aria-label="Current headlines"><table data-inspector-table><caption>Retained headline metadata</caption><thead><tr><th scope="col">Published</th><th scope="col">Source</th><th scope="col">Headline</th><th scope="col">Symbols</th><th scope="col">Available locally</th><th scope="col">Link</th></tr></thead><tbody>{body}</tbody></table></div></div>{pager}</section>
+<details class="inspector-disclosure"{status_open}><summary>News source status · retained evidence</summary>{status_panel}</details>"""
+    return render_inspector_shell(
+        title="Current news", active="/news", revision=revision, body=body,
+        description="Browse retained headlines by source, symbol, and publication date.",
+        footer=f"Loopback only · read only · current news.search@{_CURRENT_NEWS_TOOL_VERSION}",
+    )
 
 
 def _render_page(
@@ -2978,53 +2991,36 @@ def _render_page(
     error: str | None,
 ) -> str:
     view = str(result["view"])
-    navigation = "".join(
-        '<a href="/?' + html.escape(urlencode({"view": item}), quote=True) + '"'
-        + (' aria-current="page"' if item == view else "")
-        + f">{html.escape(_VIEW_LABELS[item])}</a>"
-        for item in _VIEWS
-    )
-    navigation += (
-        '<a href="/news">Current news</a>'
-        '<a href="/data-status">Data status</a>'
-        '<a href="/agent-tools">Agent Tools</a>'
-    )
     notice = (
-        f'<div class="state-notice warning" role="alert">{html.escape(error)}</div>'
-        if error
-        else ""
+        f'<div class="state-notice state-error" role="alert">{html.escape(error)}</div>'
+        if error else ""
     )
     form = _render_form(view, result.get("query", {}), result)
     columns = tuple(str(item) for item in result.get("columns", ()))
     rows = result.get("rows", ())
-    header = "".join(f"<th>{html.escape(item.replace('_', ' ').title())}</th>" for item in columns)
-    body = "".join(
-        "<tr>" + "".join(f"<td>{_html_value(row.get(column))}</td>" for column in columns) + "</tr>"
-        for row in rows
-        if isinstance(row, Mapping)
-    )
-    if not body:
-        body = f'<tr><td colspan="{max(1, len(columns))}">No rows match this selection.</td></tr>'
     page = int(result.get("page", 1))
     limit = int(result.get("limit", 25))
     total = int(result.get("total", 0))
     pager = _render_pager(raw_query, view, page, limit, total)
     api_query = dict(raw_query)
     api_query["view"] = view
-    return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Canonical Data Inspector</title><link rel="stylesheet" href="/assets/dashboard.css"></head>
-<body><a class="skip-link" href="#main-content">Skip to content</a><div class="app-shell">
-<header class="site-header"><a class="brand" href="/"><span class="brand-mark">QD</span><strong>Canonical Data Inspector</strong></a>
-<p class="shell-status"><span aria-hidden="true">●</span> Local read-only · registry {html.escape(revision)}</p></header>
-<nav class="primary-nav" aria-label="Inspector views">{navigation}</nav>
-<main id="main-content"><section class="page-intro"><p class="eyebrow">Operational data · inspection only</p>
-<h1>{html.escape(_VIEW_LABELS[view])}</h1><p>Fixed, bounded queries over the canonical market, macro, and company databases, plus the canonical news database. Database paths, SQL, writes, and provider calls are not available here.</p></section>
-{notice}<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Filters</p><h2>Choose what to inspect</h2></div></div>{form}</section>
-<section class="panel"><div class="panel-header"><div><p class="panel-kicker">Results</p><h2>{total:,} matching rows</h2></div>
+    table = render_inspector_table(
+        columns, rows, caption=f"{_VIEW_LABELS[view]} · all {len(columns)} fields",
+    )
+    first = (page - 1) * limit + 1 if rows else 0
+    last = (page - 1) * limit + len(rows) if rows else 0
+    body = f"""
+{notice}<section class="inspector-filters" aria-label="Query filters">{form}</section>
+<section class="panel inspector-results"><div class="panel-header"><div>
+<h2>{total:,} matching rows</h2><p>Rows {first:,}–{last:,} · page {page:,}</p></div>
 <a href="/api/rows?{html.escape(urlencode(api_query), quote=True)}">View JSON</a></div>
-<div class="table-scroll"><table><thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>{pager}</section>
-</main><footer class="site-footer"><p>Loopback only · GET only · no database mutation</p></footer></div></body></html>"""
+{table}{pager}</section>
+<p class="inspector-footnote">Observation, availability, and capture times remain distinct. Missing values are not zero.</p>"""
+    return render_inspector_shell(
+        title=_VIEW_LABELS[view], active=view, revision=revision, body=body,
+        description="Browse retained observations with their original values and evidence.",
+        footer="Loopback only · fixed bounded queries · no database mutation",
+    )
 
 
 def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any]) -> str:
@@ -3344,7 +3340,15 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         )
         + "</select></label>"
     )
-    return '<form class="query-form" method="get" action="/"><fieldset><legend>Fixed query</legend><div class="form-grid">' + "".join(fields) + '</div><div class="form-actions"><button type="submit">Inspect</button></div></fieldset></form>'
+    return (
+        '<form class="query-form inspector-query" method="get" action="/"><fieldset>'
+        '<legend class="inspector-sr-only">Fixed query</legend><div class="form-grid">'
+        + "".join(fields)
+        + '</div><div class="form-actions"><button type="submit">Inspect</button>'
+        + '<a href="/?'
+        + html.escape(urlencode({"view": view}), quote=True)
+        + '">Reset filters</a></div></fieldset></form>'
+    )
 
 
 def _input(

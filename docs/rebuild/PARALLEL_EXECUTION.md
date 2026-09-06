@@ -2,12 +2,19 @@
 
 Status: Accepted  
 Planning baseline: 2026-08-09  
-Scope: dependency-aware multi-agent execution of the rebuild roadmap
+Scope: task-sized coordination and historical rebuild-wave reference
+Revised: 2026-09-05 — user-approved lightweight delegation and role-neutral routing
 
-> **Exception workflow:** ordinary bounded development follows the
-> [fast path](FAST_PATH_DEVELOPMENT.md): one owner, focused validation, and a
-> concise handoff. Use this parallel plan only when an accepted contract or the
-> fast-path escalation criteria require it. Parallelism is not a default gate.
+> **Read the applicable coordination section only.** Bounded investigation and
+> disjoint implementation use Section 2 with the [fast path](FAST_PATH_DEVELOPMENT.md).
+> Delegation alone does not require a formal wave or independent certification.
+> The historical wave plans apply only when an accepted gate calls for them.
+
+Sections 1, 3, and 5 summarize completed rebuild scopes as recorded in their
+linked evidence. Their exclusions do not grant new authority or cancel later
+explicit decisions. The [operating envelope](CURRENT_OPERATING_ENVELOPE.md)
+is the sole index of recorded operational authorization and dated activation
+evidence; it is not a live host-health report.
 
 ## 1. Purpose
 
@@ -47,44 +54,75 @@ and independently verified offline and fixture-only under its
 [evidence record](STAGE12C_EVIDENCE.md). Stage 12D is complete and
 independently verified under its
 [no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
-and [evidence record](STAGE12D_EVIDENCE.md); Stage 12E remains closed.
+and [evidence record](STAGE12D_EVIDENCE.md). That proof granted no Stage 12E
+authority; subsequent decisions are indexed in the operating envelope.
 
 ## 2. Capacity and operating model
 
-The project configuration assumes one SolUltra primary plus at most three
-concurrent subagents:
+The [routing guide](../../.codex/README.md) and its linked TOML files own current
+role/model/effort choices, including UI design. The September 5 user-approved
+routing replaces the former fixed implementation/verifier pair for future work;
+historical wave evidence and named completed checks remain unchanged.
+Check effective routes; configuration edits need a fresh trusted-project session.
 
-- the primary owns decomposition, shared interfaces, integration, and gates;
-- TerraMax implementation agents own disjoint bounded lanes;
-- the SolUltra verifier independently tests and reviews an integrated wave; and
-- completed agents free capacity for the next queued lane.
+Use one integration owner and one writer by default, normally zero or one
+subagent, and no more than three concurrent subagents within configured runtime
+capacity. Role presets do not imply that every role runs on every task.
 
-Parallelism is a throughput tool, not an objective by itself. Use all available
-slots when work is genuinely independent. Queue or serialize work when two
-lanes share a file, identifier space, schema decision, database, or acceptance
-boundary.
+- The integration owner controls shared semantics, critical implementation,
+  final integration, and completion; it directly finishes small tasks.
+- Bounded and substantial implementation roles own disjoint domain-local paths
+  after shared interfaces are settled. Mechanical work needs an exact,
+  checkable transformation; extra effort grants no broader responsibility.
+- Read-only investigators return evidence for a defined question.
+- Read-only analysts challenge designs and trace concrete failure paths.
+  Adversarial test authors own only assigned tests and temporary-fixture helpers.
+- A fresh independent verifier assesses a stable integrated baseline without
+  fixing it or having authored its implementation or tests.
+- The configured UI design owner handles every UI/UX and visual decision,
+  implementation requiring design judgment, and visual review. Other workers
+  may execute a settled mechanical UI specification. Browser checks still apply.
+
+Delegate only when a bounded question or independent lane saves time or improves
+quality. A single command or search rarely needs an agent. Use task-scoped lanes
+rather than permanent domain teams. Queue work sharing files, identifiers,
+schema decisions, stores, or acceptance boundaries. Do not require a verifier
+solely because a worker helped, or automatically run both analysis and review.
+Mandatory independent gates still apply; advisory analysis is not certification.
 
 ### Delegated task contract
 
-Every delegated task must state:
+Keep the assignment compact and complete:
 
-1. one concrete objective;
-2. whether it is read-only or write-capable;
-3. the exact owned files or directories for a writer;
-4. the authoritative specifications and fixed interfaces;
-5. the required validation and evidence;
-6. what the agent must not change; and
-7. the condition for stopping and escalating.
+1. Objective, intended behavior, and required output.
+2. Read-only scope, or exact owned write paths and prohibited shared edits.
+3. Current authority, fixed interfaces, relevant invariants, acceptance cases,
+   and required checks.
+4. Known risks and the boundary that returns a decision to the integration owner.
 
-Parallel writers require disjoint ownership. A subagent must stop and report a
-required change outside its ownership instead of crossing the boundary, and
-must not spawn another agent unless the primary explicitly delegated that
-authority.
+Provide relevant references or a compact context package. Do not routinely
+copy the entire conversation or rebuild history into each agent.
+Code searches stay within relevant source/docs/test directories, not operational
+data roots. Investigators do not open stores, run live diagnostics, or obtain
+credentials merely to answer source questions.
 
-Every subagent returns its objective and owned scope; files changed or an
-explicit read-only statement; validation commands and results; assumptions and
-unresolved risks; shared changes requested from the integration owner; and a
-clear `ready for integration` or `blocked` conclusion.
+Parallel writers require disjoint ownership. Executors do not recursively
+delegate. A needed change outside ownership returns to the primary. Known
+shared-safety risk determines stronger ownership before implementation; an
+unresolved ambiguity or failed speculative fix returns with the failure and
+attempted approach rather than another speculative repair cycle.
+
+Each actionable analysis/review finding identifies the trigger, violated
+requirement/invariant, evidence, and smallest sufficient correction. Optional
+improvements stay separate; added infrastructure requires an accepted need.
+Preserve focused and mandatory validation gates. Batch concrete corrections,
+then repeat only affected checks and any newly required adjacent/exit checks.
+
+Return the answer or changed paths, actual commands/results, findings,
+limitations, and integration-owner actions. A formal verifier also states whether
+the required evidence passed. Authored tests and self-review do not establish
+independent verification. Do not duplicate unchanged plans or claim checks
+that were not performed.
 
 ## 3. Dependency graph
 
@@ -137,7 +175,7 @@ G12B Fixture-only incremental collector independently verified; no live/provider
  |
 G12C Bounded no-copy two-session population complete; private receipt retained
  |
-G12D No-transfer adoption/freeze complete and independently verified; Stage 12E closed
+G12D No-transfer adoption/freeze complete; later authority indexed in operating envelope
 ```
 
 `G0` through `G12D` are integration gates, not agent tasks. `G12B` remains
@@ -445,19 +483,24 @@ canonical proofs produced immutable receipts with one semantic proof, and the
 target plus sidecar stamps remained unchanged. The independent reconciliation
 did not reopen SQLite or compute a new full-database hash. No copy, move,
 replacement, transfer, backup, migration, registry change, provider/network
-access, scheduler change, or consumer exposure occurred. Stage 12E remains
-closed.
+access, scheduler change, or consumer exposure occurred within that proof.
+Later Stage 12E decisions are indexed in the operating envelope; the Stage 12D
+contract and evidence retain their original scope.
 
 ## 6. Four-thread cadence
 
-Use the available threads in two modes:
+Use this cadence only for work requiring formal independent verification.
+Bounded investigation and ordinary implementation need no wave ceremony.
+Stop writers before a verifier establishes its baseline; otherwise explicitly
+bound review to an immutable revision or snapshot without claiming to verify
+ongoing edits.
 
 | Phase | Primary | Subagent 1 | Subagent 2 | Subagent 3 |
 | --- | --- | --- | --- | --- |
-| Build | Freeze interfaces and integrate shared files | TerraMax writer, lane A | TerraMax writer, lane B | TerraMax writer, lane C |
-| Gate | Reconcile evidence; no active writers | SolUltra verifier | Optional second read-only specialist | Idle or read-only diagnostics |
-| Correct | Integrate or assign the fix | One TerraMax correction owner | Read-only impact analysis | Idle |
-| Re-gate | Record results; no active writers | SolUltra verifier | Optional read-only regression review | Idle |
+| Build | Freeze interfaces and integrate shared files | Implementation worker, lane A | Implementation worker, lane B | Implementation worker, lane C |
+| Gate | Reconcile evidence; no active writers | Independent verifier | Optional second read-only specialist | Idle or read-only diagnostics |
+| Correct | Integrate or assign the fix | One correction owner | Read-only impact analysis | Idle |
+| Re-gate | Record results; no active writers | Independent verifier | Optional read-only regression review | Idle |
 
 Do not let a fixer modify the workspace while a verifier is still establishing
 its baseline. Verification reports return to the primary; verifiers do not
@@ -503,11 +546,16 @@ Stop the affected parallel lane when:
 
 ## 9. Worktrees and temporary roots
 
-Before a Git baseline exists, parallel writers share one workspace and must use
-strict disjoint path ownership. After the user authorizes and creates a fresh
-baseline, prefer one worktree per write-capable agent when supported. Worktrees
-reduce filesystem conflicts but do not relax semantic ownership: migrations,
-registry IDs, shared contracts, and generated artifacts still serialize.
+Before substantial edits, inspect the branch, index, uncommitted work, and
+required prerequisites. Identify dependencies on unrelated changes early;
+preserve them and obtain scope authority before including them in a task commit.
+Commit and push only when requested or already authorized for this scope.
+
+Use separate worktrees when they help independent writers, with an explicit
+known starting state. A worktree does not automatically contain uncommitted
+prerequisites. Worktrees do not relax semantic ownership: migrations, registry
+IDs, shared contracts, and generated artifacts still have one integration owner.
+Do not search for lost history or imply a recovered baseline.
 
 Every agent and test process uses an explicit unique temporary root. Tests must
 never infer or fall back to operational store paths.

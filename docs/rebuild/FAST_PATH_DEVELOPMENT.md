@@ -2,182 +2,132 @@
 
 Status: Accepted default workflow
 Accepted: 2026-08-17
-Revised: 2026-09-02
+Revised: 2026-09-05 — user-approved autonomy, routing, and validation update
 
 ## Purpose
 
-Use this fast path for ordinary bounded development and operations. The goal
-is to deliver the
-requested outcome safely without turning a bounded change into a new project
-stage.
+Deliver the requested outcome with the smallest coherent change and the evidence
+appropriate to its risk. This workflow preserves data-safety and operational
+authorization boundaries without turning routine work into a new rebuild stage.
 
-The fast path is not permission to skip correctness, safety, or relevant
-validation. It chooses the smallest process that can establish them.
+## Authority and context
+
+Ordinary reversible implementation steps within an authorized outcome need no
+additional confirmation. Make reasonable choices and explain material assumptions.
+Ask only when an unresolved decision would change authorized external effects,
+authority, or data semantics, incur material cost beyond approval, or materially
+broaden scope. Existing approval persists for its stated scope across turns; a
+finite provider authorization never implies more requests, retries, dates,
+providers, or recurring execution.
+
+Apply the authority order in [AGENTS.md](../../AGENTS.md). Resolve clearly
+superseded guidance without an approval loop, note the precedence briefly, and
+continue. An unresolved conflict blocks only the affected action.
+Read relevant document sections; reuse unchanged material already read in the
+session. Historical evidence is required only when the current decision relies
+on it. A dated activation record is not proof of current host state.
 
 ## Applicability and lanes
 
-The fast path is the default for all bounded work. Persistent data, an
-existing credential path, a live provider, a canonical store, or a minimal
-private registry binding does not by itself require a separate stage,
-contract, subagent, or independent verifier. Add the smallest gate for the
-actual risk instead of switching workflows by category.
+### Local development and additive compatibility
 
-### Local fast path
+Use this lane for code, tests, documentation, calculations, and bounded local
+read-only tools that reuse established interfaces. One integration owner,
+focused validation, and final diff review are sufficient unless the actual
+change triggers a heavier gate.
 
-Use the local lane for code, tests, documentation, and other readily
-reversible work with no external or persistent effect. One owner, focused
-validation, and one final diff review are sufficient.
+A tool added to the existing local manifest is a compatibility change. It is
+external exposure only when the work introduces hosting or new network access.
+Using established identity, time, or missingness contracts does not itself
+require migration reconstruction. Changes to those shared semantics do.
 
-### Bounded operational fast path
+### Bounded operations
 
-The operational lane may use an existing provider integration, credential
-helper, canonical store, and append/upsert publisher when all of these are
-true:
+Existing providers, credentials, canonical stores, and private collector
+bindings may use this lane when all of the following hold:
 
-- the current explicit user request authorizes the provider, target dataset,
-  and intended current or historical outcome;
-- the agent states a finite date/universe scope, request cap, and exact target
-  before execution; that authorization covers every enumerated unit inside
-  the stated cap without a separate approval per unit;
-- provider integration, credential name and resolver, store role/path, schema,
-  lock discipline, and publisher semantics already exist and are reused;
-- input is bounded and validated before the database lock or transaction;
-  network work never occurs while either is held;
-- writes use existing relations and an atomic, replay-safe append, version, or
-  natural-key upsert path; no delete, rewrite, migration, store replacement,
-  promotion, or retirement is involved;
-- no scheduler, recurring automation, public exposure, deployment, or new
-  credential-storage mechanism is introduced;
-- focused preflight tests and bounded post-write counts/integrity checks can
-  establish correctness; and
-- one owner can complete the coupled change.
+- the current explicit request authorizes a finite workload, target, and
+  intended current or historical result;
+- the owner states the exact date/universe scope, request cap, credential
+  resolver, and store before execution;
+- existing provider, schema, ownership, path, lock, and replay-safe publishing
+  mechanisms are reused;
+- fetches finish before write locks and transactions;
+- writes append, version, or replay-safe upsert; there is no destructive
+  rewrite, migration, store replacement, promotion, or retirement;
+- no scheduler, recurring automation, deployment, external exposure, or new
+  credential mechanism is introduced; and
+- focused preflight and bounded post-write validation prove the result.
 
-A collector declaration or reciprocal binding to an existing private dataset
-may use this lane when it adds no migration, dataset ownership, public tool,
-job, timer, export, or caller-selected path. The integration owner still owns
-the registry edit and runs adjacent registry validation.
+One authorization covers its enumerated finite units, not hidden retries.
+Private collector bindings to existing datasets require integration-owner
+registry edits and adjacent checks. New ownership, migrations, or shared
+semantics use the heavier lane. Read the [operating envelope](CURRENT_OPERATING_ENVELOPE.md)
+and applicable collector/reader contract before operational execution.
 
 ## Default workflow
 
-1. State the outcome and a short acceptance checklist. For an operational
-   task, also state the finite workload, request cap, existing credential
-   path, and exact store.
-2. Let one owner inspect and perform one initial implementation cycle.
-3. Run the smallest focused test or check that proves the change.
-4. For an authorized operational task, execute only the stated workload and
-   perform bounded post-write count, integrity, and target checks.
-5. Review the final diff once for scope, safety, and unrelated edits.
-6. Correct only concrete test failures, review findings, or newly discovered
-   requirements; batch related corrections into one pass.
-7. Update existing documentation once, only if durable behavior, usage,
-   contract, or operations changed.
-8. Report the result, validation, intentionally unrun checks, and any real
-   limitation.
+1. Inspect branch, index, dirty files, and uncommitted prerequisites before
+   substantial edits. Preserve unrelated work; surface dependencies on it early.
+2. State the intended result and select the relevant acceptance checks. For an
+   operational task, state its exact finite scope before executing it.
+3. Implement through one owner, with optional bounded investigation or disjoint
+   implementation lanes when they save time or improve quality.
+4. Run the [selected validation](TEST_STRATEGY.md#4-test-layers). Perform only
+   authorized operations and their required pre/post checks.
+5. Review the final diff. Batch fixes for concrete failures or review findings;
+   repeat only affected checks and any newly required adjacent checks.
+6. Update the existing documentation that owns changed behavior. Finish when
+   the required evidence passes; report limitations and pending supplementary work.
+7. Commit and push only when requested or already authorized for this scope.
+   Do not silently include unrelated prerequisites in a task commit.
 
-For an ordinary task, planning should take minutes, not hours. Timebox design
-and task decomposition to at most 15 minutes; this is a ceiling, not a target.
-Planning is sufficient once the acceptance criteria, affected area, and
-focused validation are known. If safe implementation still cannot start,
-report the exact blocker instead of adding agents, documents, gates, or
-rehearsals.
+Plan for minutes; 15 minutes is a ceiling, not a target. Do not add phases,
+documents, dependencies, abstractions, or rehearsals to compensate for uncertainty.
+Reuse verified tool paths within the session and approved existing artifacts.
 
-## Keep it small
+## Delegation and heavier gates
 
-- Use the primary agent only by default.
-- Do not create subagents for one coupled change.
-- Do not create a new ADR, stage contract, evidence record, manifest, or golden
-  file unless the change actually introduces that kind of durable authority.
-  Existing provider, credential, and canonical-store use under the bounded
-  operational lane does not by itself require one.
-- Do not run the full test suite when focused tests cover a local or bounded
-  operational change.
-- Do not repeat verification cycles one finding at a time; batch related
-  findings into one correction pass.
-- Reuse approved databases and artifacts. Do not copy or rebuild a large store
-  unless the requested outcome requires it.
-- Prefer the smallest coherent change that follows established patterns, not
-  merely the fewest changed lines.
-- Do not add speculative abstractions, dependencies, configuration,
-  compatibility layers, extension points, or unrelated refactors.
-- Prefer the nearest existing documentation home. Create a new document only
-  when no authoritative home exists or the change creates durable authority
-  that requires one.
-- Stop when the requested outcome and acceptance checklist are satisfied.
+Read-only investigation and disjoint implementation can use the lightweight
+task contract in the [parallel plan](PARALLEL_EXECUTION.md#2-capacity-and-operating-model).
+Delegation alone does not require a formal wave or independent certification.
+Shared identifiers, registry/schema, migrations, time/lock/path primitives,
+generated outputs, and architecture decisions retain one integration owner.
 
-## When to use the heavier workflow
-
-Escalate to the parallel execution and independent-verification workflow only
-when an accepted contract requires it or at least one of these conditions is
-present:
-
-- a migration, shared schema, dataset ownership boundary, or cross-store
-  invariant changes;
-- the operation is destructive, irreversible, or difficult to recover;
-- a new provider, credential name/resolver/storage mechanism, or unbounded or
-  materially costly workload is introduced;
-- deployment, scheduling, recurring automation, public exposure, writable UI,
-  store promotion, replacement, or retirement is involved;
-- two or more genuinely independent workstreams can materially shorten the
-  work;
-- a security boundary or broad compatibility surface changes; or
-- failure could silently corrupt canonical data and the existing transactional
-  or replay guarantees are insufficient.
-
-Even then, use only the agents and gates needed for the identified risk. The
-[parallel execution plan](PARALLEL_EXECUTION.md) is an exception workflow, not
-the default.
-
-Risk-specific minimums are:
-
-| Risk | Minimum added gate |
+| Actual risk | Required additional gate |
 | --- | --- |
-| Existing provider/credential plus bounded writes to existing relations | Explicit current scope, focused preflight, exact target, and bounded post-write counts/integrity |
-| Private collector binding to existing datasets | Integration-owner edit and adjacent registry validation |
-| Shared interface or compatibility surface | Impact review and adjacent integration validation |
-| Migration, new dataset ownership, shared schema, or cross-store invariant | Applicable accepted contract, recovery/rollback analysis, and independent verification |
-| New credential/provider/security mechanism, scheduler, deployment, or public action | Current operating-envelope review, explicit authority, and the gate specific to the changed boundary |
-| Destructive action or canonical-store safety-boundary change | Exact-target proof, recovery evidence, explicit authority, and independent verification |
-| Independent parallel lanes | Disjoint ownership, one integration owner, and one final verification pass |
+| Authorized bounded writes through existing mechanisms | Explicit finite scope, focused preflight, and bounded post-write counts/integrity/lineage |
+| Private collector binding to existing datasets | Integration-owner registry edit and adjacent checks |
+| Additive bounded local read-only tool | Domain, public-contract, predecessor compatibility, and read-only/cutoff checks from the test strategy |
+| Migration, new dataset ownership, shared schema, time/identity/missingness semantics, cross-store or canonical-safety invariant | Applicable accepted contract, impact analysis, full suite where selected by the test strategy, and independent verification |
+| New provider/credential/security mechanism, scheduler, deployment, external exposure, writable UI, destructive action, store promotion/replacement/retirement | Explicit authority, operating-envelope review, and the accepted gate for that boundary; independent verification of changed safety guarantees |
 
-## Validation rule
+A new provider family, credential mechanism, unbounded workload, or materially
+costly action cannot borrow authority from the bounded lane. Neither a stronger
+model nor a passing fixture expands operational permission.
 
-Use this validation ladder:
+## Validation and finish
 
-1. Run the narrowest affected unit, lint, type, link, or content check.
-2. Add adjacent integration checks only when a changed interface has adjacent
-   consumers. Add a browser smoke check when user-visible UI behavior changes.
-3. For a bounded operational run, add only exact-target counts, integrity,
-   lineage/replay checks relevant to the publisher, and sidecar/fingerprint
-   checks when the established store procedure requires them.
-4. Run the full suite only for a migration, a registry-wide or
-   generated-contract change, an accepted contract that names it as an exit
-   gate, or an explicit user request. Resolve uncertain test selection by
-   inspecting affected interfaces and adding adjacent checks, not by defaulting
-   to the full suite.
-5. If a slow full suite is supplementary, finish the interactive implementation
-   handoff after the focused gate and final diff review. Report the
-   implementation complete, label the exhaustive run separately, and run it
-   only in a background or follow-up context that can report its own outcome.
-   A full suite that is a required exit gate must pass before completion is
-   claimed.
-6. Shard a long suite only when its isolation rules permit it. Keep it serial
-   when tests can interfere through mutable databases, canonical/default
-   paths, locks, ports, process-global state, or other shared resources.
-7. State what ran, what was deliberately not run, and whether exhaustive
-   validation is pending, running, passed, or failed.
+[TEST_STRATEGY.md](TEST_STRATEGY.md#4-test-layers) is the single workflow matrix
+for selecting focused, adjacent, or exhaustive checks. A generated-file change
+alone is not an exhaustive-test trigger. Specific accepted stage/release gates
+and explicit user instructions retain their requirements.
 
-Independent verification is required only when an accepted contract or the
-heavy-workflow conditions above require it. Routine local work and bounded
-operational work through established safety mechanisms finish after focused
-validation, the applicable post-operation checks, and a final diff review.
+Use existing meaningful checks. Documentation-only changes need link/content
+review and diff checks; do not run unrelated executable suites. Add browser
+smoke checks when user-visible UI behavior changes.
 
-## Definition of done
+After the required checks and final review pass, complete the handoff. Expand
+testing only for a concrete failure, new change, or unresolved concern. Run slow
+supplementary checks in a background/follow-up context that can report their own
+outcome, not as a reason to hold the completed implementation open. Required
+full-suite checks must finish before the task is claimed complete.
 
-The task is done when the requested behavior works, proportionate validation
-passes, no unrelated files were changed, safety boundaries remain intact, and
-the handoff is concise. Do not keep polishing after the acceptance checklist is
-satisfied. Further hardening belongs in a separate explicitly requested task.
+Parallel test processes require proven isolation of temporary roots, stores,
+locks, ports, environment, and publication resources. Keep shared-resource tests
+serial. Retain original failures and explicitly record successful correction
+rechecks; do not inflate coverage with duplicate test IDs or call skips passes.
 
-If blocked, escalate once per distinct blocker with the smallest decision
-needed. A later, different blocker may be reported separately; uncertainty
-alone does not justify a new phase or document.
+Report the outcome, changed files, actual checks, deliberately unrun checks, and
+material limitations. Stop only the affected unsafe or unauthorized action,
+ask once for the smallest missing decision, and continue independent work.

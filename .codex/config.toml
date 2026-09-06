@@ -1,11 +1,12 @@
-# Project-scoped defaults. A new Codex session must trust this project before
-# this layer is loaded. Explicit runtime or CLI overrides can take precedence.
+# Project-scoped defaults. Start a fresh trusted-project session after edits.
+# Explicit runtime or CLI overrides can take precedence; disclose the effective
+# route if it differs. Role TOML files pin their own model and effort.
 model = "gpt-6-astra"
-model_reasoning_effort = "ultra"
+model_reasoning_effort = "xhigh"
 
 [agents]
 enabled = true
 max_concurrent_threads_per_session = 3
 default_subagent_model = "gpt-5.6-terra"
-default_subagent_reasoning_effort = "max"
+default_subagent_reasoning_effort = "high"
 interrupt_message = true

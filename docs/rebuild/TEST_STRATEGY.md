@@ -1,6 +1,7 @@
 # Rebuild Test Strategy
 
 Status: Accepted
+Revised: 2026-09-05 — user-approved risk-based validation lanes
 
 ## 1. Purpose
 
@@ -78,21 +79,60 @@ they never share a default fixture database.
 
 ## 4. Test layers
 
-| Layer | Primary evidence | Runs |
-| --- | --- | --- |
-| Unit | Parsers, canonicalizers, identity functions, time comparisons, validators, JSON sanitation | Every change |
-| Migration | Clean initialization, order, checksum, rerun, tamper, rollback, split ownership | Every change |
-| Contract | Registry schemas, strict inputs/outputs, bounds, error codes, lineage envelope | Every change |
-| Repository | Latest/as-of/first-release selection, ordering, limits, read-only enforcement | Every change |
-| Ingestion integration | Evidence-to-canonical transaction, replay, correction, partial/failure, checkpoint | Every change |
-| Golden | Exact fixture query/tool/audit JSON and logical rebuild manifest | Every change |
-| Property/invariant | Generated valid/invalid data, version graph, cross-store and SQLite integrity | Every change, bounded seed set |
-| API/UI | Endpoint validation, security headers, structural rendering, no writes | Every change to public surface |
-| Performance/resource | Hard bounds, query plans, pagination, busy timeout, response size | Main branch and release candidate |
-| Live-provider smoke | Minimal current request, secret-safe diagnostics, no persistence unless explicitly testing an adapter | Manual/optional, never offline CI |
+Select checks from the actual changed behavior and its consumers before
+implementation. This user-approved revision replaces the former blanket
+every-change/public-schema/registry suite rules. Specific accepted milestone,
+release, and promotion exit gates and explicit user requests still apply.
+Historical evidence and frozen golden contracts are not rewritten by this policy.
 
-Focused suites must be runnable independently. A public schema, migration, or
-cross-store change also runs the complete offline suite.
+| Change | Required completion evidence |
+| --- | --- |
+| Documentation or workflow prose only | Local links, targeted content/consistency review, and diff checks |
+| Local fix, calculation, or established private binding | Focused behavior/boundary tests and affected adjacent consumers |
+| Additive bounded local read-only tool or explicit version | Domain tests; strict public schemas/examples, manifest/describe/call and receipt compatibility; generated-output check; frozen/default and exact predecessor checks; cutoff, missingness, bounds and read-only failure cases |
+| Authorized bounded provider/store operation through established mechanisms | Applicable focused offline checks, exact finite preflight, and bounded post-operation integrity/lineage/replay evidence |
+| Migration, registry-wide schema/ownership, shared identity/time/missingness/selection, physical locking, security/host access, cross-store or canonical-safety semantics | Full offline suite, applicable accepted contract, and independent verification of the integrated change |
+| Shared generator algorithm, validator, or contract-core semantics | Full offline suite and independent compatibility verification |
+| Explicit exhaustive request or an accepted stage/release/promotion gate naming it | The named full-suite gate must pass |
+
+The additive-tool lane requires unchanged existing contracts/defaults and shared
+store, identity, time, lock, and access semantics. Local registration and its
+generated output qualify only with bounded impact and exact compatibility
+evidence; changing how the shared generator or validator behaves takes the
+full-suite lane. A new endpoint must retain the existing host-selected,
+bounded, read-only execution boundary. Hosting or new external network access
+also needs explicit operational authority and its applicable gate.
+
+Using a shared primitive is not itself a change to its semantics. Inspect
+affected interfaces to choose adjacent consumers rather than treating uncertain
+test selection as an automatic full-suite requirement. A real request against
+retained data is required when the user or accepted contract calls for it, and
+still needs the approved immutable reader procedure. Fixtures do not establish
+live readiness.
+
+| Layer | Evidence to select when affected |
+| --- | --- |
+| Unit | Parsers, canonicalizers, identity/time comparisons, formulas, validators, JSON sanitation |
+| Migration | Initialization, order, checksum, rerun, tamper, rollback, split ownership |
+| Contract | Name/version inventory, strict inputs/outputs, examples, bounds, errors, lineage |
+| Repository | Latest/as-of/first-release selection, ordering, limits, read-only enforcement |
+| Ingestion integration | Transaction, replay, correction, partial/failure, checkpoint |
+| Golden | Exact fixture query/tool/audit JSON and logical rebuild manifests |
+| Property/invariant | Bounded deterministic seeds for affected version/store invariants |
+| API/UI | Endpoint validation, security headers, rendering, browser smoke and no-write behavior |
+| Performance/resource | Affected bounds and query plans; broader checks at the applicable main/release gate |
+| Live-provider smoke | Separately authorized finite manual scope; never part of offline CI |
+
+Focused suites must run independently. Once required checks and final review
+pass, finish; broaden or repeat only for a concrete failure, changed code, or
+unresolved concern. Supplementary exhaustive work must report its own outcome
+without blocking the completed interactive handoff.
+
+Parallel execution requires reviewed isolation of temporary roots, stores,
+locks, ports, process state, and publication paths. Keep shared-resource groups
+serial. Resumed runs must reconcile unique case IDs, retain original failures
+and their explicit successful rechecks, and report skipped or uncovered cases.
+Do not count a skip, interrupted run, or duplicate discovery as a new passing case.
 
 ## 5. Fixtures
 
@@ -481,8 +521,13 @@ content.
 
 ### Stage E - complete offline suite
 
-Runs all restored domains and tools. This stage is required for migration,
-registry, shared-time, cross-store, public-API, or export changes.
+Runs all restored domains and tools when the selection matrix in
+[Section 4](#4-test-layers) or a specific accepted stage/release/promotion gate
+requires it. Adding a bounded local contract and regenerating its artifacts
+does not alone trigger this stage. A required exhaustive run must finish and
+resolve failures before completion is claimed; supplementary runs remain
+separately labeled. This document specifies gates, not installed CI or a new
+scheduled automation.
 
 ### Stage F - optional smoke and release rehearsal
 

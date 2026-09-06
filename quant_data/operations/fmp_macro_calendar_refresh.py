@@ -99,9 +99,13 @@ class FmpMacroCalendarRefreshRunner(FmpMacroCalendarHistoryRunner):
         wholesale_publisher_factory: Callable[[], object],
         employment_parser: Callable[..., object],
         employment_publisher_factory: Callable[[], object],
+        attempt_observer: Callable[..., None] | None = None,
         **kwargs: object,
     ) -> None:
         super().__init__(**kwargs)
+        self._attempt_observer = attempt_observer
+        self._fetch_completed_at: str | None = None
+        self._raw_outcome = "failed"
         self._wholesale_parser = wholesale_parser
         self._wholesale_publisher_factory = wholesale_publisher_factory
         self._employment_parser = employment_parser
@@ -215,6 +219,34 @@ class FmpMacroCalendarRefreshRunner(FmpMacroCalendarHistoryRunner):
         )
 
     def run(self) -> FmpMacroCalendarRefreshReport:
+        """Run once; record polling outcomes separately from canonical evidence."""
+        if self._attempt_observer is None:
+            return self._run_once()
+        started_at = _utc_text(self._utcnow())
+        self._fetch_completed_at = None
+        self._raw_outcome = "failed"
+        try:
+            report = self._run_once()
+        except Exception:
+            self._observe_attempt(started_at, "failed")
+            raise
+        outcome = "published" if report.published or report.employment_outcome == "published" else "unchanged"
+        self._observe_attempt(started_at, outcome)
+        return report
+
+    def _observe_attempt(self, started_at: str, outcome: str) -> None:
+        completed_at = _utc_text(self._utcnow())
+        for source, source_outcome in (
+            ("fmp_calendar_raw", self._raw_outcome),
+            ("fmp_macro_calendar", outcome),
+        ):
+            self._attempt_observer(
+                source=source, started_at=started_at, completed_at=completed_at,
+                outcome=source_outcome, successful_fetch_at=self._fetch_completed_at,
+                note="http_response_completed_refresh_outcome_includes_publication",
+            )
+
+    def _run_once(self) -> FmpMacroCalendarRefreshReport:
         """Run the approved one-request refresh in raw-first order."""
 
         wholesale_publisher = self._wholesale_publisher_factory()
@@ -228,6 +260,8 @@ class FmpMacroCalendarRefreshRunner(FmpMacroCalendarHistoryRunner):
         # been parsed and durably published.
         api_key = self._read_api_key_once()
         response = self._request(window, api_key)
+        if self._attempt_observer is not None:
+            self._fetch_completed_at = _utc_text(self._utcnow())
         wholesale_capture = self._wholesale_parser(
             response.body,
             captured_at=captured_at,
@@ -237,6 +271,7 @@ class FmpMacroCalendarRefreshRunner(FmpMacroCalendarHistoryRunner):
         wholesale_outcome, wholesale_written_rows = _wholesale_publication_result(
             wholesale_publisher.publish(wholesale_capture)
         )
+        self._raw_outcome = wholesale_outcome
         body, stored_captured_at, _, _ = self._payload_for_window(
             wholesale_capture,
             window=window,
@@ -296,6 +331,8 @@ def _wholesale_domain_api() -> tuple[Callable[..., object], Callable[[], object]
 def refresh_fmp_macro_calendar_live() -> FmpMacroCalendarRefreshReport:
     """Run one approved canonical incremental refresh."""
 
+    from .refresh_status import record_refresh_attempt
+
     parser, publisher_factory = _domain_api()
     employment_parser, employment_publisher_factory = _employment_domain_api()
     wholesale_parser, wholesale_publisher_factory = _wholesale_domain_api()
@@ -309,6 +346,9 @@ def refresh_fmp_macro_calendar_live() -> FmpMacroCalendarRefreshReport:
         employment_parser=employment_parser,
         employment_publisher_factory=employment_publisher_factory,
         transport=_StdlibTransport(),
+        attempt_observer=lambda **attempt: record_refresh_attempt(
+            PROJECT_ROOT / "data" / ".operations" / "refresh-status", **attempt
+        ),
         credential_environment=os.environ,
         utcnow=lambda: datetime.now(timezone.utc),
         _canonical=True,

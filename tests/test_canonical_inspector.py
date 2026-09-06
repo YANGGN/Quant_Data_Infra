@@ -2114,7 +2114,7 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn('name="metric"', document)
         self.assertIn('name="cik"', document)
         self.assertIn('name="period_end"', document)
-        self.assertIn("canonical market, macro, and company databases", document)
+        self.assertIn("Browse retained observations with their original values and evidence.", document)
 
         microsoft = loads_strict(
             self.application.handle(
@@ -2817,14 +2817,38 @@ class CanonicalInspectorTests(unittest.TestCase):
             self.application.dispatcher,
             "call",
             return_value=result,
-        ) as dispatcher_call:
+        ) as dispatcher_call, patch.object(
+            self.application, "_schedule_reader", return_value={
+                "macro.fed_h41_liquidity": {
+                    "refresh_cadence": "Weekdays at 18:30 New York",
+                    "next_scheduled_fetch": "2099-01-05T23:30:00Z",
+                    "schedule_state": "scheduled",
+                    "schedule_note": "Scheduled batch start.",
+                }
+            },
+        ) as schedule_reader, patch.object(
+            self.application, "_metadata_reader", return_value={
+                "macro.fed_h41_liquidity": {"as_of_date": "2026-08-12"}
+            },
+        ) as metadata_reader:
             page = self.application.handle("GET", "/data-status")
             api = self.application.handle("GET", "/api/data-status")
+            self.application.handle("GET", "/healthz")
+            schedule_reader.assert_called_once_with()
+            metadata_reader.assert_called_once_with()
         self.assertEqual(page.status, 200)
         document = page.body.decode("utf-8")
         self.assertIn("<h1>Data status</h1>", document)
         self.assertIn("macro.fed_h41_liquidity", document)
-        self.assertIn("Retained dataset/control-plane status only", document)
+        self.assertIn("Live data \u00b7 all supporting fields preserved", document)
+        self.assertIn('data-status-group="live"', document)
+        self.assertIn('data-status-group="other"', document)
+        self.assertIn("read-only status", document)
+        self.assertIn("2026-08-12", document)
+        self.assertIn("Refresh Cadence", document)
+        self.assertIn("Next Scheduled Fetch", document)
+        self.assertIn("Weekdays at 18:30 New York", document)
+        self.assertIn('datetime="2099-01-05T23:30:00Z"', document)
         self.assertNotIn(str(self.market), document)
         self.assertEqual(api.status, 200)
         payload = loads_strict(api.body)
@@ -2848,13 +2872,16 @@ class CanonicalInspectorTests(unittest.TestCase):
         )
 
     def test_data_status_rejects_queries_without_dispatch(self) -> None:
-        with patch.object(self.application.dispatcher, "call") as dispatcher_call:
+        with patch.object(self.application.dispatcher, "call") as dispatcher_call, patch.object(
+            self.application, "_schedule_reader"
+        ) as schedule_reader:
             response = self.application.handle(
                 "GET", "/data-status?path=/tmp/store.sqlite"
             )
         self.assertEqual(response.status, 400)
         self.assertIn("Data status does not accept query fields", response.body.decode("utf-8"))
         dispatcher_call.assert_not_called()
+        schedule_reader.assert_not_called()
 
     def test_agent_tools_selection_and_methods_fail_closed(self) -> None:
         cases = (
@@ -3022,7 +3049,8 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn("Raw FMP calendar", document)
         self.assertIn("Current news", document)
         self.assertIn("Agent Tools", document)
-        self.assertIn("Database paths, SQL, writes, and provider calls are not available", document)
+        self.assertIn("Read-only</span>", document)
+        self.assertIn("no database mutation", document)
         self.assertNotIn(str(self.market), document)
         css = self.application.handle("GET", "/assets/dashboard.css")
         self.assertEqual(css.status, 200)
@@ -3030,6 +3058,15 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertEqual(self.application.handle("GET", "/assets/inter-variable.woff2").status, 200)
         self.assertEqual(self.application.handle("GET", "/assets/inspector-tools.css").status, 200)
         self.assertEqual(self.application.handle("GET", "/assets/inspector-tools.js").status, 200)
+        for asset, content_type in (
+            ("/assets/inspector.css", "text/css; charset=utf-8"),
+            ("/assets/inspector.js", "application/javascript; charset=utf-8"),
+        ):
+            asset_response = self.application.handle("GET", asset)
+            self.assertEqual(asset_response.status, 200)
+            self.assertEqual(asset_response.content_type, content_type)
+            self.assertIn(asset, document)
+            self.assertEqual(self.application.handle("GET", asset + "?path=/tmp/other").status, 400)
 
         server = create_server(self.application, host="127.0.0.1", port=0)
         thread = threading.Thread(target=server.serve_forever, daemon=True)

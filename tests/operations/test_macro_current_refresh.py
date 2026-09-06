@@ -223,6 +223,70 @@ class MacroCurrentRefreshTests(unittest.TestCase):
         )
         self.assertEqual(report.steps[-1].outcome, "unchanged")
 
+    def test_observer_receives_each_source_with_aware_times_and_failure(self) -> None:
+        collectors, _ = self._collectors(failure="nyfed_repo_facilities")
+        observed: list[tuple[str, str, str, str]] = []
+
+        report = operation.run_macro_current_refresh(
+            collectors=collectors,
+            utcnow=lambda: FIXED_NOW,
+            observer=lambda source, started, completed, outcome: observed.append(
+                (source, started, completed, outcome)
+            ),
+        )
+
+        self.assertEqual([item[0] for item in observed], list(EXPECTED_SOURCES))
+        self.assertEqual(observed[2][3], "failed")
+        self.assertEqual([item[3] for item in observed], [step.outcome for step in report.steps])
+        for _, started, completed, _ in observed:
+            self.assertIsNotNone(datetime.fromisoformat(started.replace("Z", "+00:00")).utcoffset())
+            self.assertIsNotNone(datetime.fromisoformat(completed.replace("Z", "+00:00")).utcoffset())
+
+    def test_succeeded_fallback_is_a_successful_private_receipt(self) -> None:
+        collectors, calls = self._collectors()
+        collectors["fmp_treasury_curve"] = lambda **kwargs: object()
+
+        with patch.object(operation, "record_refresh_attempt") as record:
+            report = operation.run_macro_current_refresh(
+                collectors=collectors,
+                utcnow=lambda: FIXED_NOW,
+                observer=operation._record_live_refresh_status,
+            )
+
+        self.assertEqual([source for source, _ in calls], list(EXPECTED_SOURCES[1:]))
+        self.assertEqual(report.steps[0].outcome, "succeeded")
+        self.assertEqual(report.steps[0].status_error, None)
+        self.assertEqual(report.exit_code, 0)
+        self.assertEqual(record.call_count, len(EXPECTED_SOURCES))
+        self.assertEqual(record.call_args_list[0].kwargs["outcome"], "succeeded")
+        self.assertEqual(
+            record.call_args_list[0].kwargs["successful_fetch_at"],
+            record.call_args_list[0].kwargs["completed_at"],
+        )
+
+    def test_observer_failure_is_sanitized_without_rerunning_collectors(self) -> None:
+        collectors, calls = self._collectors(failure="nyfed_repo_facilities")
+
+        def observer(source: str, started: str, completed: str, outcome: str) -> None:
+            del started, completed, outcome
+            if source == "nyfed_repo_facilities":
+                raise OSError("private state detail must not leak")
+
+        report = operation.run_macro_current_refresh(
+            collectors=collectors,
+            utcnow=lambda: FIXED_NOW,
+            observer=observer,
+        )
+
+        self.assertEqual([source for source, _ in calls], list(EXPECTED_SOURCES))
+        failed = report.steps[2]
+        self.assertEqual(failed.outcome, "failed")
+        self.assertEqual(failed.error, "store_unavailable")
+        self.assertEqual(failed.status_error, "refresh_status_unavailable")
+        self.assertEqual(failed.exit_code, 74)
+        self.assertEqual(report.exit_code, 74)
+        self.assertNotIn("private state detail", dumps_strict(report.mapping()))
+
     def test_cli_prints_strict_summary_and_rejects_arguments(self) -> None:
         collectors, _ = self._collectors()
         report = operation.run_macro_current_refresh(

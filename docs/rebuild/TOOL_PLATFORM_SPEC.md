@@ -1067,9 +1067,84 @@ The legacy `spy-options` view remains unchanged.
 
 The current Inspector also exposes `/data-status`, backed by the public
 retained-only dataset-status contract, and `/healthz`, a zero-store process-
-liveness response. Data Status MUST NOT be labelled live provider, credential,
-or scheduler health and MUST NOT infer a source-period timestamp from generic
-ingestion metadata. `/healthz` MUST NOT open a store or perform a provider call.
+liveness response. Data Status MUST NOT be labelled live provider or credential
+health and MUST NOT infer a source-period timestamp from generic ingestion
+metadata. `/healthz` MUST NOT open a store or perform a provider call.
+
+The user-approved Inspector schedule columns add a separate HTML-only local
+timer snapshot. Refresh Cadence is taken from loaded calendar properties, not
+freshness thresholds or historical unit activation receipts. Next Scheduled
+Fetch is the next future timer trigger in UTC; for datasets served by multiple
+timers it is the earliest known trigger, with incomplete timer status disclosed.
+A trigger is a batch start, not a promise of provider access, success, or new data.
+Inactive or unmapped timers yield no scheduled fetch; unavailable status stays
+explicit. The fixed dataset-to-wrapper bindings are in
+`quant_data/inspector_schedules.py` and correspond to the nine reviewed per-user
+units in the scheduling specification. Browser input cannot choose a unit.
+One HTML request makes at most one three-second read-only `systemctl --user show`
+call for those units, with no shell, service execution, credential access, or
+unit mutation. The public `data.get_dataset_status@1.0.0` contract and
+`/api/data-status` remain retained-only and do not inspect schedulers. This
+presentation change grants no provider-fetch or scheduler-mutation authority.
+
+The user-approved source/fetch overlay adds `As-of Date` only from fixed,
+read-only source-specific projections. SOMA uses the holdings date, petroleum
+uses the week-ending observation date, and historical NIPA uses its source
+quarter. Calendar event dates are not dataset as-of dates. Missing projections
+remain unavailable; storage capture timestamps never fill this column.
+
+`Latest Successful Fetch` comes from bounded private operational receipts for
+the FMP calendar and aggregate macro-current collectors. FMP uses successful
+HTTP-response completion; aggregate sources use successful collector completion.
+Unchanged successful polls advance the receipt without changing canonical data.
+A later processing failure is separately visible and does not erase prior
+successful fetch evidence. Older unrecorded polls remain `Not recorded`.
+Fetch and stored-capture timestamps use America/New_York (EST/EDT); date-only
+and quarter precision remain unchanged. Original UTC instants stay in markup.
+
+The legacy wholesale calendar evidence is labelled and muted, with its compact
+incremental successor identified. The old NIPA GDP snapshot is labelled
+historical, with current official GDP vintages identified separately. Weekly
+source frequency is distinct from weekday polling; source dates over fourteen days
+old receive a caution rather than an unconditional expected-age label.
+The HTML retention overlay resolves successful captures through exact dataset
+snapshots or explicit `ingestion_run_outputs` membership in the run's primary
+snapshot. Official vintages use their native capture ledger with validated
+observation membership; no generic run is fabricated. Reads use the established
+quiet immutable store procedure, fixed registry targets, and a three-second SQL
+budget per store. Busy, changed, invalid, or unavailable evidence stays unknown;
+a missing capture record alone does not prove that data tables are empty.
+
+Explicit reviewed lifecycle annotations distinguish active, fixture-only,
+historical/candidate, superseded, and planned datasets. Names alone, including
+the `fixture.` prefix, never determine lifecycle. Sector/industry classifications
+are labelled `Not yet live` because their live collector remains unimplemented.
+Frozen original news outcomes remain historical evidence rather than active
+refresh failures. Non-live rows are muted and identify their successors where
+known; successors do not imply feature parity with older tools.
+
+Five exclusive summary categories use the same evidence classification as the
+rows: data retained, needs attention, not yet live, legacy/fixtures, and status
+unknown. Active failed refreshes, old source dates/captures, and missing captures
+remain attention items; a successful fetch never implies retained data. Stored
+capture timestamps, shared/native provenance, linked dataset IDs, original public
+status and outcomes, and other supporting fields remain in record details and
+the full no-JavaScript table. The public status tool and JSON route retain their
+existing payloads, including their original generic attribution limitations.
+This UI correction neither populates old tables nor activates collectors.
+
+The user-requested table selector separates active datasets into `Live data`
+and fixture-only, historical, legacy, and planned datasets into a second table.
+Active missing, stale, failed, or unavailable records remain in the live group;
+table membership depends on reviewed lifecycle rather than freshness, timer
+availability, or the `fixture.` name prefix. A labelled dropdown defaults to the
+live table and switches locally without another request. Summaries are scoped
+to their table: retained/attention/unknown for live data, and legacy/fixtures
+plus planned coverage for the second table. Each record occurs in exactly one
+table, with all supporting fields retained. Without JavaScript, both
+labelled tables remain readable. Switching tables closes the previous record
+details and preserves usable keyboard focus. The selector changes presentation
+only; no provider, scheduler, storage, or public JSON behavior changes.
 
 ## Security requirements
 

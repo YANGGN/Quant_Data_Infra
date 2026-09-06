@@ -10,6 +10,12 @@ contains no task-installation or job-start commands. Recovered cadence
 information remains evidence for parity, not evidence that a scheduler is
 installed or authorized to contact a live provider or operational store.
 
+The [operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the sole index of
+recorded recurring authorization and dated activation evidence. This document
+owns scheduling/locking mechanics and scoped decision details. Activation and
+waiting-state observations below describe their recorded dates, not current
+host health; this policy reconciliation performed no live inspection.
+
 Related documents:
 
 - [Current operating envelope](CURRENT_OPERATING_ENVELOPE.md)
@@ -53,23 +59,24 @@ surface timer. On 2026-08-30 the user separately authorized updating that
 legacy-named timer in place to run the fixed 15-ETF option grid described
 below. On 2026-08-25 the user also authorized scheduled SEC market-
 equity CompanyFacts fetching; the implementation fixes it to the weekday timer
-described below. The original exceptions retain their documented states. The
-Stage 12E market timer was enabled and is waiting for its first normal trigger
-on 2026-08-29; it does not broaden the disabled recovered job catalog.
+described below. The original exceptions retain their documented scope. The
+Stage 12E market timer's activation was recorded on 2026-08-29; it does not
+broaden the disabled recovered job catalog.
 On 2026-09-05 the user explicitly approved the separate weekday 19:00 company
 actions and analyst-estimates timer described below.
 The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
 authoritative concise list of allowed recurring units.
 
-## Active current multi-source news refresh
+## Authorized current multi-source news refresh
 
 `scripts/refresh_current_news.py` is the manual, zero-argument batch for the
 fixed current-news feeds. The matching
 `quant-data-current-news-refresh.service` and `.timer` run on an hourly
 `:10` UTC cadence with `Persistent=false`. On 2026-08-30 the reviewed
-per-user units were linked, daemon-reloaded, enabled, and started. The timer is
-`loaded`/`enabled`/`active`/`waiting`; `LastTrigger` is empty, and the
-service remains inactive/dead with no execution timestamps. Activation made no
+per-user units were linked, daemon-reloaded, enabled, and started. That check
+recorded the timer as `loaded`/`enabled`/`active`/`waiting`, with an empty
+`LastTrigger` and the service inactive/dead without execution timestamps.
+Activation made no
 provider request or canonical-store write.
 
 The batch uses optional `FMP_API_KEY` and
@@ -78,12 +85,12 @@ The batch uses optional `FMP_API_KEY` and
 The 2026-08-30 16:00 UTC proof completed all eight source steps and all 20
 requests without retry, including 13 bounded Alpaca/Benzinga batches. It has no
 retry or catch-up behavior. Future work must not manually trigger, retry,
-broaden, reinstall, disable, or repurpose the active unit.
+broaden, reinstall, disable, or repurpose the authorized unit.
 
-## Active GDP/CPI vintage refresh
+## Authorized GDP/CPI vintage refresh
 
 `quant-data-macro-vintages.timer` is an authorized recurring scheduling
-exceptions in this document. It runs the fixed zero-argument refresh wrapper at
+exception in this document. It runs the fixed zero-argument refresh wrapper at
 09:05 America/New_York, Monday through Friday, with `Persistent=false`.
 Each invocation makes exactly one BEA workbook request and one BLS current API
 request, with no retry, credential, caller path, migration, or archive fetch.
@@ -98,7 +105,7 @@ The service is fixed to
 temporary directory, and a `0077` umask. Its first service-level run completed
 as two semantic no-ops before the timer was enabled.
 
-## Active employment-vintage refresh
+## Authorized employment-vintage refresh
 
 `quant-data-employment-vintages.timer` is the second recurring scheduling
 exception. It runs on the first Friday of each month
@@ -112,10 +119,10 @@ unchanged normalized facts cause zero writes.
 The service has the same fixed `data/macro.sqlite` target and systemd hardening
 as the GDP/CPI service. A manual service invocation outside the monthly release
 window completed successfully with `requested=0`, proving that the calendar
-gate performs no provider request. The timer is enabled and waiting for
-`2026-09-04 10:05 EDT`.
+gate performs no provider request. The activation check recorded the timer
+enabled and waiting for `2026-09-04 10:05 EDT`.
 
-## Active FMP macro-calendar refresh
+## Authorized FMP macro-calendar refresh
 
 `quant-data-fmp-macro-calendar.timer` is the third recurring scheduling
 exception. It runs at 08:15 and 08:45 America/New_York, Monday through Friday,
@@ -146,7 +153,16 @@ The completed macro-history extension and retained Stage 11 weekly adoption
 are one-time manual operations. They have no timer and do not broaden either
 historical vintage collector above or the FMP calendar exception.
 
-## Active aggregate macro-current refresh
+The FMP calendar wrapper also writes private latest-attempt receipts under
+`data/.operations/refresh-status`, separately for raw evidence and normalized
+calendar results. The macro-current wrapper records one receipt per completed
+source invocation. These bounded, atomic files track successful unchanged
+polls without adding canonical rows. Their scoped bounded lock is separate
+from physical-store publication locks; receipt persistence never retries a
+provider. Readers create no files or locks. Existing unit scope, request caps,
+credential routing and timer cadence are unchanged.
+
+## Authorized aggregate macro-current refresh
 
 `quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
 exception. It runs at 18:30 America/New_York, Monday through Friday, with
@@ -201,7 +217,7 @@ calendar wrappers and therefore does not duplicate the other three
 recurring exceptions. The underlying registry collector declarations remain
 manual-only; this exact hardened host unit is the recurring exception.
 
-## Active in-place Alpaca ETF option-surface refresh
+## Authorized in-place Alpaca ETF option-surface refresh
 
 On 2026-08-25 the user explicitly authorized the fixed
 `quant-data-alpaca-spy-options.timer`. It was linked and enabled after the
@@ -271,13 +287,14 @@ market-close job. Alpaca's indicative quotes and delayed/derived trades are
 inspection evidence, not an executable price, trading signal, or valuation
 input.
 
-## Active Stage 12E market-close refresh
+## Authorized Stage 12E market-close refresh
 
 On 2026-08-29 the reviewed fixed `quant-data-market-close.timer` was
 daemon-reloaded, enabled, and started. Host verification recorded
 `LoadState=loaded`, `UnitFileState=enabled`, `ActiveState=active`, and
-`SubState=waiting`; its next trigger is Monday 2026-08-31 18:00:00 EDT and
-`LastTrigger` is empty. Its service remains `inactive/dead`, without
+`SubState=waiting`; the next trigger at that check was Monday
+2026-08-31 18:00:00 EDT and `LastTrigger` was empty. The service was
+`inactive/dead` at that check, without
 `ExecMainStartTimestamp` or `ExecMainExitTimestamp`; activation made no
 state directory, provider request, or canonical write.
 
@@ -322,12 +339,12 @@ Stage 10 or Stage 12C history.
 ## Authorized SEC market-equity fundamentals refresh
 
 The user explicitly authorized one longest-available historical population
-and scheduled fetching. The active implementation uses the fixed
+and scheduled fetching. The authorized implementation uses the fixed
 `quant-data-sec-company-fundamentals.timer` at 07:15 America/New_York, Monday
 through Friday, with
 `Persistent=false`. It was linked and enabled on 2026-08-25 after the bounded
 population and post-write checks passed; activation did not manually start
-the service. Its first scheduled trigger is 2026-08-26 at 07:15
+the service. Its first scheduled trigger at that check was 2026-08-26 at 07:15
 America/New_York.
 
 The zero-argument wrapper reads only the 519 Stage 10 market equities through
@@ -372,10 +389,10 @@ Three roster symbols remained unmatched. The pass committed 404,278 writes
 across 246 new v1.5 ingestion runs; its other successes were semantic no-ops.
 Immutable post-checks returned `quick_check=ok` and zero foreign-key
 violations. The incomplete aggregate exited nonzero and was not retried. The
-timer was not changed and remains enabled, active, and waiting for its normal
-2026-09-04 07:15 EDT trigger.
+timer was not changed; the 2026-09-03 post-run check recorded it enabled,
+active, and waiting for its normal 2026-09-04 07:15 EDT trigger.
 
-## Active company actions and analyst-estimates refresh
+## Authorized company actions and analyst-estimates refresh
 
 On 2026-09-05 the user explicitly approved creating and enabling
 `quant-data-company-market-refresh.timer` for Monday-Friday at 19:00
@@ -475,11 +492,11 @@ progression serially:
   produced immutable receipts and left database/WAL/SHM/journal stamps
   unchanged; it made no copy, transfer, backup, migration, provider/network,
   consumer, or scheduler action; and
-- Stage 12E is **authorized and implemented**, with its fixed timer enabled,
-  active, and waiting for the first normal clock-driven trigger. It refreshes
-  the current eligible equity/ETF/index identity snapshot only, not the frozen
-  historical roster or a recovered Stage 7 job; the service has not run and no
-  provider or canonical write occurred during activation.
+- Stage 12E has separately recorded authority and activation evidence indexed
+  in the operating envelope. Its scope is the eligible current-session
+  equity/ETF/index snapshot, with no historical replay or recovered Stage 7 job.
+  The 2026-08-29 activation check recorded no service execution, provider
+  request, or canonical write during activation.
 
 ### Stage 0: static registry validation
 

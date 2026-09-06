@@ -55,13 +55,11 @@ and seven narrowly authorized HTTP 402 outcomes. Stage 12D then completed the
 [no-transfer adoption proof](docs/rebuild/STAGE12D_EVIDENCE.md): exactly two
 immutable, query-only canonical proofs produced distinct receipts with the
 same semantic result and left the main database, WAL, SHM, and rollback-journal
-stamps unchanged. It made no copy, migration, or registry change. Stage 12E's
-bounded daily-market timer was enabled and started on 2026-08-29; it is active
-and waiting for its first normal trigger, with no service run, provider request,
-or canonical write during activation. It adds no public exposure. The
-separately authorized recurring exceptions remain governed
-by the [current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
-and [scheduling specification](docs/rebuild/SCHEDULING_AND_LOCKING.md).
+stamps unchanged. It made no copy, migration, or registry change. Later
+Stage 12E and other recurring authorization and dated activation evidence are
+indexed by the [current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md).
+Mechanics remain in the [scheduling specification](docs/rebuild/SCHEDULING_AND_LOCKING.md);
+historical activation observations do not prove current host state.
 
 The principal decisions are recorded in:
 
@@ -336,8 +334,8 @@ Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga feeds. Raw evidence and
 bodies remain private. The bounded 2026-08-30 16:00 UTC proof completed all 20
 requests without retry and retained 1,069 generic-source articles. On
 2026-08-30 the reviewed hourly per-user timer was linked, enabled, and started;
-it is active/waiting for its first normal `:10` UTC trigger, while the service
-remains inactive/dead and activation made no provider request or store write.
+the activation check recorded active/waiting for its first normal `:10` UTC
+trigger, with the service inactive/dead and no provider request or store write.
 The readers and direct calculations do not infer a portfolio,
 apply weights, create an opaque score or classifier, or make an investment
 recommendation. Exact predecessor projections preserve every revision through
@@ -860,10 +858,9 @@ private candidate. Stage 12C is complete and its provider exception is closed;
 none of its requests may be repeated. Stage 12D completed only the no-transfer,
 immutable/query-only adoption proof for `data/market.sqlite`, with no copy,
 migration, registry bump, scheduler, or public exposure. Stage 12E is a
-separately authorized weekday current-session market refresh whose timer is
-enabled, active, and waiting for the first normal trigger; it is not a public
-surface or a replay of historical population. The service has not run. Stage 7
-rebuilds the accepted
+separately authorized weekday current-session market refresh with no public
+surface or historical replay. Its recorded authority and dated execution
+evidence are indexed in the operating envelope. Stage 7 rebuilds the accepted
 Stage 6 synthetic fixture cohort under explicit temporary roots, then validates
 eight disabled manual fixture plans, injected outcome cases, real fixture
 replay, ordered physical locking, retries, active timeouts, private receipt-last

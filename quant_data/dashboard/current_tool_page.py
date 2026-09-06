@@ -15,6 +15,7 @@ from typing import Any
 
 from ..json_codec import dumps_strict
 from ..registry import Registry
+from .inspector_shell import render_inspector_shell
 
 
 def _escape(value: object) -> str:
@@ -186,13 +187,6 @@ def render_current_agent_tools_page(
     }
     manifest_rows = _tool_inventory(tools)
     dataset_rows = _dataset_inventory(registry, public_names)
-    navigation = (
-        '<a href="/?view=market-prices">Data views</a>'
-        '<a href="/agent-tools" aria-current="page">Agent Tools</a>'
-        '<a href="/data-status">Data status</a>'
-        '<a href="/news">Current news</a>'
-        '<a href="/agent-tools?tool=market.technical_indicators">Indicators</a>'
-    )
     description = selected_variant.get(
         "description", selected_tool.get("description", "Read-only public tool")
     )
@@ -200,27 +194,15 @@ def render_current_agent_tools_page(
         "lifecycle", selected_tool.get("lifecycle", "active")
     )
     bounds = selected_variant.get("workload_bounds", {})
-    return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="color-scheme" content="light"><title>Agent Tools · Canonical Data Inspector</title>
-<link rel="preload" href="/assets/inter-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/assets/dashboard.css"><link rel="stylesheet" href="/assets/inspector-tools.css">
-<script defer src="/assets/inspector-tools.js"></script></head><body>
-<a class="skip-link" href="#main-content">Skip to main content</a><div class="app-shell">
-<header class="site-header"><a class="brand" href="/"><span class="brand-mark" aria-hidden="true">QD</span><strong>Canonical Data Inspector</strong></a>
-<p class="shell-status"><span aria-hidden="true">●</span> Local read-only · registry {_escape(registry.revision)}</p></header>
-<nav class="primary-nav" aria-label="Inspector sections">{navigation}</nav>
-<main id="main-content"><header class="page-intro"><p class="eyebrow">Current public manifest · inspection only</p>
-<h1>Agent Tools</h1><p>Run the latest version of any current read-only contract with manifest-generated fields, bounded nested previews, and a complete paged strict-JSON response. Historical versions remain API compatibility contracts and are intentionally hidden here. No SQL, paths, credentials, provider requests, or writes are exposed.</p></header>
-<section class="metric-grid" aria-label="Current manifest summary">
+    body = f"""<section class="metric-grid inspector-summary" aria-label="Current manifest summary">
 <article class="metric"><p>Logical tools</p><strong>{len(tools)}</strong><span>Current registered names</span></article>
 <article class="metric"><p>Latest versions</p><strong>{latest_versions}</strong><span>One per logical tool</span></article>
 <article class="metric"><p>Registered datasets</p><strong>{len(registry.datasets)}</strong><span>Active and retained declarations</span></article>
 <article class="metric"><p>Execution</p><strong>Read only</strong><span>Loopback dispatcher boundary</span></article></section>
-<section class="panel" id="tool-runner"><header class="panel-header"><p class="panel-kicker">Manifest-generated request</p>
-<h2>Run a public tool</h2><p>Each tool is pinned to its newest advertised semantic version. Change the tool to load that latest schema, example, lifecycle, and workload bounds.</p></header>
+<p class="inspector-tool-shortcut"><a href="/agent-tools?tool=market.technical_indicators">Technical indicators</a></p>\n<section class="panel" id="tool-runner"><header class="panel-header"><p class="panel-kicker">Manifest-generated request</p>
+<h2>Run a public tool</h2><p>Newest advertised version · manifest-generated fields and workload bounds.</p></header>
 <form id="current-tool-runner" class="query-form tool-runner" action="/api/agent-tools/call" method="post">
-<fieldset><legend>Read-only tool request</legend><div class="form-grid tool-selector-grid">
+<fieldset><legend class="inspector-sr-only">Read-only tool request</legend><div class="form-grid tool-selector-grid">
 <label for="current-tool-name">Tool<select id="current-tool-name" name="tool" required>{tool_options}</select></label>
 <label for="current-tool-version">Latest version<input id="current-tool-version" name="tool_version" value="{_escape(selected_version)}" readonly required></label>
 <input type="hidden" name="api_version" value="{_escape(api_version)}"></div>
@@ -234,15 +216,21 @@ def render_current_agent_tools_page(
 <div class="form-actions"><button type="submit">Run read-only tool</button>
 <p class="form-bound">Requests stay on this loopback server and retain the server’s workload and response bounds.</p></div></fieldset></form>
 <output class="runner-output tool-result" data-tool-result data-state="idle" aria-live="polite"><strong>No tool request has run yet.</strong></output></section>
-<section class="panel"><header class="panel-header"><p class="panel-kicker">Public contract inventory</p><h2>{len(tools)} logical tools</h2>
+<details class="inspector-disclosure"><summary>Public tool inventory · {len(tools)} logical tools</summary><section class="panel"><header class="panel-header"><p class="panel-kicker">Public contract inventory</p><h2>{len(tools)} logical tools</h2>
 <p>Only the newest advertised version of each logical tool is shown. The final column describes that version's default point-in-time policy; it is not a live-feed health status.</p></header>
-<div class="table-scroll" tabindex="0"><table id="current-tool-inventory"><caption>Current public tools and latest semantic versions</caption>
-<thead><tr><th>Tool</th><th>Family</th><th>Latest version</th><th>Point-in-time policy</th></tr></thead><tbody>{manifest_rows}</tbody></table></div></section>
-<section class="panel"><header class="panel-header"><p class="panel-kicker">Registered data coverage</p><h2>{len(registry.datasets)} dataset declarations</h2>
+<div class="inspector-table-workspace" data-inspector-table-workspace><div class="table-scroll" tabindex="0"><table data-inspector-table id="current-tool-inventory"><caption>Current public tools and latest semantic versions</caption>
+<thead><tr><th>Tool</th><th>Family</th><th>Latest version</th><th>Point-in-time policy</th></tr></thead><tbody>{manifest_rows}</tbody></table></div></div></section>
+</details><details class="inspector-disclosure"><summary>Registered data coverage · {len(registry.datasets)} datasets</summary><section class="panel"><header class="panel-header"><p class="panel-kicker">Registered data coverage</p><h2>{len(registry.datasets)} dataset declarations</h2>
 <p>This inventory shows whether each registered dataset has a current public tool or fixed Inspector view. Private evidence with no public row surface remains private.</p></header>
-<div class="table-scroll" tabindex="0"><table id="current-data-inventory"><caption>Registry datasets and read-only inspection coverage</caption>
-<thead><tr><th>Dataset</th><th>Store</th><th>Layer</th><th>Status</th><th>Inspection surface</th></tr></thead><tbody>{dataset_rows}</tbody></table></div></section>
-</main><footer class="site-footer"><p>Loopback only · bounded reads · complete paged strict-JSON result available</p></footer></div></body></html>"""
+<div class="inspector-table-workspace" data-inspector-table-workspace><div class="table-scroll" tabindex="0"><table data-inspector-table id="current-data-inventory"><caption>Registry datasets and read-only inspection coverage</caption>
+<thead><tr><th>Dataset</th><th>Store</th><th>Layer</th><th>Status</th><th>Inspection surface</th></tr></thead><tbody>{dataset_rows}</tbody></table></div></div></section>
+</details>"""
+    return render_inspector_shell(
+        title="Agent Tools", active="/agent-tools", revision=registry.revision,
+        body=body, tools=True,
+        description="Run current read-only contracts with guided fields and complete, paged strict-JSON results.",
+        footer="Loopback only · bounded reads · historical versions remain API compatibility contracts",
+    )
 
 
 __all__ = ("latest_tool_version", "render_current_agent_tools_page")

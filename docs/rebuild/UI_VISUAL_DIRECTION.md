@@ -51,6 +51,45 @@ with SHA-256
 The CSS and JavaScript are local assets too; the browser makes no reference-site
 or remote-font request at runtime.
 
+### 1.2 Canonical Inspector workspace refresh
+
+Accepted: 2026-09-05 — user-approved design preview and implementation.
+
+The current Canonical Data Inspector uses an Inspector-specific shell and local
+presentation assets over the existing shared light-theme tokens and bundled
+Inter font. Its grouped navigation covers all fixed data views plus Current
+news, Data status, and Agent Tools. Compact labelled query controls give the
+results more space; numeric columns use tabular figures and end alignment.
+
+Record selection progressively adds a contextual panel containing the original
+row fields. The presentation preserves numeric lexemes, date-only precision,
+availability and capture timestamps, and distinct null, empty-string, boolean,
+and zero values. Complete table data and fixed query forms remain available
+without JavaScript. Narrow screens retain all navigation destinations and
+contain horizontal table overflow. Visible keyboard focus, focus restoration
+when closing a record, and reduced-motion behavior apply throughout.
+
+The shared shell also styles the existing news, retained-status, and public-tool
+surfaces. Tool schemas, latest-version selection, reusable series, strict-JSON
+previews, read templates, pagination, and server boundaries retain their existing
+contracts. Retained freshness is not provider or scheduler health. This refresh
+adds no data reader, operational-store access, provider request, ingestion,
+export, hosting, or deployment authority. Frozen Stage 6 and Atlas assets and
+historical acceptance evidence remain unchanged.
+
+
+The follow-up Data status table adds Refresh Cadence and Next Scheduled Fetch
+immediately after Last successful capture. Cadence reflects the loaded local
+timer calendar, and next triggers preserve the UTC timestamp with an explicit
+zone label. Shared datasets disclose multiple schedules and the earliest known
+batch start. Inactive/unmapped and unavailable schedules remain distinct.
+These HTML-only schedule fields are included in record details and remain
+readable without JavaScript; retained freshness and its JSON contract stay
+separate from the local timer snapshot. Last successful capture displays New
+York time with the date-appropriate EST/EDT label and original fractional
+precision; its original timestamp remains in the machine-readable markup.
+Next Scheduled Fetch stays labelled UTC.
+
 ## 2. Desired feel
 
 The interface should feel like a private institutional research workspace:

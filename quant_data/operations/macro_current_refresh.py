@@ -13,6 +13,7 @@ import argparse
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 import sys
 from typing import Final
 from zoneinfo import ZoneInfo
@@ -25,6 +26,7 @@ from ..errors import (
     ValidationError,
 )
 from ..json_codec import dumps_strict
+from .refresh_status import record_refresh_attempt
 
 
 _VERSION: Final = "1.0.0"
@@ -37,6 +39,8 @@ _CFNAI_START_DATE: Final = "2026-01-01"
 _CMDI_START_DATE: Final = "2005-01-07"
 _BIS_START_PERIOD: Final = "1961-Q1"
 _PRIMARY_DEALER_SERIES_BREAK: Final = "SBN2024"
+_PROJECT_ROOT: Final = Path(__file__).resolve().parents[2]
+_REFRESH_STATUS_ROOT: Final = _PROJECT_ROOT / "data" / ".operations" / "refresh-status"
 _SOURCE_IDS: Final = (
     "fmp_treasury_curve",
     "nyfed_overnight_rates",
@@ -82,6 +86,7 @@ class MacroCurrentRefreshStepReport:
     outcome: str
     exit_code: int
     error: str | None = None
+    status_error: str | None = None
 
     def mapping(self) -> dict[str, object]:
         result: dict[str, object] = {
@@ -92,6 +97,8 @@ class MacroCurrentRefreshStepReport:
         }
         if self.error is not None:
             result["error"] = self.error
+        if self.status_error is not None:
+            result["status_error"] = self.status_error
         return result
 
 
@@ -104,7 +111,7 @@ class MacroCurrentRefreshReport:
     exit_code: int
 
     def mapping(self) -> dict[str, object]:
-        failed = sum(step.outcome == "failed" for step in self.steps)
+        failed = sum(step.exit_code != 0 for step in self.steps)
         return {
             "contract": "quant_data.macro_current_refresh",
             "version": _VERSION,
@@ -373,10 +380,33 @@ def _aggregate_exit_code(steps: tuple[MacroCurrentRefreshStepReport, ...]) -> in
     return 0
 
 
+RefreshObserver = Callable[[str, str, str, str], None]
+
+
+def _timestamp(value: datetime) -> str:
+    if not isinstance(value, datetime) or value.tzinfo is None or value.utcoffset() is None:
+        raise ValidationError("Macro current refresh time must include an offset")
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _record_live_refresh_status(
+    source: str, started_at: str, completed_at: str, outcome: str
+) -> None:
+    record_refresh_attempt(
+        _REFRESH_STATUS_ROOT,
+        source=source,
+        started_at=started_at,
+        completed_at=completed_at,
+        outcome=outcome,
+        successful_fetch_at=completed_at if outcome in {"published", "unchanged", "succeeded"} else None,
+    )
+
+
 def run_macro_current_refresh(
     *,
     collectors: Mapping[str, Collector],
     utcnow: Callable[[], datetime],
+    observer: RefreshObserver | None = None,
 ) -> MacroCurrentRefreshReport:
     """Run each fixed macro-current source once without retries.
 
@@ -385,7 +415,7 @@ def run_macro_current_refresh(
     canonical collector bindings itself.
     """
 
-    if not callable(utcnow):
+    if not callable(utcnow) or (observer is not None and not callable(observer)):
         raise ValidationError("Macro current refresh clock is invalid")
     bound_collectors = _validated_collectors(collectors)
     local_date = _new_york_date(utcnow())
@@ -395,28 +425,39 @@ def run_macro_current_refresh(
 
     steps: list[MacroCurrentRefreshStepReport] = []
     for source, request_cap, arguments in calls:
+        started_at = _timestamp(utcnow())
         try:
             report = bound_collectors[source](**arguments)
         except Exception as error:
             exit_code, error_name = _failure_details(error)
-            steps.append(
-                MacroCurrentRefreshStepReport(
-                    source=source,
-                    request_cap=request_cap,
-                    outcome="failed",
-                    exit_code=exit_code,
-                    error=error_name,
-                )
+            step = MacroCurrentRefreshStepReport(
+                source=source,
+                request_cap=request_cap,
+                outcome="failed",
+                exit_code=exit_code,
+                error=error_name,
             )
         else:
-            steps.append(
-                MacroCurrentRefreshStepReport(
-                    source=source,
-                    request_cap=request_cap,
-                    outcome=_outcome_from_report(report),
-                    exit_code=0,
-                )
+            step = MacroCurrentRefreshStepReport(
+                source=source,
+                request_cap=request_cap,
+                outcome=_outcome_from_report(report),
+                exit_code=0,
             )
+        completed_at = _timestamp(utcnow())
+        if observer is not None:
+            try:
+                observer(source, started_at, completed_at, step.outcome)
+            except Exception:
+                step = MacroCurrentRefreshStepReport(
+                    source=step.source,
+                    request_cap=step.request_cap,
+                    outcome=step.outcome,
+                    exit_code=74,
+                    error=step.error,
+                    status_error="refresh_status_unavailable",
+                )
+        steps.append(step)
 
     frozen_steps = tuple(steps)
     return MacroCurrentRefreshReport(
@@ -432,6 +473,7 @@ def refresh_macro_current_live() -> MacroCurrentRefreshReport:
     return run_macro_current_refresh(
         collectors=_live_collectors(),
         utcnow=lambda: datetime.now(timezone.utc),
+        observer=_record_live_refresh_status,
     )
 
 
