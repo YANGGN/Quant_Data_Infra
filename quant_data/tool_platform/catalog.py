@@ -21,7 +21,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.28.0"
+VERSIONED_CATALOG_VERSION = "2.29.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -3765,12 +3765,24 @@ def _build_news_search_policies(
         **variant_v21["contracts"],
         "pagination": "stable_keyset_for_one_unchanged_retained_selection",
     }
+    variant_v23 = copy.deepcopy(variant_v22)
+    variant_v23.update({
+        "version": "2.3.0", "operation_version": "2.3.0",
+        "compatibility": {"status": "successor_additive_v2_3", "predecessor": "2.2.0"},
+        "description": "Paginate retained current headlines including Finviz and FinancialJuice.",
+        "handler": "tool_platform.news.search.v2_3",
+        "operation_graph_id": "tool_platform.news.search.v2_3",
+        "input_type": "CurrentNewsSearchArgumentsV23",
+        "input_schema_id": _versioned_schema_id(name, "input", "2.3.0"),
+        "input_schema": typed_input_schema("current_news_search_v2_3", {}),
+        "output_schema_id": _versioned_schema_id(name, "output", "2.3.0"),
+    })
     return (
         {
             "tool": name,
             "default_version": "1.0.0",
             "selector_field": "tool_version",
-            "variants": [variant, variant_v21, variant_v22],
+            "variants": [variant, variant_v21, variant_v22, variant_v23],
             "deprecations": [
                 {
                     "version": "1.0.0",
@@ -3781,7 +3793,7 @@ def _build_news_search_policies(
                         "retained current data; select version 2.2.0 for "
                         "multi-source cursor pagination."
                     ),
-                    "replacement": {"tool": name, "version": "2.2.0"},
+                    "replacement": {"tool": name, "version": "2.3.0"},
                     "removal": {
                         "status": "not_scheduled",
                         "milestone": None,
@@ -5051,6 +5063,7 @@ VERSIONED_OPERATION_GRAPH_IDS = frozenset(
         "tool_platform.company.get_fundamentals.v2_1",
         "tool_platform.news.search.v2_1",
         "tool_platform.news.search.v2_2",
+        "tool_platform.news.search.v2_3",
     ]
 )
 

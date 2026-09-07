@@ -21,7 +21,7 @@ from ..temporal import (
     availability_at_or_before,
     parse_date,
 )
-from .current_multi_source import CURRENT_MULTI_SOURCE_FEED_IDS
+from .current_multi_source import ALL_CURRENT_MULTI_SOURCE_FEED_IDS
 from .current_repository import (
     CurrentNewsKeysetAnchor,
     CurrentNewsQuery,
@@ -278,7 +278,7 @@ def _source_ids(source_ids: tuple[str, ...]) -> tuple[str, ...]:
     if not isinstance(source_ids, tuple):
         raise ValidationError("Current multi-source source_ids must be a tuple")
     if any(
-        not isinstance(item, str) or item not in CURRENT_MULTI_SOURCE_FEED_IDS
+        not isinstance(item, str) or item not in ALL_CURRENT_MULTI_SOURCE_FEED_IDS
         for item in source_ids
     ):
         raise ValidationError("Current multi-source source_ids contain an unsupported feed")

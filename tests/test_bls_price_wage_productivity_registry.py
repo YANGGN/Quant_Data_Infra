@@ -22,7 +22,7 @@ DATASET_IDS = (
     "fixture.macro.stage3_catalog",
 )
 CURRENT_SOURCE_SHA256 = (
-    "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
+    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
 )
 PRE_EXTENSION_SOURCE_SHA256 = (
     "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
@@ -40,7 +40,7 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
     def test_collector_is_manual_bounded_and_unjobbed(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.71.0")
+        self.assertEqual(registry.revision, "2.74.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -48,7 +48,7 @@ class BlsPriceWageProductivityRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (45, 61, 68),
+            (48, 64, 70),
         )
         collector = next(
             item

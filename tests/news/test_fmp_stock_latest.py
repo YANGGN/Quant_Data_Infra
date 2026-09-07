@@ -134,7 +134,7 @@ class FmpStockLatestTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(
             ValidationError,
-            "only the reviewed data-status binding",
+            "only the reviewed data-status binding|reviewed canonical registry",
         ):
             FmpStockLatestImporter(
                 self.store_map,

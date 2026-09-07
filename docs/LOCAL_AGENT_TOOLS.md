@@ -61,7 +61,7 @@ preserves the complete response in a bounded nested preview plus a complete
 paged strict-JSON view. Typed time series returned by one tool can be reused
 by another tool within that browser session.
 
-Use the Current news shortcut for a bounded latest `news.search@2.2.0`
+Use the Current news shortcut for a bounded latest `news.search@2.3.0`
 table with text, symbol, source, date, and cursor filters. It exposes retained
 headline metadata and truncation through the public contract without exposing
 article bodies or raw evidence. The advanced tool view retains lineage and
@@ -183,7 +183,7 @@ this checkpoint.
 | `stats.principal_components` | `1.0.0` |
 | `stats.multiple_testing` | `2.0.0` |
 | `forecast.evaluate` | `2.0.0` |
-| `news.search` | `2.2.0` |
+| `news.search` | `2.3.0` |
 | `news.get_source_status` | `1.0.0` |
 | `news.get_item_history` | `1.0.0` |
 | `news.story_clusters` | `1.0.0` |
@@ -285,7 +285,7 @@ printf '%s\n' '{"api_version":"1.0","tool":"company.search_filings","tool_versio
 printf '%s\n' '{"api_version":"1.0","tool":"company.get_share_count_history","tool_version":"2.0.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
-printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.2.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.3.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ```
 
@@ -302,7 +302,7 @@ metrics.
 
 ### Current news and analytics quick start
 
-Use `news.search@2.2.0` for the current fixed-source reader with opaque
+Use `news.search@2.3.0` for the current fixed-source reader with opaque
 keyset pagination. Historical contracts are compatibility-only and are not
 shown here. The current version accepts optional `query`, `symbols`,
 `source_ids`, `start_date`,
@@ -311,12 +311,14 @@ shown here. The current version accepts optional `query`, `symbols`,
 
 The fixed source IDs are `fmp_stock_latest`, `fmp_press_releases`,
 `fmp_general`, `fed_press`, `ecb_press`, `bea_news`, `eia_press`, and
-`alpaca_benzinga`. These are the only accepted `source_ids`. The inactive
+`alpaca_benzinga`, `finviz`, and `financialjuice`. These are the accepted
+`source_ids` in version 2.3. Finviz time-only/month-day publication labels
+retain unknown precision. Versions 2.1 and 2.2 retain their original source set. The inactive
 legacy `fmp_news_articles` relation is private evidence, not a public source.
 
 ~~~bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools manifest
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.2.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.search --tool-version 2.3.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.get_source_status --tool-version 1.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.get_item_history --tool-version 1.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.story_clusters --tool-version 1.0.0
@@ -326,7 +328,7 @@ legacy `fmp_news_articles` relation is private evidence, not a public source.
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.headline_sentiment --tool-version 1.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe research.news_event_impact --tool-version 1.0.0
 
-printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.2.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.3.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"news.get_source_status","tool_version":"1.0.0","arguments":{"source_ids":[]}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"news.story_clusters","tool_version":"1.0.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":[],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"limit":100,"window_hours":24}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ~~~

@@ -155,7 +155,7 @@ def invoke_operation(
         and name in VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS
     )
     versioned_news = (
-        context.tool_version in {"2.0.0", "2.1.0", "2.2.0"}
+        context.tool_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}
         and name in VERSIONED_NEWS_TOOLS
     )
     versioned_options_access = (
@@ -224,6 +224,7 @@ def invoke_operation(
             "2.0.0": "tool_platform.news.search.v2",
             "2.1.0": "tool_platform.news.search.v2_1",
             "2.2.0": "tool_platform.news.search.v2_2",
+            "2.3.0": "tool_platform.news.search.v2_3",
         }[context.tool_version]
         if context.operation_graph_id != expected_graph:
             raise LookupError("Selected current-news operation graph is invalid")
@@ -231,8 +232,11 @@ def invoke_operation(
             invoke_news_search_v2,
             invoke_news_search_v21,
             invoke_news_search_v22,
+            invoke_news_search_v23,
         )
 
+        if context.tool_version == "2.3.0":
+            return invoke_news_search_v23(name, arguments, context, registry)
         if context.tool_version == "2.2.0":
             return invoke_news_search_v22(
                 name, arguments, context, registry

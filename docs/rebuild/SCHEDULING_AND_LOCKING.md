@@ -87,6 +87,14 @@ requests without retry, including 13 bounded Alpaca/Benzinga batches. It has no
 retry or catch-up behavior. Future work must not manually trigger, retry,
 broaden, reinstall, disable, or repurpose the authorized unit.
 
+On September 6, 2026 the user approved extending this same batch with Finviz
+and FinancialJuice, one fixed credential-free request each per normal hourly
+invocation. Their [source contract](WEBSITE_NEWS_SOURCES_2026-09-06.md) specifies
+bounds, shared-table publication, source-local failures, and exact no-write
+replay. This later decision supersedes the earlier eight-source scope for
+these two additions only. Dated activation evidence belongs in the operating
+envelope.
+
 ## Authorized GDP/CPI vintage refresh
 
 `quant-data-macro-vintages.timer` is an authorized recurring scheduling
@@ -936,3 +944,15 @@ Stop and escalate if a job touches an undeclared store, a physical path cannot
 be resolved unambiguously, partial aliasing appears, a collector requires a
 transaction across network I/O, a retry would replay successful immutable
 captures, or validation would require live scheduler or database mutation.
+
+## Equibles finite transcript backfill — 2026-09-07
+
+The user authorized a new dedicated daily finite backfill, separate from existing
+recurring units. The [Equibles contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md)
+owns the frozen 519-ticker scope, ticker/call/page resume order, durable shared
+100-attempt UTC-day budget, quota-only deferral, and terminal completion behavior.
+The fixed private collector remains manual-only in the generic job registry;
+the explicitly authorized host timer runs at 00:10 UTC with Persistent=true,
+Restart=no, a private non-overlap lock, and standard physical company write locks.
+Network precedes every canonical write session. The public CLI accepts zero arguments.
+Dated activation evidence is indexed in the operating envelope.

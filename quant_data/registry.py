@@ -1938,7 +1938,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2732,7 +2732,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=162,
+        expected_count=164,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3493,7 +3493,7 @@ def load_registry(
                     3
                     if policy["tool"] == "econometrics.regression"
                     else (
-                        3
+                        4
                         if policy["tool"] == "news.search"
                         else 2
                         if policy["tool"]
@@ -3685,10 +3685,14 @@ def load_registry(
                 policy["tool"] == "market.technical_indicators"
                 and variant_index == 6
             )
+            is_news_v23_variant = (
+                policy["tool"] == "news.search" and variant_index == 3
+            )
             is_news_v22_variant = (
                 policy["tool"] == "news.search" and variant_index == 2
             )
             expected_version = (
+                "2.3.0" if is_news_v23_variant else
                 "3.0.0"
                 if is_v3_variant
                 else "2.2.0"
@@ -3708,6 +3712,7 @@ def load_registry(
                 else "2.1.0"
             )
             expected_graph_suffix = (
+                "v2_3" if is_news_v23_variant else
                 "v3"
                 if is_v3_variant
                 else "v2_2"
@@ -4470,6 +4475,14 @@ def load_registry(
                     "official_conditions",
                     "Official conditions collector drifted",
                 )
+        elif collector_id == "equibles.company.transcripts":
+            from quant_data.company.equibles_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "equibles", "Equibles collector drifted")
+        elif collector_id == "fmp.company.analyst_history":
+            from quant_data.company.fmp_analyst_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "fmp_analyst", "FMP analyst collector drifted")
         elif collector_id in {"fmp.company.research_inputs", "fmp.market.research_gap_repair"}:
             from quant_data.company.fmp_research_registry import COLLECTORS
             if collector != next(c for c in COLLECTORS if c["id"] == collector_id):
@@ -4647,7 +4660,7 @@ def load_registry(
                 }
                 or workload
                 != {
-                    "max_requests": 22,
+                    "max_requests": 24,
                     "max_rows": 1_000,
                     "max_bytes": 67_108_864,
                     "max_seconds": 60,
@@ -5738,10 +5751,19 @@ _REGISTRY_259_ADDITIVE_VARIANTS = frozenset(
 )
 
 
+def _pre_website_policies() -> tuple[dict[str, Any], ...]:
+    policies = copy.deepcopy(build_tool_version_policies())
+    for policy in policies:
+        if policy["tool"] == "news.search":
+            policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
+            policy["deprecations"][0]["replacement"]["version"] = "2.2.0"
+    return policies
+
+
 def _pre_registry_267_policies() -> tuple[dict[str, Any], ...]:
     return tuple(
         copy.deepcopy(dict(policy))
-        for policy in build_tool_version_policies()
+        for policy in _pre_website_policies()
         if policy["tool"] not in VERSIONED_OPTIONS_ACCESS_TOOLS
     )
 
@@ -5769,10 +5791,134 @@ def _pre_registry_266_policies() -> tuple[dict[str, Any], ...]:
     return tuple(policies)
 
 
+_WEBSITE_SOURCE_REGISTRY_SHA256 = "6b6284c184d1b4cf92bab56fe7afb80de34d78a39488c96bd21be86a59db83c8"
+
+
+def equibles_transcript_registry_profile(registry: Registry) -> Registry:
+    """Remove only Equibles and reproduce the exact 2.73 predecessor."""
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.74.0"):
+        return registry
+    from quant_data.company.equibles_registry import DATASET_IDS, MIGRATION_ID, COLLECTOR
+    from quant_data.tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.74.0")]
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True)+"\n").encode()
+    if registry.source_sha256 != source or hashlib.sha256(render(registry.raw)).hexdigest() != source:
+        raise RegistryError("Equibles registry source drifted")
+    if ([dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or {d.id: (list(d.tool_ids), list(d.collector_ids)) for d in registry.datasets}
+           != {d["id"]: (d["tool_ids"], d["collector_ids"]) for d in registry.raw["datasets"]}
+        or {s.id: list(s.migration_order) for s in registry.stores}
+           != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: (m.store, m.ordinal, m.resource, m.sha256, m.semantic_scope, list(m.dependencies), m.reconstruction_state) for m in registry.migrations}
+           != {m["id"]: (m["store"], m["ordinal"], m["resource"], m["sha256"], m["semantic_scope"], m["dependencies"], m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Equibles registry parsed bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.73.0"
+    raw["datasets"] = [d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    raw["collectors"] = [c for c in raw["collectors"] if c["id"] != COLLECTOR["id"]]
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != MIGRATION_ID]
+    for s in raw["stores"]:
+        s["migration_order"] = [m for m in s["migration_order"] if m != MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest() != '658be96e5a171801887adf6ba6c1a13e460228386423bc47e4a8b38714987a4c':
+        raise RegistryError("Equibles predecessor projection drifted")
+    return replace(registry, registry_version="2.73.0", raw=raw,
+        source_sha256='658be96e5a171801887adf6ba6c1a13e460228386423bc47e4a8b38714987a4c',
+        datasets=tuple(d for d in registry.datasets if d.id not in DATASET_IDS),
+        collectors=tuple(c for c in registry.collectors if c["id"] != COLLECTOR["id"]),
+        migrations=tuple(m for m in registry.migrations if m.id != MIGRATION_ID),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != MIGRATION_ID)) for s in registry.stores))
+
+
+def analyst_history_registry_profile(registry: Registry) -> Registry:
+    """Remove only analyst history and reproduce the exact 2.72 predecessor."""
+    registry = equibles_transcript_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.73.0"):
+        return registry
+    from quant_data.company.fmp_analyst_registry import DATASET_IDS, MIGRATION_ID, COLLECTOR
+    from quant_data.tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.73.0")]
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True)+"\n").encode()
+    if registry.source_sha256 != source or hashlib.sha256(render(registry.raw)).hexdigest() != source:
+        raise RegistryError("Analyst registry source drifted")
+    if ([dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or {d.id: (list(d.tool_ids), list(d.collector_ids)) for d in registry.datasets}
+           != {d["id"]: (d["tool_ids"], d["collector_ids"]) for d in registry.raw["datasets"]}
+        or {s.id: list(s.migration_order) for s in registry.stores}
+           != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: (m.store, m.ordinal, m.resource, m.sha256, m.semantic_scope, list(m.dependencies), m.reconstruction_state) for m in registry.migrations}
+           != {m["id"]: (m["store"], m["ordinal"], m["resource"], m["sha256"], m["semantic_scope"], m["dependencies"], m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Analyst registry parsed bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.72.0"
+    raw["datasets"] = [d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    raw["collectors"] = [c for c in raw["collectors"] if c["id"] != COLLECTOR["id"]]
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != MIGRATION_ID]
+    for s in raw["stores"]:
+        s["migration_order"] = [m for m in s["migration_order"] if m != MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest() != _WEBSITE_SOURCE_REGISTRY_SHA256:
+        raise RegistryError("Analyst predecessor projection drifted")
+    return replace(registry, registry_version="2.72.0", raw=raw,
+        source_sha256=_WEBSITE_SOURCE_REGISTRY_SHA256,
+        datasets=tuple(d for d in registry.datasets if d.id not in DATASET_IDS),
+        collectors=tuple(c for c in registry.collectors if c["id"] != COLLECTOR["id"]),
+        migrations=tuple(m for m in registry.migrations if m.id != MIGRATION_ID),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != MIGRATION_ID)) for s in registry.stores))
+
+
+def website_source_registry_profile(registry: Registry) -> Registry:
+    """Project only the website-source extension to byte-exact registry 2.71."""
+    registry = analyst_history_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.72.0"):
+        return registry
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode()
+    if (registry.source_sha256 != _WEBSITE_SOURCE_REGISTRY_SHA256
+            or hashlib.sha256((json.dumps(registry.raw, ensure_ascii=True, indent=1, sort_keys=True) + "\n").encode()).hexdigest() != _WEBSITE_SOURCE_REGISTRY_SHA256):
+        raise RegistryError("Website source registry drifted")
+    if ([dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or [dict(p) for p in registry.tool_version_policies] != registry.raw["tool_versions"]
+        or {s.id: list(s.migration_order) for s in registry.stores}
+           != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: (m.store, m.ordinal, m.resource, m.sha256, m.semantic_scope,
+                   list(m.dependencies), m.reconstruction_state) for m in registry.migrations}
+           != {m["id"]: (m["store"], m["ordinal"], m["resource"], m["sha256"],
+                         m["semantic_scope"], m["dependencies"], m["reconstruction_state"])
+               for m in registry.raw["migrations"]}):
+        raise RegistryError("Website source parsed bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    migration_id = "news:0009_website_source_extension"
+    raw["registry_version"] = "2.71.0"
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != migration_id]
+    for store in raw["stores"]:
+        store["migration_order"] = [m for m in store["migration_order"] if m != migration_id]
+    for collector in raw["collectors"]:
+        if collector["id"] == "news.current_multi_source":
+            collector["workload_bounds"]["max_requests"] = 22
+    for policy in raw["tool_versions"]:
+        if policy["tool"] == "news.search":
+            policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
+            policy["deprecations"][0]["replacement"]["version"] = "2.2.0"
+    raw["tool_version_schema_catalog"] = {
+        "schema_id": VERSIONED_CATALOG_ID, "schema_version": "2.28.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": "61755e015ba4f52eb2571d729c390137303021ff074241e5164cc36d2258f7ed",
+    }
+    if hashlib.sha256(render(raw)).hexdigest() != _FMP_RESEARCH_REGISTRY_SOURCE_SHA256:
+        raise RegistryError("Website source predecessor projection drifted")
+    return replace(
+        registry, registry_version="2.71.0", raw=raw,
+        source_sha256=_FMP_RESEARCH_REGISTRY_SOURCE_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id != migration_id),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != migration_id)) for s in registry.stores),
+        collectors=tuple(raw["collectors"]),
+        tool_version_policies=tuple(raw["tool_versions"]),
+    )
+
+
 _FMP_RESEARCH_REGISTRY_SOURCE_SHA256 = "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
 
 def fmp_research_registry_profile(registry: Registry) -> Registry:
     """Remove only this lane and reproduce the byte-exact 2.70 predecessor."""
+    registry = website_source_registry_profile(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.71.0"):
         return registry
     from quant_data.company.fmp_research_registry import COLLECTORS, DATASET_IDS, MIGRATION_ID
@@ -6133,7 +6279,7 @@ def data_status_options_registry_profile(registry: Registry) -> Registry:
             str(policy["tool"]),
             tuple(str(item["version"]) for item in policy["variants"]),
         )
-        for policy in build_tool_version_policies()
+        for policy in _pre_website_policies()
     )
     if (
         registry.source_sha256 != _DATA_STATUS_OPTIONS_REGISTRY_SOURCE_SHA256
@@ -14309,7 +14455,12 @@ def stage2_registry_profile(registry: Registry) -> Registry:
     """
 
     payload = (
-        json.dumps(registry.raw, ensure_ascii=True, indent=2, sort_keys=True)
+        json.dumps(
+            registry.raw,
+            ensure_ascii=True,
+            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0")} else 2,
+            sort_keys=True,
+        )
         + "\n"
     ).encode("utf-8")
     if hashlib.sha256(payload).hexdigest() == registry.source_sha256:

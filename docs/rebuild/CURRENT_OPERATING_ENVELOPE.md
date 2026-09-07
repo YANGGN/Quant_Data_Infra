@@ -998,7 +998,7 @@ broaden, install, start, enable, disable, remove, or repurpose a recurring unit.
 | `quant-data-sec-company-fundamentals.timer` | 07:15 America/New_York on weekdays. It reads the fixed Stage 10 equity roster, performs one bounded SEC ticker discovery, processes sequential submissions/CompanyFacts pairs without retry, and targets only `data/company.sqlite`. |
 | `quant-data-company-market-refresh.timer` | 19:00 America/New_York on weekdays. The zero-argument wrapper reads at most 700 retained FMP equities and existing company identities, makes one SEC ticker discovery, and fetches dividends, splits, and one annual-estimates page for each unambiguous existing identity. It publishes only to `data/company.sqlite`, creates no identities, and is capped at 2,101 requests, 128 MiB, and 30 minutes with a 31-minute host timeout. Partial coverage exits nonzero, exact semantic replay writes nothing, and there is no retry or catch-up. |
 | `quant-data-market-close.timer` | Activation was recorded on 2026-08-29, with no service execution, state directory, provider request, or canonical write during activation. The dated observations are in the canonical market boundary above. On weekdays at 18:00 America/New_York, it snapshots every current FMP provider-native Stage 10 `equity`/`etf`/`index` identity. The 2026-08-29 preflight contained 630 (519 equity, 96 ETF, and 15 index); the dynamic batch is bounded to 800 and begins with `AAPL`. It makes one current-session daily-OHLCV request per symbol. An empty `AAPL` stops the batch. Pinned historical noncoverage symbols remain eligible; only their reviewed empty/HTTP 402 outcomes are terminal. Any durably received per-symbol response outside the accepted status, redirect, media, envelope, or payload policy is retained as a failed result while later independent symbols continue; any such result prevents completion and exits nonzero. Transport/no-response ambiguity and publication/store failures remain fail-fast. It is non-persistent, has no retry or catch-up, targets only `data/market.sqlite`, retains per-unit private evidence, and writes nothing on exact semantic replay. |
-| `quant-data-current-news-refresh.timer` | Hourly at `:10` UTC. It runs the fixed eight-source current-news batch over FMP stock/press/general, Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga feeds. Coverage derives from the bounded current market universe, requests have no retry, missing credentials are source-local unavailable outcomes, exact replay writes nothing, and the timer is non-persistent with no catch-up. |
+| `quant-data-current-news-refresh.timer` | Hourly at `:10` UTC. Following the September 6, 2026 decision, it runs ten fixed source steps: FMP stock/press/general, Federal Reserve, ECB, BEA, EIA, Alpaca/Benzinga, Finviz, and FinancialJuice. The two websites add one credential-free request each; the generic request ceiling is 24 plus one FMP stock-latest request. Coverage derives from the bounded current market universe, requests have no retry, missing credentials are source-local unavailable outcomes, exact replay writes nothing, and the timer is non-persistent with no catch-up. |
 
 These exceptions do not enable any recovered Stage 7 job, provider or series
 beyond the exact scope above, a different cadence, catch-up run, or historical
@@ -1290,3 +1290,159 @@ by this repair. An authorized normal hourly news run completed during testing;
 the affected unchanged data-guard test was rerun successfully afterward.
 See the [completed handoff](FMP_RESEARCH_INPUT_HANDOFF_2026-09-06.md)
 for receipts, tool usage, source conflicts and remaining gaps.
+
+
+## September 6, 2026 — shared Finviz and FinancialJuice activation
+
+The user authorized both website sources, their integration into the existing
+hourly current-news fetcher, and a forward migration of the shared news tables.
+This decision extends the prior eight-source batch by these two sources only.
+See the [source contract](WEBSITE_NEWS_SOURCES_2026-09-06.md) for fixed URLs,
+identity, time precision, transport bounds, replay behavior, and reader scope.
+
+The reviewed 59-file integration was installed at registry `2.72.0` after
+1,625 unique offline cases passed across retained/resumed runs and a fresh
+independent review reconciled all evidence. Ten focused registry/fetcher checks
+also passed in the installed main checkout.
+
+At `2026-09-06T18:53:43.905856Z`, the existing news-store migration runner
+applied `news:0009_website_source_extension` at SQL SHA-256
+`992f83f7c9fdd49eade78ab52fc01221746e78f4abe1e851641c75be184f860b`.
+Every pre-existing table row and trigger definition survived the migration
+unchanged, including 7,993 shared articles, 11,513 FMP stock-current articles,
+and 22,910 legacy FMP articles. The first eight migration ledger rows remained
+identical. Integrity was `ok` with zero foreign-key violations.
+
+The one-time retained-response publication completed at
+`2026-09-06T18:54:30.098059Z`, adding **180 Finviz and 100 FinancialJuice**
+articles to the existing multi-source tables. It made **zero new provider
+requests**, preserved every prior row and old-source article count, and passed
+both repository and public `news.search@2.3.0` checks. The source-native
+responses retain their original capture times of 04:55:19 UTC and 04:56:03 UTC;
+this was not a fresh provider poll. The initial publications are complete and
+must not be manually repeated without a new finite request.
+
+The observed timer remained enabled/active/waiting, with its next normal slot
+at 19:10 UTC (15:10 EDT). The service remained inactive/dead with exit status 0
+from its preceding normal run. No recurring unit was manually triggered,
+restarted, reloaded, enabled, disabled, or edited. The installed zero-argument
+module now includes both websites in the next normal ten-source batch; that
+future website execution was not observed during activation.
+
+The previously authorized manual loopback Inspector was restored on port 8766
+at 18:55:15 UTC with PID 19154 and registry `2.72.0`, after confirming the
+port was unoccupied. Both website filters returned HTTP 200 and ten retained
+headlines each without a page error; the Status page returned HTTP 200.
+
+Private execution evidence is retained in
+`.local/news-install-receipt-20260906.json`,
+`.local/news-website-validation-20260906.json`,
+`.local/news-website-activation-20260906.json`, and
+`.local/news-inspector-reload-20260906.json`. Full offline logs and the
+independent closeout remain under `.local/news-html-worktree/.local/`.
+
+## Equibles transcript backfill decision — 2026-09-07
+
+The user explicitly authorized raw transcript storage for all existing 500+
+tickers and daily pacing within the Equibles 100-request quota, completing each
+ticker's full available history before advancing. The
+[finite backfill contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md) binds this
+to the frozen 519-equity universe, company-only migration 0010, named existing
+credential, two fixed endpoint shapes, retained response reuse, and dedicated
+00:10 UTC host timer. This decision supersedes the prior evaluation-only
+restriction for this population and includes initial execution and activation.
+Other Equibles datasets, existing recurring units, and completed FMP populations
+are outside this authority. Dated activation evidence follows.
+
+### September 7, 2026 — Equibles activation evidence
+
+The combined 2.74.0 integration passed independently reconciled offline coverage
+for all 1,668 unique current cases and fresh independent review. Exact earlier
+failures, corrections, and retained-run provenance remain in the
+[focused validation receipt](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md#offline-validation-receipt--2026-09-07).
+
+The separately authorized FMP analyst task first applied company 0009 at
+`2026-09-07T06:50:51.596529Z` under pinned registry 2.73, published its
+26 retained AAPL/MSFT pilot captures, and passed 20 no-change replays,
+16 reader/cutoff checks, integrity, and foreign-key checks. Its private
+`pilot-activation.json` and `pilot-verification.json` receipts are under
+`.local/fmp-analyst-history-20260907/`; see the
+[FMP analyst contract](FMP_ANALYST_HISTORY_2026-09-07.md).
+After its quiet handoff, company 0010 was applied at
+`2026-09-07T07:01:09.081284+00:00` under registry 2.74.0, SQL SHA-256
+`600358ba2c8c3196ef4c421f42444fe2955222fbdcb26a75c41e7aa1e6a74e62`.
+All prior company migration rows remained byte-for-byte equivalent field values.
+
+The frozen population contains 519 existing FMP equities. Initialization reused
+15 Equibles responses and reserved the earlier 40 September 7 evaluation calls
+against the same daily quota. The initial service ran at 07:03:51–07:06:19 UTC,
+made 60 new requests, and ended successfully at 100 total requests / zero
+remaining. It stored 60 complete transcripts and 60 raw pages, with 4,462
+speaker turns and 3,511,798 original bytes: A 26 calls, AAPL 27, and ABBV 7.
+A and AAPL are complete for the available catalogue; ABBV is the saved current
+ticker. The immutable audit verified every raw hash and retained byte sequence,
+complete bundles, artifact/snapshot lineage, zero foreign-key violations,
+unchanged predecessor ledger rows, and unchanged pre-existing company-table
+counts, including the analyst pilot. The company window was handed back to the
+FMP task for its separately authorized retained-only bulk publication.
+
+Only the new Equibles service and timer were linked. The user timer was enabled
+at `2026-09-07T07:10:40.131847+00:00`, observed loaded/enabled/active/waiting,
+and scheduled next for **2026-09-08 00:10 UTC (September 7, 20:10 EDT)**.
+It runs daily at 00:10 UTC with persistent catch-up and durable shared-account
+quota accounting; the service has no restart. The service was inactive after
+the successful first batch, and timer enablement added no requests.
+Existing recurring units were not restarted or reconfigured.
+
+This is an active finite backfill, not a completed 519-ticker population.
+Normal clock execution may continue its saved ticker-first workload within the
+existing bounds. Completed calls are not refetched; new symbols, a completed
+population repeat, or periodic refresh are outside this decision. WSL must be
+running for the host timer to execute.
+
+Private receipts: `.local/equibles-activation.json`,
+`.local/equibles-first-batch-audit.json`, `.local/equibles-first-service.log`,
+and `.local/equibles-timer-activation.json`. The
+[full activation receipt](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md#activation-receipt--2026-09-07)
+records exact storage, checkpoint, schedule, and limitations.
+
+
+## FMP analyst population completion — 2026-09-07
+
+The current user decision explicitly authorized AAPL/MSFT recommendations and
+price targets, the longest returned related history, then the retained single-name
+universe. It superseded the earlier analyst deferral for this finite population.
+The user separately approved coordination with the transcript task. The ordered
+company 0009 pilot and company 0010 activation evidence above remains unchanged.
+
+After the transcript post-write handoff, retained-only FMP publication completed
+without another provider or migration call. The canonical company store now has
+516 of 519 retained equity symbols (513 issuers), 397,285 distinct observations,
+397,299 versions, 4,971 captures, and 397,525 capture memberships. Annual/quarter
+estimates, earnings, and historical recommendation distributions cover 516 symbols;
+recommendation events/consensus cover 515; price-target events/consensus/summary
+cover 512. AVB, EA, and EQR remain unconfirmed identity mappings. ERIE has empty
+recommendation responses; BF-B, ERIE, L, and NWS have empty target responses.
+
+The universe capture used 4,962 single attempts (4,961 FMP plus one SEC discovery),
+all HTTP 200, 116,585,138 returned bytes, and 3,707.60 seconds. It stayed within
+15,000 attempts, 1 GiB, two hours of capture execution, the endpoint/page bounds,
+and the no-retry policy. With the separately scoped 22 pilot FMP requests, the
+task used 4,984 external requests total. The 4,959 eligible retained responses
+produced 4,945 successful publications and 14 empty no-change outcomes; two empty
+pagination-stop responses added no data. No completed FMP population was refetched.
+
+The independently reviewed combined 1,668-case offline gate preceded activation.
+The final immutable audit passed integrity and foreign keys. Thirteen universe
+replays and twenty pilot replays caused zero canonical change, with complete
+company-table counts and database SHA-256/size/mtime preserved; sixteen pilot
+reader/cutoff checks passed. Bulk publication preserved every non-analyst company
+count, including Equibles data, and the entire company 0001–0010 migration ledger.
+Source conflicts and missingness remain explicit. Historical forecast periods
+are not historical estimate vintages; availability is the retained local capture.
+
+This one-time FMP population is complete with those gaps. Its manual collector is
+not scheduled. Do not repeat this population, add unresolved issuer mappings, or
+install a recurring analyst refresh without a new finite scope or explicit schedule.
+See the [focused population receipt](FMP_ANALYST_HISTORY_2026-09-07.md#universe-population-evidence)
+and private `.local/fmp-analyst-history-20260907/completion-receipt.json`.

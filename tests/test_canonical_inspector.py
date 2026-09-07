@@ -2385,7 +2385,7 @@ class CanonicalInspectorTests(unittest.TestCase):
         manifest_response = self.application.handle("GET", "/api/agent-tools")
         self.assertEqual(manifest_response.status, 200)
         manifest = loads_strict(manifest_response.body)
-        self.assertEqual(manifest["registry_revision"], "2.71.0")
+        self.assertEqual(manifest["registry_revision"], "2.74.0")
         self.assertEqual(len(manifest["tools"]), 77)
         technical = next(
             item
@@ -2659,13 +2659,13 @@ class CanonicalInspectorTests(unittest.TestCase):
                 self.assertNotIn(f'"{private_name}":', serialized)
             self.assertEqual(before, tuple(self._sha256(path) for path in paths))
 
-    def test_current_news_page_runs_v22_and_renders_bounded_headlines(
+    def test_current_news_page_runs_v23_and_renders_bounded_headlines(
         self,
     ) -> None:
         result = {
             "records": [
                 {
-                    "record_type": "current_news_headline_v2_2",
+                    "record_type": "current_news_headline_v2_3",
                     "fields": [
                         {"name": "feed_id", "value": "alpaca_benzinga"},
                         {
@@ -2721,6 +2721,8 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "&start_date=2026-08-01&end_date=2026-09-01&limit=10",
             )
         self.assertEqual(response.status, 200)
+        self.assertIn(b'value="finviz"', response.body)
+        self.assertIn(b'value="financialjuice"', response.body)
         dispatcher_call.assert_has_calls(
             [
                 call(
@@ -2737,7 +2739,7 @@ class CanonicalInspectorTests(unittest.TestCase):
                         "cursor": None,
                         "limit": 10,
                     },
-                    tool_version="2.2.0",
+                    tool_version="2.3.0",
                 ),
                 call(
                     "news.get_source_status",

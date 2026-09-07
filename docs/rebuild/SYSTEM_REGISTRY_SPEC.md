@@ -861,7 +861,12 @@ activation did not run the service or write a store. Exact
 projection removes migrations 0007/0008, the three added datasets, the
 collector, and v2.1, reproducing `2.63.0`/`2.23.0` byte-for-byte.
 
-
+The September 6 website-news extension adds the forward migration
+`news:0009_website_source_extension` to expand the existing multi-source
+source/provider constraints. It adds no separate tables or datasets.
+`news.search@2.3.0` adds `finviz` and `financialjuice`; older source sets remain
+frozen. The [source contract](WEBSITE_NEWS_SOURCES_2026-09-06.md) defines
+publication precision, replay, request bounds, and the existing hourly binding.
 
 ADR 0012 defines the exact `2.40.0` topology. The legacy
 `macro.fmp.economic_calendar_evidence` dataset remains active and readable
@@ -1666,3 +1671,15 @@ These are activation blockers, not invitations to invent missing facts:
 - exact scheduler wrapper artifacts and final calendars;
 - the Atlas source/package lock and deployment receipt format; and
 - which optional derived materializations, if any, warrant persistent tables rather than ephemeral results.
+
+## Equibles transcript evidence revision — 2026-09-07
+
+Revision 2.74.0 adds company-owned evidence dataset
+`company.equibles.transcripts`, private collector
+`equibles.company.transcripts`, and company migration 0010. It preserves the
+byte-exact 2.73.0 predecessor through `equibles_transcript_registry_profile`;
+existing analyst/website and older projections continue through that profile.
+The fixed host scheduler exception, raw-byte preservation, bounded request
+scope, and capture-time semantics are defined in the
+[Equibles contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md).
+No public tool, default behavior, or generated catalog is added.

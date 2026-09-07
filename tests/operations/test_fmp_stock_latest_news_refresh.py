@@ -16,6 +16,7 @@ from quant_data.news.current_multi_source import (
     CURRENT_MULTI_SOURCE_MIGRATION_ID,
     LEGACY_FMP_NEWS_DATASET_ID,
     LEGACY_FMP_NEWS_MIGRATION_ID,
+    WEBSITE_SOURCE_MIGRATION_ID,
 )
 from quant_data.news.fmp_stock_latest_current import (
     CapturedFmpStockLatestCurrentResponse,
@@ -121,6 +122,7 @@ def _prefix_registry(registry):
         FMP_STOCK_LATEST_CURRENT_MIGRATION_ID,
         CURRENT_MULTI_SOURCE_MIGRATION_ID,
         LEGACY_FMP_NEWS_MIGRATION_ID,
+        WEBSITE_SOURCE_MIGRATION_ID,
     }
     removed_datasets = {
         FMP_STOCK_LATEST_CURRENT_EVIDENCE_DATASET_ID,
@@ -262,11 +264,12 @@ class FmpStockLatestCurrentRefreshTests(unittest.TestCase):
                 )
             )
             self.assertEqual(
-                migrations[-3:],
+                migrations[-4:],
                 (
                     FMP_STOCK_LATEST_CURRENT_MIGRATION_ID,
                     CURRENT_MULTI_SOURCE_MIGRATION_ID,
                     LEGACY_FMP_NEWS_MIGRATION_ID,
+                    WEBSITE_SOURCE_MIGRATION_ID,
                 ),
             )
             self.assertEqual(

@@ -220,6 +220,22 @@ class CurrentNewsSearchArgumentsV22(CurrentNewsSearchArgumentsV21):
 
 
 @dataclass(frozen=True, slots=True)
+class CurrentNewsSearchArgumentsV23(CurrentNewsSearchArgumentsV22):
+    """Paginate current news including Finviz and FinancialJuice."""
+
+    INPUT_KIND: ClassVar[str] = "current_news_search_v2_3"
+    source_ids: tuple[str, ...] = _typed_field(
+        _InputField(
+            types=("array",), required=False, max_items=10,
+            item=_InputField(types=("string",), min_length=1, max_length=64,
+                             enum=(*_CURRENT_NEWS_SOURCE_IDS, "finviz", "financialjuice")),
+            form="array",
+        ),
+        default=(),
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class NewsSourceStatusArgumentsV1(_ArgumentMapping):
     """Read deterministic retained status for the fixed news sources."""
 
@@ -2517,6 +2533,7 @@ _ARGUMENT_TYPES: tuple[type[_ArgumentMapping], ...] = (
     CurrentNewsSearchArgumentsV2,
     CurrentNewsSearchArgumentsV21,
     CurrentNewsSearchArgumentsV22,
+    CurrentNewsSearchArgumentsV23,
     NewsSourceStatusArgumentsV1,
     DatasetStatusArgumentsV1,
     EtfAllocatorSnapshotArgumentsV1,
@@ -2943,6 +2960,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
         CurrentNewsSearchArgumentsV2,
         CurrentNewsSearchArgumentsV21,
         CurrentNewsSearchArgumentsV22,
+        CurrentNewsSearchArgumentsV23,
         NewsAnalysisArgumentsV1,
         NewsStoryClusterArgumentsV1,
         NewsAttentionArgumentsV1,
@@ -2997,6 +3015,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
         source_argument_types = {
             CurrentNewsSearchArgumentsV21,
             CurrentNewsSearchArgumentsV22,
+            CurrentNewsSearchArgumentsV23,
             NewsAnalysisArgumentsV1,
             NewsStoryClusterArgumentsV1,
             NewsAttentionArgumentsV1,
@@ -3099,7 +3118,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
             "/limit",
         )
         cursor = None
-        if argument_type is CurrentNewsSearchArgumentsV22:
+        if argument_type in {CurrentNewsSearchArgumentsV22, CurrentNewsSearchArgumentsV23}:
             cursor = _optional_bounded_string(
                 mapping.get("cursor"),
                 _field_contract(argument_type, "cursor"),
@@ -3147,7 +3166,7 @@ def _prepared(input_kind: str, public: Mapping[str, Any]) -> _PreparedArguments:
                     ),
                     **(
                         {"cursor": cursor}
-                        if argument_type is CurrentNewsSearchArgumentsV22
+                        if argument_type in {CurrentNewsSearchArgumentsV22, CurrentNewsSearchArgumentsV23}
                         else {}
                     ),
                     **(
@@ -5324,6 +5343,7 @@ def parse_arguments(
         return CurrentNewsSearchArgumentsV21(**dict(values))
     if prepared.argument_type in {
         CurrentNewsSearchArgumentsV22,
+        CurrentNewsSearchArgumentsV23,
         NewsSourceStatusArgumentsV1,
         DatasetStatusArgumentsV1,
         EtfAllocatorSnapshotArgumentsV1,
@@ -6000,6 +6020,7 @@ __all__ = [
     "CurrentNewsSearchArgumentsV2",
     "CurrentNewsSearchArgumentsV21",
     "CurrentNewsSearchArgumentsV22",
+    "CurrentNewsSearchArgumentsV23",
     "NewsSourceStatusArgumentsV1",
     "DatasetStatusArgumentsV1",
     "OptionsCaptureSearchArgumentsV2",

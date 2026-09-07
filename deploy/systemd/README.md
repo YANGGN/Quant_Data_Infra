@@ -19,10 +19,15 @@ started. The timer is active/waiting at the hourly `:10` UTC cadence with
 `Persistent=false`; activation left `LastTrigger` empty and the service
 inactive/dead with no execution timestamps, provider request, or store write.
 
-The fixed zero-argument service runs the eight-source FMP, official RSS, and
-Alpaca/Benzinga batch, has no retry or catch-up, and uses the current bounded
-market-database universe. Missing credentials remain source-local unavailable
-outcomes. These commands are read-only:
+The fixed zero-argument service runs ten source steps after the authorized
+September 6, 2026 extension: the original FMP, official RSS, and Alpaca/Benzinga
+batch plus Finviz and FinancialJuice. Each website adds one credential-free
+request; the generic ceiling is 24 requests plus one FMP stock-latest request.
+The batch has no retry or catch-up and uses the current bounded market-database
+universe. Missing credentials remain source-local unavailable outcomes. The
+extension changed the installed module, not the existing units or cadence;
+dated activation evidence is in the operating envelope. These commands are
+read-only:
 
     systemctl --user status quant-data-current-news-refresh.service
     systemctl --user status quant-data-current-news-refresh.timer
@@ -243,3 +248,18 @@ Do not manually start or repurpose the service. Registry collectors and the
 recovered `expectations` and `company-weekly` jobs retain their existing states.
 See the [repair and activation receipt](../../docs/rebuild/FETCH_REPAIRS_2026-09-05.md)
 for scope, coverage limitations, and private evidence.
+
+## Equibles finite transcript backfill
+
+The dedicated `quant-data-equibles-transcripts.service` and `.timer` implement
+the user-authorized 519-ticker raw transcript backfill at 00:10 UTC daily.
+Persistent catch-up still observes the durable shared daily 100-request cap.
+The zero-argument service preserves each ticker's full available history before
+advancing, stages partial pages privately, and publishes complete raw calls to
+the company store. Completed populations make zero further provider requests.
+See the [contract](../../docs/rebuild/EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md)
+and operating envelope for the exact scope and dated activation evidence.
+
+Read-only status:
+    systemctl --user status quant-data-equibles-transcripts.timer
+    systemctl --user status quant-data-equibles-transcripts.service

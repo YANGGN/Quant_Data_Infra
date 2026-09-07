@@ -6,7 +6,7 @@ from pathlib import Path
 
 from quant_data.errors import RegistryError
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import load_registry, stage11_registry_profile
+from quant_data.registry import load_registry, stage11_registry_profile, website_source_registry_profile
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -67,13 +67,18 @@ class FmpStockLatestRegistryTests(unittest.TestCase):
             ("news", 5, MIGRATION_SHA256, "fixture_validated"),
         )
         self.assertEqual(
-            registry.store("news").migration_order[-4:],
+            registry.store("news").migration_order[-5:],
             (
                 "news:0005_fmp_stock_latest",
                 "news:0006_fmp_stock_latest_current",
                 "news:0007_current_multi_source",
                 "news:0008_adopt_fmp_news_legacy",
+                "news:0009_website_source_extension",
             ),
+        )
+        self.assertEqual(
+            website_source_registry_profile(registry).store("news").migration_order,
+            registry.store("news").migration_order[:-1],
         )
         datasets = {item.id: item for item in registry.datasets if item.id in DATASET_IDS}
         self.assertEqual(tuple(datasets), DATASET_IDS)

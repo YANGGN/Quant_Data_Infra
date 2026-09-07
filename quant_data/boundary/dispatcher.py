@@ -89,6 +89,7 @@ _VERSIONED_INPUT_KINDS = {
     ("news.search", "2.0.0"): "current_news_search_v2",
     ("news.search", "2.1.0"): "current_news_search_v2_1",
     ("news.search", "2.2.0"): "current_news_search_v2_2",
+    ("news.search", "2.3.0"): "current_news_search_v2_3",
     ("macro.search_series", "2.0.0"): "canonical_macro_search_v2",
     ("macro.describe_series", "2.0.0"): "canonical_macro_describe_v2",
     ("macro.get_series", "2.0.0"): "canonical_macro_series_v2",

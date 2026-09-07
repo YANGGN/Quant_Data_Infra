@@ -90,7 +90,7 @@ from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map, stable_id
 
 
-_CURRENT_REGISTRY = "2.70.0"
+_CURRENT_REGISTRY = "2.74.0"
 _CURRENT_SCHEMA = "1.9.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
@@ -241,12 +241,15 @@ _OPTIONS_SURFACE_TARGET_DTE_TEXT = frozenset(
 )
 _MAX_LIMIT = 100
 _MAX_PAGE = 1000
-_CURRENT_NEWS_TOOL_VERSION = "2.2.0"
+_CURRENT_NEWS_TOOL_VERSION = "2.3.0"
+_CURRENT_NEWS_DISPLAY_SOURCE_IDS = (*CURRENT_NEWS_TOOL_SOURCE_IDS, "finviz", "financialjuice")
 _CURRENT_DATA_STATUS_TOOL_VERSION = "1.0.0"
 _CURRENT_NEWS_QUERY_FIELDS = frozenset(
     {"query", "symbol", "source_id", "start_date", "end_date", "cursor", "limit"}
 )
 _CURRENT_NEWS_SOURCE_LABELS = {
+    "finviz": "Finviz",
+    "financialjuice": "FinancialJuice",
     "fmp_stock_latest": "FMP stock news",
     "fmp_press_releases": "FMP press releases",
     "fmp_general": "FMP general news",
@@ -2694,7 +2697,7 @@ def _current_news_arguments(query: Mapping[str, str]) -> dict[str, Any]:
     if symbol and _SYMBOL.fullmatch(symbol) is None:
         raise ValidationError("Current news symbol is invalid")
     source_id = _text_filter(query.get("source_id"), "/source_id", 64)
-    if source_id and source_id not in CURRENT_NEWS_TOOL_SOURCE_IDS:
+    if source_id and source_id not in _CURRENT_NEWS_DISPLAY_SOURCE_IDS:
         raise ValidationError("Current news source is invalid")
     start = _optional_date(query.get("start_date"), "/start_date")
     end = _optional_date(query.get("end_date"), "/end_date")
@@ -2858,7 +2861,7 @@ def _render_current_news_page(
         + ">"
         + html.escape(_CURRENT_NEWS_SOURCE_LABELS[source_id])
         + "</option>"
-        for source_id in CURRENT_NEWS_TOOL_SOURCE_IDS
+        for source_id in _CURRENT_NEWS_DISPLAY_SOURCE_IDS
     )
     selected_limit = raw_query.get("limit", "25")
     limit_options = "".join(

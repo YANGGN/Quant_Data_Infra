@@ -42,6 +42,9 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.74.0"): "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05",
+    ("1.9.0", "2.73.0"): "658be96e5a171801887adf6ba6c1a13e460228386423bc47e4a8b38714987a4c",
+    ("1.9.0", "2.72.0"): "6b6284c184d1b4cf92bab56fe7afb80de34d78a39488c96bd21be86a59db83c8",
     ("1.9.0", "2.71.0"): "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78",
     ("1.9.0", "2.70.0"): "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3",
     ("1.9.0", "2.37.0"): (
@@ -764,9 +767,29 @@ def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
 
 
 def _render(value: Any) -> bytes:
-    return (json.dumps(value, ensure_ascii=True, indent=2, sort_keys=True) + "\n").encode(
+    # Registry 2.72 uses less whitespace to remain within the unchanged
+    # local JSON byte bound as explicit versioned contracts accumulate.
+    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0"} else 2
+    return (json.dumps(value, ensure_ascii=True, indent=indent, sort_keys=True) + "\n").encode(
         "utf-8"
     )
+
+
+def _add_website_source_declarations(raw: dict[str, Any]) -> None:
+    resource = "quant_data/migrations/news/0009_website_source_extension.sql"
+    declaration = {
+        "id": "news:0009_website_source_extension", "store": "news", "ordinal": 9,
+        "resource": resource,
+        "sha256": "992f83f7c9fdd49eade78ab52fc01221746e78f4abe1e851641c75be184f860b",
+        "semantic_scope": "Extend shared current news source/provider allowlists for Finviz and FinancialJuice, preserving all existing rows and guards.",
+        "dependencies": ["news:0008_adopt_fmp_news_legacy"],
+        "reconstruction_state": "fixture_validated",
+    }
+    if any(m["id"] == declaration["id"] for m in raw["migrations"]):
+        raise ValueError("Website source migration already exists in predecessor")
+    raw["migrations"].append(declaration)
+    next(store for store in raw["stores"] if store["id"] == "news")["migration_order"].append(declaration["id"])
+    next(c for c in raw["collectors"] if c["id"] == "news.current_multi_source")["workload_bounds"]["max_requests"] = 24
 
 
 def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
@@ -785,6 +808,14 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         or hashlib.sha256(source_bytes).hexdigest() != expected_source_sha256
     ):
         raise ValueError("Tool generation requires an exact reviewed registry source")
+    if source_version == ("1.9.0", "2.72.0"):
+        from quant_data.company.fmp_analyst_registry import add_declarations
+        add_declarations(raw, project_root)
+    if source_version in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0")}:
+        from quant_data.company.equibles_registry import add_declarations
+        add_declarations(raw, project_root)
+    if source_version == ("1.9.0", "2.71.0"):
+        _add_website_source_declarations(raw)
     if source_version == ("1.9.0", "2.62.0"):
         _add_current_news_declarations(raw)
     if source_version == ("1.9.0", "2.63.0"):
@@ -807,6 +838,13 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version < ("1.9.0", "2.71.0"):
+        version_policies = copy.deepcopy(version_policies)
+        for policy in version_policies:
+            if policy["tool"] == "news.search":
+                policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
+                policy["deprecations"][0]["replacement"]["version"] = "2.2.0"
+        catalog_version = "2.28.0"
     if source_version < ("1.9.0", "2.70.0"):
         entries = tuple(item for item in entries if item["id"] not in ADDITIVE_FMP_RESEARCH_TOOLS)
         additive_entries = tuple(item for item in additive_entries if item["id"] not in ADDITIVE_FMP_RESEARCH_TOOLS)
@@ -1101,6 +1139,9 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.69.0"),
         ("1.9.0", "2.70.0"),
         ("1.9.0", "2.71.0"),
+        ("1.9.0", "2.72.0"),
+        ("1.9.0", "2.73.0"),
+        ("1.9.0", "2.74.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1179,7 +1220,10 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.68.0"): "2.68.0",
         ("1.9.0", "2.69.0"): "2.70.0",
         ("1.9.0", "2.70.0"): "2.71.0",
-        ("1.9.0", "2.71.0"): "2.71.0",
+        ("1.9.0", "2.71.0"): "2.72.0",
+        ("1.9.0", "2.72.0"): "2.74.0",
+        ("1.9.0", "2.73.0"): "2.74.0",
+        ("1.9.0", "2.74.0"): "2.74.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

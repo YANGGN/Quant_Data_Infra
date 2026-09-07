@@ -47,6 +47,8 @@ _SOURCE_SPECS: Final = (
     ("bea_news", (), 1),
     ("eia_press", (), 1),
     ("alpaca_benzinga", ("ALPACA_API_KEY", "ALPACA_API_SECRET"), 1),
+    ("finviz", (), 1),
+    ("financialjuice", (), 1),
 )
 SOURCE_IDS: Final = tuple(item[0] for item in _SOURCE_SPECS)
 _FAILURE_PRECEDENCE: Final = (64, 69, 74, 75, 70, 78)
@@ -382,6 +384,7 @@ def _live_collectors(
     registry: Registry,
     environment: Mapping[str, str],
     observed_at: datetime,
+    website_clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
 ) -> dict[str, Collector]:
     """Import live bindings lazily so unit tests remain offline."""
 
@@ -396,6 +399,7 @@ def _live_collectors(
 
     frozen_clock = lambda: observed_at
     importer = CurrentMultiSourceImporter(stores, registry, clock=frozen_clock)
+    website_importer = CurrentMultiSourceImporter(stores, registry, clock=website_clock)
     transport = StdlibCurrentMultiSourceTransport()
 
     def run_feed(feed_id: str, symbols: tuple[str, ...] | None = None) -> object:
@@ -416,7 +420,8 @@ def _live_collectors(
                 else None
             ),
         )
-        return importer.run_once(
+        selected_importer = website_importer if feed_id in {"finviz", "financialjuice"} else importer
+        return selected_importer.run_once(
             request=CurrentMultiSourceRequest(
                 feed_id=feed_id,
                 poll_slot=observed_at,
@@ -445,6 +450,8 @@ def _live_collectors(
         "bea_news": lambda: run_feed("bea_news"),
         "eia_press": lambda: run_feed("eia_press"),
         "alpaca_benzinga": run_alpaca,
+        "finviz": lambda: run_feed("finviz"),
+        "financialjuice": lambda: run_feed("financialjuice"),
     }
 
 

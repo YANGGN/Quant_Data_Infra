@@ -72,10 +72,10 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
         self.assertEqual(self.registry.schema_version, "1.9.0")
-        self.assertEqual(self.registry.registry_version, "2.71.0")
+        self.assertEqual(self.registry.registry_version, "2.74.0")
         self.assertEqual(
             self.registry.raw["tool_version_schema_catalog"]["schema_version"],
-            "2.28.0",
+            "2.29.0",
         )
         regression_v3 = self.registry.tool(
             "econometrics.regression",

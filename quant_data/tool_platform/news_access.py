@@ -31,6 +31,7 @@ from .arguments import (
     CurrentNewsSearchArgumentsV2,
     CurrentNewsSearchArgumentsV21,
     CurrentNewsSearchArgumentsV22,
+    CurrentNewsSearchArgumentsV23,
 )
 from .context import ToolExecutionContext
 from .results import DiagnosticV1, QueryResult, Scalar, fields_from_mapping, records_from_mappings
@@ -427,7 +428,7 @@ def invoke_news_search_v21(
             context.store_map, registry
         ).search(
             query,
-            source_ids=selected_multi_ids if source_ids else (),
+            source_ids=selected_multi_ids if source_ids else CURRENT_MULTI_SOURCE_FEED_IDS,
         )
         if include_multi
         else None
@@ -605,24 +606,41 @@ def _decode_cursor(
     return decoded
 
 
-def invoke_news_search_v22(
+def invoke_news_search_v22(name, arguments, context, registry) -> QueryResult:
+    return _invoke_news_search_page(name, arguments, context, registry, include_websites=False)
+
+
+def invoke_news_search_v23(name, arguments, context, registry) -> QueryResult:
+    return _invoke_news_search_page(name, arguments, context, registry, include_websites=True)
+
+
+def _invoke_news_search_page(
     name: str,
     arguments: object,
     context: ToolExecutionContext,
     registry: Registry,
+    *,
+    include_websites: bool,
 ) -> QueryResult:
     """Select one keyset-paginated page of retained fixed-source news."""
 
     if name != TOOL_NAME:
         raise LookupError("Current multi-source news operation is not registered")
-    if not isinstance(arguments, CurrentNewsSearchArgumentsV22):
+    argument_type = CurrentNewsSearchArgumentsV23 if include_websites else CurrentNewsSearchArgumentsV22
+    if type(arguments) is not argument_type:
         raise ValidationError(
-            "Current multi-source news search requires typed v2.2 arguments"
+            "Current multi-source news search requires matching typed arguments"
         )
     if not isinstance(registry, Registry):
         raise ValidationError("Current multi-source news registry is invalid")
 
-    source_ids = _source_ids_v21(arguments)
+    if include_websites:
+        allowed = (*sorted(_V21_SOURCE_IDS), "finviz", "financialjuice")
+        source_ids = arguments.source_ids or allowed
+        if len(set(source_ids)) != len(source_ids) or any(s not in allowed for s in source_ids):
+            raise ValidationError("Current-news source_ids contain an unsupported or duplicate feed")
+    else:
+        source_ids = _source_ids_v21(arguments)
     query_sha256 = _cursor_query_sha256(arguments, source_ids)
     after = _decode_cursor(arguments.cursor, query_sha256=query_sha256)
     query = _query(arguments)
@@ -642,7 +660,7 @@ def invoke_news_search_v22(
     multi_selection = (
         CurrentMultiSourceNewsRepository(context.store_map, registry).search(
             query,
-            source_ids=selected_multi_ids if source_ids else (),
+            source_ids=selected_multi_ids if source_ids else CURRENT_MULTI_SOURCE_FEED_IDS,
             after=after,
         )
         if include_multi
@@ -721,9 +739,8 @@ def invoke_news_search_v22(
         receipt_sha256=receipt_sha256,
         warnings=warnings,
         next_cursor=next_cursor,
-        record_kind="current_news_headline_v2_2",
+        record_kind="current_news_headline_v2_3" if include_websites else "current_news_headline_v2_2",
     )
-
 
 __all__ = (
     "FMP_CURRENT_SOURCE_ID",
@@ -734,4 +751,5 @@ __all__ = (
     "invoke_news_search_v2",
     "invoke_news_search_v21",
     "invoke_news_search_v22",
+    "invoke_news_search_v23",
 )

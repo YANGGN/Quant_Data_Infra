@@ -452,3 +452,71 @@ It does not redefine SEC fundamentals, establish historical consensus, infer
 accounting basis or currency, change other store ownership, or add a recurring
 collector. The exact provider scope and request cap are recorded in the
 [FMP research-input contract](FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md).
+
+## Shared website-source extension — 2026-09-06
+
+The user explicitly approved extending the shared multi-source news tables for
+Finviz and FinancialJuice and wiring them into the existing hourly fetcher.
+Allocate `news:0009_website_source_extension`, news ordinal 9, resource
+`quant_data/migrations/news/0009_website_source_extension.sql`.
+Only the source/provider allowlists in attempts, captures, and articles expand.
+The established atomic runner rebuilds those three tables, preserving every
+column value and recreating the existing indexes and immutable/lineage guards.
+No new dataset, store, table family, or historical population is introduced.
+Applied migrations 0001–0008 remain byte-identical. The immutable SQL SHA-256 is
+`992f83f7c9fdd49eade78ab52fc01221746e78f4abe1e851641c75be184f860b`.
+Populated preservation, rollback, immutable guards, foreign keys, correction
+history, and exact replay passed temporary-store checks and independent review.
+The required full offline gate passed all 1,625 unique cases across retained
+and resumed runs, including all affected historical rechecks. No golden changed.
+The canonical migration was applied at `2026-09-06T18:53:43.905856Z` under
+registry `2.72.0`. Immutable before/after checks preserved every prior row,
+trigger definition, and migration ledger entry; integrity and foreign keys
+passed. The retained-response publication then added 180 Finviz and 100
+FinancialJuice articles with no new HTTP request. See the
+[operating envelope](CURRENT_OPERATING_ENVELOPE.md#september-6-2026--shared-finviz-and-financialjuice-activation)
+and private `.local/news-website-activation-20260906.json` receipt.
+
+## FMP analyst history allocation — 2026-09-07
+
+The current user decision authorizes the two-company pilot followed by the existing
+single-name universe population. Allocate `company:0009_fmp_analyst_history`,
+company ordinal 9, resource `quant_data/migrations/company/0009_fmp_analyst_history.sql`,
+depending on company 0008. This allocation is recorded before resource creation.
+It owns analyst captures, observation versions and capture membership, preserving
+applied migration bytes and all other store ownership. See the
+[FMP analyst history contract](FMP_ANALYST_HISTORY_2026-09-07.md).
+The allocation passed the independently verified combined 1,668-case offline gate.
+Company 0009 was applied at `2026-09-07T06:50:51.596529Z` under its exact
+registry 2.73 projection before the 26-capture pilot and no-change/cutoff audit.
+
+The allocated analyst migration resource SHA-256 is
+`a9a2bd45d22ef17a4c2af3ca24b89c4cc95bcbb574fa43f4a942bd4e77453dc4`.
+The applied ledger checksum matches this reviewed resource. Capture availability uses
+fixed-microsecond UTC text ordering, avoiding SQLite Julian-day rounding.
+The subsequent retained-only universe publication completed after the audited
+company 0010 handoff, with no additional migration invocation. It populated
+516 symbols and 397,299 observation versions, preserving the full company
+0001–0010 ledger and every non-analyst company-table count. Final integrity,
+foreign keys, and exact replay passed; explicit identity/provider gaps are recorded
+in the focused analyst receipt.
+
+## Equibles raw transcript allocation — 2026-09-07
+
+The user-requested transcript backfill allocates company ordinal 10 only:
+`company:0010_equibles_transcripts`, resource
+`quant_data/migrations/company/0010_equibles_transcripts.sql`, SHA-256
+`600358ba2c8c3196ef4c421f42444fe2955222fbdcb26a75c41e7aa1e6a74e62`.
+It depends on company 0009 without changing any predecessor bytes.
+The two append-only relations retain complete-call metadata and exact raw page
+BLOBs with ingestion-artifact lineage and local capture availability.
+The [contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md) records gates;
+the operating envelope records dated application evidence.
+
+Company 0010 was applied at `2026-09-07T07:01:09.081284+00:00` under registry
+2.74.0 after the independent 1,668-case gate and the company 0009 pilot handoff.
+All nine predecessor ledger rows were preserved; schema, dataset registration,
+and foreign keys verified. The first 60-call publication passed raw-byte,
+complete-bundle, lineage, and pre-existing company-table preservation checks.
+See the [dated operating evidence](CURRENT_OPERATING_ENVELOPE.md#september-7-2026--equibles-activation-evidence)
+and `.local/equibles-activation.json`.

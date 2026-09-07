@@ -23,7 +23,12 @@ from urllib.parse import urlencode, urlsplit
 from ..errors import ConflictError, ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, StoreWriteLock, stable_id, writer_connection
+from ..stores import (StoreMap, StoreRole, StoreWriteLock, stable_id,
+                      writer_connection, quiet_immutable_read_connection)
+from .website_listings import (
+    SOURCE_URLS as WEBSITE_SOURCE_URLS, StdlibWebsiteTransport,
+    WebsiteResponse, parse_website_response,
+)
 
 
 CURRENT_MULTI_SOURCE_MIGRATION_ID = "news:0007_current_multi_source"
@@ -126,7 +131,15 @@ _FEED_SPECS = {
         ALPACA_NEWS_MAX_SYMBOLS_PER_REQUEST,
     ),
 }
+# Preserve the original source set for explicit older public contracts.
 CURRENT_MULTI_SOURCE_FEED_IDS = tuple(_FEED_SPECS)
+WEBSITE_SOURCE_MIGRATION_ID = "news:0009_website_source_extension"
+for _website_id, _website_url in WEBSITE_SOURCE_URLS.items():
+    _FEED_SPECS[_website_id] = _FeedSpec(
+        _website_id, _website_id, f"website.{_website_id}.listing.current.v1",
+        _website_url, "html" if _website_id == "finviz" else "xml", None, 1000,
+    )
+ALL_CURRENT_MULTI_SOURCE_FEED_IDS = tuple(_FEED_SPECS)
 
 
 def _sha256(value: bytes) -> str:
@@ -358,6 +371,14 @@ class StdlibCurrentMultiSourceTransport:
             or max_bytes != CURRENT_MULTI_SOURCE_MAX_BYTES
         ):
             raise ValidationError("Current multi-source transport request is outside scope")
+        if url in WEBSITE_SOURCE_URLS.values():
+            if query or any(key.lower() in {"authorization", "cookie"} for key in headers):
+                raise ValidationError("Website news transport is outside scope")
+            source_id = next(key for key, value in WEBSITE_SOURCE_URLS.items() if value == url)
+            response = StdlibWebsiteTransport().get(source_id)
+            return CapturedCurrentMultiSourceResponse(
+                response.status, response.content_type, response.body,
+            )
         parsed = urlsplit(url)
         if parsed.scheme != "https" or not parsed.netloc:
             raise ValidationError("Current multi-source transport URL is invalid")
@@ -613,6 +634,8 @@ def _rss_rows(spec: _FeedSpec, body: bytes) -> _Parsed:
 
 def _content_type_matches(spec: _FeedSpec, content_type: str) -> bool:
     media_type = content_type.split(";", 1)[0].strip().lower()
+    if spec.format == "html":
+        return media_type == "text/html"
     if spec.format == "json":
         return media_type == "application/json" or media_type.endswith("+json")
     return media_type in {
@@ -626,7 +649,26 @@ def _content_type_matches(spec: _FeedSpec, content_type: str) -> bool:
 def _parse_response(spec: _FeedSpec, response: CapturedCurrentMultiSourceResponse) -> _Parsed:
     if response.status != 200 or not _content_type_matches(spec, response.content_type):
         raise ValidationError("Current multi-source provider response was rejected")
-    parsed = _rss_rows(spec, response.body) if spec.format == "xml" else _json_rows(spec, response.body)
+    if spec.feed_id in WEBSITE_SOURCE_URLS:
+        capture = parse_website_response(
+            spec.feed_id, WebsiteResponse(response.status, response.content_type, response.body),
+            # Parsing uses source-native metadata, never this placeholder clock.
+            captured_at=datetime(2000, 1, 1, tzinfo=timezone.utc),
+        )
+        rows = tuple(_Article(
+            feed_id=spec.feed_id, provider=spec.provider,
+            source_item_key=("url:" if spec.feed_id == "finviz" else "id:") + row.source_item_id,
+            title=row.headline, summary=row.summary, site=row.source_name,
+            source_url=row.canonical_url, published_date_raw=row.published_date_raw,
+            published_normalized_at=row.published_normalized_at,
+            published_precision=row.published_precision,
+            published_offset_status=("known" if row.published_precision == "datetime_offset"
+                                     else "missing" if row.published_precision == "missing" else "unknown"),
+            symbols=(), source_row=row.source_row,
+        ) for row in capture.headlines)
+        parsed = _Parsed(rows, capture.provider_row_count, capture.duplicate_row_count)
+    else:
+        parsed = _rss_rows(spec, response.body) if spec.format == "xml" else _json_rows(spec, response.body)
     if parsed.provider_row_count and not parsed.accepted_row_count:
         raise ValidationError("Current multi-source response has no usable rows")
     return parsed
@@ -718,6 +760,8 @@ def _wire_request(
                 "Accept": "application/json",
             },
         )
+    if spec.feed_id == "finviz":
+        return spec.url, {}, {"Accept": "text/html"}
     return (
         spec.url,
         {},
@@ -875,6 +919,7 @@ class CurrentMultiSourceImporter:
         scope_sha256: str,
         response: CapturedCurrentMultiSourceResponse,
         parsed: _Parsed,
+        reserve_after_fetch: bool = False,
     ) -> CurrentMultiSourceReceipt:
         captured_at = _utc_text(self._clock(), "captured_at")
         semantic_rows = sorted((item.semantic_mapping() for item in parsed.articles), key=dumps_strict)
@@ -892,6 +937,44 @@ class CurrentMultiSourceImporter:
         def publish(connection: sqlite3.Connection) -> CurrentMultiSourceReceipt:
             connection.execute("BEGIN IMMEDIATE")
             try:
+                if reserve_after_fetch:
+                    latest = connection.execute(
+                        "SELECT capture_id FROM current_multi_source_captures "
+                        "WHERE feed_id=? ORDER BY captured_at DESC, rowid DESC LIMIT 1",
+                        (request.feed_id,),
+                    ).fetchone()
+                    previous_rows = [] if latest is None else [
+                        {"article_id": row["article_id"],
+                         "mutable_content_sha256": row["mutable_content_sha256"]}
+                        for row in connection.execute(
+                            "SELECT v.article_id, v.mutable_content_sha256 "
+                            "FROM current_multi_source_capture_articles AS m "
+                            "JOIN current_multi_source_article_versions AS v "
+                            "ON v.article_version_id=m.article_version_id WHERE m.capture_id=?",
+                            (latest["capture_id"],),
+                        )
+                    ]
+                    # Capture identity retains its poll scope. Only this latest
+                    # content comparison suppresses replay, allowing A -> B -> A.
+                    if latest is not None and sorted(previous_rows, key=dumps_strict) == semantic_rows:
+                        connection.rollback()
+                        return CurrentMultiSourceReceipt(
+                            attempt_id=attempt_id, feed_id=request.feed_id,
+                            poll_slot=request.poll_slot_text, outcome="unchanged",
+                            capture_id=str(latest["capture_id"]),
+                            provider_row_count=parsed.provider_row_count,
+                            accepted_row_count=parsed.accepted_row_count,
+                            rejected_row_count=parsed.rejected_row_count, written_count=0,
+                        )
+                    connection.execute(
+                        "INSERT INTO current_multi_source_attempts "
+                        "(attempt_id,dataset_id,collector_id,feed_id,profile_id,poll_slot,"
+                        "request_scope_json,request_scope_sha256,intent_recorded_at,intent_recorded_precision) "
+                        "VALUES (?,?,?,?,?,?,?,?,?,'datetime')",
+                        (attempt_id,CURRENT_MULTI_SOURCE_EVIDENCE_DATASET_ID,
+                         CURRENT_MULTI_SOURCE_COLLECTOR_ID,request.feed_id,request.spec.profile_id,
+                         request.poll_slot_text,dumps_strict(scope),scope_sha256,captured_at),
+                    )
                 if connection.execute(
                     "SELECT 1 FROM current_multi_source_outcomes WHERE attempt_id=?",
                     (attempt_id,),
@@ -948,7 +1031,7 @@ class CurrentMultiSourceImporter:
                         CURRENT_MULTI_SOURCE_NORMALIZATION_VERSION,
                     ),
                 )
-                written = 2
+                written = 3 if reserve_after_fetch else 2
                 for item in parsed.articles:
                     existing = connection.execute(
                         "SELECT article_id FROM current_multi_source_articles WHERE article_id=?",
@@ -1059,6 +1142,52 @@ class CurrentMultiSourceImporter:
 
         return self._write(publish)  # type: ignore[return-value]
 
+    def _run_website_once(self, request, credentials, transport) -> CurrentMultiSourceReceipt:
+        """Fetch before acquiring a writer; semantic replay changes no table."""
+        scope = request.request_scope()
+        scope_sha256 = _sha256_json(scope)
+        attempt_id = stable_id("current_multi_source_attempt", request.spec.profile_id, scope_sha256)
+        declaration = next((m for m in self.registry.migrations_for("news")
+                            if m.id == WEBSITE_SOURCE_MIGRATION_ID), None)
+        if declaration is None:
+            raise ValidationError("Website news migration is not registered")
+        with quiet_immutable_read_connection(self.store_map, StoreRole.NEWS) as conn:
+            applied = conn.execute(
+                "SELECT sha256 FROM schema_migrations WHERE migration_id=?",
+                (WEBSITE_SOURCE_MIGRATION_ID,),
+            ).fetchone()
+            if applied is None or applied["sha256"] != declaration.sha256:
+                raise ValidationError("Website news migration is not applied exactly")
+            if conn.execute(
+                "SELECT 1 FROM current_multi_source_attempts WHERE attempt_id=?", (attempt_id,)
+            ).fetchone() is not None:
+                raise ConflictError("Website news scope already has a retained attempt")
+        response = None
+        try:
+            url, query, headers = _wire_request(request, credentials)
+            response = transport.get(
+                url=url, query=query, headers=headers,
+                timeout_seconds=CURRENT_MULTI_SOURCE_TIMEOUT_SECONDS,
+                max_bytes=CURRENT_MULTI_SOURCE_MAX_BYTES,
+            )
+            if not isinstance(response, CapturedCurrentMultiSourceResponse):
+                raise ValidationError("Website news transport returned an invalid response")
+            parsed = _parse_response(request.spec, response)
+        except Exception as error:
+            self._reserve(request)
+            self._record_failure(
+                attempt_id=attempt_id, request=request,
+                outcome_kind="response_rejected" if isinstance(error, ValidationError) else "request_failed",
+                response=response if isinstance(response, CapturedCurrentMultiSourceResponse) else None,
+                parsed=None,
+            )
+            raise
+        return self._publish(
+            attempt_id=attempt_id, request=request, scope=scope,
+            scope_sha256=scope_sha256, response=response, parsed=parsed,
+            reserve_after_fetch=True,
+        )
+
     def run_once(
         self,
         *,
@@ -1074,6 +1203,8 @@ class CurrentMultiSourceImporter:
             raise ValidationError("Current multi-source news credentials are invalid")
         if not isinstance(transport, CurrentMultiSourceTransport):
             raise ValidationError("Current multi-source news transport is invalid")
+        if request.feed_id in WEBSITE_SOURCE_URLS:
+            return self._run_website_once(request, credentials, transport)
         attempt_id, _, scope, scope_sha256 = self._reserve(request)
         response: CapturedCurrentMultiSourceResponse | None = None
         parsed: _Parsed | None = None

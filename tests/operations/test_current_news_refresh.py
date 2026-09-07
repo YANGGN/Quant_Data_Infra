@@ -81,7 +81,7 @@ class CurrentNewsRefreshTests(unittest.TestCase):
         )
         self.assertEqual(report.poll_slot, "2026-08-30T14:00:00Z")
         self.assertEqual(report.exit_code, 0)
-        self.assertEqual(report.mapping()["request_cap"], 8)
+        self.assertEqual(report.mapping()["request_cap"], 10)
         self.assertEqual(report.mapping()["outcome"], "succeeded")
         self.assertEqual(
             loads_strict(dumps_strict(report.mapping())),
@@ -100,7 +100,7 @@ class CurrentNewsRefreshTests(unittest.TestCase):
 
         self.assertEqual(
             calls,
-            ["fed_press", "ecb_press", "bea_news", "eia_press", "alpaca_benzinga"],
+            ["fed_press", "ecb_press", "bea_news", "eia_press", "alpaca_benzinga", "finviz", "financialjuice"],
         )
         unavailable = [step.source for step in report.steps if step.outcome == "unavailable"]
         self.assertEqual(

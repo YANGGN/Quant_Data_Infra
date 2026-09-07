@@ -98,7 +98,7 @@ class RegistryIdentifierTests(unittest.TestCase):
 
         self.assertEqual(len(registry.stores), 4)
         self.assertEqual(registry.schema_version, "1.9.0")
-        self.assertEqual(registry.registry_version, "2.71.0")
+        self.assertEqual(registry.registry_version, "2.74.0")
         news_predecessor = news_research_registry_profile(registry)
         self.assertEqual(news_predecessor.registry_version, "2.65.0")
         self.assertEqual(
@@ -137,9 +137,9 @@ class RegistryIdentifierTests(unittest.TestCase):
             ("stage1.overview", "stage6.gdp_vintages",
              "stage6.table_inspector", "stage6.agent_tools"),
         )
-        self.assertEqual(len(registry.migrations), 45)
-        self.assertEqual(len(registry.datasets), 61)
-        self.assertEqual(len(registry.collectors), 68)
+        self.assertEqual(len(registry.migrations), 48)
+        self.assertEqual(len(registry.datasets), 64)
+        self.assertEqual(len(registry.collectors), 70)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")

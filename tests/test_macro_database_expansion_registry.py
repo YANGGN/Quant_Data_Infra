@@ -29,7 +29,7 @@ DATASET_IDS = (
     "fixture.macro.stage3_catalog",
 )
 CURRENT_SOURCE_SHA256 = (
-    "55285a106a56a3d664f83dd75cb71c43aa21f5e9637d0200704933a291732a78"
+    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
 )
 PRE_EXPANSION_SOURCE_SHA256 = (
     "a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325"
@@ -91,7 +91,7 @@ class MacroDatabaseExpansionRegistryTests(unittest.TestCase):
     def test_collectors_are_manual_credential_free_and_reciprocal(self) -> None:
         registry = self._registry()
 
-        self.assertEqual(registry.revision, "2.71.0")
+        self.assertEqual(registry.revision, "2.74.0")
         self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
         self.assertEqual(
             (
@@ -99,7 +99,7 @@ class MacroDatabaseExpansionRegistryTests(unittest.TestCase):
                 len(registry.datasets),
                 len(registry.collectors),
             ),
-            (45, 61, 68),
+            (48, 64, 70),
         )
         collectors = {
             str(item["id"]): item for item in registry.collectors

@@ -1,0 +1,20 @@
+[Unit]
+Description=Quant Data finite Equibles raw transcript backfill
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/company.sqlite
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/.operations/equibles-transcripts/state.json
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m quant_data.operations.equibles_transcript_backfill
+TimeoutStartSec=65min
+Restart=no
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/data
