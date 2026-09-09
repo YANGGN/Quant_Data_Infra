@@ -1212,6 +1212,25 @@ occurred. The finite manual scope is complete, with no repeat authorization.
 The [repair record](INSPECTOR_REFRESH_REPAIR_2026-09-05.md) contains evidence,
 UI semantics and private successful/no-op fetch tracking details.
 
+## Inspector durable fetch outcomes — 2026-09-06
+
+The user requested durable live-fetch status and its connection to the existing
+local Status page. All nine existing recurring CLI forms now save private
+per-run receipts; their installed module arguments, working directories and
+existing data-directory write permissions were checked read-only. No unit,
+cadence, request cap or canonical publisher changed, and no collector was
+manually triggered. The Inspector alone was restarted on loopback port 8766;
+Status and process-health reads returned HTTP 200.
+
+At observation time `2026-09-06T16:10:59.283893Z`, the normal Current news
+12:10 EDT slot had saved start `2026-09-06T16:10:17.415648Z`, completion
+`2026-09-06T16:10:33.344334Z` and exit code 0. The production Status reader
+reported this as Completed with saved-run evidence. This is an observed batch
+outcome, not an assertion about individual-source freshness or new canonical
+rows. Earlier runs without retained evidence remain Unconfirmed. This change
+grants no new provider or scheduling authority; mechanics and reader limits
+are in the [Status contract](TOOL_PLATFORM_SPEC.md#live-fetch-status-calendar).
+
 ## Closed operations
 
 Without explicit scope authority and the applicable local compatibility,
@@ -1446,3 +1465,32 @@ not scheduled. Do not repeat this population, add unresolved issuer mappings, or
 install a recurring analyst refresh without a new finite scope or explicit schedule.
 See the [focused population receipt](FMP_ANALYST_HISTORY_2026-09-07.md#universe-population-evidence)
 and private `.local/fmp-analyst-history-20260907/completion-receipt.json`.
+
+## Equibles Inspector and Status integration — 2026-09-07
+
+The user requested Equibles in the Data Inspector and Status page, and a single
+expandable current-news entry in Daily focus. The completed local integration
+adds a bounded retained-transcript view, the existing Equibles timer to the fixed
+read-only schedule mapping, a sanitized checkpoint progress projection, and
+observational run history for the unchanged zero-argument Equibles collector.
+No recurring unit was triggered, reconfigured, enabled or disabled. No provider
+request, quota change, canonical write, migration or registry change occurred.
+
+The local manual Inspector was reloaded on loopback port 8766. Browser checks
+verified the transcript catalog and readable original speaker turns, current
+backfill progress, collapsed hourly news outcomes, keyboard/no-script operation,
+and 320/360-pixel layouts. The final Data status HTML also showed Equibles'
+recorded 2/519 completed companies, 60 stored calls and daily 00:10 UTC schedule.
+The existing immutable reader verified 27 retained AAPL transcript captures;
+all inspected canonical store size/mtime stamps were unchanged.
+
+Validation passed 75 unique focused cases across the recorded run and corrected
+rechecks, plus 19 isolated-fixture and 19 live browser assertions. The original
+failed assertions and their corrections remain in private evidence. Full offline
+suite execution was not required for this bounded local read-only UI change.
+Astra UI review covered desktop/mobile progress, expanded news and actual long
+transcript paragraphs. No material visual findings remain. Private receipts,
+logs and screenshots are under `.local/equibles-ui-20260907/`; the fixture server
+verifies unchanged store fingerprints during teardown. Ongoing run-history
+records begin with normal subsequent Equibles executions; earlier missing
+execution evidence is not invented.

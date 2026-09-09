@@ -591,6 +591,8 @@ def main(argv: list[str] | None = None) -> int:
     except Exception:
         code, name = 70, "internal_failure"
     else:
+        from .fetch_run_summary import record_report
+        record_report('quant-data-employment-vintages.timer', report.mapping())
         sys.stdout.write(dumps_strict(report.mapping()) + "\n")
         sys.stdout.flush()
         return 0
@@ -610,7 +612,10 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover - module entry point
-    raise SystemExit(main())
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-employment-vintages.timer", main, argv=sys.argv[1:]
+    ))
 
 
 __all__ = (

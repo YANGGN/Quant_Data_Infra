@@ -260,7 +260,7 @@ class DataStatusTests(unittest.TestCase):
         )
 
         with mock.patch(
-            "quant_data.news.tool_repository.CurrentNewsToolRepository.source_status",
+            "quant_data.news.tool_repository.CurrentNewsToolRepository.source_status_evidence",
             return_value=retained_status,
         ):
             records = data_status_records(

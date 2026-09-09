@@ -744,6 +744,35 @@ class CurrentNewsToolRepository:
         ) as connection:
             return tuple(_status_record(connection, source) for source in sources)
 
+    def source_status_evidence(
+        self,
+        source_ids: tuple[str, ...] = (),
+    ) -> tuple[dict[str, object], ...]:
+        """Read latest retained evidence without scanning lifetime article totals.
+
+        Data Status consumes only these fields. The full source-status tool
+        keeps its counts and existing response contract.
+        """
+
+        sources = _selected_sources(source_ids)
+        with quiet_immutable_read_connection(
+            self._store_map,
+            StoreRole.NEWS,
+            expected_anchor="fmp_stock_latest_current_attempts",
+        ) as connection:
+            return tuple(
+                {
+                    "source_id": source.source_id,
+                    "latest_outcome": _latest_outcome(
+                        _source_latest_outcome(connection, source)
+                    ),
+                    "latest_successful_capture": _latest_capture(
+                        _source_latest_capture(connection, source)
+                    ),
+                }
+                for source in sources
+            )
+
     def item_history(
         self,
         article_id: str,

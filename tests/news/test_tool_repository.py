@@ -5,7 +5,11 @@ import json
 import tempfile
 import unittest
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import Path
+from unittest.mock import patch
+
+from quant_data.data_status import DataStatusSourceKind, DataStatusTarget, data_status_records
 
 from quant_data.errors import ResourceLimitError, ValidationError
 from quant_data.fingerprint import store_mutation_fingerprint
@@ -458,6 +462,44 @@ class CurrentNewsToolRepositoryTests(unittest.TestCase):
         self.assertIsNone(empty["latest_outcome"])
         self.assertIsNone(empty["latest_successful_capture"])
         self.assertEqual(empty["article_count"], 0)
+
+    def test_dataset_status_reads_latest_evidence_without_lifetime_counts(self) -> None:
+        from quant_data.news import tool_repository
+
+        before = store_mutation_fingerprint(self.store_map, StoreRole.NEWS)
+        full = self.repository.source_status()
+        fields = ("source_id", "latest_outcome", "latest_successful_capture")
+        expected = tuple({key: row[key] for key in fields} for row in full)
+        queries = []
+        execute = tool_repository._rows
+
+        def metadata_only(connection, statement, parameters=()):
+            queries.append(statement)
+            self.assertNotIn("COUNT(", statement.upper())
+            self.assertNotIn("SUM(", statement.upper())
+            self.assertNotIn("article", statement.lower())
+            return execute(connection, statement, parameters)
+
+        with patch.object(tool_repository, "_rows", side_effect=metadata_only):
+            evidence = self.repository.source_status_evidence()
+            self.assertEqual(evidence, expected)
+            target = DataStatusTarget(
+                id="news.current.fmp_stock_latest", store=StoreRole.NEWS,
+                dataset_id=None, source_kind=DataStatusSourceKind.CURRENT_NEWS,
+                source_id="fmp_stock_latest", freshness=None,
+            )
+            with patch.object(
+                CurrentNewsToolRepository, "source_status",
+                side_effect=AssertionError("Dataset status must not request lifetime counts"),
+            ):
+                rows = data_status_records(
+                    self.store_map, targets=(target,), registry=self.registry,
+                    now=datetime(2026, 8, 30, 11, tzinfo=timezone.utc),
+                )
+        self.assertEqual(len(queries), 2 * (len(expected) + 1))
+        self.assertEqual(rows[0]["latest_successful_capture"], expected[0]["latest_successful_capture"])
+        self.assertEqual(rows[0]["latest_retained_outcome"], expected[0]["latest_outcome"])
+        self.assertEqual(before, store_mutation_fingerprint(self.store_map, StoreRole.NEWS))
 
     def test_history_and_single_version_project_only_safe_lineage(self) -> None:
         before = store_mutation_fingerprint(self.store_map, StoreRole.NEWS)

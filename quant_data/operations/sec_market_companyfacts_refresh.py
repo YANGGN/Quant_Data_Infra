@@ -1201,6 +1201,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         if argv is not None and tuple(argv):
             raise _ArgumentFailure
         report = _run()
+        from .fetch_run_summary import record_report
+        record_report('quant-data-sec-company-fundamentals.timer', report.mapping())
         safe_report = _safe_value(report.mapping(), forbidden_text=())
         if not isinstance(safe_report, dict):  # pragma: no cover - narrowing
             raise ValidationError("SEC market receipt is invalid")
@@ -1243,7 +1245,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main(sys.argv[1:]))
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-sec-company-fundamentals.timer", lambda: main(sys.argv[1:]), argv=sys.argv[1:]
+    ))
 
 
 __all__ = (

@@ -51,7 +51,7 @@ def _receipt_metadata(root: Path, source: str) -> dict[str, Any]:
 
 def read_inspector_status(
     stores: StoreMap, *, operations_root: Path, observed_at: datetime | None = None,
-    registry: Registry | None = None,
+    registry: Registry | None = None, equibles_root: Path | None = None,
 ) -> dict[str, dict[str, Any]]:
     # Import locally so the application can supply this optional HTML overlay
     # without creating a second store-opening implementation.
@@ -94,6 +94,20 @@ def read_inspector_status(
             "successor_id": "macro.fmp.economic_calendar_incremental_evidence",
             "as_of_note": "Historical event evidence has no single observation as-of date.",
         })
+    from .inspector_equibles import read_equibles_progress
+    progress = read_equibles_progress(equibles_root, observed_at=observed_at or datetime.now(timezone.utc))
+    eq = result.setdefault("company.equibles.transcripts", {})
+    eq.update(lifecycle="active", source_frequency="Finite daily transcript backfill",
+        as_of_note="Fiscal periods and source call dates do not establish historical availability; use local capture time.")
+    if progress["available"]:
+        eq["lifecycle_note"] = (f"Equibles raw transcripts: {progress['completed_tickers']} of {progress['universe']} companies complete; "
+            f"{progress['transcripts']} calls stored. Current backfill progress is on Status.")
+        eq["refresh_note"] = ("Backfill paused for operator review." if progress["outcome"] == "blocked"
+            else "Finite backfill complete." if progress["outcome"] == "complete"
+            else "Backfill continues in scheduled batches within the daily quota.")
+        eq["refresh_note"] = eq["lifecycle_note"] + " " + eq["refresh_note"]
+        if progress["outcome"] == "blocked":
+            eq["refresh_state"] = "failed"
     dates: dict[str, str | None] = {}
     try:
         with _immutable_store_connection(stores.macro, expected_role="macro") as connection:

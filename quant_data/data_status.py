@@ -590,7 +590,7 @@ def _current_news_records(
     from .news.tool_repository import CurrentNewsToolRepository
 
     try:
-        statuses = CurrentNewsToolRepository(store_map, registry).source_status(
+        statuses = CurrentNewsToolRepository(store_map, registry).source_status_evidence(
             tuple(target.source_id for target in targets if target.source_id is not None)
         )
     except QuantDataError:

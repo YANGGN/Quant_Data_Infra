@@ -1,6 +1,6 @@
 """Read-only schedule overlay for the local Inspector, separate from tool results.
 
-Only the nine reviewed per-user timers are queried. No service command, provider,
+Only the ten reviewed per-user timers are queried. No service command, provider,
 credential, store, or caller-selected unit participates in this projection.
 Dataset bindings describe wrapper outputs, not generic registry job declarations.
 """
@@ -64,6 +64,9 @@ TIMER_BINDINGS = (
         "fixture.company.action_evidence", "fixture.company.corporate_actions",
         "fixture.company.expectation_evidence", "fixture.company.expectations",
     )),
+    TimerBinding("quant-data-equibles-transcripts.timer", "Equibles transcripts", (
+        "company.equibles.transcripts",
+    )),
     TimerBinding("quant-data-current-news-refresh.timer", "Current news", (
         "news.fmp.stock_latest_current_evidence",
         "news.current_multi_source_evidence",
@@ -105,6 +108,8 @@ def _cadence(properties: Mapping[str, list[str]]) -> str:
         weekday = _WEEKDAY.fullmatch(calendar)
         if weekday:
             label = f"Weekdays at {weekday[1]} New York"
+        elif calendar == "*-*-* 00:10:00 UTC":
+            label = "Daily at 00:10 UTC"
         elif calendar == "*-*-* *:10:00 UTC":
             label = "Hourly at :10 UTC"
         elif calendar == "Fri *-*-01..07 10:05:00 America/New_York":

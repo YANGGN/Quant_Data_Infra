@@ -20,7 +20,7 @@ from quant_data.canonical_inspector import (
     build_canonical_inspector,
     main as inspector_main,
 )
-from quant_data.errors import StoreUnavailableError, ValidationError
+from quant_data.errors import DeadlineExceededError, StoreUnavailableError, ValidationError
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.macro.fmp_calendar_wholesale import parse_fmp_us_calendar_wholesale
 from quant_data.macro.fmp_release_surprises import (
@@ -2778,6 +2778,46 @@ class CanonicalInspectorTests(unittest.TestCase):
             tool_version="1.0.0",
         )
 
+    def test_fetch_status_is_date_only_read_only_and_has_its_own_navigation(self) -> None:
+        from quant_data.inspector_fetch_status import read_fetch_status
+        from tests.test_inspector_fetch_status import NOW, completed, service, timer
+
+        snapshot = read_fetch_status("2026-09-04", observed_at=NOW, probe=False,
+            unit_output=timer() + "\n\n" + service(Result="exit-code", ExecMainStatus="1"),
+            journal_output=completed())
+        with patch.object(self.application, "_fetch_status_reader", return_value=snapshot) as reader, \
+             patch.object(self.application.dispatcher, "call") as dispatcher, \
+             patch.object(self.application._reads, "inspect") as stored_rows, \
+             patch("quant_data.inspector_fetch_status.subprocess.run") as host:
+            page = self.application.handle("GET", "/status?date=2026-09-04")
+            self.assertEqual(page.status, 200)
+            document = page.body.decode("utf-8")
+            self.assertIn("<h1>Status</h1>", document)
+            self.assertIn("data-fetch-month", document)
+            self.assertIn("data-fetch-focus", document)
+            self.assertIn("08:15 EDT", document)
+            self.assertIn("Completed", document)
+            self.assertIn("Failed", document)
+            self.assertIn('href="/status" aria-current="page"', document)
+            self.assertIn('href="/data-status"', document)
+            reader.assert_called_once_with("2026-09-04")
+            for path in ("/status?unit=secret.service", "/status?date=2026-02-30",
+                         "/status?date=2026-09-04&sql=select", "/status?date=2026-9-4"):
+                self.assertEqual(self.application.handle("GET", path).status, 400, path)
+            self.assertEqual(self.application.handle("POST", "/status").status, 405)
+            self.application.handle("GET", "/healthz")
+            reader.assert_called_once()
+            dispatcher.assert_not_called()
+            stored_rows.assert_not_called()
+            host.assert_not_called()
+
+    def test_fetch_status_fixture_default_never_probes_the_host(self) -> None:
+        with patch("quant_data.inspector_fetch_status.subprocess.run") as host:
+            page = self.application.handle("GET", "/status")
+        self.assertEqual(page.status, 200)
+        self.assertIn("unavailable", page.body.decode("utf-8"))
+        host.assert_not_called()
+
     def test_data_status_routes_use_the_public_read_only_tool(self) -> None:
         result = {
             "records": [
@@ -2872,6 +2912,29 @@ class CanonicalInspectorTests(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_data_status_timeout_has_recovery_without_empty_dataset_counts(self) -> None:
+        with patch.object(
+            self.application.dispatcher, "call",
+            side_effect=DeadlineExceededError("The host-owned execution deadline elapsed"),
+        ) as dispatch, patch.object(
+            self.application, "_schedule_reader"
+        ) as schedules, patch.object(
+            self.application, "_metadata_reader"
+        ) as metadata:
+            page = self.application.handle("GET", "/data-status")
+            api = self.application.handle("GET", "/api/data-status")
+        self.assertEqual(page.status, 200)
+        self.assertNotEqual(api.status, 200)
+        self.assertEqual(dispatch.call_count, 2)
+        schedules.assert_not_called()
+        metadata.assert_not_called()
+        document = page.body.decode()
+        self.assertIn("Data status could not be loaded", document)
+        self.assertIn("Reload data status", document)
+        self.assertNotIn("No live data records", document)
+        self.assertNotIn('data-status-summary=', document)
+        self.assertNotIn('data-status-group-select', document)
 
     def test_data_status_rejects_queries_without_dispatch(self) -> None:
         with patch.object(self.application.dispatcher, "call") as dispatcher_call, patch.object(

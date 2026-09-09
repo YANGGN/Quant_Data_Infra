@@ -51,9 +51,11 @@ INSPECTOR_NAVIGATION = (
     )),
     ("Company & news", (
         ("company-fundamentals", "Company fundamentals"),
+        ("company-transcripts", "Company transcripts"),
         ("/news", "Current news"),
     )),
     ("Workspace", (
+        ("/status", "Status"),
         ("/data-status", "Data status"),
         ("/agent-tools", "Agent Tools"),
     )),
@@ -145,6 +147,7 @@ _NUMERIC_COLUMNS = frozenset({
 def render_inspector_table(
     columns: Sequence[str], rows: Sequence[Mapping[str, Any]], *, caption: str,
     empty_message: str = "No rows match this selection.",
+    row_links: Sequence[str] | None = None,
 ) -> str:
     """Render every original field; enhancement reads escaped cell text only."""
     header = "".join(
@@ -152,8 +155,10 @@ def render_inspector_table(
         + f'>{_escape(column.replace("_", " ").title())}</th>'
         for column in columns
     )
+    if row_links is not None:
+        header += '<th scope="col">Transcript</th>'
     rendered_rows = []
-    for row in rows:
+    for row_index, row in enumerate(rows):
         if not isinstance(row, Mapping):
             continue
         cells = []
@@ -165,9 +170,15 @@ def render_inspector_table(
                 f'<td data-field="{_escape(column)}" data-value-kind="{kind}"{classes}>'
                 + _value_markup(value) + '</td>'
             )
+        if row_links is not None:
+            href = row_links[row_index]
+            if not href.startswith("/?view=company-transcripts&capture_id="):
+                raise ValueError("Transcript link must use the fixed local view")
+            label = f"Read transcript: {row.get('symbol', '')} FY{row.get('fiscal_year', '')} Q{row.get('fiscal_quarter', '')}"
+            cells.append('<td><a href="' + _escape(href) + '" aria-label="' + _escape(label) + '">Read transcript</a></td>')
         rendered_rows.append('<tr>' + ''.join(cells) + '</tr>')
     body = ''.join(rendered_rows) or (
-        f'<tr><td colspan="{max(1, len(columns))}" class="inspector-empty">'
+        f'<tr><td colspan="{max(1, len(columns) + (row_links is not None))}" class="inspector-empty">'
         f'{_escape(empty_message)}</td></tr>'
     )
     return (

@@ -372,12 +372,18 @@ def main(argv: list[str] | None = None) -> int:
         print(dumps_strict({"error": "invalid_arguments"}), file=os.sys.stderr)
         return 2
     report = refresh_fmp_macro_calendar_live()
+    from .fetch_run_summary import record_report
+    record_report('quant-data-fmp-macro-calendar.timer', report.mapping())
     print(dumps_strict(report.mapping()))
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import sys
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-fmp-macro-calendar.timer", main, argv=sys.argv[1:]
+    ))
 
 
 __all__ = (

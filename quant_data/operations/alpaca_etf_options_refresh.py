@@ -100,6 +100,8 @@ def main() -> int:
         return _error("temporary_conflict", 75)
     except Exception:
         return _error("internal_failure", 70)
+    from .fetch_run_summary import record_report
+    record_report('quant-data-alpaca-spy-options.timer', receipt)
     if receipt.get("outcome") == "partial":
         return _error("incomplete_universe", 75, receipt=receipt)
     sys.stdout.write(
@@ -117,4 +119,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main())
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-alpaca-spy-options.timer", main, argv=sys.argv[1:]
+    ))

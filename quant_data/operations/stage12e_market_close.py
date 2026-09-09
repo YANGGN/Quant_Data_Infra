@@ -1077,6 +1077,8 @@ class _Runner:
             for result in results.values()
             if result.get("outcome") == "failed_response"
         ]
+        from .fetch_run_summary import record_report
+        record_report('quant-data-market-close.timer', {"results": list(results.values())})
         if isolated_failures:
             if any(
                 result.get("failure_kind") not in _ISOLATED_RESPONSE_FAILURES
@@ -1374,7 +1376,10 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-market-close.timer", main, argv=sys.argv[1:]
+    ))
 
 
 __all__ = (

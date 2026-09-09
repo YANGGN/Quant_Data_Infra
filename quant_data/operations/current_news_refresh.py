@@ -494,12 +494,17 @@ def main(argv: list[str] | None = None) -> int:
             + "\n"
         )
         return exit_code
+    from .fetch_run_summary import record_report
+    record_report('quant-data-current-news-refresh.timer', report.mapping())
     sys.stdout.write(dumps_strict(report.mapping()) + "\n")
     return report.exit_code
 
 
 if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main())
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-current-news-refresh.timer", main, argv=sys.argv[1:]
+    ))
 
 
 __all__ = (

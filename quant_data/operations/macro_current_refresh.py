@@ -513,13 +513,18 @@ def main(argv: list[str] | None = None) -> int:
         )
         sys.stderr.flush()
         return exit_code
+    from .fetch_run_summary import record_report
+    record_report('quant-data-macro-current-refresh.timer', report.mapping())
     sys.stdout.write(dumps_strict(report.mapping()) + "\n")
     sys.stdout.flush()
     return report.exit_code
 
 
 if __name__ == "__main__":  # pragma: no cover
-    raise SystemExit(main())
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-macro-current-refresh.timer", main, argv=sys.argv[1:]
+    ))
 
 
 __all__ = (

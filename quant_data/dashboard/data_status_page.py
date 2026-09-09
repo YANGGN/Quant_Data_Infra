@@ -430,6 +430,19 @@ def render_data_status_page(
     metadata: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> str:
     """Partition reviewed lifecycle groups; render all evidence before enhancement."""
+    if error is not None:
+        return render_inspector_shell(
+            title="Data status", active="/data-status", revision=registry_revision,
+            body=(
+                '<section class="panel"><div class="state-notice state-error" role="alert">'
+                '<h2>Data status could not be loaded</h2><p>' + _escape(error)
+                + '</p></div><p>Dataset counts are unavailable because the status read did not finish. '
+                'This does not mean the stored data is missing.</p>'
+                '<p><a href="/data-status">Reload data status</a></p></section>'
+            ),
+            description="Source reference dates, recorded fetches, and retained evidence.",
+            footer="Loopback only · read-only status, refresh evidence and local timer snapshot",
+        )
     rows = _rows(result)
     live_rows = tuple(row for row in rows if _lifecycle(_metadata_for(row, metadata)) == "active")
     other_rows = tuple(row for row in rows if _lifecycle(_metadata_for(row, metadata)) != "active")
@@ -437,12 +450,8 @@ def render_data_status_page(
         _render_status_group(group, group_rows, schedules=schedules, metadata=metadata)
         for group, group_rows in (("live", live_rows), ("other", other_rows))
     )
-    notice = (
-        '<div class="state-notice state-error" role="alert">' + _escape(error) + '</div>'
-        if error else ""
-    )
     body = f"""
-{notice}<div class="inspector-status-group-control" data-status-group-control hidden>
+<div class="inspector-status-group-control" data-status-group-control hidden>
 <div><label for="data-status-group-select">Dataset group</label>
 <select id="data-status-group-select" data-status-group-select aria-controls="data-status-live data-status-other" aria-describedby="data-status-group-help">
 <option value="live" selected>Live data · {len(live_rows)}</option>

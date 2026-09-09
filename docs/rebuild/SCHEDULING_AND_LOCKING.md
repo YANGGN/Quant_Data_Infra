@@ -170,6 +170,21 @@ from physical-store publication locks; receipt persistence never retries a
 provider. Readers create no files or locks. Existing unit scope, request caps,
 credential routing and timer cadence are unchanged.
 
+The nine scheduled CLI entrypoints also save private per-run history under
+`data/.operations/fetch-run-history/<UTC-month>/<run-id>/run.json` for the
+Inspector Status calendar. This observational wrapper calls the original CLI
+exactly once, preserving its stdout, stderr, return and exception behavior.
+An atomic running receipt is followed by a self-contained completion receipt
+with start, finish and exit outcome. Each UUID directory has one writer and
+needs no shared publication lock. Logging errors produce a fixed warning;
+they neither replace the collector result nor add a provider retry. These
+receipts are separate from canonical evidence and latest-per-source freshness
+receipts. They do not assert individual-source results. Existing argument
+forms, units, calendar rules, request caps and canonical locks remain unchanged;
+normal clock-driven runs load this instrumentation without a unit-file update.
+The bounded reader and incomplete-run semantics are defined by the
+[Status calendar contract](TOOL_PLATFORM_SPEC.md#live-fetch-status-calendar).
+
 ## Authorized aggregate macro-current refresh
 
 `quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
@@ -956,3 +971,10 @@ the explicitly authorized host timer runs at 00:10 UTC with Persistent=true,
 Restart=no, a private non-overlap lock, and standard physical company write locks.
 Network precedes every canonical write session. The public CLI accepts zero arguments.
 Dated activation evidence is indexed in the operating envelope.
+
+
+The September 7 UI integration adds Equibles to the existing bounded Inspector
+schedule list and to the observational per-run receipt allowlist. Its unchanged
+zero-argument collector is called exactly once; recorder failures cannot replace
+its exit outcome. The daily timer, quota state, page/call checkpoint ordering,
+network/write-lock separation and terminal backfill behavior are unchanged.

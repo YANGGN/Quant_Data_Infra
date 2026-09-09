@@ -152,6 +152,18 @@ def status_result(ids, status='no_data'):
 
 
 class InspectorStatusClassificationTests(unittest.TestCase):
+    def test_load_failure_does_not_render_unverified_rows_or_counts(self):
+        page = render_data_status_page(
+            status_result(["unverified"]), registry_revision="fixture",
+            error="<timeout>", metadata={"unverified": {"retention_state": "retained"}},
+        )
+        self.assertIn("Data status could not be loaded", page)
+        self.assertIn("&lt;timeout&gt;", page)
+        self.assertNotIn("<timeout>", page)
+        self.assertNotIn("unverified", page)
+        self.assertNotIn("data-status-summary=", page)
+        self.assertIn('<a href="/data-status">Reload data status</a>', page)
+
     def test_summary_matches_lifecycle_and_evidence_without_fetch_implying_capture(self):
         retained = {'retention_state': 'retained', 'retention_freshness': 'current'}
         recent_fetch = {'latest_successful_fetch_at': '2026-09-05T12:00:00Z', 'refresh_state': 'unchanged'}

@@ -17,7 +17,7 @@ import sys
 import stat
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from http import HTTPStatus
 from pathlib import Path
@@ -99,6 +99,7 @@ _VIEWS = (
     "spy-options",
     "options-surfaces",
     "company-fundamentals",
+    "company-transcripts",
     "macro-current",
     "macro-vintages",
     "macro-surprises",
@@ -131,6 +132,7 @@ _VIEW_LABELS = {
     "spy-options": "SPY options",
     "options-surfaces": "Options surfaces",
     "company-fundamentals": "Company fundamentals",
+    "company-transcripts": "Company transcripts",
     "macro-current": "Macro current",
     "macro-vintages": "Macro vintages",
     "macro-surprises": "Release surprises",
@@ -283,6 +285,7 @@ class CanonicalInspectorReadService:
                 "view", "underlying", "target_dte", "expiration", "option_type",
                 "state", "direction", "page", "limit",
             },
+            "company-transcripts": {"view", "symbol", "year", "quarter", "capture_id", "direction", "page", "limit"},
             "company-fundamentals": {
                 "view", "cik", "metric", "period_end", "direction", "page", "limit",
             },
@@ -400,6 +403,8 @@ class CanonicalInspectorReadService:
             result = self._spy_options(query, direction, page, limit)
         elif view == "options-surfaces":
             result = self._options_surfaces(query, direction, page, limit)
+        elif view == "company-transcripts":
+            result = self._company_transcripts(query, direction, page, limit)
         elif view == "company-fundamentals":
             result = self._company_fundamentals(query, direction, page, limit)
         elif view == "macro-current":
@@ -963,6 +968,24 @@ class CanonicalInspectorReadService:
                 "state": state,
             },
         )
+
+    def _company_transcripts(self, query, direction, page, limit):
+        from .inspector_equibles import transcript_rows
+        symbol = query.get("symbol", "").strip().upper()
+        if symbol and not re.fullmatch(r"[A-Z0-9][A-Z0-9.\-]{0,19}", symbol):
+            raise ValidationError("Transcript symbol is invalid")
+        year = _bounded_int(query["year"], "/year", 1900, 2200) if query.get("year") else None
+        quarter = _bounded_int(query["quarter"], "/quarter", 1, 4) if query.get("quarter") else None
+        capture = query.get("capture_id", "")
+        if capture and not re.fullmatch(r"equibles_transcript_[a-f0-9]{32}", capture):
+            raise ValidationError("Transcript capture is invalid")
+        with _immutable_store_connection(self._stores.company, expected_role="company") as connection:
+            columns, rows, total, metadata = transcript_rows(connection, symbol=symbol, year=year,
+                quarter=quarter, capture_id=capture, direction=direction, page=page, limit=limit)
+        result = _result(columns, rows, total, page, limit,
+            {"symbol":symbol,"year":year,"quarter":quarter,"capture_id":capture})
+        result["transcript"] = metadata
+        return result
 
     def _company_fundamentals(
         self, query: Mapping[str, str], direction: str, page: int, limit: int
@@ -2239,9 +2262,11 @@ class CanonicalInspectorApplication(Stage1Application):
         self, store_map: StoreMap, registry: Registry, *,
         schedule_reader: Callable[[], Mapping[str, Mapping[str, str | None]]] | None = None,
         metadata_reader: Callable[[], Mapping[str, Mapping[str, Any]]] | None = None,
+        fetch_status_reader: Callable[[str | None], Mapping[str, Any]] | None = None,
     ) -> None:
         self._schedule_reader = schedule_reader
         self._metadata_reader = metadata_reader
+        self._fetch_status_reader = fetch_status_reader
         if registry.registry_version != _CURRENT_REGISTRY or registry.schema_version != _CURRENT_SCHEMA:
             raise ValidationError("Canonical inspector requires the current registry")
         super().__init__(store_map, registry)
@@ -2303,6 +2328,21 @@ class CanonicalInspectorApplication(Stage1Application):
                 HTTPStatus.OK,
                 self._generic_success(result, route="canonical_inspector"),
             )
+        if path == "/status":
+            from .dashboard.fetch_status_page import render_fetch_status_page
+            from .inspector_fetch_status import read_fetch_status, selected_status_date
+
+            if set(query) - {"date"}:
+                raise ValidationError("Status accepts only a date selection")
+            selection = query.get("date")
+            selected_status_date(selection, datetime.now(timezone.utc))
+            snapshot = (self._fetch_status_reader(selection) if self._fetch_status_reader
+                        else read_fetch_status(selection, probe=False))
+            return HttpResponse(
+                HTTPStatus.OK,
+                render_fetch_status_page(snapshot, registry_revision=self._registry.revision).encode("utf-8"),
+                "text/html; charset=utf-8",
+            )
         if path in {"/data-status", "/api/data-status"}:
             if query:
                 raise ValidationError("Data status does not accept query fields")
@@ -2334,8 +2374,8 @@ class CanonicalInspectorApplication(Stage1Application):
                     result,
                     registry_revision=self._registry.revision,
                     error=error,
-                    schedules=self._schedule_reader() if self._schedule_reader else None,
-                    metadata=self._metadata_reader() if self._metadata_reader else None,
+                    schedules=self._schedule_reader() if error is None and self._schedule_reader else None,
+                    metadata=self._metadata_reader() if error is None and self._metadata_reader else None,
                 ).encode("utf-8"),
                 "text/html; charset=utf-8",
             )
@@ -2461,6 +2501,7 @@ class CanonicalInspectorApplication(Stage1Application):
         if path in {
             "/",
             "/healthz",
+            "/status",
             "/data-status",
             "/api/data-status",
             "/news",
@@ -2495,12 +2536,18 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
         if stores.path(role) != expected.resolve(strict=True):
             raise ValidationError("Canonical inspector store binding is invalid")
     from .inspector_status import read_inspector_status
+    from .inspector_fetch_status import read_fetch_status
 
     return CanonicalInspectorApplication(
         stores, registry, schedule_reader=lambda: read_local_refresh_schedules(registry),
         metadata_reader=lambda: read_inspector_status(
             stores, registry=registry,
-            operations_root=root / "data" / ".operations" / "refresh-status"
+            operations_root=root / "data" / ".operations" / "refresh-status",
+            equibles_root=root / "data" / ".operations" / "equibles-transcripts"
+        ),
+        fetch_status_reader=lambda selection: read_fetch_status(
+            selection, history_root=root / "data" / ".operations" / "fetch-run-history",
+            equibles_root=root / "data" / ".operations" / "equibles-transcripts"
         ),
     )
 
@@ -3007,13 +3054,26 @@ def _render_page(
     pager = _render_pager(raw_query, view, page, limit, total)
     api_query = dict(raw_query)
     api_query["view"] = view
+    row_links = None
+    transcript_note = ""
+    if view == "company-transcripts":
+        if not result.get("query", {}).get("capture_id"):
+            row_links = tuple("/?" + urlencode({"view":view,"capture_id":row["capture_id"]}) for row in rows)
+            transcript_note = '<p class="inspector-footnote">Equibles · stored transcript captures. Fiscal periods are provider labels; availability begins at local capture.</p>'
+        else:
+            metadata = result.get("transcript") or {}
+            title = f"{metadata.get('symbol', '')} · FY{metadata.get('fiscal_year', '')} Q{metadata.get('fiscal_quarter', '')}"
+            transcript_note = ('<p><a href="/?view=company-transcripts">Back to transcripts</a></p><h2>'
+                + html.escape(title) + '</h2><p class="inspector-footnote">Speaker turns in source order. '
+                + 'Missing speakers and timestamps stay unspecified. Local capture: '
+                + html.escape(str(metadata.get("captured_at", "Unavailable"))) + '</p>')
     table = render_inspector_table(
-        columns, rows, caption=f"{_VIEW_LABELS[view]} · all {len(columns)} fields",
+        columns, rows, caption=f"{_VIEW_LABELS[view]} · all {len(columns)} fields", row_links=row_links,
     )
     first = (page - 1) * limit + 1 if rows else 0
     last = (page - 1) * limit + len(rows) if rows else 0
     body = f"""
-{notice}<section class="inspector-filters" aria-label="Query filters">{form}</section>
+{notice}{transcript_note}<section class="inspector-filters" aria-label="Query filters">{form}</section>
 <section class="panel inspector-results"><div class="panel-header"><div>
 <h2>{total:,} matching rows</h2><p>Rows {first:,}–{last:,} · page {page:,}</p></div>
 <a href="/api/rows?{html.escape(urlencode(api_query), quote=True)}">View JSON</a></div>
@@ -3114,6 +3174,13 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
                 input_type="date",
             )
         )
+    elif view == "company-transcripts":
+        if query.get("capture_id"):
+            fields.append('<input type="hidden" name="capture_id" value="' + html.escape(str(query["capture_id"]), quote=True) + '">')
+        else:
+            fields.extend((_input("symbol", "Symbol", query.get("symbol"), placeholder="AAPL"),
+                _input("year", "Fiscal year", query.get("year"), input_type="number"),
+                _input("quarter", "Fiscal quarter (1–4)", query.get("quarter"), input_type="number")))
     elif view == "company-fundamentals":
         fields.append(
             _input("cik", "Exact SEC CIK", query.get("cik"), placeholder="0000320193")
@@ -3329,12 +3396,13 @@ def _render_form(view: str, query: Mapping[str, Any], result: Mapping[str, Any])
         )
         fields.append(_input("start_date", "Start date", query.get("start_date"), input_type="date"))
         fields.append(_input("end_date", "End date", query.get("end_date"), input_type="date"))
-    fields.append(
-        '<label>Order<select name="direction">'
-        f'<option value="desc"{" selected" if direction == "desc" else ""}>Newest first</option>'
-        f'<option value="asc"{" selected" if direction == "asc" else ""}>Oldest first</option>'
-        "</select></label>"
-    )
+    if not (view == "company-transcripts" and query.get("capture_id")):
+        fields.append(
+            '<label>Order<select name="direction">'
+            f'<option value="desc"{" selected" if direction == "desc" else ""}>Newest first</option>'
+            f'<option value="asc"{" selected" if direction == "asc" else ""}>Oldest first</option>'
+            "</select></label>"
+        )
     fields.append(
         '<label>Rows<select name="limit">'
         + "".join(

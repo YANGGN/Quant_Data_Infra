@@ -116,8 +116,28 @@ liveness endpoint only and makes no data-freshness or provider-health claim.
 The launcher has no SQL, database-path, credential, provider-request,
 ingestion, or write control.
 
-The Inspector shares grouped navigation across Data views, Current news, Data
-status, and Agent Tools. Data tables retain every returned field and its exact
+The Status page (`/status`) adds a monthly live-fetch calendar and Today's
+focus, with scheduled batch times and recorded outcomes in Eastern time.
+Compact batch markers use a shared legend: green means completed; amber marks
+Partial Success, scheduled, running or unconfirmed. Expand run details for
+successful, failed and incomplete work counts where recorded. Any recorded failure greys that
+batch's day marker and adds a red failure indicator, even if a later run
+succeeds. Select a day to inspect every exact run in its focus timeline.
+Missing history stays unconfirmed; batch results are separate from retained
+data freshness. The nine scheduled collector entrypoints save private per-run
+start, finish and exit outcomes; the page combines these durable records with
+available systemd history. New records appear from the next normal scheduled
+runs; earlier missing history stays unconfirmed. The page cannot trigger jobs.
+Refresh the page to update its snapshot.
+
+Equibles appears in Data status with its daily backfill schedule and recorded
+progress. **Company transcripts** (`/?view=company-transcripts`) browses stored
+calls by symbol and fiscal period; each call opens paginated speaker text.
+Status includes an Equibles progress panel and its daily run. In Daily focus,
+Current news is one collapsed entry; click it to expand the hourly outcomes.
+
+The Inspector shares grouped navigation across Data views, Current news, Status,
+Data status, and Agent Tools. Data tables retain every returned field and its exact
 value; select a record to inspect its fields alongside the table, including
 separate availability and capture timestamps. Close the record panel to return
 keyboard focus to its row. Narrow screens use a collapsible navigation menu

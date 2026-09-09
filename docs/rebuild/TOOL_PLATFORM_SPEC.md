@@ -1071,6 +1071,22 @@ liveness response. Data Status MUST NOT be labelled live provider or credential
 health and MUST NOT infer a source-period timestamp from generic ingestion
 metadata. `/healthz` MUST NOT open a store or perform a provider call.
 
+Dataset Status reads only the latest outcome and successful capture for current
+news sources; lifetime article/version totals remain exclusive to the full news
+source-status tool. This avoids unnecessary history scans without changing the
+public dataset-status fields or the host's five-second execution deadline.
+If the retained-status read fails, the HTML page shows an explicit unavailable
+state and a reload link. It does not display zero dataset counts or run the
+supplemental schedule/retention reads for an absent result.
+
+The September 8 correction passed 35 focused tests after updating the timestamp
+fixture to use the narrower reader. Chromium checks at 1440, 360 and 320 pixels
+covered keyboard record inspection, dataset-group selection, timeout recovery,
+and the no-JavaScript tables. The first HTML request after the Inspector reload
+returned all 68 records in 0.693 seconds; the public records and canonical file
+stamps matched before and after. Local evidence is in
+.local/data-status-fix-20260909/.
+
 The user-approved Inspector schedule columns add a separate HTML-only local
 timer snapshot. Refresh Cadence is taken from loaded calendar properties, not
 freshness thresholds or historical unit activation receipts. Next Scheduled
@@ -1145,6 +1161,223 @@ table, with all supporting fields retained. Without JavaScript, both
 labelled tables remain readable. Switching tables closes the previous record
 details and preserves usable keyboard focus. The selector changes presentation
 only; no provider, scheduler, storage, or public JSON behavior changes.
+
+### Live fetch Status calendar
+
+The separate, local HTML page `GET /status` shows a monthly calendar and a
+selected day's chronological focus. The only accepted query field is an ISO
+`date`; it is validated before reading host metadata. Today is the default.
+Month navigation and native run-detail disclosures work without JavaScript.
+At desktop widths of 1440px and above, the month sits on the left and the
+selected-day focus on the right in a 70/30 split, with at least 320px for the
+focus. Narrower screens stack the focus below the calendar. Calendar badges
+adapt to their available width; the current backfill panel follows both views.
+The page shares Inspector navigation while `/data-status`, its JSON route,
+and `/healthz` keep their existing contracts.
+
+Schedules come from the currently loaded calendars of the same nine fixed
+timers. Weekdays, first-Friday employment and hourly UTC news rules expand
+into Eastern dates and labelled EST/EDT times, including 23/25-hour DST days.
+Inactive, unavailable or unsupported schedules are explicit; this calendar
+never invents a schedule from a dataset's freshness threshold. Historical
+months project current rules and do not assert historical timer activation.
+
+Each request makes at most one three-second `systemctl --user show` call for
+those nine timers and their nine matching services, plus one three-second
+`journalctl --user` call limited to the selected calendar month through the observation
+time and the latest 2,000 matching records. Future months need no journal call.
+Accepted outputs are capped at 128 KiB and 2 MiB respectively. Both commands
+use fixed absolute executables, a minimal environment and no shell. The journal
+projection contains structured job identity, outcome, invocation, timestamp
+and trusted systemd provenance only; it excludes log messages and command lines.
+Callers cannot choose commands, units, fields, paths or SQL. The reader opens
+no stores, reads no credentials and makes no provider request or mutation.
+Explicit fixture construction disables all host probes by default.
+
+The production builder also supplies the fixed private
+`data/.operations/fetch-run-history` root. Each of the nine existing recurring
+CLI forms atomically saves one start receipt, then replaces it with a complete
+receipt containing start/finish timestamps and its original exit outcome.
+Receipts use separate UUID directories grouped by UTC start month, mode 0700
+for directories and 0600 for JSON. Collector outputs, provider errors, URLs and
+credentials are excluded. Logging errors emit only a fixed warning and do not
+replace the collector result or retry its work. Imports, help, rejected
+arguments and historical/backfill CLI forms do not create run history.
+
+The read-only scan follows opened directory descriptors without following
+symlinks; only fixed-schema, known-batch records are accepted. A selected month
+reads at most 2,048 entries, 4 KiB per receipt and 4 MiB total, with a three-second
+scan deadline and explicit incomplete-history notices. UTC month partitions
+include the full Eastern month. Starts or completions later than the observation
+time cannot confirm an outcome. Completed receipts survive process restarts.
+A start without a completion is Running only while the original boot ID, PID
+and process-start identity are still live; otherwise it is Unconfirmed.
+Read-only fixture construction supplies its own temporary history root, or
+omits it to disable all history filesystem access.
+
+A slot is green only when a recorded oneshot batch completed successfully,
+red when a completed batch failed, and amber when scheduled, running or
+unconfirmed. Labels accompany every color. A complete saved collector receipt,
+paired systemd start/completion job metadata or a complete latest service
+result can establish an outcome; a service's default success value alone cannot. Matching uses the same fixed
+service starting within five minutes after a slot. This association is
+shown explicitly and does not prove timer versus manual origin. Saved and
+systemd evidence with the same nonempty invocation ID is counted once. An
+orphan saved start may use a terminal systemd result for that exact invocation,
+with its provenance stated. Distinct matching attempts, ambiguous duplicates
+and contradictory completed outcomes remain unconfirmed. Missing or truncated history never implies
+success or failure. Run details preserve scheduled, recorded-start and
+recorded-finish times, outcome context and the fixed datasets in the batch.
+
+The month grid contains every date in the selected month with Monday-first
+weekday alignment and blank cells outside the month. Month navigation keeps
+the selected day where possible and clamps it for shorter months. A compact
+shared key explains the batch codes and state indicators. Each batch has one
+marker per day: any recorded failed run greys that marker and adds a red
+failure indicator, even if another run later succeeds. Other batches retain
+their independent state. Without failures, running, unconfirmed and scheduled
+slots remain amber; only a day with all that batch's slots completed is green.
+Accessible descriptions retain all five outcome counts. Selecting a day shows
+every exact slot and its original outcome in the daily focus; aggregation does
+not rewrite run evidence or assign a batch failure to individual data sources.
+
+Batch completion is distinct from individual-source success, retained capture
+freshness and source as-of dates. A successful batch may skip a holiday or find
+unchanged data; a failed batch may have stored some sources. Refreshing the
+page obtains another read-only snapshot and does not trigger a fetch. No new
+public tool, timer, scheduler mutation or live-fetch authority is introduced.
+Structured history follows the upstream [journalctl field projection](https://www.freedesktop.org/software/systemd/man/255/journalctl.html)
+and [systemd job start/completion metadata](https://raw.githubusercontent.com/systemd/systemd/v255/src/core/job.c).
+
+#### Partial Success and recorded work counts — September 8, 2026
+
+The requested extension adds **Partial Success** to the Status calendar, daily
+focus, hourly news group and legend. It is an amber terminal outcome with a
+distinct half-circle indicator. A failed exit is displayed as Partial Success
+only when a matching, completed numeric summary proves some successful or
+partially completed work. The original saved outcome and exit code stay intact;
+systemd disagreement and ambiguous attempts still remain Unconfirmed.
+A complete failure takes priority over partial runs in daily aggregation, and
+a partial run stays visible alongside later successful or scheduled slots.
+Partial counts are separate from pending slots in the selected-day summary.
+
+Expanded run details show Successful and Failed counts in the recorded unit
+(sources, issuers, ETFs, symbols or source steps). Incomplete, skipped/no-coverage
+and not-attempted counts are separate when present; they are not double-counted
+as successful or failed. Successful includes unchanged data. Dataset counts
+remain a description of batch outputs, not a measure of completed work.
+Absent, malformed, contradictory or unavailable summaries show “counts were
+not recorded”, never invented zeroes.
+
+Nine collector report hooks retain only closed numeric fields, without changing
+requests, CLI output, exit codes, publication or scheduling. Equibles retains its
+separate progress panel; cumulative transcript totals are not treated as per-run
+success counts. Completed hooks save a private summary.json alongside the
+unchanged version-1 run.json. Its exact run ID, batch ID, start, finish and
+exit code must match the original receipt. Schema/version, provenance, evidence
+hash, recorded time, units and bounded integer counts are validated. Summary
+reads use the same pinned directory descriptors, no-follow regular-file checks,
+4 KiB per-file bound, 4 MiB aggregate byte budget and three-second scan deadline.
+A summary recorded after the observation cutoff cannot supply counts.
+
+The user's requested update also permits attaching summaries to the September 8
+runs investigated in this task using their existing, exactly matched journal
+reports or checksum-validated market result receipts. These supplements retain
+an evidence digest and their actual recording time; original receipts remain
+byte-identical. The HTML request does not parse provider logs, import history,
+open a canonical store, fetch data or write either file.
+
+Partial-status validation: 73 focused receipt, Status presentation and Inspector
+integration tests passed; the final affected 50-test recheck also passed.
+Chromium checks at 1440, 360 and 320 pixels verified the five daily partial
+batches, count details, container bounds, keyboard disclosure, and native
+disclosure with page JavaScript disabled. Desktop/mobile screenshots were
+reviewed. Thirty September 8 summaries were attached with all original receipt
+hashes preserved. Only the loopback Inspector was reloaded on its existing
+port 8766; Status and health returned HTTP 200. No collector was triggered.
+The full suite was not required for this bounded Status extension. Private
+evidence is under .local/partial-fetch-status-20260909/.
+
+Initial weekly implementation evidence, 2026-09-06: the six focused Inspector test modules
+covered 58 unique tests. The initial run passed 57 and exposed a missing
+`/status` entry in the existing POST method-denial list; after correction,
+that route test and the adjacent method-boundary test passed. The 35 isolated
+browser assertions passed at 1440, 360 and 320 pixels, including keyboard,
+no-JavaScript, escaping, unavailable history and unchanged fixture-store
+fingerprints. Desktop/calendar/focus/detail screenshots were visually reviewed.
+The verified local Inspector was reloaded on port 8766: Status, selected-day,
+Data status and health pages returned 200; invalid date/unit input returned
+400 and POST returned 405. No provider call or recurring-unit mutation was
+performed. The full offline suite was not required for this bounded local page.
+
+Durable-history validation, 2026-09-06: 34 unique focused tests passed:
+12 receipt/CLI tests, 19 calendar/history integration tests and three adjacent
+Inspector route/fixture/health checks. Coverage includes the actual nine
+entrypoint call shapes with mocked collector bodies, original exit and output
+behavior, interrupted processes, concurrent receipts, directory-swap rejection,
+malformed-byte scan limits, observation cutoffs and contradictory evidence.
+Tests used explicit temporary history roots; no live collector was invoked.
+The full offline suite was not required for this observational change. The
+[first clock-driven receipt observation](CURRENT_OPERATING_ENVELOPE.md#inspector-durable-fetch-outcomes--2026-09-06)
+is recorded separately in the operating envelope.
+Twelve isolated browser checks also passed: saved success/failure details,
+keyboard disclosure, exact Eastern timestamps with retained UTC values, grey
+failed markers with red indicators and the restarted production page. Fixture
+and production screenshots were visually reviewed; no JavaScript errors or
+outside page requests occurred. Six temporary store/receipt fingerprints
+remained unchanged, and the fixture server and stores were cleaned up.
+
+
+### Equibles Inspector integration and grouped daily news — 2026-09-07
+
+The user requested Equibles in both the Data Inspector and Status. The existing
+fixed schedule list now also includes `quant-data-equibles-transcripts.timer`
+and its company-owned `company.equibles.transcripts` dataset: ten timers and
+matching services, with the same bounded metadata-only command shapes. The
+exact loaded daily `*-*-* 00:10:00 UTC` calendar expands into Eastern dates,
+including DST. It is not inferred from registry freshness. Equibles also uses
+the established observational run recorder for its zero-argument entrypoint;
+logging preserves its original result and invokes the collector exactly once.
+No timer, quota, provider request, retry policy or canonical publisher changes.
+
+A host-injected, read-only checkpoint projection reads only `status.json` under
+`data/.operations/equibles-transcripts`, up to 16 KiB through an opened directory
+and non-following, nonblocking regular-file descriptor. Missing, invalid, oversized,
+future-dated or changing records remain unavailable; tests omit the root to
+disable file access. Only validated counts, the current ticker, fixed outcome
+labels and recorded quota fields reach HTML. Provider errors, source URLs,
+credentials and raw checkpoint structures are excluded. The file modification
+time is labelled Last record, never a provider fetch or source availability time.
+Current progress is explicitly independent of the selected historical day.
+Recorded quota is not a live account query. A successful daily run is distinct
+from completing the finite backfill; quota deferral is shown separately.
+The Data status HTML overlay includes the finite-population note and schedule;
+its retained-only public JSON route and dataset-status tool are unchanged.
+
+The additive `company-transcripts` Inspector view uses the existing immutable
+company reader and fixed, parameterized queries. The catalog accepts exact
+symbol, fiscal year (1900–2200), quarter (1–4), direction and existing bounded
+pagination. It lists stored captures without inventing historical revisions or
+source availability. A fixed local capture link opens source-ordered speaker
+turns, up to 100 rows per page and 8 MiB of selected raw-page input. Content
+hashes and complete selected turn coverage are checked. Missing speakers/times
+remain null; raw text is escaped. Caller SQL, database paths and malformed
+capture IDs are rejected before reading a store. No transcript is refetched.
+
+Daily focus groups only the current-news batch into one closed native disclosure
+at its first chronological position. The summary preserves every outcome count
+and prominently signals any failure. Expanding reveals each exact hourly slot
+and its original nested run details. The monthly markers and daily summary
+counts are unchanged, including 23/25-hour DST days. Mouse, keyboard and
+no-JavaScript interactions use the same native disclosure.
+
+Verification: 75 unique focused cases passed across the original run and targeted
+correction rechecks; 19 fixture and 19 live browser assertions passed. Desktop,
+320/360-pixel, mouse, Enter/Space, no-script, escaping, no-outside-request,
+original-value and immutable-store checks completed. The UI owner visually
+reviewed actual long transcript paragraphs and mobile details. No full offline
+suite was required for this additive local UI integration. Dated live observations
+are indexed in the operating envelope; evidence is under `.local/equibles-ui-20260907/`.
 
 ## Security requirements
 

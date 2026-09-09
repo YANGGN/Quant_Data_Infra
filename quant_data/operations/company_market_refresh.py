@@ -289,9 +289,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(dumps_strict({"contract": "quant_data.company_market_refresh",
                            "outcome": "failed", "error": _error_code(error), "exit_code": 75}))
         return 75
+    from .fetch_run_summary import record_report
+    record_report('quant-data-company-market-refresh.timer', report)
     print(dumps_strict(report))
     return int(report["exit_code"])
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    from .fetch_run_history import run_recorded_cli
+    raise SystemExit(run_recorded_cli(
+        "quant-data-company-market-refresh.timer", main, argv=sys.argv[1:]
+    ))
