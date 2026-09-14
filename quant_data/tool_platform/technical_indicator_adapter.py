@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .price_basis import BASIS, expected_price_metadata, metadata_fields, validate_series_price_basis
+
 import copy
 import hashlib
 from datetime import datetime
@@ -1001,9 +1003,10 @@ def _validate_series(series: TimeSeries, role: str) -> None:
     metadata = series.metadata
     audit = series.audit
     if role in _PRICE_ROLES:
+        validate_series_price_basis(series)
         _require_values(
             metadata,
-            {
+            expected_price_metadata(metadata, {
                 "provider": PROVIDER,
                 "frequency": "daily",
                 "unit": "provider_native_currency",
@@ -1016,7 +1019,7 @@ def _validate_series(series: TimeSeries, role: str) -> None:
                 "horizon_basis": "observed_rows",
                 "session_calendar_status": "not_established",
                 "adjustment_status": "not_established",
-            },
+            }),
             "price metadata",
         )
         _require_values(
@@ -1419,9 +1422,18 @@ def _quality_flags(
     transformation_id: str,
 ) -> tuple[str, ...]:
     flags = {f"transformation:{transformation_id}"}
-    for _, series in ordered:
+    explicit_basis = any("source_price_field" in series.metadata for _, series in ordered)
+    for role, series in ordered:
         flags.add(f"source_lineage:{series.lineage_digest}")
-        flags.update(series.observations[index].quality_flags)
+        for flag in series.observations[index].quality_flags:
+            if explicit_basis and flag.startswith(("adjustment_status:", "adjustment_semantics:")):
+                flags.add(f"source_adjustment_status:{role}:{series.metadata.get('adjustment_status', 'not_established')}")
+            else:
+                flags.add(flag)
+    if explicit_basis:
+        status = BASIS if all(series.metadata.get("adjustment_status") == BASIS
+                              for role, series in ordered if role in _PRICE_ROLES) else "not_established"
+        flags.add(f"adjustment_status:{status}")
     if missing_reason is not None:
         flags.add(f"missing_reason:{missing_reason}")
     if len(flags) > 100:
@@ -1445,6 +1457,9 @@ def _warning_codes(
             for item in series.warnings
             if isinstance(item, str) and item
         )
+    if all(series.metadata.get("adjustment_status") == BASIS
+           for role, series in ordered if role in _PRICE_ROLES):
+        codes.discard("raw_price_adjustment_semantics_not_established")
     codes.update(
         item
         for item in kernel_warnings
@@ -1564,7 +1579,15 @@ def _derived_series(
                 "cumulative_latest_exact_source_time"
             ),
             "session_calendar_status": "not_established",
-            "adjustment_status": "not_established",
+            "adjustment_status": (
+                BASIS if all(item.metadata.get("adjustment_status") == BASIS
+                             for role, item in ordered if role in _PRICE_ROLES)
+                else "not_established"
+            ),
+            **({
+                **metadata_fields(dict(ordered)["close"].metadata),
+                "source_close_adjustment_status": dict(ordered)["close"].metadata["adjustment_status"],
+            } if "source_price_field" in dict(ordered)["close"].metadata else {}),
             "volume_unit_status": "provider_native_not_normalized",
             "transformation": transformation_id,
             "transformation_version": operation_version,

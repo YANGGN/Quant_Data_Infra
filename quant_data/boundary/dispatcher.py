@@ -7,6 +7,9 @@ typed :class:`~quant_data.contracts.TimeSeries` in memory for description.
 
 from __future__ import annotations
 
+from quant_data.tool_platform.price_basis_versions import PRICE_BASIS_VERSIONS
+from quant_data.tool_platform.price_basis import extend_price_basis_schema
+
 import copy
 import hashlib
 import math
@@ -151,6 +154,10 @@ _VERSIONED_INPUT_KINDS = {
     ("options.search_captures", "2.0.0"): "options_capture_search_v2",
     ("options.search_contracts", "2.0.0"): "options_contract_search_v2",
     ("options.get_surface_snapshot", "2.0.0"): "options_surface_snapshot_v2",
+    (
+        "portfolio.get_etf_allocator_snapshot",
+        "2.0.0",
+    ): "etf_allocator_snapshot_v1",
     **{
         (name, "2.0.0"): "stage10_market_return_v2"
         for name in VERSIONED_MARKET_RETURN_TOOLS
@@ -671,8 +678,13 @@ class ToolDispatcher:
         if name in STAGE1_TOOL_NAMES and declaration["version"] == "1.0.0":
             typed_material = self._typed_arguments(dict(arguments))
         else:
+            price_basis_pair = PRICE_BASIS_VERSIONS.get(name)
+            price_basis_version = (
+                price_basis_pair is not None and declaration["version"] == price_basis_pair[1]
+            )
+            input_version = price_basis_pair[0] if price_basis_version else declaration["version"]
             input_kind = _VERSIONED_INPUT_KINDS.get(
-                (name, declaration["version"]), _STAGE5_INPUT_KINDS[name]
+                (name, input_version), _STAGE5_INPUT_KINDS[name]
             )
             dimensions = preflight_dimensions(
                 public_material, input_kind=input_kind
@@ -687,7 +699,17 @@ class ToolDispatcher:
                     "Tool workload exceeds its registered preflight limits"
                 )
             decode_series = self._timeseries_from_public
-            if (
+            if price_basis_version:
+                from quant_data.tool_platform.market_statistics import stage10_market_statistic_series_schema
+                from quant_data.tool_platform.technical_indicator_adapter import stage10_technical_indicator_input_series_schema
+                source_schema = (
+                    stage10_technical_indicator_input_series_schema()
+                    if name == "market.technical_indicators"
+                    else stage10_market_statistic_series_schema()
+                )
+                basis_schema = extend_price_basis_schema(source_schema)
+                decode_series = lambda value: self._timeseries_from_public(value, schema=basis_schema)
+            elif (
                 declaration["version"]
                 in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
                 and name in VERSIONED_TECHNICAL_INDICATOR_TOOLS

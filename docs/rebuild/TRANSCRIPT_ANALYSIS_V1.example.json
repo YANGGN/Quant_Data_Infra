@@ -1,0 +1,271 @@
+{
+  "example_kind": "synthetic_not_real_company_data",
+  "input": {
+    "turns": [
+      {
+        "turn_id": "t1",
+        "speaker_id": "m1",
+        "speaker_role": "management",
+        "section": "prepared_remarks",
+        "text": "For fiscal 2027, we expect consolidated non-GAAP gross margin between 47% and 48%. We are confident in our cost plan."
+      },
+      {
+        "turn_id": "t2",
+        "speaker_id": "a1",
+        "speaker_role": "analyst",
+        "section": "qa",
+        "text": "How much could higher component costs pressure gross margin?"
+      },
+      {
+        "turn_id": "t3",
+        "speaker_id": "m1",
+        "speaker_role": "management",
+        "section": "qa",
+        "text": "Our plan includes current component costs, but supplier pricing remains uncertain."
+      },
+      {
+        "turn_id": "t4",
+        "speaker_id": "a2",
+        "speaker_role": "analyst",
+        "section": "qa",
+        "text": "If component costs increase further, can you protect the margin range?"
+      },
+      {
+        "turn_id": "t5",
+        "speaker_id": "m1",
+        "speaker_role": "management",
+        "section": "qa",
+        "text": "We have mitigation options, although we cannot quantify their effect yet."
+      }
+    ]
+  },
+  "model_output": {
+    "schema_version": "transcript.analysis.v1",
+    "guidance_claims": [
+      {
+        "claim_local_id": "g1",
+        "metric": "gross_margin",
+        "metric_text": "non-GAAP gross margin",
+        "scope": {
+          "kind": "consolidated",
+          "segment": null,
+          "product": null,
+          "geography": null
+        },
+        "target": {
+          "period_text": "fiscal 2027",
+          "period_kind": "fiscal_year",
+          "fiscal_year": 2027,
+          "fiscal_quarter": null
+        },
+        "accounting_basis": "non_gaap",
+        "measurement": "level",
+        "growth_basis": "unspecified",
+        "comparison_period_text": null,
+        "value": {
+          "shape": "range",
+          "point": null,
+          "low": "47",
+          "high": "48",
+          "unit": "percent",
+          "currency": null,
+          "scale": "1",
+          "bound_inclusivity": "unspecified",
+          "approximate": null,
+          "qualitative_text": null,
+          "source_value_text": "between 47% and 48%"
+        },
+        "management_action": "unspecified",
+        "conditions": [],
+        "evidence": [
+          {
+            "turn_id": "t1",
+            "quote": "For fiscal 2027, we expect consolidated non-GAAP gross margin between 47% and 48%."
+          }
+        ],
+        "ambiguities": []
+      }
+    ],
+    "analyst_focus": {
+      "qa_observed": "present",
+      "question_blocks": [
+        {
+          "question_local_id": "q1",
+          "analyst_turn_ids": [
+            "t2"
+          ],
+          "management_answer_turn_ids": [
+            "t3"
+          ],
+          "summary": "Potential gross-margin pressure from component costs.",
+          "intent": "concern",
+          "evidence": [
+            {
+              "turn_id": "t2",
+              "quote": "How much could higher component costs pressure gross margin?"
+            }
+          ]
+        },
+        {
+          "question_local_id": "q2",
+          "analyst_turn_ids": [
+            "t4"
+          ],
+          "management_answer_turn_ids": [
+            "t5"
+          ],
+          "summary": "Ability to protect guidance against further component cost increases.",
+          "intent": "concern",
+          "evidence": [
+            {
+              "turn_id": "t4",
+              "quote": "If component costs increase further, can you protect the margin range?"
+            }
+          ]
+        }
+      ],
+      "topics": [
+        {
+          "topic_local_id": "topic1",
+          "topic_code": "margins",
+          "label": "Component costs and margin resilience",
+          "summary": "Two analysts ask about component costs and protection of the margin outlook.",
+          "underlying_concern": "Higher component costs could pressure the guided margin range.",
+          "question_local_ids": [
+            "q1",
+            "q2"
+          ],
+          "management_response_summary": "Current costs are included in the plan; additional mitigation remains unquantified.",
+          "response_status": "partially_answered",
+          "question_evidence": [
+            {
+              "turn_id": "t2",
+              "quote": "How much could higher component costs pressure gross margin?"
+            },
+            {
+              "turn_id": "t4",
+              "quote": "If component costs increase further, can you protect the margin range?"
+            }
+          ],
+          "answer_evidence": [
+            {
+              "turn_id": "t3",
+              "quote": "Our plan includes current component costs, but supplier pricing remains uncertain."
+            },
+            {
+              "turn_id": "t5",
+              "quote": "We have mitigation options, although we cannot quantify their effect yet."
+            }
+          ],
+          "ambiguities": []
+        }
+      ],
+      "ambiguities": []
+    },
+    "management_tone": {
+      "basis": "transcript_text",
+      "overall": {
+        "sentiment": "mixed",
+        "expressed_confidence": "mixed",
+        "hedging": "moderate",
+        "assessment_support": "clear",
+        "summary": "Management expresses confidence in its cost plan but uses qualified language about supplier pricing and mitigation.",
+        "supporting_evidence": [
+          {
+            "turn_id": "t1",
+            "quote": "We are confident in our cost plan."
+          },
+          {
+            "turn_id": "t3",
+            "quote": "Our plan includes current component costs, but supplier pricing remains uncertain."
+          },
+          {
+            "turn_id": "t5",
+            "quote": "We have mitigation options, although we cannot quantify their effect yet."
+          }
+        ],
+        "counterevidence": [],
+        "ambiguities": []
+      },
+      "prepared_remarks": {
+        "sentiment": "positive",
+        "expressed_confidence": "high",
+        "hedging": "low",
+        "assessment_support": "clear",
+        "summary": "Management explicitly expresses confidence in its cost plan.",
+        "supporting_evidence": [
+          {
+            "turn_id": "t1",
+            "quote": "We are confident in our cost plan."
+          }
+        ],
+        "counterevidence": [],
+        "ambiguities": []
+      },
+      "qa": {
+        "sentiment": "mixed",
+        "expressed_confidence": "moderate",
+        "hedging": "high",
+        "assessment_support": "limited",
+        "summary": "Management identifies mitigation options while qualifying its visibility.",
+        "supporting_evidence": [
+          {
+            "turn_id": "t3",
+            "quote": "Our plan includes current component costs, but supplier pricing remains uncertain."
+          },
+          {
+            "turn_id": "t5",
+            "quote": "We have mitigation options, although we cannot quantify their effect yet."
+          }
+        ],
+        "counterevidence": [],
+        "ambiguities": []
+      },
+      "by_speaker": [
+        {
+          "speaker_id": "m1",
+          "assessment": {
+            "sentiment": "mixed",
+            "expressed_confidence": "mixed",
+            "hedging": "moderate",
+            "assessment_support": "clear",
+            "summary": "Management expresses confidence in its cost plan but uses qualified language about supplier pricing and mitigation.",
+            "supporting_evidence": [
+              {
+                "turn_id": "t1",
+                "quote": "We are confident in our cost plan."
+              },
+              {
+                "turn_id": "t3",
+                "quote": "Our plan includes current component costs, but supplier pricing remains uncertain."
+              },
+              {
+                "turn_id": "t5",
+                "quote": "We have mitigation options, although we cannot quantify their effect yet."
+              }
+            ],
+            "counterevidence": [],
+            "ambiguities": []
+          }
+        }
+      ]
+    },
+    "coverage_notes": []
+  },
+  "application_derived_analyst_focus": {
+    "ranking_policy_version": "question_frequency.v1",
+    "processing_coverage": "complete",
+    "total_question_block_count": 2,
+    "distinct_identified_analyst_count": 2,
+    "unresolved_analyst_question_block_count": 0,
+    "ranked_topics": [
+      {
+        "topic_local_id": "topic1",
+        "rank": 1,
+        "question_block_count": 2,
+        "distinct_identified_analyst_count": 2,
+        "question_block_share": "1.0"
+      }
+    ]
+  }
+}

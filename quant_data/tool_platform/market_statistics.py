@@ -7,6 +7,8 @@ point-in-time contracts, and then invoke the shared analytical primitives.
 
 from __future__ import annotations
 
+from .price_basis import expected_price_metadata, validate_series_price_basis
+
 import copy
 import hashlib
 from decimal import Decimal
@@ -356,7 +358,10 @@ def _validate_observations(
 def _validate_stage10_core(
     series: TimeSeries, report: Stage10MarketQualityReport
 ) -> None:
-    _require_exact_fields(series.metadata, _EXACT_METADATA, "metadata")
+    validate_series_price_basis(series)
+    _require_exact_fields(
+        series.metadata, expected_price_metadata(series.metadata, _EXACT_METADATA), "metadata"
+    )
     _require_exact_fields(series.audit, _EXACT_AUDIT, "audit")
     _require_exact_fields(series.provenance, _EXACT_PROVENANCE, "provenance")
     for field in ("instrument_id", "provider_symbol", "asset_type"):
@@ -427,6 +432,9 @@ def validate_stage10_return_inputs(
     if len({item.series_id for item in series}) != len(series):
         raise ValidationError("Stage 10 statistics require distinct series identities")
 
+    if any("source_price_field" in item.metadata for item in series):
+        if len({item.metadata.get("adjustment_status") for item in series}) != 1:
+            raise ValidationError("Analytical inputs must use a consistent price adjustment basis")
     reports = tuple(audit_stage10_market_return(item) for item in series)
     for item, report in zip(series, reports, strict=True):
         _validate_stage10_core(item, report)

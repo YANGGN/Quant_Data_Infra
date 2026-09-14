@@ -256,6 +256,7 @@ def invoke_stage10_market_price(
     arguments: Stage10MarketPriceArgumentsV1,
     context: ToolExecutionContext,
     registry: Registry,
+    *, repository_type: type[Stage10DailyPriceRepository] = Stage10DailyPriceRepository,
 ) -> QueryResult:
     """Execute the additive read-only OHLC price-series operation."""
 
@@ -279,7 +280,7 @@ def invoke_stage10_market_price(
         date_only_policy=arguments.date_only_policy,
         limit=arguments.limit,
     )
-    series = Stage10DailyPriceRepository(
+    series = repository_type(
         context.store_map, registry
     ).get_ohlc_series(query)
     if tuple(item.metadata["observation_field"] for item in series) != OHLC_FIELDS:

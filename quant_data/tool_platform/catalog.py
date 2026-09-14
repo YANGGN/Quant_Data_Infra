@@ -9,6 +9,8 @@ remain byte-compatible.
 
 from __future__ import annotations
 
+from .price_basis_versions import PRICE_BASIS_VERSIONS, NEW_PRICE_BASIS_POLICIES, add_price_basis_policies
+
 import copy
 from dataclasses import dataclass
 from typing import Any, Mapping
@@ -21,7 +23,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.29.0"
+VERSIONED_CATALOG_VERSION = "2.32.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -39,6 +41,7 @@ ADDITIVE_NEWS_RESEARCH_TOOLS = (
     "news.headline_sentiment",
     "research.news_event_impact",
 )
+ADDITIVE_TRANSCRIPT_TOOLS = ("company.search_transcripts", "company.get_transcript", "company.get_transcript_extraction")
 ADDITIVE_FMP_RESEARCH_TOOLS = ("price_realtime", "company.get_research_inputs")
 ADDITIVE_ETF_TOOLS = ("portfolio.get_etf_allocator_snapshot",)
 ADDITIVE_DATA_STATUS_TOOLS = ("data.get_dataset_status",)
@@ -52,6 +55,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_DATA_STATUS_TOOLS,
     *ADDITIVE_ETF_TOOLS,
     *ADDITIVE_FMP_RESEARCH_TOOLS,
+    *ADDITIVE_TRANSCRIPT_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -100,6 +104,7 @@ VERSIONED_OPTIONS_ACCESS_TOOLS = (
     "options.search_contracts",
     "options.get_surface_snapshot",
 )
+VERSIONED_ETF_SNAPSHOT_TOOLS = ("portfolio.get_etf_allocator_snapshot",)
 VERSIONED_MARKET_RETURN_TOOLS = (
     "market.get_returns",
     "market.get_forward_returns",
@@ -146,6 +151,8 @@ VERSIONED_TOOL_NAMES = (
     *VERSIONED_OPTIONS_ACCESS_TOOLS,
     *VERSIONED_NEWS_TOOLS,
     *VERSIONED_INVESTMENT_ANALYSIS_TOOLS,
+    *VERSIONED_ETF_SNAPSHOT_TOOLS,
+    *NEW_PRICE_BASIS_POLICIES,
 )
 
 PUBLIC_TOOL_NAMES = (
@@ -225,7 +232,7 @@ CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
     "market": 9,
-    "company": 11,
+    "company": 14,
     "research": 24,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
@@ -259,6 +266,7 @@ _CURRENT_PUBLIC_NAMES.insert(
 )
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_ETF_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FMP_RESEARCH_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -606,6 +614,10 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
         ToolProfile(name="company.get_research_inputs", family="company", input_kind="fmp_research_inputs_v1",
                     stores=("company",), datasets=("company.fmp.research_evidence", "company.fmp.research_inputs")),
     )
+    from .transcript_contracts import KINDS, RAW_DATASET, STRUCTURED_DATASET
+    additive += tuple(ToolProfile(name=name,family="company",input_kind=KINDS[name],
+        stores=("company",),datasets=(RAW_DATASET,) if name=="company.get_transcript" else (RAW_DATASET,STRUCTURED_DATASET))
+        for name in ADDITIVE_TRANSCRIPT_TOOLS)
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -1208,8 +1220,46 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *_build_data_status_entries(),
         *_build_etf_snapshot_entries(),
         *_build_fmp_research_entries(),
+        *_build_transcript_entries(),
     )
 
+
+
+def _build_transcript_entries() -> tuple[dict[str, Any], ...]:
+    from .transcript_contracts import TOOLS, KINDS, schema
+    descriptions = (
+        "Search retained raw transcript captures and their cutoff-eligible extraction coverage.",
+        "Read original provider speaker turns for an exact retained transcript capture.",
+        "Read a saved original structured extraction and separately paginated quality assessments.",
+    )
+    entries = []
+    for name, description in zip(TOOLS, descriptions):
+        profile = next(item for item in current_tool_profiles() if item.name == name)
+        entry = copy.deepcopy(_build_data_status_entries()[0])
+        max_rows = 100 if name == TOOLS[0] else 101 if name == TOOLS[1] else 21
+        entry.update({
+            "id": name, "family": "company", "owner": "company",
+            "description": description, "handler": profile.operation_graph_id,
+            "operation_graph_id": profile.operation_graph_id, "stores": ["company"],
+            "datasets": list(profile.datasets), "input_type": "TranscriptArgumentsV1",
+            "input_schema_id": _versioned_schema_id(name, "input", version="1.0.0"),
+            "input_schema": schema(KINDS[name]),
+            "output_schema_id": _versioned_schema_id(name, "output", version="1.0.0"),
+            "output_schema": query_result_schema(name, {"type":"object","additionalProperties":False,"properties":{},"required":[]}),
+            "examples": [{"ticker":"AAPL","limit":10}] if name==TOOLS[0] else [{"capture_id":"equibles_transcript_"+"a"*32,"limit":10}],
+            "assumptions": ["host_selected_immutable_company_store","local_capture_and_model_completion_cutoff",
+                "provider_fiscal_labels_unverified","original_model_drafts_not_facts","assessment_outcomes_remain_separate",
+                "query_bound_keyset_cursor","json_content_in_documented_scalar_fields"],
+            "workload_bounds":{"max_rows":max_rows,"max_series":1,"max_operations":5000000,
+                "max_request_bytes":1048576,"max_response_bytes":8388608},
+            "availability_policy":{"modes":["latest","as_of"],"point_in_time_default":"latest"},
+            "contracts":{"availability":"retained_local_capture_and_model_completion","point_in_time":"explicit_capture_cutoff","returns":"not_applicable"},
+            "live_capability":{"possible":False,"capability_id":None,"offline_status":"not_applicable"},
+        })
+        entry["output_schema"]["properties"]["series"]["maxItems"]=0
+        entry["output_schema"]["properties"]["records"]["maxItems"]=max_rows
+        entries.append(entry)
+    return tuple(entries)
 
 def _build_fmp_research_entries() -> tuple[dict[str, Any], ...]:
     entries = []
@@ -3255,7 +3305,8 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
             analysis_series_schema=analysis_series_schema,
         )
     )
-    return tuple(result)
+    result.extend(_build_etf_snapshot_v2_policies())
+    return add_price_basis_policies(result, build_additive_tool_entries())
 
 
 def _build_quality_transform_policies(
@@ -4996,6 +5047,66 @@ def _build_investment_analysis_policies(
     return tuple(policies)
 
 
+
+def _build_etf_snapshot_v2_policies() -> tuple[dict[str, Any], ...]:
+    """Build the retained full-EOD successor without mutating ETF v1."""
+
+    name = "portfolio.get_etf_allocator_snapshot"
+    graph = "tool_platform.portfolio.get_etf_allocator_snapshot.v2"
+    variant = copy.deepcopy(_build_etf_snapshot_entries()[0])
+    variant.update({
+        "description": (
+            "Read ETF features from FMP split-adjusted, dividend-excluding close "
+            "used unchanged, with explicit price gaps and capture-vintage limits."
+        ),
+        "version": "2.0.0",
+        "operation_version": "2.0.0",
+        "compatibility": {
+            "status": "successor_breaking_v2",
+            "predecessor": "1.0.0",
+        },
+        "handler": graph,
+        "operation_graph_id": graph,
+        "input_schema_id": _versioned_schema_id(name, "input", version="2.0.0"),
+        "output_schema_id": _versioned_schema_id(name, "output", version="2.0.0"),
+        "assumptions": [
+            *variant["assumptions"],
+            "fmp_full_eod_close_already_split_adjusted",
+            "no_second_adjustment",
+            "excludes_distributions",
+            "retained_capture_cutoff",
+        ],
+        "contracts": {
+            "availability": "retained_local_capture",
+            "point_in_time": (
+                "capture_cutoff_historical_reconstruction_not_established"
+            ),
+            "returns": "split_adjusted_price_excluding_distributions",
+        },
+    })
+    return (
+        {
+            "tool": name,
+            "default_version": "1.0.0",
+            "selector_field": "tool_version",
+            "variants": [variant],
+            "deprecations": [
+                {
+                    "version": "1.0.0",
+                    "code": "tool_version_deprecated",
+                    "message": (
+                        "portfolio.get_etf_allocator_snapshot version 1.0.0 remains "
+                        "available for compatibility; select version 2.0.0 for the "
+                        "retained FMP full-EOD successor."
+                    ),
+                    "replacement": {"tool": name, "version": "2.0.0"},
+                    "removal": {"status": "not_scheduled", "milestone": None},
+                }
+            ],
+        },
+    )
+
+
 def versioned_schema_catalog(
     policies: tuple[Mapping[str, Any], ...],
     additive_entries: tuple[Mapping[str, Any], ...] = (),
@@ -5046,6 +5157,9 @@ OPERATION_GRAPH_IDS = frozenset(
 VERSIONED_OPERATION_GRAPH_IDS = frozenset(
     [
         "tool_platform.econometrics.regression.v3",
+        *(f"tool_platform.{name}.v{version[:-2].replace('.', '_')}"
+          for name, (_, version) in PRICE_BASIS_VERSIONS.items()
+          if not version.endswith(".0.0")),
         *(f"tool_platform.{name}.v2" for name in VERSIONED_TOOL_NAMES),
         "tool_platform.econometrics.regression.v2_1",
         "tool_platform.econometrics.rolling_regression.v2_1",
@@ -5092,6 +5206,7 @@ __all__ = (
     "VERSIONED_DATA_QUALITY_TOOLS",
     "VERSIONED_ECONOMETRICS_TOOLS",
     "VERSIONED_ENERGY_TOOLS",
+    "VERSIONED_ETF_SNAPSHOT_TOOLS",
     "VERSIONED_INVESTMENT_ANALYSIS_TOOLS",
     "VERSIONED_MACRO_CALENDAR_TOOLS",
     "VERSIONED_MACRO_CONDITION_TOOLS",

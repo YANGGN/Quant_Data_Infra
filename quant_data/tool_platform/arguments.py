@@ -2725,6 +2725,10 @@ def input_schema(input_kind: str, series_schema: Mapping[str, Any]) -> dict[str,
     re-declaring (or weakening) its observation bound here.
     """
 
+    from .transcript_contracts import KINDS
+    if input_kind in KINDS.values():
+        from .transcript_contracts import schema
+        return schema(input_kind)
     if input_kind == "price_realtime_v1":
         from .realtime_quote import quote_input_schema
         return quote_input_schema()
@@ -5327,6 +5331,10 @@ def parse_arguments(
     before any decoder invocation.
     """
 
+    from .transcript_contracts import KINDS
+    if input_kind in KINDS.values():
+        from .transcript_contracts import parse
+        return parse(input_kind, public)
     if input_kind == "price_realtime_v1":
         from .realtime_quote import parse_quote_arguments
         return parse_quote_arguments(public)
@@ -5874,6 +5882,11 @@ def preflight_dimensions(
     count, matching the platform's correlation/alignment workload ceiling.
     """
 
+    from .transcript_contracts import KINDS
+    if input_kind in KINDS.values():
+        parsed = parse_arguments(input_kind, public, lambda value: value)
+        rows = parsed.limit + (input_kind != KINDS["company.search_transcripts"])
+        return {"rows": rows, "series": 0, "operations": rows}
     if input_kind in {"price_realtime_v1", "fmp_research_inputs_v1"}:
         parsed = parse_arguments(input_kind, public, lambda value: value)
         rows = int(parsed.get("limit", 1))

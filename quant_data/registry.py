@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .tool_platform.price_basis_versions import PRICE_BASIS_VERSIONS, NEW_PRICE_BASIS_POLICIES, remove_price_basis_policies
+
 import copy
 import hashlib
 import json
@@ -29,6 +31,7 @@ from .tool_platform.catalog import (
     CURRENT_FAMILY_COUNTS,
     CURRENT_PUBLIC_TOOL_NAMES,
     ADDITIVE_FMP_RESEARCH_TOOLS,
+    ADDITIVE_TRANSCRIPT_TOOLS,
     FAMILY_COUNTS,
     LEGACY_TOOL_NAMES,
     OPERATION_GRAPH_IDS,
@@ -42,6 +45,7 @@ from .tool_platform.catalog import (
     VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
     VERSIONED_INVESTMENT_ANALYSIS_TOOLS,
+    VERSIONED_ETF_SNAPSHOT_TOOLS,
     VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
     VERSIONED_NEWS_TOOLS,
     VERSIONED_OPTIONS_ACCESS_TOOLS,
@@ -559,7 +563,7 @@ _PLACEHOLDER_SUCCESSOR_VERSIONED_TOOL_IDS = frozenset(
 _TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
     "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
-_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in ADDITIVE_FMP_RESEARCH_TOOLS)
+_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in (*ADDITIVE_FMP_RESEARCH_TOOLS, *ADDITIVE_TRANSCRIPT_TOOLS))
 _PRE_ETF_TOOL_NAMES = tuple(name for name in _PRE_FMP_RESEARCH_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
 _PRE_DATA_STATUS_OPTIONS_TOOL_NAMES = tuple(
     name
@@ -1938,7 +1942,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2732,7 +2736,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=164,
+        expected_count=224,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3508,6 +3512,9 @@ def load_registry(
                         else 1
                     )
                 )
+            ) + int(
+                policy["tool"] in PRICE_BASIS_VERSIONS
+                and policy["tool"] not in NEW_PRICE_BASIS_POLICIES
             )
             or not isinstance(policy["deprecations"], list)
             or len(policy["deprecations"]) != 1
@@ -3608,6 +3615,16 @@ def load_registry(
         elif policy["tool"] in VERSIONED_INVESTMENT_ANALYSIS_TOOLS:
             expected_variant_stores = tuple(variant_stores)
             expected_variant_datasets = tuple(variant_datasets)
+        elif policy["tool"] in {"market.get_price_series", "research.news_event_impact"}:
+            expected_variant_stores = tuple(base["stores"])
+            expected_variant_datasets = tuple(base["datasets"])
+        elif policy["tool"] in VERSIONED_ETF_SNAPSHOT_TOOLS:
+            expected_variant_stores = ("market",)
+            expected_variant_datasets = (
+                "market.stage10.instruments",
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+            )
         else:
             expected_variant_stores = ()
             expected_variant_datasets = ()
@@ -3691,7 +3708,12 @@ def load_registry(
             is_news_v22_variant = (
                 policy["tool"] == "news.search" and variant_index == 2
             )
+            basis_pair = PRICE_BASIS_VERSIONS.get(policy["tool"])
+            is_price_basis_variant = (
+                basis_pair is not None and additional_variant.get("version") == basis_pair[1]
+            )
             expected_version = (
+                basis_pair[1] if is_price_basis_variant else
                 "2.3.0" if is_news_v23_variant else
                 "3.0.0"
                 if is_v3_variant
@@ -3712,6 +3734,7 @@ def load_registry(
                 else "2.1.0"
             )
             expected_graph_suffix = (
+                "v" + basis_pair[1][:-2].replace(".", "_") if is_price_basis_variant else
                 "v2_3" if is_news_v23_variant else
                 "v3"
                 if is_v3_variant
@@ -3751,7 +3774,7 @@ def load_registry(
                 )
             seen_tool_versions.add(version_key)
             if (
-                policy["tool"]
+                not is_price_basis_variant and policy["tool"]
                 not in {
                     "econometrics.regression",
                     "econometrics.rolling_regression",
@@ -3809,6 +3832,8 @@ def load_registry(
                 f"{variant_pointer}/stores",
             )
             store_backed_successor = policy["tool"] in {
+                "market.get_returns",
+                "market.get_forward_returns",
                 "market.cross_sectional_performance",
                 "energy.get_electricity_retail_sales",
                 "energy.get_weekly_fundamentals",
@@ -3985,12 +4010,20 @@ def load_registry(
             )
             else MAX_JSON_BYTES
         )
+        if collector_id == "fmp.company.statement_history":
+            max_workload_bytes = 8_388_608
+        if collector_id in ("nasdaq.company.sharadar_sf1","sharadar.company.direct_sf1"):
+            max_workload_bytes = 268_435_456
+        if collector_id in ("nasdaq.company.sharadar_definitions","sharadar.company.direct_definitions"):
+            max_workload_bytes = 33_554_432
+        if collector_id in ("local.market.collection_manifest","local.market.selected_instruments"):
+            max_workload_bytes = 67_108_864
         if collector_id in _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS:
             max_workload_bytes = _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS[collector_id][3]
         if any(
             isinstance(workload[name], bool)
             or not isinstance(workload[name], int)
-            or workload[name] < 1
+            or workload[name] < (0 if collector_id in ("local.market.collection_manifest","local.market.selected_instruments") and name == "max_requests" else 1)
             or workload[name] > max_workload_bytes
             for name in workload
         ) or workload["max_rows"] > (
@@ -4027,6 +4060,8 @@ def load_registry(
             }
             else 50_000
             if collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            else 100_000
+            if collector_id in ("nasdaq.company.sharadar_sf1","sharadar.company.direct_sf1")
             else 10_000
         ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Collector bounds are invalid")
@@ -4475,6 +4510,34 @@ def load_registry(
                     "official_conditions",
                     "Official conditions collector drifted",
                 )
+        elif collector_id == "local.market.selected_instruments":
+            from quant_data.company.fmp_statement_registry import identity_declaration
+            if collector != identity_declaration(raw):
+                raise _error(pointer, "selected_instruments", "Selected instrument collector drifted")
+        elif collector_id == "fmp.company.statement_history":
+            from quant_data.company.fmp_statement_registry import declaration
+            if collector != declaration(raw):
+                raise _error(pointer, "statement_history", "Statement history collector drifted")
+        elif collector_id in ("sharadar.company.direct_sf1","sharadar.company.direct_definitions"):
+            from quant_data.company.sharadar_direct_registry import declarations
+            if collector != next(c for c in declarations(raw) if c["id"]==collector_id):
+                raise _error(pointer,"sharadar_direct","Direct Sharadar collector drifted")
+        elif collector_id == "nasdaq.company.sharadar_definitions":
+            from quant_data.company.sharadar_definition_registry import declaration
+            if collector != declaration(raw):
+                raise _error(pointer,"sharadar_definitions","Sharadar definitions collector drifted")
+        elif collector_id == "nasdaq.company.sharadar_sf1":
+            from quant_data.company.sharadar_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "sharadar", "Sharadar collector drifted")
+        elif collector_id == "local.market.collection_manifest":
+            from quant_data.market.collection_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "collection_manifest", "Collection manifest collector drifted")
+        elif collector_id == "openai.company.transcript_analysis":
+            from quant_data.company.transcript_analysis_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "transcript_analysis", "Transcript analysis collector drifted")
         elif collector_id == "equibles.company.transcripts":
             from quant_data.company.equibles_registry import COLLECTOR
             if collector != COLLECTOR:
@@ -5752,7 +5815,8 @@ _REGISTRY_259_ADDITIVE_VARIANTS = frozenset(
 
 
 def _pre_website_policies() -> tuple[dict[str, Any], ...]:
-    policies = copy.deepcopy(build_tool_version_policies())
+    policies = tuple(copy.deepcopy(policy) for policy in remove_price_basis_policies(build_tool_version_policies())
+                     if policy["tool"] not in VERSIONED_ETF_SNAPSHOT_TOOLS)
     for policy in policies:
         if policy["tool"] == "news.search":
             policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
@@ -5794,8 +5858,457 @@ def _pre_registry_266_policies() -> tuple[dict[str, Any], ...]:
 _WEBSITE_SOURCE_REGISTRY_SHA256 = "6b6284c184d1b4cf92bab56fe7afb80de34d78a39488c96bd21be86a59db83c8"
 
 
+_ETF_SNAPSHOT_V2_PREDECESSOR_SHA256 = (
+    "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97"
+)
+_ETF_SNAPSHOT_V2_PREDECESSOR_CATALOG_SHA256 = (
+    "7c1ff084bce29dc64d3a7db793fbb05eafe99921358ab01b308a98395b5e481b"
+)
+
+
+
+def transcript_tools_registry_profile(registry: Registry) -> Registry:
+    """Remove only the three local transcript readers and restore exact registry 2.85."""
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.86.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+chr(10)).encode()
+    if (registry.source_sha256!=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.86.0")]
+        or hashlib.sha256(render(registry.raw)).hexdigest()!=registry.source_sha256
+        or tuple(dict(t) for t in registry.tools)!=tuple(registry.raw["tools"])
+        or {d.id:list(d.tool_ids) for d in registry.datasets}!={d["id"]:d["tool_ids"] for d in registry.raw["datasets"]}):
+        raise RegistryError("Transcript public-tool registry source drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.85.0"
+    raw["tools"]=[t for t in raw["tools"] if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS]
+    raw["presentation_order"]["tools"]=[n for n in raw["presentation_order"]["tools"] if n not in ADDITIVE_TRANSCRIPT_TOOLS]
+    for d in raw["datasets"]:
+        d["tool_ids"]=[n for n in d["tool_ids"] if n not in ADDITIVE_TRANSCRIPT_TOOLS]
+    raw["tool_version_schema_catalog"]={
+        "schema_id":VERSIONED_CATALOG_ID,"schema_version":"2.31.0",
+        "resource":"quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256":"20aaade3f5f3b5795bda6ebc8d91ed026485dcf6ae6910f2316dbe3fef1310e3",
+    }
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.85.0")]
+    if hashlib.sha256(render(raw)).hexdigest()!=source:
+        raise RegistryError("Transcript public-tool predecessor projection drifted")
+    return replace(registry,registry_version="2.85.0",raw=raw,source_sha256=source,
+        tools=tuple(t for t in registry.tools if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS),
+        datasets=tuple(replace(d,tool_ids=tuple(n for n in d.tool_ids if n not in ADDITIVE_TRANSCRIPT_TOOLS)) for d in registry.datasets))
+
+def price_basis_registry_profile(registry: Registry) -> Registry:
+    """Remove only close metadata successors and reproduce exact registry 2.84."""
+    registry = transcript_tools_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.85.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render = lambda value: (
+        json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True) + "\n"
+    ).encode()
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.85.0")]
+    if (registry.source_sha256 != source or hashlib.sha256(render(registry.raw)).hexdigest() != source
+            or tuple(dict(p) for p in registry.tool_version_policies) != tuple(registry.raw["tool_versions"])):
+        raise RegistryError("Price metadata registry source drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.84.0"
+    policies = remove_price_basis_policies(registry.tool_version_policies)
+    raw["tool_versions"] = list(policies)
+    raw["tool_version_schema_catalog"] = {
+        "schema_id": VERSIONED_CATALOG_ID, "schema_version": "2.30.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": "978c7957a996753386116a9cdc9557cac5efc22ad6482d8abdc3523a0e1a761d",
+    }
+    predecessor = "7c729d2d80d84faa121ef33986d68590bebf7b0018ade76d641c00214b783f0c"
+    if hashlib.sha256(render(raw)).hexdigest() != predecessor:
+        raise RegistryError("Price metadata predecessor projection drifted")
+    return replace(registry, registry_version="2.84.0", raw=raw,
+                   source_sha256=predecessor, tool_version_policies=policies)
+
+
+def etf_snapshot_v2_registry_profile(registry: Registry) -> Registry:
+    """Remove only ETF v2 policy declarations and reproduce exact 2.83."""
+
+    registry = price_basis_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.84.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+
+    render = lambda value: (
+        json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True) + "\n"
+    ).encode()
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.84.0")]
+    if (
+        registry.source_sha256 != source
+        or hashlib.sha256(render(registry.raw)).hexdigest() != source
+    ):
+        raise RegistryError("ETF v2 registry source drifted")
+    if tuple(dict(policy) for policy in registry.tool_version_policies) != tuple(
+        registry.raw["tool_versions"]
+    ):
+        raise RegistryError("ETF v2 parsed version policies drifted")
+
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.83.0"
+    raw["tool_versions"] = [
+        policy
+        for policy in raw["tool_versions"]
+        if policy["tool"] not in VERSIONED_ETF_SNAPSHOT_TOOLS
+    ]
+    raw["tool_version_schema_catalog"] = {
+        "schema_id": VERSIONED_CATALOG_ID,
+        "schema_version": "2.29.0",
+        "resource": "quant_data/generated/tool_contract_schemas_v2.json",
+        "sha256": _ETF_SNAPSHOT_V2_PREDECESSOR_CATALOG_SHA256,
+    }
+    if (
+        hashlib.sha256(render(raw)).hexdigest()
+        != _ETF_SNAPSHOT_V2_PREDECESSOR_SHA256
+    ):
+        raise RegistryError("ETF v2 predecessor projection drifted")
+    return replace(
+        registry,
+        registry_version="2.83.0",
+        raw=raw,
+        source_sha256=_ETF_SNAPSHOT_V2_PREDECESSOR_SHA256,
+        tool_version_policies=tuple(
+            policy
+            for policy in registry.tool_version_policies
+            if policy["tool"] not in VERSIONED_ETF_SNAPSHOT_TOOLS
+        ),
+    )
+
+def structured_transcript_registry_profile(registry: Registry) -> Registry:
+    """Remove only structured transcript declarations and reproduce exact 2.82."""
+    registry = etf_snapshot_v2_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.83.0"):
+        return registry
+    from .company.transcript_structured_registry import DATASET,MIGRATION_ID,PREDECESSOR_SHA256
+    COLLECTOR_IDS=()
+    DATASET_IDS=(DATASET,)
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.83.0")]
+    if registry.source_sha256!=source or hashlib.sha256(render(registry.raw)).hexdigest()!=source:
+        raise RegistryError("Structured transcript registry source drifted")
+    if ([dict(c) for c in registry.collectors]!=registry.raw["collectors"]
+        or {d.id:(list(d.tool_ids),list(d.collector_ids)) for d in registry.datasets}
+          !={d["id"]:(d["tool_ids"],d["collector_ids"]) for d in registry.raw["datasets"]}):
+        raise RegistryError("Structured transcript parsed bindings drifted")
+    if ({s.id:list(s.migration_order) for s in registry.stores}!={s["id"]:s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id:(m.store,m.ordinal,m.resource,m.sha256,m.semantic_scope,list(m.dependencies),m.reconstruction_state) for m in registry.migrations}
+           !={m["id"]:(m["store"],m["ordinal"],m["resource"],m["sha256"],m["semantic_scope"],m["dependencies"],m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Structured transcript parsed migration bindings drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.82.0"
+    raw["migrations"]=[m for m in raw["migrations"] if m["id"]!=MIGRATION_ID]
+    for store in raw["stores"]:
+        store["migration_order"]=[m for m in store["migration_order"] if m!=MIGRATION_ID]
+    raw["collectors"]=[c for c in raw["collectors"] if c["id"] not in COLLECTOR_IDS]
+    raw["datasets"]=[d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    for d in raw["datasets"]:
+        d["collector_ids"]=[c for c in d["collector_ids"] if c not in COLLECTOR_IDS]
+    if hashlib.sha256(render(raw)).hexdigest()!=PREDECESSOR_SHA256:
+        raise RegistryError("Structured transcript predecessor projection drifted")
+    return replace(registry,registry_version="2.82.0",raw=raw,source_sha256=PREDECESSOR_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id!=MIGRATION_ID),
+        stores=tuple(replace(s,migration_order=tuple(m for m in s.migration_order if m!=MIGRATION_ID)) for s in registry.stores),
+        collectors=tuple(c for c in registry.collectors if c["id"] not in COLLECTOR_IDS),
+        datasets=tuple(replace(d,collector_ids=tuple(c for c in d.collector_ids if c not in COLLECTOR_IDS)) for d in registry.datasets if d.id not in DATASET_IDS))
+
+
+def sharadar_direct_registry_profile(registry: Registry) -> Registry:
+    """Remove only direct delivery declarations and reproduce exact 2.81."""
+    registry = structured_transcript_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.82.0"):
+        return registry
+    from .company.sharadar_direct_registry import COLLECTOR_IDS,MIGRATION_ID,PREDECESSOR_SHA256
+    DATASET_IDS=()
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.82.0")]
+    if registry.source_sha256!=source or hashlib.sha256(render(registry.raw)).hexdigest()!=source:
+        raise RegistryError("Sharadar direct registry source drifted")
+    if ([dict(c) for c in registry.collectors]!=registry.raw["collectors"]
+        or {d.id:(list(d.tool_ids),list(d.collector_ids)) for d in registry.datasets}
+          !={d["id"]:(d["tool_ids"],d["collector_ids"]) for d in registry.raw["datasets"]}):
+        raise RegistryError("Sharadar direct parsed bindings drifted")
+    if ({s.id:list(s.migration_order) for s in registry.stores}!={s["id"]:s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id:(m.store,m.ordinal,m.resource,m.sha256,m.semantic_scope,list(m.dependencies),m.reconstruction_state) for m in registry.migrations}
+           !={m["id"]:(m["store"],m["ordinal"],m["resource"],m["sha256"],m["semantic_scope"],m["dependencies"],m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Sharadar direct parsed migration bindings drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.81.0"
+    raw["migrations"]=[m for m in raw["migrations"] if m["id"]!=MIGRATION_ID]
+    for store in raw["stores"]:
+        store["migration_order"]=[m for m in store["migration_order"] if m!=MIGRATION_ID]
+    raw["collectors"]=[c for c in raw["collectors"] if c["id"] not in COLLECTOR_IDS]
+    raw["datasets"]=[d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    for d in raw["datasets"]:
+        d["collector_ids"]=[c for c in d["collector_ids"] if c not in COLLECTOR_IDS]
+    if hashlib.sha256(render(raw)).hexdigest()!=PREDECESSOR_SHA256:
+        raise RegistryError("Sharadar direct predecessor projection drifted")
+    return replace(registry,registry_version="2.81.0",raw=raw,source_sha256=PREDECESSOR_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id!=MIGRATION_ID),
+        stores=tuple(replace(s,migration_order=tuple(m for m in s.migration_order if m!=MIGRATION_ID)) for s in registry.stores),
+        collectors=tuple(c for c in registry.collectors if c["id"] not in COLLECTOR_IDS),
+        datasets=tuple(replace(d,collector_ids=tuple(c for c in d.collector_ids if c not in COLLECTOR_IDS)) for d in registry.datasets if d.id not in DATASET_IDS))
+
+
+def fmp_research_lookup_registry_profile(registry: Registry) -> Registry:
+    """Remove only the FMP research lookup-index migration and reproduce exact 2.80."""
+    registry = sharadar_direct_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.81.0"):
+        return registry
+    from .company.fmp_research_lookup_registry import MIGRATION_ID, PREDECESSOR_SHA256
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+
+    def render(value):
+        return (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True) + "\n").encode()
+
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.81.0")]
+    if registry.source_sha256 != source or hashlib.sha256(render(registry.raw)).hexdigest() != source:
+        raise RegistryError("FMP research lookup registry source drifted")
+    if ({s.id: list(s.migration_order) for s in registry.stores}
+        != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: (m.store, m.ordinal, m.resource, m.sha256, m.semantic_scope,
+                   list(m.dependencies), m.reconstruction_state) for m in registry.migrations}
+        != {m["id"]: (m["store"], m["ordinal"], m["resource"], m["sha256"], m["semantic_scope"],
+                      m["dependencies"], m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("FMP research lookup parsed migration bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.80.0"
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != MIGRATION_ID]
+    for store in raw["stores"]:
+        store["migration_order"] = [m for m in store["migration_order"] if m != MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest() != PREDECESSOR_SHA256:
+        raise RegistryError("FMP research lookup predecessor projection drifted")
+    return replace(
+        registry, registry_version="2.80.0", raw=raw, source_sha256=PREDECESSOR_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id != MIGRATION_ID),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != MIGRATION_ID))
+                     for s in registry.stores),
+    )
+
+
+def sec_completion_registry_profile(registry: Registry) -> Registry:
+    """Remove only the SEC lookup-index migration and reproduce exact 2.79."""
+    registry = fmp_research_lookup_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.80.0"):
+        return registry
+    from .company.sec_completion_registry import MIGRATION_ID, PREDECESSOR_SHA256
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+
+    def render(value):
+        return (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True) + "\n").encode()
+
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.80.0")]
+    if registry.source_sha256 != source or hashlib.sha256(render(registry.raw)).hexdigest() != source:
+        raise RegistryError("SEC completion registry source drifted")
+    if ({s.id: list(s.migration_order) for s in registry.stores}
+        != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: (m.store, m.ordinal, m.resource, m.sha256, m.semantic_scope,
+                   list(m.dependencies), m.reconstruction_state) for m in registry.migrations}
+        != {m["id"]: (m["store"], m["ordinal"], m["resource"], m["sha256"], m["semantic_scope"],
+                      m["dependencies"], m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("SEC completion parsed migration bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.79.0"
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != MIGRATION_ID]
+    for store in raw["stores"]:
+        store["migration_order"] = [m for m in store["migration_order"] if m != MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest() != PREDECESSOR_SHA256:
+        raise RegistryError("SEC completion predecessor projection drifted")
+    return replace(
+        registry, registry_version="2.79.0", raw=raw, source_sha256=PREDECESSOR_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id != MIGRATION_ID),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != MIGRATION_ID))
+                     for s in registry.stores),
+    )
+
+
+def sharadar_definitions_registry_profile(registry: Registry) -> Registry:
+    """Remove only the definition history declarations and reproduce exact 2.78."""
+    registry = sec_completion_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.79.0"):
+        return registry
+    from .company.sharadar_definition_registry import COLLECTOR_ID,DATASET_IDS,MIGRATION_ID,PREDECESSOR_SHA256
+    COLLECTOR_IDS=(COLLECTOR_ID,)
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.79.0")]
+    if registry.source_sha256!=source or hashlib.sha256(render(registry.raw)).hexdigest()!=source:
+        raise RegistryError("Sharadar definitions registry source drifted")
+    if ([dict(c) for c in registry.collectors]!=registry.raw["collectors"]
+        or {d.id:(list(d.tool_ids),list(d.collector_ids)) for d in registry.datasets}
+          !={d["id"]:(d["tool_ids"],d["collector_ids"]) for d in registry.raw["datasets"]}):
+        raise RegistryError("Sharadar definitions parsed bindings drifted")
+    if ({s.id:list(s.migration_order) for s in registry.stores}!={s["id"]:s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id:(m.store,m.ordinal,m.resource,m.sha256,m.semantic_scope,list(m.dependencies),m.reconstruction_state) for m in registry.migrations}
+           !={m["id"]:(m["store"],m["ordinal"],m["resource"],m["sha256"],m["semantic_scope"],m["dependencies"],m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Sharadar definitions parsed migration bindings drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.78.0"
+    raw["migrations"]=[m for m in raw["migrations"] if m["id"]!=MIGRATION_ID]
+    for store in raw["stores"]:
+        store["migration_order"]=[m for m in store["migration_order"] if m!=MIGRATION_ID]
+    raw["collectors"]=[c for c in raw["collectors"] if c["id"] not in COLLECTOR_IDS]
+    raw["datasets"]=[d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    for d in raw["datasets"]:
+        d["collector_ids"]=[c for c in d["collector_ids"] if c not in COLLECTOR_IDS]
+    if hashlib.sha256(render(raw)).hexdigest()!=PREDECESSOR_SHA256:
+        raise RegistryError("Sharadar definitions predecessor projection drifted")
+    return replace(registry,registry_version="2.78.0",raw=raw,source_sha256=PREDECESSOR_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id!=MIGRATION_ID),
+        stores=tuple(replace(s,migration_order=tuple(m for m in s.migration_order if m!=MIGRATION_ID)) for s in registry.stores),
+        collectors=tuple(c for c in registry.collectors if c["id"] not in COLLECTOR_IDS),
+        datasets=tuple(replace(d,collector_ids=tuple(c for c in d.collector_ids if c not in COLLECTOR_IDS)) for d in registry.datasets if d.id not in DATASET_IDS))
+
+
+def statement_history_registry_profile(registry: Registry) -> Registry:
+    """Remove only the bounded FMP history collector and reproduce exact 2.77."""
+    registry=sharadar_definitions_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.78.0"):
+        return registry
+    from .company.fmp_statement_registry import COLLECTOR_IDS,MIGRATION_ID,PREDECESSOR_SHA256
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.78.0")]
+    if registry.source_sha256!=source or hashlib.sha256(render(registry.raw)).hexdigest()!=source:
+        raise RegistryError("Statement history registry source drifted")
+    if ([dict(c) for c in registry.collectors]!=registry.raw["collectors"]
+        or {d.id:(list(d.tool_ids),list(d.collector_ids)) for d in registry.datasets}
+          !={d["id"]:(d["tool_ids"],d["collector_ids"]) for d in registry.raw["datasets"]}):
+        raise RegistryError("Statement history parsed bindings drifted")
+    if ({s.id:list(s.migration_order) for s in registry.stores}!={s["id"]:s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id:(m.store,m.ordinal,m.resource,m.sha256,m.semantic_scope,list(m.dependencies),m.reconstruction_state) for m in registry.migrations}
+           !={m["id"]:(m["store"],m["ordinal"],m["resource"],m["sha256"],m["semantic_scope"],m["dependencies"],m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Statement history parsed migration bindings drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.77.0"
+    raw["migrations"]=[m for m in raw["migrations"] if m["id"]!=MIGRATION_ID]
+    for store in raw["stores"]:
+        store["migration_order"]=[m for m in store["migration_order"] if m!=MIGRATION_ID]
+    raw["collectors"]=[c for c in raw["collectors"] if c["id"] not in COLLECTOR_IDS]
+    for d in raw["datasets"]:
+        d["collector_ids"]=[c for c in d["collector_ids"] if c not in COLLECTOR_IDS]
+    if hashlib.sha256(render(raw)).hexdigest()!=PREDECESSOR_SHA256:
+        raise RegistryError("Statement history predecessor projection drifted")
+    return replace(registry,registry_version="2.77.0",raw=raw,source_sha256=PREDECESSOR_SHA256,
+        migrations=tuple(m for m in registry.migrations if m.id!=MIGRATION_ID),
+        stores=tuple(replace(s,migration_order=tuple(m for m in s.migration_order if m!=MIGRATION_ID)) for s in registry.stores),
+        collectors=tuple(c for c in registry.collectors if c["id"] not in COLLECTOR_IDS),
+        datasets=tuple(replace(d,collector_ids=tuple(c for c in d.collector_ids if c not in COLLECTOR_IDS)) for d in registry.datasets))
+
+
+def sharadar_registry_profile(registry: Registry) -> Registry:
+    """Remove only Sharadar declarations and reproduce exact 2.76."""
+    registry = statement_history_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version) != ("1.9.0","2.77.0"):
+        return registry
+    from .company.sharadar_registry import DATASET_IDS, MIGRATION_ID, COLLECTOR, PREDECESSOR_SHA256
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.77.0")]
+    if registry.source_sha256!=source or hashlib.sha256(render(registry.raw)).hexdigest()!=source:
+        raise RegistryError("Sharadar registry source drifted")
+    if ([dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or {d.id:(list(d.tool_ids),list(d.collector_ids)) for d in registry.datasets}
+           != {d["id"]:(d["tool_ids"],d["collector_ids"]) for d in registry.raw["datasets"]}
+        or {s.id:list(s.migration_order) for s in registry.stores}
+           != {s["id"]:s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id:(m.store,m.ordinal,m.resource,m.sha256,m.semantic_scope,list(m.dependencies),m.reconstruction_state) for m in registry.migrations}
+           != {m["id"]:(m["store"],m["ordinal"],m["resource"],m["sha256"],m["semantic_scope"],m["dependencies"],m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Sharadar registry parsed bindings drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.76.0"
+    raw["datasets"]=[d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    raw["collectors"]=[c for c in raw["collectors"] if c["id"]!=COLLECTOR["id"]]
+    raw["migrations"]=[m for m in raw["migrations"] if m["id"]!=MIGRATION_ID]
+    for s in raw["stores"]:
+        s["migration_order"]=[m for m in s["migration_order"] if m!=MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest()!=PREDECESSOR_SHA256:
+        raise RegistryError("Sharadar predecessor projection drifted")
+    return replace(registry,registry_version="2.76.0",raw=raw,source_sha256=PREDECESSOR_SHA256,
+        datasets=tuple(d for d in registry.datasets if d.id not in DATASET_IDS),
+        collectors=tuple(c for c in registry.collectors if c["id"]!=COLLECTOR["id"]),
+        migrations=tuple(m for m in registry.migrations if m.id!=MIGRATION_ID),
+        stores=tuple(replace(s,migration_order=tuple(m for m in s.migration_order if m!=MIGRATION_ID)) for s in registry.stores))
+
+
+def collection_universe_registry_profile(registry: Registry) -> Registry:
+    """Remove only collection-manifest declarations and reproduce exact 2.75."""
+    registry = sharadar_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version) != ("1.9.0","2.76.0"):
+        return registry
+    from .market.collection_registry import DATASET_IDS, MIGRATION_ID, COLLECTOR, PREDECESSOR_SHA256
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.76.0")]
+    if registry.source_sha256!=source or hashlib.sha256(render(registry.raw)).hexdigest()!=source:
+        raise RegistryError("Collection registry source drifted")
+    if ([dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or {d.id:(list(d.tool_ids),list(d.collector_ids)) for d in registry.datasets}
+           != {d["id"]:(d["tool_ids"],d["collector_ids"]) for d in registry.raw["datasets"]}
+        or {s.id:list(s.migration_order) for s in registry.stores}
+           != {s["id"]:s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id:(m.store,m.ordinal,m.resource,m.sha256,m.semantic_scope,list(m.dependencies),m.reconstruction_state) for m in registry.migrations}
+           != {m["id"]:(m["store"],m["ordinal"],m["resource"],m["sha256"],m["semantic_scope"],m["dependencies"],m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Collection registry parsed bindings drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.75.0"
+    raw["datasets"]=[d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    raw["collectors"]=[c for c in raw["collectors"] if c["id"]!=COLLECTOR["id"]]
+    raw["migrations"]=[m for m in raw["migrations"] if m["id"]!=MIGRATION_ID]
+    for s in raw["stores"]:
+        s["migration_order"]=[m for m in s["migration_order"] if m!=MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest()!=PREDECESSOR_SHA256:
+        raise RegistryError("Collection predecessor projection drifted")
+    return replace(registry,registry_version="2.75.0",raw=raw,source_sha256=PREDECESSOR_SHA256,
+        datasets=tuple(d for d in registry.datasets if d.id not in DATASET_IDS),
+        collectors=tuple(c for c in registry.collectors if c["id"]!=COLLECTOR["id"]),
+        migrations=tuple(m for m in registry.migrations if m.id!=MIGRATION_ID),
+        stores=tuple(replace(s,migration_order=tuple(m for m in s.migration_order if m!=MIGRATION_ID)) for s in registry.stores))
+
+
+def transcript_analysis_registry_profile(registry: Registry) -> Registry:
+    """Remove only derived transcript analysis and reproduce exact 2.74."""
+    registry = collection_universe_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.75.0"):
+        return registry
+    from quant_data.company.transcript_analysis_registry import DATASET_IDS, MIGRATION_ID, COLLECTOR
+    from quant_data.tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.75.0")]
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True)+"\n").encode()
+    if registry.source_sha256 != source or hashlib.sha256(render(registry.raw)).hexdigest() != source:
+        raise RegistryError("Transcript analysis registry source drifted")
+    if ([dict(c) for c in registry.collectors] != registry.raw["collectors"]
+        or {d.id: (list(d.tool_ids), list(d.collector_ids)) for d in registry.datasets}
+           != {d["id"]: (d["tool_ids"], d["collector_ids"]) for d in registry.raw["datasets"]}
+        or {s.id: list(s.migration_order) for s in registry.stores}
+           != {s["id"]: s["migration_order"] for s in registry.raw["stores"]}
+        or {m.id: (m.store, m.ordinal, m.resource, m.sha256, m.semantic_scope, list(m.dependencies), m.reconstruction_state) for m in registry.migrations}
+           != {m["id"]: (m["store"], m["ordinal"], m["resource"], m["sha256"], m["semantic_scope"], m["dependencies"], m["reconstruction_state"]) for m in registry.raw["migrations"]}):
+        raise RegistryError("Transcript analysis registry parsed bindings drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.74.0"
+    raw["datasets"] = [d for d in raw["datasets"] if d["id"] not in DATASET_IDS]
+    raw["collectors"] = [c for c in raw["collectors"] if c["id"] != COLLECTOR["id"]]
+    raw["migrations"] = [m for m in raw["migrations"] if m["id"] != MIGRATION_ID]
+    for s in raw["stores"]:
+        s["migration_order"] = [m for m in s["migration_order"] if m != MIGRATION_ID]
+    if hashlib.sha256(render(raw)).hexdigest() != '174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05':
+        raise RegistryError("Transcript analysis predecessor projection drifted")
+    return replace(registry, registry_version="2.74.0", raw=raw,
+        source_sha256='174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05',
+        datasets=tuple(d for d in registry.datasets if d.id not in DATASET_IDS),
+        collectors=tuple(c for c in registry.collectors if c["id"] != COLLECTOR["id"]),
+        migrations=tuple(m for m in registry.migrations if m.id != MIGRATION_ID),
+        stores=tuple(replace(s, migration_order=tuple(m for m in s.migration_order if m != MIGRATION_ID)) for s in registry.stores))
+
+
 def equibles_transcript_registry_profile(registry: Registry) -> Registry:
     """Remove only Equibles and reproduce the exact 2.73 predecessor."""
+    registry = transcript_analysis_registry_profile(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.74.0"):
         return registry
     from quant_data.company.equibles_registry import DATASET_IDS, MIGRATION_ID, COLLECTOR
@@ -14458,7 +14971,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
         json.dumps(
             registry.raw,
             ensure_ascii=True,
-            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0")} else 2,
+            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0")} else 2,
             sort_keys=True,
         )
         + "\n"

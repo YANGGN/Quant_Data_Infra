@@ -1,0 +1,718 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "transcript.analysis.v2"
+      ]
+    },
+    "guidance_claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/guidance_claim"
+      }
+    },
+    "analyst_focus": {
+      "type": "object",
+      "properties": {
+        "qa_observed": {
+          "type": "string",
+          "enum": [
+            "present",
+            "absent",
+            "uncertain"
+          ]
+        },
+        "question_blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/question_block"
+          }
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/analyst_topic"
+          }
+        },
+        "ambiguities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "qa_observed",
+        "question_blocks",
+        "topics",
+        "ambiguities"
+      ],
+      "additionalProperties": false
+    },
+    "management_tone": {
+      "type": "object",
+      "properties": {
+        "basis": {
+          "type": "string",
+          "enum": [
+            "transcript_text"
+          ]
+        },
+        "overall": {
+          "$ref": "#/$defs/tone_assessment"
+        },
+        "prepared_remarks": {
+          "$ref": "#/$defs/tone_assessment"
+        },
+        "qa": {
+          "$ref": "#/$defs/tone_assessment"
+        },
+        "by_speaker": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/speaker_tone"
+          }
+        }
+      },
+      "required": [
+        "basis",
+        "overall",
+        "prepared_remarks",
+        "qa",
+        "by_speaker"
+      ],
+      "additionalProperties": false
+    },
+    "coverage_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "guidance_claims",
+    "analyst_focus",
+    "management_tone",
+    "coverage_notes"
+  ],
+  "additionalProperties": false,
+  "description": "Private transcript analysis v2: source-linked evidence summaries. Numeric, period, source-role and exchange constraints remain enforced.",
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "turn_id": {
+          "type": "string"
+        },
+        "evidence_summary": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "turn_id",
+        "evidence_summary"
+      ],
+      "additionalProperties": false,
+      "description": "Source-linked evidence summary; paraphrase is allowed. Display as a summary, not a verbatim quotation. Turn ID and source role/exchange remain validated; no character span is asserted."
+    },
+    "value": {
+      "type": "object",
+      "properties": {
+        "shape": {
+          "type": "string",
+          "enum": [
+            "point",
+            "range",
+            "lower_bound",
+            "upper_bound",
+            "qualitative",
+            "none"
+          ]
+        },
+        "point": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "low": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "high": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "currency",
+            "currency_per_share",
+            "percent",
+            "percentage_points",
+            "basis_points",
+            "count",
+            "other",
+            "unspecified"
+          ]
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scale": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bound_inclusivity": {
+          "type": "string",
+          "enum": [
+            "inclusive",
+            "exclusive",
+            "unspecified"
+          ]
+        },
+        "approximate": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "qualitative_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_value_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "shape",
+        "point",
+        "low",
+        "high",
+        "unit",
+        "currency",
+        "scale",
+        "bound_inclusivity",
+        "approximate",
+        "qualitative_text",
+        "source_value_text"
+      ],
+      "additionalProperties": false
+    },
+    "guidance_claim": {
+      "type": "object",
+      "properties": {
+        "claim_local_id": {
+          "type": "string"
+        },
+        "metric": {
+          "type": "string"
+        },
+        "metric_text": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "consolidated",
+                "segment",
+                "product",
+                "geography",
+                "other",
+                "unspecified"
+              ]
+            },
+            "segment": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "product": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "geography": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "segment",
+            "product",
+            "geography"
+          ],
+          "additionalProperties": false
+        },
+        "target": {
+          "type": "object",
+          "properties": {
+            "period_text": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "period_kind": {
+              "type": "string",
+              "enum": [
+                "fiscal_year",
+                "fiscal_quarter",
+                "calendar_year",
+                "calendar_quarter",
+                "multi_year",
+                "other",
+                "unspecified"
+              ]
+            },
+            "fiscal_year": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fiscal_quarter": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "period_text",
+            "period_kind",
+            "fiscal_year",
+            "fiscal_quarter"
+          ],
+          "additionalProperties": false
+        },
+        "accounting_basis": {
+          "type": "string",
+          "enum": [
+            "gaap",
+            "non_gaap",
+            "ifrs",
+            "company_defined",
+            "unspecified"
+          ]
+        },
+        "measurement": {
+          "type": "string",
+          "enum": [
+            "level",
+            "yoy_change",
+            "qoq_change",
+            "other_change",
+            "unspecified"
+          ]
+        },
+        "growth_basis": {
+          "type": "string",
+          "enum": [
+            "reported",
+            "constant_currency",
+            "organic",
+            "other",
+            "unspecified"
+          ]
+        },
+        "comparison_period_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "value": {
+          "$ref": "#/$defs/value"
+        },
+        "management_action": {
+          "type": "string",
+          "enum": [
+            "issued",
+            "raised",
+            "lowered",
+            "reiterated",
+            "withdrawn",
+            "not_provided",
+            "unspecified"
+          ]
+        },
+        "conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "ambiguities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "claim_local_id",
+        "metric",
+        "metric_text",
+        "scope",
+        "target",
+        "accounting_basis",
+        "measurement",
+        "growth_basis",
+        "comparison_period_text",
+        "value",
+        "management_action",
+        "conditions",
+        "evidence",
+        "ambiguities"
+      ],
+      "additionalProperties": false
+    },
+    "question_block": {
+      "type": "object",
+      "properties": {
+        "question_local_id": {
+          "type": "string"
+        },
+        "analyst_turn_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "management_answer_turn_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "summary": {
+          "type": "string"
+        },
+        "intent": {
+          "type": "string",
+          "enum": [
+            "concern",
+            "clarification",
+            "positive_probe",
+            "mixed",
+            "unclear"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      },
+      "required": [
+        "question_local_id",
+        "analyst_turn_ids",
+        "management_answer_turn_ids",
+        "summary",
+        "intent",
+        "evidence"
+      ],
+      "additionalProperties": false,
+      "description": "One contiguous analyst question/follow-up block, even when it raises multiple topics. Identity and block boundaries are verified against source turns."
+    },
+    "analyst_topic": {
+      "type": "object",
+      "properties": {
+        "topic_local_id": {
+          "type": "string"
+        },
+        "topic_code": {
+          "type": "string",
+          "enum": [
+            "demand",
+            "pricing",
+            "margins",
+            "costs",
+            "capex",
+            "competition",
+            "product_execution",
+            "supply_chain",
+            "regulation",
+            "capital_allocation",
+            "liquidity",
+            "currency",
+            "guidance_assumptions",
+            "other"
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "underlying_concern": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "question_local_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "management_response_summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "response_status": {
+          "type": "string",
+          "enum": [
+            "answered",
+            "partially_answered",
+            "not_answered",
+            "mixed",
+            "not_assessable"
+          ]
+        },
+        "question_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "answer_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "ambiguities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "topic_local_id",
+        "topic_code",
+        "label",
+        "summary",
+        "underlying_concern",
+        "question_local_ids",
+        "management_response_summary",
+        "response_status",
+        "question_evidence",
+        "answer_evidence",
+        "ambiguities"
+      ],
+      "additionalProperties": false,
+      "description": "Model groups observed analyst questions. The application computes frequency, breadth, shares and rank; no claim about analysts outside this call."
+    },
+    "tone_assessment": {
+      "type": "object",
+      "properties": {
+        "sentiment": {
+          "type": "string",
+          "enum": [
+            "positive",
+            "neutral",
+            "negative",
+            "mixed",
+            "insufficient_evidence"
+          ]
+        },
+        "expressed_confidence": {
+          "type": "string",
+          "enum": [
+            "high",
+            "moderate",
+            "low",
+            "mixed",
+            "insufficient_evidence"
+          ]
+        },
+        "hedging": {
+          "type": "string",
+          "enum": [
+            "high",
+            "moderate",
+            "low",
+            "mixed",
+            "insufficient_evidence"
+          ]
+        },
+        "assessment_support": {
+          "type": "string",
+          "enum": [
+            "clear",
+            "limited",
+            "insufficient"
+          ]
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "supporting_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "counterevidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "ambiguities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "sentiment",
+        "expressed_confidence",
+        "hedging",
+        "assessment_support",
+        "summary",
+        "supporting_evidence",
+        "counterevidence",
+        "ambiguities"
+      ],
+      "additionalProperties": false,
+      "description": "Interpretation of management wording, not audio delivery, internal emotions, truthfulness or a probability of forecast success. Model assessment support is separate from management confidence."
+    },
+    "speaker_tone": {
+      "type": "object",
+      "properties": {
+        "speaker_id": {
+          "type": "string"
+        },
+        "assessment": {
+          "$ref": "#/$defs/tone_assessment"
+        }
+      },
+      "required": [
+        "speaker_id",
+        "assessment"
+      ],
+      "additionalProperties": false,
+      "description": "speaker_id must be supplied in the trusted input and identified as management; unresolved identities stay in aggregate uncertainty."
+    }
+  }
+}

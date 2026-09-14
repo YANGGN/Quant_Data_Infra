@@ -267,6 +267,30 @@ source ID or input for either public version. For a source with no retained
 capture, `unavailable` or no records remains valid. Version 1 remains the
 frozen fixture contract.
 
+The multi-source reader loads symbols for the already selected article versions
+in parameterized batches of at most 500 IDs, within the same immutable read
+connection. It does not issue a separate symbol query for every article. Binary
+symbol ordering, empty symbol sets and stored-symbol validation are preserved.
+This implementation optimization leaves version/cutoff selection, source and
+text filters, exact counts, keyset pagination, warnings and receipt hashes
+unchanged. The host's five-second execution limit is unchanged.
+
+Validation on 2026-09-06 passed 20 focused and adjacent tests. A 603-article
+fixture requires two symbol queries, with unchanged store fingerprints; legacy
+per-article lookup comparisons preserve complete selections and receipt hashes
+across corrections, cutoff dates, symbol/text/source filters and cursor pages.
+Before/after profiling of the retained news page counted 8,463 versus 69 SQLite
+statements. The original exceeded its deadline under profiling while the
+optimized reader returned headlines. Without profiling, paired pages were
+byte-identical and completed in 1.476 versus 1.169 seconds; these are local
+observations, not latency guarantees. The reloaded Inspector returned the news
+page successfully in 1.338 seconds. No provider, timer, registry, schema or
+canonical-data change was required.
+Thirteen browser checks passed for the default page, native Next navigation
+and Finviz filtering: each returned HTTP 200 with 25 headlines and no error
+banner. Both desktop screenshots were visually checked; no JavaScript errors
+or outside requests occurred. The temporary browser was closed.
+
 
 The supported cross-project boundary is the fixed
 `bin/quant-data-tools` subprocess documented in
@@ -1065,11 +1089,55 @@ It exposes no SQL, caller
 path, provider request, credential, writable connection, or ingestion action.
 The legacy `spy-options` view remains unchanged.
 
-The current Inspector also exposes `/data-status`, backed by the public
-retained-only dataset-status contract, and `/healthz`, a zero-store process-
-liveness response. Data Status MUST NOT be labelled live provider or credential
-health and MUST NOT infer a source-period timestamp from generic ingestion
-metadata. `/healthz` MUST NOT open a store or perform a provider call.
+The Inspector exposes retained-data status within the unified `/status`
+workspace, backed by the public retained-only dataset-status contract.
+The former `/data-status` URL is a compatibility alias. `/healthz` is a
+zero-store process-liveness response. Stored-data status MUST NOT be labelled
+live provider or credential health and MUST NOT infer a source-period timestamp
+from generic ingestion metadata. `/healthz` MUST NOT open a store or perform
+a provider call.
+
+### Unified Status workspace — September 8 user decision
+
+The user's later request to integrate Status and Data Status supersedes the
+separate-page, duplicate schedule-column and two-table presentation described
+below. Those descriptions retain their historical scope; public data contracts
+and the existing read-only boundaries are unchanged.
+
+One sidebar entry, **Status**, leads to a shared overview of selected-day run
+outcomes and current retained-data coverage. Run activity, stored data and
+backfill progress share local section navigation. A historical day changes only
+the run calendar/focus; current data and backfill snapshots are explicitly
+labelled. Each expanded run links to its batch's dataset inventory. Summary
+cards link to the relevant run focus or retained-data filter.
+
+The inventory defaults to active datasets, with collection, batch, data-state
+and text filters. Dataset/source identity, display status, source date and last
+stored capture are primary columns; record inspection preserves all 19 returned
+and supplemental fields. Source-specific news rows map to their owning dataset's
+batch. Filtering closes obsolete record details, announces the match count and
+preserves keyboard access. Without JavaScript, all collections and supporting
+fields remain readable. Small screens initially collapse the native calendar
+disclosure; native run disclosures and month links continue to work.
+
+The HTML route combines the existing fetch-status snapshot, public dataset-status
+result and private retention metadata. It does not make a second scheduler
+snapshot for inventory columns. A retained-data error shows unavailable values
+and a reload link while keeping run history visible; it neither fabricates
+zero counts nor automatically retries. The five-second public tool deadline is
+unchanged. `/api/data-status` remains retained-only. The legacy HTML URL renders
+the same workspace, with browser enhancement replacing its URL with
+`/status#status-datasets`. Legacy query rejection remains unchanged.
+
+The integrated change passed 86 focused offline tests. Chromium checks at
+1440, 1024, 390 and 320 pixels covered linked batch filters and keyboard focus,
+record inspection, search/empty states, collection selection, contained tables,
+legacy bookmarks, independent read errors and the no-JavaScript fallback.
+The first complete live render returned all 68 records in 2.363 seconds; the
+public records and canonical file stamps matched before and after the reload.
+One later browser read hit the existing host deadline and succeeded on an
+explicit reload; this integration does not claim to eliminate that intermittent
+reader timeout. Local evidence is in `.local/unified-status-20260909/`.
 
 Dataset Status reads only the latest outcome and successful capture for current
 news sources; lifetime article/version totals remain exclusive to the full news
@@ -1164,7 +1232,7 @@ only; no provider, scheduler, storage, or public JSON behavior changes.
 
 ### Live fetch Status calendar
 
-The separate, local HTML page `GET /status` shows a monthly calendar and a
+The run-activity portion of `GET /status` shows a monthly calendar and a
 selected day's chronological focus. The only accepted query field is an ISO
 `date`; it is validated before reading host metadata. Today is the default.
 Month navigation and native run-detail disclosures work without JavaScript.
@@ -1172,8 +1240,8 @@ At desktop widths of 1440px and above, the month sits on the left and the
 selected-day focus on the right in a 70/30 split, with at least 320px for the
 focus. Narrower screens stack the focus below the calendar. Calendar badges
 adapt to their available width; the current backfill panel follows both views.
-The page shares Inspector navigation while `/data-status`, its JSON route,
-and `/healthz` keep their existing contracts.
+The calendar now belongs to the unified workspace described above.
+`/api/data-status` and `/healthz` keep their existing contracts.
 
 Schedules come from the currently loaded calendars of the same nine fixed
 timers. Weekdays, first-Friday employment and hourly UTC news rules expand
@@ -1471,9 +1539,10 @@ predecessor is registry 2.69.0; no recovered default changes.
 The [local-agent ETF contract](../LOCAL_AGENT_TOOLS.md#etf-allocator-snapshot)
 defines the fixed 25-symbol scope, bounded cash-equity calendar, split-only
 price feature conventions, null/missingness rules, and consumer adjustments.
-Retained provider-native prices do not establish split-only adjustment or
-genuine historical reconstruction: the real public request returned all 25
-identities with blocked feature readiness and unchanged store stamps.
+Version 1 did not bind the retained provider fields to split-only semantics:
+its September 5 public request returned all 25 identities with blocked
+feature readiness and unchanged store stamps. This describes the frozen
+version 1 behavior, not an assertion that FMP close is unadjusted.
 This tool adds no provider, credential, ingestion, migration, scheduler,
 public network route, investment approval, or app-project modification.
 
@@ -1487,3 +1556,71 @@ to the earlier intraday-release-only scope. Generic hosts remain disabled;
 only the local launcher supplies the quote capability. Discovery is offline.
 Host registry metadata has a separate 16 MiB bound; public JSON bounds
 remain unchanged.
+
+## September 13 ETF source binding (registry 2.84.0)
+
+The user-requested `portfolio.get_etf_allocator_snapshot@2.0.0` binds
+retained FMP full-EOD `close` to its documented split-adjusted,
+dividend-excluding meaning and passes the stored values directly to the
+existing feature kernel. It never applies another split factor or substitutes
+`adjClose`. Version 1, the default, and existing shared series contracts
+remain unchanged.
+
+The [version 2 contract](../LOCAL_AGENT_TOOLS.md#etf-version-2-provider-adjusted-close)
+defines source checks, independent feature readiness, explicit mixed-capture
+adjustment vintages and unchanged capture cutoffs. Missing historical
+publication/action reconstruction no longer suppresses supported current
+research features; historical certification remains unestablished.
+This change adds no collection, migration, provider call, scheduler change,
+metadata approval or investment policy.
+
+## 2026-09-13 close-metadata propagation
+
+Registry `2.85.0` / tool catalog `2.31.0` adds 26 explicit successors for
+price access, returns, indicators, cross-sectional/news-event calculations and
+their strict analytical consumers. The complete consumer version table and
+public verification are in [Local Agent Tools](../LOCAL_AGENT_TOOLS.md#fmp-close-metadata-successors-september-13-2026).
+The additive projection reproduces registry `2.84.0` exactly, including every
+old declaration and default. The frozen v1 catalog is unchanged.
+
+`ProviderClosePriceRepository` specializes the existing Stage 10 immutable
+reader. It checks bounded capture evidence on the same connection and changes
+metadata/quality flags only. Provider `fmp`, full-EOD endpoint, normalization,
+price variant, currency segment and instrument identity must all match before
+nonempty close rows receive `split_adjusted_excluding_distributions`.
+The provider close is used as stored; corporate-action factors and dividend-
+adjusted fields are never applied. Open/high/low/volume receive no inferred
+close-basis certification.
+
+Successor schemas accept the explicit close binding while preserving all
+existing time, identity, missingness, store and lineage validation. Original
+publication time stays null; retained local capture availability and mixed
+provider adjustment vintages remain explicit. A metadata successor reuses
+its predecessor's numerical kernel and transformation versions. Historical
+reconstruction and total-return semantics are not established by this change.
+
+## 2026-09-13 retained transcript tools
+
+Registry `2.86.0` / catalog `2.32.0` adds
+`company.search_transcripts@1.0.0`, `company.get_transcript@1.0.0` and
+`company.get_transcript_extraction@1.0.0`. They use the existing local
+dispatcher and standard receipt/QueryResult contract, with typed closed
+arguments and the host-selected immutable company store. The manifest has
+80 logical tools and 169 callable versioned contracts. Removing just these
+three declarations and reciprocal dataset references reproduces registry
+`2.85.0` exactly; all prior defaults and the frozen v1 catalog are unchanged.
+
+The [consumer contract](../LOCAL_AGENT_TOOLS.md#retained-transcripts-and-structured-extractions)
+defines capture-ID linkage, keyset pagination, byte/page bounds, original
+JSON fields, separate assessment outcomes, and missing-data behavior.
+Search and raw retrieval page captures and speaker turns respectively.
+Structured retrieval selects the latest eligible original draft; its cursor
+pins that analysis while paging assessments. This preserves blocked drafts
+and failed reviews without turning an assessment into approval.
+
+Availability reuses the existing raw-capture and model/assessment completion
+cutoffs. Provider fiscal/call dates do not certify historical publication.
+The readers coordinate with the existing physical store lock, check raw-page
+hashes and turn coverage, and retain the host deadline. This additive local
+boundary creates no provider/model request, migration, scheduler change,
+network listener or writable store interface.

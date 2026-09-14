@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .price_basis_versions import remove_price_basis_policies
+
 import argparse
 import copy
 import hashlib
@@ -12,7 +14,9 @@ from typing import Any
 from quant_data.tool_platform.catalog import (
     ADDITIVE_DATA_STATUS_TOOLS,
     ADDITIVE_ETF_TOOLS,
+    VERSIONED_ETF_SNAPSHOT_TOOLS,
     ADDITIVE_FMP_RESEARCH_TOOLS,
+    ADDITIVE_TRANSCRIPT_TOOLS,
     ADDITIVE_NEWS_RESEARCH_TOOLS,
     CATALOG_ID,
     CATALOG_VERSION,
@@ -42,6 +46,18 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.82.0"): "1d541b532e535124ea45d2af991541348319f7d7ced937114c39aaffc2ccdfc2",
+    ("1.9.0", "2.83.0"): "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97",
+    ("1.9.0", "2.84.0"): "7c729d2d80d84faa121ef33986d68590bebf7b0018ade76d641c00214b783f0c",
+    ("1.9.0", "2.85.0"): "1b46ab14244717708470bdafcd840fee804c66cff2a572c6a99bba7a482afff2",
+    ("1.9.0", "2.86.0"): "6a90749d2514a3846bca8991aa9277e1c595072186203959a124def507a30069",
+    ("1.9.0", "2.79.0"): "b027cd7cdbe9d1f17293249f8564712d7e703ecfbfb3d7b651848ed5f7a2ae22",
+    ("1.9.0", "2.80.0"): "da3e31a19f62016e34fa201b73b49f72d43ba9bbea715b1aa482382fc1490246",
+    ("1.9.0", "2.81.0"): "6809d73406863d5b4b2e04f4c8eed3b2fac4ac021afa4c66536141cafbad2115",
+    ("1.9.0", "2.78.0"): "3fb931847ebedc3c156ee761ee017678822aa5eed40c569edab70496857cd1f9",
+    ("1.9.0", "2.76.0"): "d8d63b5c84f78afaf2a7e53fb38945d99c5f0228c07b78093473b9ad431dc227",
+    ("1.9.0", "2.77.0"): "7a65056ff30c31b21c0952b7d40048e0ae5b09257dce60ce182b764cf4ac4853",
+    ("1.9.0", "2.75.0"): "7f5f2eb8f8a3470a7192a327b966a6d993332049c90564baa7a13379b30eadae",
     ("1.9.0", "2.74.0"): "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05",
     ("1.9.0", "2.73.0"): "658be96e5a171801887adf6ba6c1a13e460228386423bc47e4a8b38714987a4c",
     ("1.9.0", "2.72.0"): "6b6284c184d1b4cf92bab56fe7afb80de34d78a39488c96bd21be86a59db83c8",
@@ -769,7 +785,7 @@ def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
 def _render(value: Any) -> bytes:
     # Registry 2.72 uses less whitespace to remain within the unchanged
     # local JSON byte bound as explicit versioned contracts accumulate.
-    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0"} else 2
+    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0"} else 2
     return (json.dumps(value, ensure_ascii=True, indent=indent, sort_keys=True) + "\n").encode(
         "utf-8"
     )
@@ -814,6 +830,33 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     if source_version in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0")}:
         from quant_data.company.equibles_registry import add_declarations
         add_declarations(raw, project_root)
+    if source_version in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0")}:
+        from quant_data.company.transcript_analysis_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw.get("registry_version") == "2.75.0":
+        from quant_data.market.collection_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw.get("registry_version") == "2.76.0":
+        from quant_data.company.sharadar_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw.get("registry_version") == "2.77.0":
+        from quant_data.company.fmp_statement_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw["registry_version"] == "2.78.0":
+        from quant_data.company.sharadar_definition_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw["registry_version"] == "2.79.0":
+        from quant_data.company.sec_completion_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw["registry_version"] == "2.80.0":
+        from quant_data.company.fmp_research_lookup_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw["registry_version"] == "2.81.0":
+        from quant_data.company.sharadar_direct_registry import add_declarations
+        add_declarations(raw, project_root)
+    if raw["registry_version"] == "2.82.0":
+        from quant_data.company.transcript_structured_registry import add_declarations
+        add_declarations(raw, project_root)
     if source_version == ("1.9.0", "2.71.0"):
         _add_website_source_declarations(raw)
     if source_version == ("1.9.0", "2.62.0"):
@@ -838,6 +881,20 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version < ("1.9.0", "2.85.0"):
+        entries = tuple(t for t in entries if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS)
+        additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS)
+        catalog_version = "2.31.0"
+    if source_version < ("1.9.0", "2.84.0"):
+        version_policies = remove_price_basis_policies(version_policies)
+        catalog_version = "2.30.0"
+    if source_version < ("1.9.0", "2.83.0"):
+        version_policies = tuple(
+            item
+            for item in version_policies
+            if item["tool"] not in VERSIONED_ETF_SNAPSHOT_TOOLS
+        )
+        catalog_version = "2.29.0"
     if source_version < ("1.9.0", "2.71.0"):
         version_policies = copy.deepcopy(version_policies)
         for policy in version_policies:
@@ -1142,6 +1199,18 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.72.0"),
         ("1.9.0", "2.73.0"),
         ("1.9.0", "2.74.0"),
+        ("1.9.0", "2.75.0"),
+        ("1.9.0", "2.76.0"),
+        ("1.9.0", "2.77.0"),
+        ("1.9.0", "2.78.0"),
+        ("1.9.0", "2.79.0"),
+        ("1.9.0", "2.80.0"),
+        ("1.9.0", "2.81.0"),
+        ("1.9.0", "2.82.0"),
+        ("1.9.0", "2.83.0"),
+        ("1.9.0", "2.84.0"),
+        ("1.9.0", "2.85.0"),
+        ("1.9.0", "2.86.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1221,9 +1290,21 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.69.0"): "2.70.0",
         ("1.9.0", "2.70.0"): "2.71.0",
         ("1.9.0", "2.71.0"): "2.72.0",
-        ("1.9.0", "2.72.0"): "2.74.0",
-        ("1.9.0", "2.73.0"): "2.74.0",
-        ("1.9.0", "2.74.0"): "2.74.0",
+        ("1.9.0", "2.72.0"): "2.83.0",
+        ("1.9.0", "2.73.0"): "2.83.0",
+        ("1.9.0", "2.74.0"): "2.83.0",
+        ("1.9.0", "2.75.0"): "2.83.0",
+        ("1.9.0", "2.76.0"): "2.83.0",
+        ("1.9.0", "2.77.0"): "2.83.0",
+        ("1.9.0", "2.78.0"): "2.83.0",
+        ("1.9.0", "2.79.0"): "2.83.0",
+        ("1.9.0", "2.80.0"): "2.83.0",
+        ("1.9.0", "2.81.0"): "2.83.0",
+        ("1.9.0", "2.82.0"): "2.83.0",
+        ("1.9.0", "2.83.0"): "2.84.0",
+        ("1.9.0", "2.84.0"): "2.85.0",
+        ("1.9.0", "2.85.0"): "2.86.0",
+        ("1.9.0", "2.86.0"): "2.86.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

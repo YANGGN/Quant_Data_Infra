@@ -9,8 +9,9 @@ import tempfile
 import unittest
 from contextlib import contextmanager
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from quant_data.boundary import Stage1Application
 from quant_data.fingerprint import mutation_fingerprint
@@ -54,8 +55,8 @@ class EtfSnapshotTests(unittest.TestCase):
         self.assertEqual(self.baseline["sha256"], mutation_fingerprint(self.stores)["sha256"])
         self.temporary.cleanup()
 
-    def invoke(self, symbols=ETF_SYMBOLS, cutoff="2026-09-05T00:00:00Z", **extra):
-        request = {"api_version": "1.0", "tool": TOOL, "tool_version": "1.0.0",
+    def invoke(self, symbols=ETF_SYMBOLS, cutoff="2026-09-05T00:00:00Z", *, tool_version="1.0.0", **extra):
+        request = {"api_version": "1.0", "tool": TOOL, "tool_version": tool_version,
             "arguments": {"symbols": list(symbols), "decision_as_of": cutoff, **extra}}
         stdout, stderr = io.StringIO(), io.StringIO()
         code = run(["call"], stdin=io.BytesIO(dumps_strict(request).encode()),
@@ -147,7 +148,8 @@ class EtfSnapshotTests(unittest.TestCase):
 
 
     def test_later_correction_does_not_change_past_snapshot(self):
-        before = self.invoke(["SPY"])[1]["result"]
+        before = {version: self.invoke(["SPY"], tool_version=version)[1]["result"]
+                  for version in ("1.0.0", "2.0.0")}
         with writer_connection(self.stores, StoreRole.MARKET) as connection:
             original = dict(connection.execute(
                 "SELECT * FROM stage10_daily_price_versions WHERE version_id=?",
@@ -164,7 +166,8 @@ class EtfSnapshotTests(unittest.TestCase):
             connection.execute("UPDATE stage10_daily_prices SET current_version_id=? WHERE instrument_id=? AND trade_date=?",
                 ("future-correction", original["instrument_id"], original["trade_date"]))
         self.baseline = mutation_fingerprint(self.stores)
-        after = self.invoke(["SPY"])[1]["result"]
+        after = {version: self.invoke(["SPY"], tool_version=version)[1]["result"]
+                 for version in ("1.0.0", "2.0.0")}
         self.assertEqual(before, after)
 
     def test_non_etf_identity_fails_closed_before_price_selection(self):
@@ -224,6 +227,161 @@ class EtfSnapshotTests(unittest.TestCase):
         self.assertEqual(len(advertised), 1)
         self.assertEqual(advertised[0]["version"], "1.0.0")
         self.assertEqual(self.registry.tool(TOOL)["stores"], ["market"])
+
+    def test_v2_uses_provider_close_unchanged_without_corporate_actions(self):
+        code, response = self.invoke(["SPY", "IEF", "XLY"], tool_version="2.0.0")
+        self.assertEqual(code, 0)
+        result = response["result"]
+        validate_schema(result, self.registry.tool(TOOL, "2.0.0")["output_schema"])
+        spy, ief, missing = [_fields(row) for row in result["records"]]
+        self.assertEqual(spy["split_adjusted_price"], Decimal("125"))
+        self.assertEqual(spy["return_12_month"], Decimal("0.25"))
+        self.assertEqual(spy["return_12_to_1_month"], Decimal("0.2"))
+        self.assertEqual(spy["available_feature_count"], 3)
+        self.assertFalse(spy["price_adjustment_applied_by_tool"])
+        self.assertEqual(spy["source_price_field"], "close")
+        self.assertEqual(spy["source_adjustment_status"], "split_adjusted_excluding_distributions")
+        self.assertEqual(spy["source_adjustment_binding"], "fmp_full_eod_close_split_only_v1")
+        self.assertEqual(spy["source_capture_count"], 1)
+        self.assertEqual(spy["adjustment_vintage_status"], "single_provider_capture")
+        self.assertEqual(spy["data_quality_status"], "partial")
+        self.assertEqual(spy["point_in_time_status"], "not_established")
+        self.assertIsNone(spy["source_publication_time"])
+        self.assertEqual(spy["source_available_from"], _CAPTURED_AT)
+        self.assertIn("missing_daily_session", spy["realized_volatility_21_missing_reason"])
+        self.assertNotIn("split_adjustment_provenance_not_retained", spy["missing_inputs"])
+        self.assertIsNone(ief["split_adjusted_price"])
+        self.assertEqual(missing["data_quality_status"], "blocked")
+        self.assertIsNone(missing["source_adjustment_binding"])
+        self.assertEqual(_summary(result)["available_feature_count"], 3)
+        self.assertNotIn("weighting_volatility_recommendation", _summary(result))
+        self.assertEqual(response["receipt"]["tool_version"], "2.0.0")
+        self.assertEqual(result, self.invoke(["SPY", "IEF", "XLY"], tool_version="2.0.0")[1]["result"])
+
+    def test_v2_complete_constant_provider_history_has_no_second_adjustment(self):
+        from quant_data.market.etf_calculations import sessions
+        days = sessions(date(2025, 8, 1), date(2026, 8, 31))
+        self._append_spy_prices("complete", {day.isoformat(): "50" for day in days})
+        code, response = self.invoke(["SPY"], tool_version="2.0.0")
+        self.assertEqual(code, 0)
+        result = response["result"]
+        row = _fields(result["records"][0])
+        self.assertEqual(row["split_adjusted_price"], 50)
+        self.assertEqual(row["ten_month_sma"], 50)
+        for name in FEATURE_NAMES[2:]:
+            self.assertEqual(row[name], 0, name)
+        self.assertEqual(row["available_feature_count"], 9)
+        self.assertTrue(all(row[name + "_missing_reason"] is None for name in FEATURE_NAMES))
+        self.assertEqual(row["data_quality_status"], "ready")
+        self.assertTrue(_summary(result)["complete"])
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(_summary(result)["point_in_time_status"], "not_established")
+        self.assertTrue(all(_fields(record)[name] is None
+            for record in self.invoke(["SPY"])[1]["result"]["records"] for name in FEATURE_NAMES))
+
+    def test_v2_rejects_unbound_endpoint_or_parser_without_guessing(self):
+        # The physical model also rejects these endpoints/parsers. Exercise
+        # the reader binding directly so a future model expansion cannot
+        # accidentally admit raw or dividend-adjusted input to this contract.
+        capture = {"capture_id": "capture", "provider": "fmp",
+                   "instrument_id": "spy", "endpoint_path": "/stable/historical-price-eod/full",
+                   "normalization_version": "stage10.fmp.daily_price.v1"}
+        selected = [{"capture_id": "capture", "instrument_id": "spy", "provider": "fmp",
+                     "price_variant": "fmp_full_eod_v1", "currency_segment": "provider_native"}]
+        connection = Mock()
+        connection.execute.return_value = [capture]
+        self.assertTrue(etf_snapshot._fmp_close_is_bound(connection, selected))
+        for column, value in (
+            ("endpoint_path", "/stable/historical-price-eod/non-split-adjusted"),
+            ("endpoint_path", "/stable/historical-price-eod/dividend-adjusted"),
+            ("normalization_version", "unknown.parser"),
+            ("instrument_id", "wrong-instrument"),
+        ):
+            with self.subTest(column=column, value=value):
+                connection.execute.return_value = [{**capture, column: value}]
+                self.assertFalse(etf_snapshot._fmp_close_is_bound(connection, selected))
+        connection.execute.return_value = []
+        self.assertFalse(etf_snapshot._fmp_close_is_bound(connection, selected))
+
+    def test_v2_mixed_capture_vintages_are_disclosed_without_rescaling(self):
+        self._append_spy_prices("later", {"2026-08-31": "125"})
+        code, response = self.invoke(["SPY"], tool_version="2.0.0")
+        self.assertEqual(code, 0)
+        row = _fields(response["result"]["records"][0])
+        self.assertEqual(row["source_capture_count"], 2)
+        self.assertEqual(row["adjustment_vintage_status"], "mixed_provider_captures")
+        self.assertEqual(row["source_available_through"], "2026-09-02T00:00:00Z")
+        self.assertEqual(row["split_adjusted_price"], 125)
+        self.assertEqual(row["return_12_month"], Decimal("0.25"))
+        self.assertIn("etf_mixed_provider_adjustment_vintages",
+                      [warning["code"] for warning in response["result"]["warnings"]])
+
+    def test_v2_cutoff_and_arguments_do_not_allow_provenance_override(self):
+        code, response = self.invoke(["SPY"], cutoff="2026-08-31T23:59:59Z", tool_version="2.0.0")
+        self.assertEqual(code, 0)
+        row = _fields(response["result"]["records"][0])
+        self.assertIsNone(row["instrument_id"])
+        self.assertIsNone(row["source_adjustment_binding"])
+        summary = _summary(response["result"])
+        self.assertIsNone(summary["source_adjustment_binding"])
+        self.assertEqual(summary["bound_source_symbol_count"], 0)
+        self.assertEqual(summary["source_adjustment_binding_required"], "fmp_full_eod_close_split_only_v1")
+        with patch.object(etf_snapshot, "_quiet_market_connection",
+                          side_effect=AssertionError("Store opened")):
+            for extra in ({"adjustment_status": "split_adjusted_excluding_distributions"},
+                          {"price_field": "adjClose"}, {"split_factor": 2}):
+                self.assertEqual(self.invoke(["SPY"], tool_version="2.0.0", **extra)[0], 2)
+            self.assertEqual(self.invoke(["SPY"], cutoff="9999-01-01T00:00:00Z", tool_version="2.0.0")[0], 2)
+
+    def _append_spy_prices(self, tag, prices, **capture_changes):
+        """Publish synthetic immutable corrections into this test's explicit root."""
+        with writer_connection(self.stores, StoreRole.MARKET) as connection:
+            originals = {row["trade_date"]: dict(row) for row in connection.execute(
+                """SELECT version.* FROM stage10_daily_price_versions AS version
+                   JOIN stage10_daily_prices AS head ON head.current_version_id=version.version_id
+                   WHERE version.instrument_id='cross-section-spy'""")}
+            template = next(iter(originals.values()))
+            capture = dict(connection.execute(
+                "SELECT * FROM stage10_daily_price_captures WHERE capture_id=?",
+                (template["capture_id"],)).fetchone())
+            body = dumps_strict({"fixture": tag, "prices": prices}).encode()
+            capture.update(capture_id="fixture-spy-" + hashlib.sha256(tag.encode()).hexdigest(),
+                semantic_identity=hashlib.sha256(("semantic-" + tag).encode()).hexdigest(),
+                response_sha256=hashlib.sha256(body).hexdigest(), response_bytes=body,
+                captured_at="2026-09-02T00:00:00Z", earliest_trade_date=min(prices),
+                latest_trade_date=max(prices), row_count=len(prices),
+                endpoint_path="/stable/historical-price-eod/full",
+                normalization_version="stage10.fmp.daily_price.v1")
+            capture.update(capture_changes)
+            capture.update(run_id=capture["capture_id"] + "-run",
+                           artifact_id=capture["capture_id"] + "-artifact",
+                           snapshot_id=capture["capture_id"] + "-snapshot")
+            self._insert_run(connection, run_id=capture["run_id"],
+                dataset_id="market.stage10.source_evidence", semantic_identity=capture["semantic_identity"])
+            connection.execute("INSERT INTO stage10_daily_price_captures (" +
+                ",".join(capture) + ") VALUES (" + ",".join("?" for _ in capture) + ")",
+                tuple(capture.values()))
+            for index, (day, close) in enumerate(sorted(prices.items()), start=1):
+                prior = originals.get(day)
+                row = {**template, "version_id": capture["capture_id"] + "-" + day,
+                    "trade_date": day, "capture_id": capture["capture_id"],
+                    "run_id": capture["run_id"], "artifact_id": capture["artifact_id"],
+                    "snapshot_id": capture["snapshot_id"],
+                    "captured_at": capture["captured_at"], "available_at": capture["captured_at"],
+                    "source_row": index, "correction_sequence": prior["correction_sequence"] + 1 if prior else 1,
+                    "supersedes_version_id": prior["version_id"] if prior else None,
+                    "open_value": str(close), "high_value": str(close),
+                    "low_value": str(close), "close_value": str(close)}
+                connection.execute("INSERT INTO stage10_daily_price_versions (" +
+                    ",".join(row) + ") VALUES (" + ",".join("?" for _ in row) + ")",
+                    tuple(row.values()))
+                connection.execute("""INSERT INTO stage10_daily_prices
+                    (instrument_id, trade_date, provider, price_variant, currency_segment, current_version_id)
+                    VALUES (?, ?, 'fmp', 'fmp_full_eod_v1', 'provider_native', ?)
+                    ON CONFLICT(instrument_id, trade_date, provider, price_variant, currency_segment)
+                    DO UPDATE SET current_version_id=excluded.current_version_id""",
+                    (row["instrument_id"], day, row["version_id"]))
+        self.baseline = mutation_fingerprint(self.stores)
 
     def _insert_run(
         self,

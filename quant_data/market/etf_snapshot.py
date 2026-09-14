@@ -27,6 +27,38 @@ _UNAVAILABLE = {
         "instrument_not_available_at_decision",
 }
 _HISTORY_LIMIT = 400
+_FMP_CLOSE_BASIS = "split_adjusted_excluding_distributions"
+_FMP_CLOSE_BINDING = "fmp_full_eod_close_split_only_v1"
+_FMP_CLOSE_DOCUMENTATION = "https://site.financialmodelingprep.com/faqs"
+
+
+def _fmp_close_is_bound(connection, selected) -> bool:
+    """Bind retained close_value to the documented FMP close, never a factor.
+
+    Both importers preserve close under the same normalization version.
+    Reject other endpoints and unknown parsers; do not infer semantics from
+    a field name alone or from corporate-action rows.
+    """
+    if not selected:
+        return False
+    capture_ids = sorted({str(row["capture_id"]) for row in selected})
+    placeholders = ",".join("?" for _ in capture_ids)
+    captures = {str(row["capture_id"]): row for row in connection.execute(
+        f"""SELECT capture_id, provider, instrument_id, endpoint_path,
+                   normalization_version
+            FROM stage10_daily_price_captures
+            WHERE capture_id IN ({placeholders})""", capture_ids)}
+    for row in selected:
+        capture = captures.get(str(row["capture_id"]))
+        if (capture is None or capture["provider"] != "fmp"
+                or capture["instrument_id"] != row["instrument_id"]
+                or capture["endpoint_path"] != "/stable/historical-price-eod/full"
+                or capture["normalization_version"] != "stage10.fmp.daily_price.v1"
+                or row["provider"] != "fmp"
+                or row["price_variant"] != "fmp_full_eod_v1"
+                or row["currency_segment"] != "provider_native"):
+            return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -46,14 +78,18 @@ def _cutoff(value: str) -> datetime:
 def retained_etf_snapshot(
     store_map: StoreMap, registry: Registry, symbols: tuple[str, ...],
     decision_as_of: str, *, now: str, checkpoint: Callable[[], None],
+    tool_version: str = "1.0.0",
 ) -> EtfSnapshot:
     """Select one store transaction, using existing identity/version selectors.
 
-    Retained FMP full EOD rows have no established adjustment basis. Accordingly
-    they can establish coverage and lineage, but cannot yield split-only features.
-    A future reviewed source binding must supply that evidence before this guard
-    can be changed. There is no public switch for asserting adjustment provenance.
+    Version 1 preserves its original unbound evidence gate. Version 2 binds
+    the known FMP full-EOD parser's close to the provider's split-only basis.
+    Neither version transforms close or applies corporate-action factors.
+    Local capture availability does not establish historical publication.
     """
+    if tool_version not in {"1.0.0", "2.0.0"}:
+        raise ValidationError("Unsupported ETF snapshot version")
+    provider_close = tool_version == "2.0.0"
     cutoff = _cutoff(decision_as_of)
     if cutoff > _cutoff(now):
         raise ValidationError("ETF decision_as_of cannot be in the future")
@@ -62,7 +98,7 @@ def retained_etf_snapshot(
     lineage: list[LineageRef] = []
 
     def empty(symbol: str, reason: str) -> dict[str, object]:
-        return {
+        result = {
             "symbol": symbol, "instrument_id": None, "exchange": None,
             "display_name": None, "asset_type": None,
             "exposure": None, "legal_structure": None,
@@ -83,6 +119,18 @@ def retained_etf_snapshot(
             **{name: None for name in FEATURE_NAMES},
             **{name + "_missing_reason": reason for name in FEATURE_NAMES},
         }
+        if provider_close:
+            result.update({
+                "source_price_field": "close",
+                "price_adjustment_applied_by_tool": False,
+                "source_adjustment_binding": None,
+                "source_adjustment_documentation": None,
+                "source_capture_count": 0,
+                "adjustment_vintage_status": "not_established",
+                "source_publication_time": None,
+                "available_feature_count": 0,
+            })
+        return result
 
     if endpoint is None:
         rows = [empty(symbol, "calendar_coverage_not_established") for symbol in symbols]
@@ -150,6 +198,10 @@ def retained_etf_snapshot(
                     if _cutoff(item.available_at) > cutoff:
                         raise ValidationError("ETF source availability exceeds decision")
                 adjustment = str(series.metadata["adjustment_status"])
+                if provider_close and _fmp_close_is_bound(connection, selected):
+                    adjustment = _FMP_CLOSE_BASIS
+                # Prices are exactly the retained provider close values. In
+                # particular, do not apply splits or dividend adjustments here.
                 values, missing = calculate_features(
                     prices, endpoint, adjustment_status=adjustment
                 )
@@ -159,6 +211,9 @@ def retained_etf_snapshot(
                                   if day is not None and day not in prices]
                 gaps = ["split_adjustment_provenance_not_retained",
                         "historical_split_and_distribution_reconstruction_not_established"]
+                if provider_close:
+                    gaps = ([] if adjustment == _FMP_CLOSE_BASIS else
+                            ["fmp_close_source_binding_not_established"])
                 if not prices:
                     gaps.append("price_history_not_available_at_decision")
                 if missing_months:
@@ -183,6 +238,25 @@ def retained_etf_snapshot(
                     **values,
                     **{name + "_missing_reason": missing.get(name) for name in FEATURE_NAMES},
                 })
+                if provider_close:
+                    available_features = sum(value is not None for value in values.values())
+                    bound = adjustment == _FMP_CLOSE_BASIS
+                    capture_count = len({item["capture_id"] for item in selected})
+                    row.update({
+                        "source_adjustment_binding": _FMP_CLOSE_BINDING if bound else None,
+                        "source_adjustment_documentation": _FMP_CLOSE_DOCUMENTATION if bound else None,
+                        "source_capture_count": capture_count,
+                        "adjustment_vintage_status": (
+                            "single_provider_capture" if capture_count == 1 else
+                            "mixed_provider_captures" if capture_count > 1 else "not_established"),
+                        "available_feature_count": available_features,
+                        **{name + "_missing_reason": None for name in FEATURE_NAMES
+                           if values[name] is not None},
+                        "data_quality_status": (
+                            "ready" if available_features == len(FEATURE_NAMES) else
+                            "partial" if available_features else "blocked"),
+                        "feature_observation_date": endpoint.isoformat() if available_features else None,
+                    })
                 rows.append(row)
                 lineage.append(LineageRef(dataset_id=DATASET_ID, store_role="market",
                                           semantic_id=series.lineage_digest))
@@ -213,7 +287,39 @@ def retained_etf_snapshot(
             "Investment approvals, clusters, caps, freshness and risk scaling belong to the consumer.",
         ]),
     }
-    material = {"tool_version": "1.0.0", "registry_source_sha256": registry.source_sha256,
+    if provider_close:
+        ready = sum(row["data_quality_status"] == "ready" for row in rows)
+        feature_count = sum(int(row["available_feature_count"]) for row in rows)
+        bound_count = sum(row["source_adjustment_binding"] == _FMP_CLOSE_BINDING for row in rows)
+        summary.update({
+            "complete": ready == len(symbols),
+            "ready_symbol_count": ready,
+            "available_feature_count": feature_count,
+            "data_quality_status": (
+                "ready" if ready == len(symbols) else "partial" if feature_count else "blocked"),
+            "feature_observation_date": endpoint.isoformat() if feature_count else None,
+            "price_adjustment_applied_by_tool": False,
+            "source_price_field": "close",
+            "source_adjustment_binding_required": _FMP_CLOSE_BINDING,
+            "bound_source_symbol_count": bound_count,
+            "source_adjustment_binding": _FMP_CLOSE_BINDING if bound_count == len(symbols) else None,
+            "source_adjustment_documentation": _FMP_CLOSE_DOCUMENTATION if bound_count else None,
+            "research_convention": "retained_provider_adjusted_close_at_each_capture",
+            "limitations": dumps_strict([
+                "FMP full-EOD close is already split-adjusted and excludes dividend adjustments; it is used unchanged.",
+                "Each row retains the provider adjustment vintage at its own capture; mixed captures do not certify a common adjustment vintage.",
+                "Historical adjustment reconstruction and original provider publication times are not established.",
+                "Local capture availability and observation dates remain distinct; later captures cannot serve earlier decisions.",
+                "Feature readiness describes price inputs only; exposure, legal structure and leveraged/inverse classifications remain incomplete.",
+                "Calendar support is bounded to 2024-2026; no observation is forward-filled.",
+                "Investment approvals, volatility selection and portfolio risk limits belong to the consumer.",
+            ]),
+        })
+        # The successor removes the legacy app-side recommendation: selecting
+        # an allocation volatility is the consuming application's responsibility.
+        summary.pop("weighting_volatility_recommendation")
+        summary.pop("weighting_volatility_decision")
+    material = {"tool_version": tool_version, "registry_source_sha256": registry.source_sha256,
                 "summary": summary, "rows": rows}
     summary["snapshot_id"] = hashlib.sha256(dumps_strict(material).encode()).hexdigest()
     return EtfSnapshot(tuple(MappingProxyType(row) for row in rows),

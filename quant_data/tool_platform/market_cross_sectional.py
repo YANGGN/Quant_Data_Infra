@@ -813,6 +813,7 @@ def invoke_stage10_cross_sectional_analytics_v21(
     arguments: Mapping[str, Any],
     context: ToolExecutionContext,
     registry: Registry,
+    *, repository_type: type[Stage10DailyPriceRepository] = Stage10DailyPriceRepository,
 ) -> QueryResult:
     """Add bounded breadth and trailing risk statistics to explicit symbols."""
 
@@ -831,7 +832,7 @@ def invoke_stage10_cross_sectional_analytics_v21(
         series=1,
         operations=source_work + analysis_work,
     )
-    repository = Stage10DailyPriceRepository(context.store_map, registry)
+    repository = repository_type(context.store_map, registry)
     coverage: list[_Coverage] = []
     series_by_ticker: dict[str, Any] = {}
     lineage: list[LineageRef] = []
@@ -896,6 +897,13 @@ def invoke_stage10_cross_sectional_analytics_v21(
             benchmark_series=benchmark_series,
             window=validated.window,
         )
+    from .price_basis import metadata_fields
+    for ticker, series in series_by_ticker.items():
+        if "source_price_field" in series.metadata:
+            record_mappings[ticker].update({
+                **metadata_fields(series.metadata),
+                "source_adjustment_status": series.metadata["adjustment_status"],
+            })
     records = tuple(
         RecordV1(
             record_type="market_cross_sectional_performance",

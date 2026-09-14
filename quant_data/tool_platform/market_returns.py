@@ -508,10 +508,11 @@ def audit_stage10_market_return(series: TimeSeries) -> Stage10MarketQualityRepor
 class Stage10MarketReturnEngine:
     """Compose the immutable Stage 10 reader with the shared return primitive."""
 
-    def __init__(self, store_map: StoreMap, registry: Registry) -> None:
+    def __init__(self, store_map: StoreMap, registry: Registry, *,
+                 repository_type: type[Stage10DailyPriceRepository] = Stage10DailyPriceRepository) -> None:
         if not isinstance(store_map, StoreMap) or not isinstance(registry, Registry):
             raise ValidationError("Market return engine dependencies are invalid")
-        self._repository = Stage10DailyPriceRepository(store_map, registry)
+        self._repository = repository_type(store_map, registry)
 
     def calculate(self, request: Stage10MarketReturnRequest) -> TimeSeries:
         if not isinstance(request, Stage10MarketReturnRequest):
@@ -860,6 +861,7 @@ def invoke_stage10_market_return(
     arguments: Stage10MarketReturnArgumentsV2,
     context: ToolExecutionContext,
     registry: Registry,
+    *, repository_type: type[Stage10DailyPriceRepository] = Stage10DailyPriceRepository,
 ) -> QueryResult:
     """Execute one explicitly selected v2 market-return operation."""
 
@@ -890,7 +892,9 @@ def invoke_stage10_market_return(
         method=arguments.method,
         horizon=arguments.horizon,
     )
-    series = Stage10MarketReturnEngine(context.store_map, registry).calculate(request)
+    series = Stage10MarketReturnEngine(
+        context.store_map, registry, repository_type=repository_type
+    ).calculate(request)
     quality = audit_stage10_market_return(series)
     context.checkpoint()
     warnings = tuple(

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from .price_basis import expected_price_metadata, validate_series_price_basis
+
 import hashlib
 from decimal import Decimal
 from typing import Any, Mapping, Sequence
@@ -446,7 +448,10 @@ def _validate_quality_stage10_core(
     checks remain fail-closed exactly as they do for analytical consumers.
     """
 
-    _require_exact_fields(series.metadata, _EXACT_METADATA, "metadata")
+    validate_series_price_basis(series)
+    _require_exact_fields(
+        series.metadata, expected_price_metadata(series.metadata, _EXACT_METADATA), "metadata"
+    )
     _require_exact_fields(series.audit, _EXACT_AUDIT, "audit")
     _require_exact_fields(series.provenance, _EXACT_PROVENANCE, "provenance")
     for field in ("instrument_id", "provider_symbol", "asset_type"):

@@ -72,10 +72,10 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
         self.assertEqual(self.registry.schema_version, "1.9.0")
-        self.assertEqual(self.registry.registry_version, "2.74.0")
+        self.assertEqual(self.registry.registry_version, "2.86.0")
         self.assertEqual(
             self.registry.raw["tool_version_schema_catalog"]["schema_version"],
-            "2.29.0",
+            "2.32.0",
         )
         regression_v3 = self.registry.tool(
             "econometrics.regression",
@@ -118,7 +118,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
                 **FAMILY_COUNTS,
                 "macro": FAMILY_COUNTS["macro"] + 1,
                 "market": FAMILY_COUNTS["market"] + 4,
-                "company": FAMILY_COUNTS["company"] + 1,
+                "company": FAMILY_COUNTS["company"] + 4,
                 "research": FAMILY_COUNTS["research"] + 14,
             },
             CURRENT_FAMILY_COUNTS,
@@ -133,14 +133,26 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         before = (hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest(),
             hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest())
         self.assertEqual(before[1], CATALOG_SHA256)
-        generate(PROJECT_ROOT, check=True)
+        # Keep the real generator and its lock inside this explicit fixture root.
+        from quant_data.tool_platform.generate import (
+            REGISTRY_RESOURCE, CATALOG_RESOURCE, VERSIONED_CATALOG_RESOURCE,
+        )
+        resources = (REGISTRY_RESOURCE, CATALOG_RESOURCE, VERSIONED_CATALOG_RESOURCE)
+        for resource in resources:
+            target = self.root / resource
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((PROJECT_ROOT / resource).read_bytes())
+        generate(self.root, check=True)
+        for resource in resources:
+            self.assertEqual((self.root / resource).read_bytes(),
+                (PROJECT_ROOT / resource).read_bytes())
         after = (hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest(),
             hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest())
         self.assertEqual(before, after)
         self.assertEqual(after[1], CATALOG_SHA256)
         self.assertEqual(after[1], self.registry.raw["tool_schema_catalog"]["sha256"])
 
-    def test_manifest_has_75_sanitized_read_only_contracts(self) -> None:
+    def test_manifest_has_80_sanitized_contracts(self) -> None:
         manifest = self.dispatcher.manifest()
         self.assertEqual(
             manifest["milestone"],
@@ -150,7 +162,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
             [item["name"] for item in manifest["tools"]],
             list(CURRENT_PUBLIC_TOOL_NAMES),
         )
-        self.assertEqual(len(manifest["tools"]), 77)
+        self.assertEqual(len(manifest["tools"]), 80)
         for item in manifest["tools"]:
             self.assertNotIn("handler", item)
             self.assertIn("operation_graph_id", item)

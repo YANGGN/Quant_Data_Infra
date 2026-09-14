@@ -31,7 +31,8 @@ this package to the consuming project's imports. Use this sequence:
 2. Run `list` for a compact logical-tool inventory.
 3. Select the highest advertised `major.minor.patch` version for the logical
    tool, then run `describe TOOL --tool-version VERSION`.
-4. Send one strict JSON envelope to `call` on standard input.
+4. Send one strict JSON envelope to `call` on standard input, with that exact
+   `tool_version`. The top-level compatibility default is not the latest version.
 5. Parse standard output as JSON even when the process exits nonzero.
 6. Keep the complete response, receipt, warnings, truncation, and lineage with
    any downstream result.
@@ -43,6 +44,172 @@ catalog `2.26.0` has SHA-256
 `fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
 This snapshot is informative; `manifest` and `describe` remain the runtime
 authority if the project advances.
+
+## Retained transcripts and structured extractions
+
+These three local tools are available at version `1.0.0`:
+
+| Tool | Purpose | Page limit |
+| --- | --- | --- |
+| `company.search_transcripts` | Find retained captures and whether a structured extraction is available | 50 default, 100 maximum captures |
+| `company.get_transcript` | Read original provider text and speaker fields for an exact capture | 50 default, 100 maximum speaker turns |
+| `company.get_transcript_extraction` | Read the original structured draft and its independent assessments | 10 default, 20 maximum assessments |
+
+Start by searching for an exact uppercase provider ticker. The optional
+`fiscal_year` and `fiscal_quarter` filters use the provider's fiscal labels.
+Omit the ticker to page through all retained captures. Search returns every
+matching capture, ordered by symbol, fiscal year, fiscal quarter, capture time,
+and capture ID; multiple captures of one fiscal period remain separate.
+
+From any WSL/Linux project directory:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"company.search_transcripts","tool_version":"1.0.0","arguments":{"ticker":"AAPL","limit":10}}
+JSON
+```
+
+Read the returned `capture_id`, then pass it to either detail tool. Replace
+the placeholder below with that ID; it is not a literal example capture.
+
+```json
+{"api_version":"1.0","tool":"company.get_transcript","tool_version":"1.0.0","arguments":{"capture_id":"<capture_id from search>","limit":100}}
+```
+
+```json
+{"api_version":"1.0","tool":"company.get_transcript_extraction","tool_version":"1.0.0","arguments":{"capture_id":"<capture_id from search>","limit":20}}
+```
+
+Both detail tools use the capture ID, so raw evidence and structured output
+cannot silently drift to different calls. Each result uses the existing
+`result.records` contract: a `record_type` and a `fields` array of
+`{"name": ..., "value": ...}` objects. Convert that array to a name/value map.
+Nested source documents remain JSON strings in these explicitly named fields:
+
+| Record type | Content |
+| --- | --- |
+| `transcript_capture` | Capture ID, symbol, fiscal labels, turn/page counts, capture time, latest eligible analysis ID, extraction availability, automatic quality and review status |
+| `transcript_metadata` | Capture details and `event_json`, the original provider event object |
+| `transcript_turn` | Original `text`, `raw_turn_json` with every original speaker/turn field, source page checksum/reference, one-based turn number and `turn_id` |
+| `transcript_extraction` | `structured_json`, the complete original structured draft; model, prompt/schema versions, input/response hashes, availability times and quality/review status |
+| `transcript_assessment` | `assessment_json`, kind, evaluator, outcome, evidence hash and availability time |
+| `transcript_extraction_status` | A retained capture with no eligible structured extraction and an explicit reason |
+
+Decode `structured_json`, `assessment_json`, `raw_turn_json`, and
+`event_json` as JSON when needed. For example, in a consuming Python project:
+
+```python
+import json
+import subprocess
+
+launcher = "/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools"
+
+def call(tool, arguments):
+    process = subprocess.run(
+        [launcher, "call"], input=json.dumps({
+            "api_version": "1.0", "tool": tool,
+            "tool_version": "1.0.0", "arguments": arguments,
+        }), text=True, capture_output=True, check=False,
+    )
+    response = json.loads(process.stdout)
+    if process.returncode:
+        raise RuntimeError(response)
+    return response  # Retain the receipt, warnings and lineage too.
+
+def fields(record):
+    return {field["name"]: field["value"] for field in record["fields"]}
+
+found = call("company.search_transcripts", {"ticker": "AAPL", "limit": 1})
+captures = found["result"]["records"]
+if captures:
+    capture_id = fields(captures[0])["capture_id"]
+    saved = call("company.get_transcript_extraction", {"capture_id": capture_id})
+    for record in saved["result"]["records"]:
+        if record["record_type"] == "transcript_extraction":
+            metadata = fields(record)
+            original_draft = json.loads(metadata["structured_json"])
+            quality_status = metadata["automatic_quality_status"]
+```
+
+Pagination: inspect `result.truncation.next_cursor` (also repeated as the
+`next_cursor` metric in `result.diagnostics[0].metrics`). If non-null,
+call the same tool with the
+same filters, capture ID and time mode plus that `cursor`. The limit may
+change within its bound. Continue until the cursor is null to retrieve all
+captures, speaker turns, or assessments. Detail pages repeat their metadata;
+extraction pages repeat the original draft while paging its assessments.
+`truncation.returned_count` and `returned_page_items` count page items,
+excluding the repeated metadata/draft. A cursor pins the selection cutoff;
+an extraction cursor also pins the selected analysis ID. Cursors are opaque,
+query-specific continuation tokens, not access credentials.
+
+The default mode is `latest`, using the host's current UTC time.
+For a fixed cutoff, pass both `"mode":"as_of"` and a timezone-aware
+`"as_of":"2026-09-13T23:00:00Z"`. Date-only, timezone-free, and future
+cutoffs are rejected. Raw evidence is eligible at retained capture time;
+outputs and assessments are eligible at their recorded completion times,
+with source eligibility also checked. A draft can be visible before its
+later assessment. `published_at` is retained for audit but does not replace
+the existing completion-time availability contract. Fiscal labels and
+provider call dates do not establish historical public availability.
+
+No matching capture returns `status: "not_established"` and no records.
+A retained capture without an eligible extraction returns the explicit
+`transcript_extraction_status` record. Search coverage is per capture;
+it does not certify that every expected quarter has been collected.
+
+The original draft is returned unchanged, including drafts whose automatic
+quality status is `blocked`. `unassessed` means no eligible automatic
+assessment exists. `review_status` is `unreviewed` or
+`review_recorded`; the latter only means an independent review exists.
+Always inspect `latest_review_outcome` and the assessment documents.
+A failed review does not approve, rewrite, or replace the original draft.
+Source `turn_id` values (`t1`, `t2`, …) join structured evidence references
+to the raw-turn pages.
+
+Each call uses the existing coordinated immutable company reader. It makes
+zero provider/model requests and performs no collection, extraction,
+migration, or canonical write. Reads fail closed if the store cannot be read
+immutably or its physical lock is busy. Selected raw pages or structured
+output plus selected assessments are bounded to 4 MiB; event metadata is
+bounded to 64 KiB, the final response to 8 MiB, and calls retain the host
+deadline. Raw page hashes and selected turn coverage are checked before
+returning a response. A raw page is an indivisible validation unit, even
+when the requested speaker-turn page is smaller.
+
+## Current price workflow
+
+For new integrations, use the versions in [Latest contracts](#latest-contracts)
+and confirm them with the runtime manifest. The current composition is:
+
+| Task | Explicit contract |
+| --- | --- |
+| Retrieve typed OHLC | `market.get_price_series@2.0.0` |
+| Compute trailing / forward price returns | `market.get_returns@2.1.0` / `market.get_forward_returns@2.1.0` |
+| Compute technical indicators | `market.technical_indicators@2.8.0` |
+| Audit / summarize typed returns | `data.quality_audit@2.1.0` / `timeseries.describe@2.1.0` |
+| Retrieve ETF allocator features | `portfolio.get_etf_allocator_snapshot@2.0.0` |
+
+FMP full-EOD `close` is already split-adjusted and excludes dividend
+adjustments. Use the retained value unchanged: do not apply another split
+factor, join split history to rescale it, or substitute dividend-adjusted
+`adjClose`. The producer establishes this basis only when its retained capture
+evidence matches the documented endpoint and parser. Open, high, low, empty
+histories, and unsupported capture bindings remain unestablished under this
+close-specific convention.
+
+Select the matching [metadata-aware analytical versions](#fmp-close-metadata-successors-september-13-2026)
+when composing tools. Pass complete typed series, including metadata, audits,
+quality flags, provenance, and lineage. Do not relabel an older tool's output or
+remove metadata to make it pass an older consumer. If a required version is
+absent from the runtime manifest, report the contract mismatch rather than
+silently falling back.
+
+For ETF work, start with the [current complete-roster example](#etf-allocator-snapshot).
+Check each feature's value, missing reason, and readiness. Preserve collection
+and adjustment-vintage warnings: numerical readiness does not certify
+historical publication timing or a common adjustment vintage. Portfolio policy,
+volatility selection, approval, and execution remain in the consuming app.
 
 ## Browser Inspector
 
@@ -91,7 +258,7 @@ lifecycle information.
 ```bash
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools manifest
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools list
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_price_series --tool-version 2.0.0
 ```
 
 Use `list` for a compact inventory. Before every new integration, use
@@ -107,15 +274,16 @@ manifest.
 Always pass the selected latest version to both `describe` and `call`,
 including when that version is `1.0.0`. Do not omit `tool_version`: the
 manifest's top-level `version` is a compatibility default and is not a
-latest-version alias. Historical versions remain callable only for explicit
-compatibility work and are intentionally omitted from this guide and the
-Browser Inspector.
+latest-version alias. Historical versions remain callable for explicit compatibility work.
+Current examples and the Browser Inspector select the latest versions;
+the dated ETF version 1 section below is preserved audit evidence only.
 
 ## Latest contracts
 
-This is the latest-only projection for registry `2.71.0`. If the registry
-advances, the semantic maximum advertised by the runtime `manifest` overrides
-this checkpoint.
+This is the latest-only projection verified through the public launcher for
+registry `2.86.0`, catalog `2.32.0`: 80 logical tools and 169 versioned contracts.
+If the registry advances, the semantic maximum advertised by the runtime
+`manifest` overrides this checkpoint.
 
 | Logical tool | Latest version |
 | --- | --- |
@@ -132,14 +300,14 @@ this checkpoint.
 | `macro.get_liquidity_impulse` | `2.0.0` |
 | `macro.get_credit_conditions` | `2.0.0` |
 | `macro.regime_snapshot` | `2.0.0` |
-| `timeseries.transform` | `2.0.0` |
-| `timeseries.describe` | `2.0.0` |
-| `timeseries.align` | `2.0.0` |
-| `timeseries.correlation` | `2.0.0` |
-| `econometrics.regression` | `3.0.0` |
-| `econometrics.stationarity` | `2.1.0` |
-| `econometrics.rolling_regression` | `2.1.0` |
-| `econometrics.structural_breaks` | `2.0.0` |
+| `timeseries.transform` | `2.1.0` |
+| `timeseries.describe` | `2.1.0` |
+| `timeseries.align` | `2.1.0` |
+| `timeseries.correlation` | `2.1.0` |
+| `econometrics.regression` | `3.1.0` |
+| `econometrics.stationarity` | `2.2.0` |
+| `econometrics.rolling_regression` | `2.2.0` |
+| `econometrics.structural_breaks` | `2.1.0` |
 | `econometrics.local_projection` | `1.0.0` |
 | `company.search_issuers` | `1.0.0` |
 | `company.search_filings` | `2.0.0` |
@@ -155,12 +323,12 @@ this checkpoint.
 | `energy.get_weekly_fundamentals` | `2.1.0` |
 | `market.search_instruments` | `2.0.0` |
 | `market.get_available_ticker` | `1.0.0` |
-| `market.get_price_series` | `1.0.0` |
+| `market.get_price_series` | `2.0.0` |
 | `market.get_volume_series` | `1.0.0` |
-| `market.get_returns` | `2.0.0` |
-| `market.get_forward_returns` | `2.0.0` |
-| `market.technical_indicators` | `2.7.0` |
-| `market.cross_sectional_performance` | `2.1.0` |
+| `market.get_returns` | `2.1.0` |
+| `market.get_forward_returns` | `2.1.0` |
+| `market.technical_indicators` | `2.8.0` |
+| `market.cross_sectional_performance` | `2.2.0` |
 | `rates.get_funding_conditions` | `2.0.0` |
 | `rates.get_repo_facility_usage` | `2.0.0` |
 | `rates.curve_analytics` | `2.0.0` |
@@ -170,19 +338,19 @@ this checkpoint.
 | `options.surface_diagnostics` | `1.0.0` |
 | `options.screen_contracts` | `1.0.0` |
 | `options.strategy_scenario` | `1.0.0` |
-| `research.point_in_time_panel` | `2.0.0` |
+| `research.point_in_time_panel` | `2.1.0` |
 | `data.get_dataset_status` | `1.0.0` |
-| `data.quality_audit` | `2.0.0` |
-| `research.event_study` | `2.0.0` |
-| `alpha.signal_diagnostics` | `2.0.0` |
-| `research.walk_forward_backtest` | `2.0.0` |
-| `research.robustness_suite` | `2.0.0` |
-| `stats.distribution_diagnostics` | `1.0.0` |
-| `stats.covariance_matrix` | `1.0.0` |
-| `stats.bootstrap_confidence_interval` | `1.0.0` |
-| `stats.principal_components` | `1.0.0` |
-| `stats.multiple_testing` | `2.0.0` |
-| `forecast.evaluate` | `2.0.0` |
+| `data.quality_audit` | `2.1.0` |
+| `research.event_study` | `2.1.0` |
+| `alpha.signal_diagnostics` | `2.1.0` |
+| `research.walk_forward_backtest` | `2.1.0` |
+| `research.robustness_suite` | `2.1.0` |
+| `stats.distribution_diagnostics` | `2.0.0` |
+| `stats.covariance_matrix` | `2.0.0` |
+| `stats.bootstrap_confidence_interval` | `2.0.0` |
+| `stats.principal_components` | `2.0.0` |
+| `stats.multiple_testing` | `2.1.0` |
+| `forecast.evaluate` | `2.1.0` |
 | `news.search` | `2.3.0` |
 | `news.get_source_status` | `1.0.0` |
 | `news.get_item_history` | `1.0.0` |
@@ -191,11 +359,14 @@ this checkpoint.
 | `news.attention_metrics` | `1.0.0` |
 | `news.classify_events` | `1.0.0` |
 | `news.headline_sentiment` | `1.0.0` |
-| `research.news_event_impact` | `1.0.0` |
+| `research.news_event_impact` | `2.0.0` |
 | `research.liquidity_credit_state` | `2.0.0` |
-| `portfolio.get_etf_allocator_snapshot` | `1.0.0` |
+| `portfolio.get_etf_allocator_snapshot` | `2.0.0` |
 | `price_realtime` | `1.0.0` |
 | `company.get_research_inputs` | `1.0.0` |
+| `company.search_transcripts` | `1.0.0` |
+| `company.get_transcript` | `1.0.0` |
+| `company.get_transcript_extraction` | `1.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one
@@ -261,7 +432,7 @@ printf '%s\n' '{"api_version":"1.0","tool":"market.get_available_ticker","tool_v
 printf '%s\n' '{"api_version":"1.0","tool":"market.search_instruments","tool_version":"2.0.0","arguments":{"query":"Apple","asset_type":"equity","cursor":null,"limit":100}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
-printf '%s\n' '{"api_version":"1.0","tool":"market.get_price_series","tool_version":"1.0.0","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
+printf '%s\n' '{"api_version":"1.0","tool":"market.get_price_series","tool_version":"2.0.0","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
   | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 
 printf '%s\n' '{"api_version":"1.0","tool":"market.get_volume_series","tool_version":"1.0.0","arguments":{"ticker":"SPY","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":1000}}' \
@@ -326,7 +497,7 @@ legacy `fmp_news_articles` relation is private evidence, not a public source.
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.attention_metrics --tool-version 1.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.classify_events --tool-version 1.0.0
 /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe news.headline_sentiment --tool-version 1.0.0
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe research.news_event_impact --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe research.news_event_impact --tool-version 2.0.0
 
 printf '%s\n' '{"api_version":"1.0","tool":"news.search","tool_version":"2.3.0","arguments":{"query":"","symbols":["AAPL"],"source_ids":["fmp_stock_latest","alpaca_benzinga"],"mode":"latest","as_of":null,"date_only_policy":"completed_date","start_date":null,"end_date":null,"cursor":null,"limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"news.get_source_status","tool_version":"1.0.0","arguments":{"source_ids":[]}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
@@ -348,7 +519,7 @@ history together with a stable Stage 10 `instrument_id` for
 
 ~~~bash
 printf '%s\n' '{"api_version":"1.0","tool":"news.get_item_history","tool_version":"1.0.0","arguments":{"article_id":"ARTICLE_ID_FROM_SEARCH","limit":100}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
-printf '%s\n' '{"api_version":"1.0","tool":"research.news_event_impact","tool_version":"1.0.0","arguments":{"article_version_id":"ARTICLE_VERSION_ID_FROM_HISTORY","instrument_id":"STAGE10_INSTRUMENT_ID","pre_observations":5,"post_observations":5}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"research.news_event_impact","tool_version":"2.0.0","arguments":{"article_version_id":"ARTICLE_VERSION_ID_FROM_HISTORY","instrument_id":"STAGE10_INSTRUMENT_ID","pre_observations":5,"post_observations":5}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ~~~
 
 `news.story_clusters` produces candidate clusters only from exact canonical
@@ -405,13 +576,14 @@ printf '%s\n' '{"api_version":"1.0","tool":"macro.get_credit_conditions","tool_v
 printf '%s\n' '{"api_version":"1.0","tool":"macro.regime_snapshot","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"include_context":true,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"research.liquidity_credit_state","tool_version":"2.0.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","observation_date":null,"include_context":true,"limit":20}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 ~~~
-### Current 2.1 analytics
+### Current market, energy, and company analytics
 
-These four logical tools currently advertise `2.1.0` as their latest
-contract.
+Select `market.cross_sectional_performance@2.2.0` for close-basis metadata.
+The two energy tools and company fundamentals retain their latest `2.1.0`
+contracts.
 
 ~~~bash
-printf '%s\n' '{"api_version":"1.0","tool":"market.cross_sectional_performance","tool_version":"2.1.0","arguments":{"tickers":["AAPL","MSFT"],"benchmark_ticker":"MSFT","window":20,"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":"2026-07-01","end_date":"2026-08-20"}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+printf '%s\n' '{"api_version":"1.0","tool":"market.cross_sectional_performance","tool_version":"2.2.0","arguments":{"tickers":["AAPL","MSFT"],"benchmark_ticker":"MSFT","window":20,"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":"2026-07-01","end_date":"2026-08-20"}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"energy.get_electricity_retail_sales","tool_version":"2.1.0","arguments":{"metric":"sales","mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"energy.get_weekly_fundamentals","tool_version":"2.1.0","arguments":{"mode":"latest","as_of":null,"date_only_policy":"completed_date","limit":100,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
 printf '%s\n' '{"api_version":"1.0","tool":"company.get_fundamentals","tool_version":"2.1.0","arguments":{"cik":"0000320193","mode":"latest","as_of":null,"date_only_policy":"completed_date","ratio_codes":["net_margin","liabilities_to_assets"],"limit":1000,"start_date":null,"end_date":null}}' | /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
@@ -464,9 +636,13 @@ data is not retained or not available under its declared cutoff.
 `start_date` and `end_date` are independently optional for
 `market.get_price_series`. Omitting both selects the bounded result available
 under the stated mode and limit. The returned typed series are ordered `open`,
-`high`, `low`, `close`; they are raw provider-native prices. Adjustments and
-session-calendar semantics are not established, so do not label them adjusted
-or derive an unstated session policy.
+`high`, `low`, `close` and preserve provider values. Select `2.0.0`:
+a nonempty close series with verified FMP full-EOD capture provenance reports
+`adjustment_status: split_adjusted_excluding_distributions` and
+`price_adjustment_applied_by_tool: false`. Open, high, low, unbound or empty
+close series, and session-calendar semantics remain `not_established`.
+See the [binding and metadata contract](#fmp-close-metadata-successors-september-13-2026).
+No returned price is rescaled.
 
 When starting from a company name or partial symbol, use
 `market.search_instruments@2.0.0` first. It searches retained current Stage 10
@@ -483,7 +659,7 @@ unit is not normalized, and volume-adjustment and session-calendar semantics
 are explicitly not established.
 
 `market.technical_indicators` must be selected at its latest version,
-`2.7.0`. This additive, store-free contract includes `supertrend_ai`,
+`2.8.0`. This additive, store-free contract accepts the new close metadata and includes `supertrend_ai`,
 `swing_structure_forecast`, `kdj`, `williams_vix_fix`,
 `wavetrend_crosses`, `parabolic_sar`, and
 `rolling_regression_line` alongside the base indicator set. Pass its
@@ -530,12 +706,12 @@ signals.
 Inspect the latest contract before integrating:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 The API envelope remains version `1.0`; the selected tool version is
-`2.7.0`. Every call must contain `"api_version":"1.0"` and
-`"tool_version":"2.7.0"`.
+`2.8.0`. Every call must contain `"api_version":"1.0"` and
+`"tool_version":"2.8.0"`.
 
 The table below is a navigation aid; the current `describe` result remains
 the machine-readable authority. `close` is required in every call, even when
@@ -573,7 +749,7 @@ parameter not listed for the chosen indicator must still be present as
 The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `supertrend_ai` requires high, low, and close plus these non-null fields:
@@ -606,7 +782,7 @@ of the analytical result.
 The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `swing_structure_forecast` requires high, low, and close plus these non-null
@@ -645,7 +821,7 @@ alerts, colors, and labels are excluded presentation behavior.
 The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `kdj` requires high, low, and close plus these non-null fields:
@@ -670,7 +846,7 @@ behavior and are excluded.
 The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `williams_vix_fix` requires low and close plus these non-null fields. The
@@ -697,7 +873,7 @@ Display toggles, colors, and plot styles are excluded presentation behavior.
 The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `wavetrend_crosses` requires high, low, and close plus these non-null fields:
@@ -722,7 +898,7 @@ are excluded.
 The latest contract includes this calculation:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `parabolic_sar` requires high, low, and close plus finite `start`,
@@ -744,7 +920,7 @@ Inspect the latest contract before constructing a request; runtime `describe`
 is the schema authority:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.7.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.technical_indicators --tool-version 2.8.0
 ```
 
 `rolling_regression_line` requires close plus an explicit integer `window`
@@ -809,7 +985,7 @@ selection = {
 price_response = call(
     "market.get_price_series",
     selection,
-    tool_version="1.0.0",
+    tool_version="2.0.0",
 )
 price_result = price_response["result"]
 if price_result["truncation"]["applied"]:
@@ -840,7 +1016,7 @@ indicator_response = call(
         "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.7.0",
+    tool_version="2.8.0",
 )
 
 for output in indicator_response["result"]["series"]:
@@ -876,7 +1052,7 @@ supertrend_response = call(
         "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.7.0",
+    tool_version="2.8.0",
 )
 
 for output in supertrend_response["result"]["series"]:
@@ -911,7 +1087,7 @@ swing_response = call(
         "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.7.0",
+    tool_version="2.8.0",
 )
 
 for output in swing_response["result"]["series"]:
@@ -946,7 +1122,7 @@ kdj_response = call(
         "maximum": None,
         "limit": 10_000,
     },
-    tool_version="2.7.0",
+    tool_version="2.8.0",
 )
 
 for output in kdj_response["result"]["series"]:
@@ -982,7 +1158,7 @@ psar_response = call(
         "maximum": 0.2,
         "limit": 10_000,
     },
-    tool_version="2.7.0",
+    tool_version="2.8.0",
 )
 
 for output in psar_response["result"]["series"]:
@@ -1027,15 +1203,15 @@ support or imply first-release selection.
 
 The Step 2-4 analytical tools do not open a database. Pass them the complete
 typed trailing-return series returned by the explicitly selected
-`market.get_returns@2.0.0` contract, preserving its audit, lineage, return
-definition, and point-in-time metadata exactly. Select the latest `2.0.0`
+`market.get_returns@2.1.0` contract, preserving its audit, lineage, return
+definition, and point-in-time metadata exactly. Select the latest `2.1.0`
 contracts explicitly for `data.quality_audit` and `timeseries.transform`.
-The four base `stats.*` tools use their latest `1.0.0` contracts.
+The four base `stats.*` tools use their latest `2.0.0` contracts.
 
-Use `data.quality_audit@2.0.0` before inference when coverage, explicit
+Use `data.quality_audit@2.1.0` before inference when coverage, explicit
 missingness, duplicates, ordering, availability, truncation, or lineage needs
 to be checked. Its calendar gaps do not establish missing exchange sessions.
-Use `timeseries.transform@2.0.0` for one explicitly selected rolling, ACF,
+Use `timeseries.transform@2.1.0` for one explicitly selected rolling, ACF,
 PACF, Ljung-Box, or drawdown operation; copy its operation-specific nullable
 fields exactly from `describe` because irrelevant parameters are rejected.
 
@@ -1056,7 +1232,7 @@ Always include the latest semantic version in the envelope:
 {
   "api_version": "1.0",
   "tool": "market.get_returns",
-  "tool_version": "2.0.0",
+  "tool_version": "2.1.0",
   "arguments": {}
 }
 ```
@@ -1167,13 +1343,15 @@ Use tools as a sequence of validated typed results:
 1. If starting from a name or partial symbol, search retained identities with
    `market.search_instruments@2.0.0`.
 2. Confirm retrievable price coverage with `market.get_available_ticker`.
-3. Retrieve raw OHLC with `market.get_price_series` for one returned ticker.
+3. Retrieve unchanged provider OHLC with `market.get_price_series@2.0.0`
+   for one returned ticker; inspect the close-specific basis metadata.
 4. Retrieve provider-native volume with `market.get_volume_series` when the
    analysis needs it.
 5. For descriptive technical analysis, pass those unmodified typed series to
-   `market.technical_indicators@2.7.0`, one indicator specification per call.
-6. Use the selected return tool version to produce compatible return series.
-7. Run `data.quality_audit@2.0.0` and resolve or retain every reported quality
+   `market.technical_indicators@2.8.0`, one indicator specification per call.
+6. Use `market.get_returns@2.1.0` or `market.get_forward_returns@2.1.0`
+   to produce compatible price-return series.
+7. Run `data.quality_audit@2.1.0` and resolve or retain every reported quality
    limitation before inference.
 8. Feed compatible, non-truncated series into the explicitly selected
    transformation, general-statistics, or econometrics contract.
@@ -1187,29 +1365,54 @@ then align only frequency-compatible, non-truncated outputs. Use the calendar
 tool separately when release timing is part of the design; do not infer
 release timing from observation periods.
 
-Do not silently fill missing observations, mix raw prices with adjusted-price
-assumptions, change the return definition, or discard point-in-time metadata
+Do not silently fill missing observations, mix incompatible adjustment bases,
+change the return definition, or discard point-in-time metadata
 between those steps.
 
 
 ## ETF allocator snapshot
 
-Registry `2.70.0` adds `portfolio.get_etf_allocator_snapshot@1.0.0`.
-The current manifest contains 75 logical tools; catalog `2.27.0` contains
-158 contracts. The 57 recovered defaults and exact `2.69.0` predecessor are
-preserved. This section supersedes the older inventory checkpoints above for
-this additive tool.
-
-The tool accepts 1–25 unique exact symbols from the following fixed roster.
-A subset request returns that exact subset in request order; the investment
-app should request its complete 25-symbol roster. SGOV is excluded.
+Use `portfolio.get_etf_allocator_snapshot@2.0.0` for current research.
+The tool accepts 1-25 unique exact symbols from its fixed roster and returns
+the requested subset in request order. Request the complete roster for the
+25-ETF workflow; SGOV is excluded. Inspect the exact contract first:
 
 ```bash
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe portfolio.get_etf_allocator_snapshot --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe portfolio.get_etf_allocator_snapshot --tool-version 2.0.0
+```
 
-/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
-{"api_version":"1.0","tool":"portfolio.get_etf_allocator_snapshot","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ","DIA","IWM","VEA","VWO","IEF","TLT","TIP","LQD","HYG","GLD","SLV","PDBC","XLB","XLC","XLE","XLF","XLI","XLK","XLP","XLRE","XLU","XLV","XLY"],"decision_as_of":"2026-09-05T00:00:00Z"}}
-JSON
+This standalone WSL/Linux Python example captures the actual current UTC
+decision time immediately before the call. It reads retained data; it does
+not refresh prices. Preserve the complete printed response as the receipt
+for that decision.
+
+```python
+from datetime import datetime, timezone
+import json
+import subprocess
+
+launcher = "/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools"
+request = {
+    "api_version": "1.0",
+    "tool": "portfolio.get_etf_allocator_snapshot",
+    "tool_version": "2.0.0",
+    "arguments": {
+        "symbols": [
+            "SPY", "QQQ", "DIA", "IWM", "VEA", "VWO", "IEF", "TLT", "TIP",
+            "LQD", "HYG", "GLD", "SLV", "PDBC", "XLB", "XLC", "XLE",
+            "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY",
+        ],
+        "decision_as_of": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    },
+}
+completed = subprocess.run(
+    [launcher, "call"],
+    input=json.dumps(request, allow_nan=False),
+    text=True, capture_output=True, check=False,
+)
+response = json.loads(completed.stdout)
+print(json.dumps(response, indent=2, allow_nan=False))
+raise SystemExit(completed.returncode)
 ```
 
 `decision_as_of` is required, offset-aware, and cannot exceed the execution
@@ -1227,14 +1430,15 @@ each record's `fields` and the diagnostic's `metrics` arrays from
 `limitations`, and `lineage_sha256` are strict JSON strings, following
 the platform's scalar-field convention. Retain the complete outer receipt.
 
-### Calculation conventions and evidence gate
+### Calculation conventions and evidence requirements
 
 - Price basis: split-adjusted prices **excluding distributions**, in the
   source price unit. Neither dividend-adjusted nor total-return prices qualify.
-  Retained FMP full-EOD rows have no established adjustment provenance.
-  Therefore this version returns all nine requested feature values as null,
-  with individual missing reasons; it does not apply an inferred split factor.
-  The pure calculation kernel is tested on explicitly split-only inputs.
+  Version 2 binds retained FMP full-EOD `close` to this convention when its
+  capture provenance is supported, and calculates each feature independently.
+  It applies no further split factor. The pure calculation kernel is tested
+  on explicitly split-only inputs. The version 1 gate is preserved only for
+  [historical compatibility](#retained-data-request-on-2026-09-05).
 - Calendar: the fixed US cash-equity regular-session schedule for
   `2024-01-01` through `2026-12-31`, in `America/New_York`.
   [NYSE's published 2024–2026 calendar](https://ir.theice.com/press/news-details/2023/NYSE-Group-Announces-2024-2025-and-2026-Holiday-and-Early-Closings-Calendar/default.aspx)
@@ -1273,10 +1477,9 @@ the platform's scalar-field convention. Retain the complete outer receipt.
   dates are old. A pre-retention cutoff cannot borrow current prices.
 
 Return all three volatility measures when their evidence is available.
-A straightforward app-side selector is `realized_volatility_63` for a
-quarter-length measure. This is a recommendation only: the app still needs
-to choose its weighting-volatility rule. Quant emits no approved volatility,
-qualification, structure approval, portfolio cap, cluster selection, or risk scale.
+The consuming app chooses its weighting-volatility rule. Quant emits no
+approved volatility, qualification, structure approval, portfolio cap,
+cluster selection, or risk scale.
 
 Classification metadata uses `retained_identity_only` when the retained symbol,
 stable ID and asset type are available. Exposure, legal structure and
@@ -1284,7 +1487,111 @@ leveraged/inverse fields remain null. Missing identities use `not_retained`.
 A retained non-ETF identity fails closed with `instrument_type_mismatch`
 before price selection.
 
+### ETF version 2: provider-adjusted close
+
+The September 13 user decision accepts FMP's documented full-EOD `close`
+as the strategy's split-adjusted, dividend-excluding input. Registry
+`2.84.0` / catalog `2.30.0` adds
+`portfolio.get_etf_allocator_snapshot@2.0.0`; version 1 and the unversioned
+default remain unchanged. The input arguments, roster, monthly endpoint,
+calendar, nine formulas, immutable reader and receipts remain the same.
+
+FMP's [official FAQ](https://site.financialmodelingprep.com/faqs) distinguishes
+split-only `close` from `adjClose`, which includes split and dividend
+adjustments. The [full-EOD endpoint](https://site.financialmodelingprep.com/developer/docs/stable/historical-price-eod-full)
+is `/stable/historical-price-eod/full`. Our parser preserves `close` as
+`close_value` under `stage10.fmp.daily_price.v1`; Stage 10 history and
+the existing incremental publishers use that same physical normalization.
+
+Version 2 verifies the selected captures' provider, instrument, endpoint and
+normalization version, together with the selected price variant. It binds
+only `fmp_full_eod_v1` / `provider_native` prices from the known parser.
+An unsupported endpoint or parser leaves the basis unestablished. There is
+no caller option to assert provenance or substitute another field.
+
+**Use close unchanged.** Neither ingestion nor the snapshot needs a second
+split adjustment, a split-history join, a dividend reversal, or an
+`adjClose` substitution. The snapshot makes no provider requests and
+does not modify retained prices. Raw and dividend-adjusted prices do not
+qualify under this binding.
+
+Each record adds `source_price_field: close`,
+`price_adjustment_applied_by_tool: false`, the binding ID
+`fmp_full_eod_close_split_only_v1` when supported, a documentation URL,
+`source_capture_count`, `adjustment_vintage_status`,
+`source_publication_time: null`, and `available_feature_count`.
+Each feature is calculated independently from its required prices.
+`data_quality_status` is `ready` for all nine values, `partial` for
+some values, and `blocked` for zero available values. Missing dates and per-feature reasons
+remain explicit; historical reconstruction is not a numeric feature gate.
+
+Snapshot `complete` and `ready_symbol_count` refer only to the nine
+price features. The summary separates `source_adjustment_binding_required`
+from observed binding and reports `bound_source_symbol_count`; its observed
+binding is null unless every requested symbol has bound source prices. Overall result `status` is `ok` only when all requested
+symbols have all nine; partial numeric results use `not_established`
+with per-record readiness. This is not instrument approval, execution
+authority or backtest certification. Classification completeness remains
+separate and leverage/inverse/legal-structure fields remain null where absent.
+
+The explicit research convention is
+`retained_provider_adjusted_close_at_each_capture`. The observation date
+is the price's trading date; `source_available_from/through` are actual
+local capture bounds. Original publication times remain unknown.
+`feature_observation_date` is the selected month-end anchoring the feature
+packet when any feature is available; it does not imply an endpoint price
+exists for a feature such as 12-to-1 momentum that excludes that endpoint.
+`source_last_observation_date` still covers the feature window only,
+not the latest retained price anywhere in the database.
+
+Provider split adjustments are delivered at each capture. Multiple captures
+are labeled `mixed_provider_captures` with a warning; they do not certify
+a common adjustment vintage. A complete lookback from one provider response
+can supply one vintage without maintaining local split history. Such a
+refresh uses the existing collector and publisher and requires its own finite
+fetch scope. Version 2 does not silently reconstruct or rescale old captures.
+
+`point_in_time_status` remains `not_established` for historical
+reconstruction, even with complete numerical features. All identities and
+prices must still have been captured by `decision_as_of`; no later capture
+may be backdated to its observation date.
+
+Consumers should change only the selected `tool_version` to `2.0.0`,
+retain the standard receipt, read the per-feature values/reasons and
+readiness metadata, and preserve adjustment-vintage and historical warnings.
+Select allocation volatility, risk limits and approval policy in the consumer;
+version 2 removes the legacy volatility recommendation from the summary.
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe portfolio.get_etf_allocator_snapshot --tool-version 2.0.0
+```
+
+The [complete-roster example](#etf-allocator-snapshot) already selects this
+version and uses the actual current UTC decision instant.
+
+The [September 13 verification](rebuild/ETF_ALLOCATOR_INVESTIGATION_2026-09-13.md#version-2-public-verification-at-041201-utc)
+returned all 25 symbols and 33 values: all nine features for SPY and
+12-to-1-month momentum for each other ETF. At that capture, the remaining August
+price gaps prevented a complete 25-symbol feature packet. This dated result
+does not promise the same coverage at a later decision time.
+
 ### Retained-data request on 2026-09-05
+
+**Historical version 1 audit only. Do not copy this request for current work.**
+Registry `2.70.0` added `portfolio.get_etf_allocator_snapshot@1.0.0`.
+At that release the manifest contained 75 logical tools and catalog `2.27.0`
+contained 158 contracts. The 57 recovered defaults and exact `2.69.0`
+predecessor are preserved. Version 1 had no binding to FMP's documented field
+semantics and withheld all nine features with explicit missing reasons.
+It did not apply an inferred split factor.
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe portfolio.get_etf_allocator_snapshot --tool-version 1.0.0
+
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"portfolio.get_etf_allocator_snapshot","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ","DIA","IWM","VEA","VWO","IEF","TLT","TIP","LQD","HYG","GLD","SLV","PDBC","XLB","XLC","XLE","XLF","XLI","XLK","XLP","XLRE","XLU","XLV","XLY"],"decision_as_of":"2026-09-05T00:00:00Z"}}
+JSON
+```
 
 The exact public invocation above exited 0, returned all 25 identities, selected
 calendar endpoint `2026-08-31`, and reported `status: not_established`,
@@ -1292,7 +1599,7 @@ calendar endpoint `2026-08-31`, and reported `status: not_established`,
 The immutable reader and explicit before/after check found unchanged market
 and sidecar stamps. No ingestion occurred.
 
-Every symbol lacks established split-only adjustment provenance, historical
+At that capture, every symbol lacked established split-only adjustment provenance, historical
 adjustment reconstruction, the August 31 endpoint, and supported exchange,
 exposure, legal-structure, leveraged/inverse metadata. These metadata fields
 are null rather than inferred from the ticker or the word ETF.
@@ -1328,8 +1635,9 @@ are null rather than inferred from the ticker or the word ETF.
 All rows start at `2025-08-01` within this request's bounded lookback.
 The non-IWM gaps are August 17–21, 24–28, and 31; IWM lacks August 28 and 31.
 These are retained-data findings, not authorization to fetch or repeat a
-historical population. Resolving readiness requires a separately scoped
-data decision after establishing split-only source semantics and provenance.
+historical population. At that stage, resolving readiness required a separately
+scoped data decision and establishing split-only source semantics and provenance.
+The later version 2 binding does not rewrite this version 1 evidence.
 
 A sanitized excerpt of the actual response (other rows, metrics, and receipt
 fields omitted only in this documentation) is:
@@ -1340,8 +1648,16 @@ fields omitted only in this documentation) is:
 
 ### Minimal investment-app adjustment
 
+**Historical September 5 version 1 handoff.** The instructions below describe
+that integration and its blocked response, not the current version to select.
+Use the [version 2 consumer guidance](#etf-version-2-provider-adjusted-close)
+for current work. Consumer policy details here record the old interface review
+and do not assign portfolio decisions to Quant.
+
 The five requested consumer files were reviewed as interface references only.
-This Quant integration did not modify the investment-app project.
+This Quant integration did not modify the investment-app project. The original
+handoff suggested `realized_volatility_63` as one app-side choice; version 2
+removes that recommendation and leaves the selection entirely to the app.
 
 1. Call the explicit advertised `1.0.0` version and adapt the standard
    records/diagnostics described above; do not require a new
@@ -1351,7 +1667,7 @@ This Quant integration did not modify the investment-app project.
 2. Require the exact requested row set, nontruncation, complete numeric inputs,
    acceptable point-in-time evidence, and app-defined freshness. Check freshness
    against the underlying feature date, not the echoed decision cutoff.
-   The current retained result must remain blocked.
+   That September 5 version 1 result had to remain blocked.
 3. Join stable Quant instrument IDs and symbols to the app's own universe and
    policy. Supply `cluster_id`, `structure_approved`, `position_limit_key`,
    caps, qualification, and risk-scale authority from app configuration.
@@ -1377,3 +1693,90 @@ is a local retention timestamp; the source-native quote timestamp is not in
 the public record. It cannot establish a current executable quote. This
 milestone inspected that interface's source only and did not access Alpaca
 or an options store.
+
+## FMP close metadata successors (September 13, 2026)
+
+Registry **2.85.0**, catalog **2.31.0**, adds explicit metadata successors to the
+existing price and analytical tools. All previous tool versions, input/output
+schemas, defaults and calculation definitions remain available. Select the new
+producer and consumer versions together; an older producer's unestablished
+metadata is accepted by a new consumer without being silently reclassified.
+
+| Tool | Select this version |
+| --- | --- |
+| `market.get_price_series` | `2.0.0` |
+| `market.get_returns`, `market.get_forward_returns` | `2.1.0` |
+| `market.technical_indicators` | `2.8.0` |
+| `market.cross_sectional_performance` | `2.2.0` |
+| `research.news_event_impact` | `2.0.0` |
+| `timeseries.describe`, `timeseries.align`, `timeseries.correlation`, `timeseries.transform`, `data.quality_audit` | `2.1.0` |
+| `stats.distribution_diagnostics`, `stats.covariance_matrix`, `stats.bootstrap_confidence_interval`, `stats.principal_components` | `2.0.0` |
+| `econometrics.regression` | `3.1.0` |
+| `econometrics.rolling_regression`, `econometrics.stationarity` | `2.2.0` |
+| `econometrics.structural_breaks` | `2.1.0` |
+| `research.point_in_time_panel`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate` | `2.1.0` |
+
+`portfolio.get_etf_allocator_snapshot@2.0.0` already uses this close convention
+and needs no further version change. Volume, quotes and corporate-action
+retrieval tools retain their existing contracts.
+
+The [FMP FAQ](https://site.financialmodelingprep.com/faqs) distinguishes
+`close` (split-adjusted, excluding dividend adjustments) from `adjClose`
+(split- and dividend-adjusted). The new reader binds this meaning only to
+retained `/stable/historical-price-eod/full` captures with provider `fmp`,
+normalization `stage10.fmp.daily_price.v1`, variant `fmp_full_eod_v1`,
+provider-native currency, and matching instrument identity. It uses
+`close_value` unchanged. No tool applies another split factor, substitutes
+`adjClose`, or needs a split-history join for this convention.
+
+A nonempty, fully bound close series reports:
+
+- `adjustment_status: split_adjusted_excluding_distributions`;
+- `source_price_field: close`;
+- `price_adjustment_applied_by_tool: false`;
+- `source_adjustment_binding: fmp_full_eod_close_split_only_v1`;
+- the FMP documentation URL, selected source capture count, and
+  `adjustment_vintage_status: single_provider_capture` or
+  `mixed_provider_captures`;
+- `source_publication_time: null`.
+
+Empty or unbound close histories remain `not_established`. Open, high and low
+remain unestablished under this close-specific evidence; volume semantics are
+unchanged. Indicators report the close input's basis separately as
+`source_close_adjustment_status`; their overall adjustment status remains
+unestablished when other price inputs have an unestablished basis.
+Cross-sectional and news-event records expose the selected close source basis.
+Other analytical outputs retain their established lineage and warning
+mechanisms; metadata is preserved wherever those outputs carry source series.
+Structural schemas accept predecessor-shaped inputs; runtime semantic validation
+requires a complete binding for every split-only claim and checks observation
+flags/warnings for consistency. Multi-series analyses reject mixing established
+and unestablished adjustment bases.
+The numerical algorithms and their recorded kernel/transformation versions
+are unchanged.
+
+This convention describes retained provider values at each capture.
+Multiple captures do not establish a common split-adjustment vintage.
+Observation dates, local collection/availability timestamps, and original
+provider publication times remain distinct. As-of selection excludes later
+retained evidence; it establishes only the existing retained-local-capture
+scope. These versions do not invent historical publication times, certify
+historical split-vintage reconstruction, convert price returns into total
+returns, fill missing sessions, or alter the consumer's investment policy.
+
+Public verification on **2026-09-13 at 16:03:25 UTC** used the documented
+`bin/quant-data-tools` launcher. SPY's August 1-31 selection returned 21
+observations from four retained captures. Old/new OHLC values and return values
+matched exactly; the new close and SMA outputs carried the split-only basis,
+and `timeseries.describe@2.1.0` accepted the return output. Market database and
+sidecar stamps were unchanged. Evidence is retained in
+`.local/price-basis-metadata/public-verification.json`.
+
+Validation: 29 focused tests passed, including existing indicator/news routes,
+new public composition, malformed bindings, conflicting quality flags, mixed
+input bases, empty histories and capture cutoffs. Exact `2.84 -> 2.85` and
+`2.83 -> 2.84` generation, frozen/default contracts, generated-output and diff
+checks passed. The final indicator and return-description consumers were
+replayed through the public launcher after the consistency fixes. The full
+offline suite was not run for this additive version change. No provider
+requests, canonical writes or scheduler changes were performed.

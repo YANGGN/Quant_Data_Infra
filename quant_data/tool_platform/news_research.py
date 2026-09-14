@@ -366,6 +366,7 @@ def _event_impact(
     arguments: NewsEventImpactArgumentsV1,
     context: ToolExecutionContext,
     registry: Registry,
+    *, repository_type: type[Stage10DailyPriceRepository] = Stage10DailyPriceRepository,
 ) -> QueryResult:
     context.checkpoint()
     version = CurrentNewsToolRepository(context.store_map, registry).article_version(
@@ -382,7 +383,7 @@ def _event_impact(
     except ValueError as exc:
         raise ValidationError("Current-news availability is invalid") from exc
     range_padding = timedelta(days=120)
-    close = Stage10DailyPriceRepository(context.store_map, registry).get_close_series(
+    close = repository_type(context.store_map, registry).get_close_series(
         Stage10DailyPriceQuery(
             identifier=arguments.instrument_id,
             identifier_kind="instrument_id",
@@ -476,6 +477,12 @@ def _event_impact(
         "abnormal_return_status": "not_computed",
         "session_calendar_status": "not_established",
     }
+    from .price_basis import metadata_fields
+    if "source_price_field" in close.metadata:
+        row.update({
+            **metadata_fields(close.metadata),
+            "source_adjustment_status": close.metadata["adjustment_status"],
+        })
     warnings = (
         WarningV1(
             "retrospective_current_data_not_point_in_time_replay",
@@ -519,6 +526,7 @@ def invoke_news_research_tool(
     arguments: object,
     context: ToolExecutionContext,
     registry: Registry,
+    *, repository_type: type[Stage10DailyPriceRepository] = Stage10DailyPriceRepository,
 ) -> QueryResult:
     """Invoke one fixed read-only news or cross-store research operation."""
 
@@ -531,7 +539,7 @@ def invoke_news_research_tool(
     if name == "news.get_item_history" and isinstance(arguments, NewsItemHistoryArgumentsV1):
         return _item_history(arguments, context, registry)
     if name == "research.news_event_impact" and isinstance(arguments, NewsEventImpactArgumentsV1):
-        return _event_impact(arguments, context, registry)
+        return _event_impact(arguments, context, registry, repository_type=repository_type)
     if not isinstance(arguments, NewsAnalysisArgumentsV1):
         raise ValidationError("News analysis requires typed selection arguments")
 

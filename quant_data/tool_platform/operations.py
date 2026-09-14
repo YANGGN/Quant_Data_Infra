@@ -30,6 +30,7 @@ from .catalog import (
     VERSIONED_DATA_QUALITY_TOOLS,
     VERSIONED_ECONOMETRICS_TOOLS,
     VERSIONED_ENERGY_TOOLS,
+    VERSIONED_ETF_SNAPSHOT_TOOLS,
     VERSIONED_COMPANY_FUNDAMENTAL_TOOLS,
     VERSIONED_MACRO_CONDITION_TOOLS,
     VERSIONED_RATE_TOOLS,
@@ -103,6 +104,12 @@ def invoke_operation(
     registry: Registry,
 ) -> QueryResult:
     """Invoke one closed read-only graph and return an immutable typed result."""
+
+    from .price_basis_versions import PRICE_BASIS_VERSIONS
+    pair = PRICE_BASIS_VERSIONS.get(name)
+    if pair is not None and context.tool_version == pair[1]:
+        from .price_basis_adapter import invoke_price_basis_tool
+        return invoke_price_basis_tool(name, arguments, context, registry)
 
     versioned_timeseries = (
         context.tool_version == "2.0.0"
@@ -350,6 +357,16 @@ def invoke_operation(
         return invoke_company_fundamentals_v21(
             name, arguments, context, registry
         )
+    if (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_ETF_SNAPSHOT_TOOLS
+    ):
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected ETF snapshot operation graph is invalid")
+        from .etf_snapshot import invoke_etf_snapshot
+
+        return invoke_etf_snapshot(name, arguments, context, registry)
     if name in ADDITIVE_PUBLIC_TOOL_NAMES:
         expected_graph = f"tool_platform.{name}.v1"
         if (
@@ -357,6 +374,10 @@ def invoke_operation(
             or context.operation_graph_id != expected_graph
         ):
             raise LookupError("Selected additive operation graph is invalid")
+        from .transcript_contracts import TOOLS
+        if name in TOOLS:
+            from .transcript_access import invoke_transcript
+            return invoke_transcript(name, arguments, context)
         if name == "price_realtime":
             from .realtime_quote import invoke_quote
             return invoke_quote(arguments, context)
