@@ -90,7 +90,7 @@ from .registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
 from .stores import StoreMap, StoreRole, read_connection, resolve_store_map, stable_id
 
 
-_CURRENT_REGISTRY = "2.74.0"
+_CURRENT_REGISTRY = "2.86.0"
 _CURRENT_SCHEMA = "1.9.0"
 _ASSET_ROOT = Path(__file__).with_name("dashboard") / "static"
 _VIEWS = (
@@ -2286,6 +2286,10 @@ class CanonicalInspectorApplication(Stage1Application):
                 "application/javascript; charset=utf-8",
             ),
             "/assets/inter-variable.woff2": (font, "font/woff2"),
+            "/assets/transcript-extraction.css": (
+                (_ASSET_ROOT / "transcript_extraction.css").read_bytes(),
+                "text/css; charset=utf-8",
+            ),
             "/assets/inspector-tools.css": (
                 (_ASSET_ROOT / "inspector_tools.css").read_bytes(),
                 "text/css; charset=utf-8",
@@ -2322,6 +2326,8 @@ class CanonicalInspectorApplication(Stage1Application):
                     route="healthz",
                 ),
             )
+        if path == "/transcript-extractions":
+            return self._transcript_extraction_response(query)
         if path == "/api/rows":
             result = self._reads.inspect(query)
             return self._json_response(
@@ -2488,6 +2494,48 @@ class CanonicalInspectorApplication(Stage1Application):
             )
         raise RouteNotFoundError("Route was not found")
 
+    def _transcript_extraction_response(self, query: Mapping[str, str]) -> HttpResponse:
+        """Adapt fixed read-only transcript tools into the formatted reader."""
+        from .dashboard.transcript_extraction_page import render_transcript_extraction_page
+        from .tool_platform.transcript_contracts import KINDS, parse
+
+        detail = "capture_id" in query
+        allowed = {"capture_id", "cursor"} if detail else {
+            "ticker", "fiscal_year", "fiscal_quarter", "cursor",
+        }
+        if set(query) - allowed:
+            raise ValidationError("Transcript extractions accept only the displayed filters")
+        arguments: dict[str, Any] = {"limit": 10 if detail else 25}
+        normalized: dict[str, str] = {}
+        for key, value in query.items():
+            value = value.strip() if key != "cursor" else value
+            if not value and key != "capture_id":
+                continue
+            if key == "ticker":
+                value = value.upper()
+            normalized[key] = value
+            if key in {"fiscal_year", "fiscal_quarter"}:
+                if not value.isascii() or not value.isdecimal() or len(value) > 4:
+                    raise ValidationError("Fiscal year and quarter must be whole numbers")
+                arguments[key] = int(value)
+            else:
+                arguments[key] = value
+        tool = "company.get_transcript_extraction" if detail else "company.search_transcripts"
+        # Validate before invoking any reader; the dispatcher repeats its public checks.
+        parse(KINDS[tool], arguments)
+        result: Mapping[str, Any] = {}
+        error = None
+        status = HTTPStatus.OK
+        try:
+            result = self.dispatcher.call(tool, arguments, tool_version="1.0.0")
+        except QuantDataError as exc:
+            error = exc.safe_message
+            status = exc.http_status
+        page = render_transcript_extraction_page(
+            result, query=normalized, registry_revision=self._registry.revision, error=error,
+        )
+        return HttpResponse(status, page.encode("utf-8"), "text/html; charset=utf-8")
+
     def _handle_post(
         self,
         path: str,
@@ -2501,6 +2549,7 @@ class CanonicalInspectorApplication(Stage1Application):
         if path in {
             "/",
             "/healthz",
+            "/transcript-extractions",
             "/status",
             "/data-status",
             "/api/data-status",
@@ -3059,11 +3108,13 @@ def _render_page(
     if view == "company-transcripts":
         if not result.get("query", {}).get("capture_id"):
             row_links = tuple("/?" + urlencode({"view":view,"capture_id":row["capture_id"]}) for row in rows)
-            transcript_note = '<p class="inspector-footnote">Equibles · stored transcript captures. Fiscal periods are provider labels; availability begins at local capture.</p>'
+            transcript_note = '<p><a href="/transcript-extractions">Browse transcript extractions</a></p><p class="inspector-footnote">Equibles · stored transcript captures. Fiscal periods are provider labels; availability begins at local capture.</p>'
         else:
             metadata = result.get("transcript") or {}
             title = f"{metadata.get('symbol', '')} · FY{metadata.get('fiscal_year', '')} Q{metadata.get('fiscal_quarter', '')}"
-            transcript_note = ('<p><a href="/?view=company-transcripts">Back to transcripts</a></p><h2>'
+            extraction_url = "/transcript-extractions?" + urlencode({"capture_id": result["query"]["capture_id"]})
+            transcript_note = ('<p><a href="/?view=company-transcripts">Back to transcripts</a> · '
+                + '<a href="' + html.escape(extraction_url, quote=True) + '">Read extraction</a></p><h2>'
                 + html.escape(title) + '</h2><p class="inspector-footnote">Speaker turns in source order. '
                 + 'Missing speakers and timestamps stay unspecified. Local capture: '
                 + html.escape(str(metadata.get("captured_at", "Unavailable"))) + '</p>')

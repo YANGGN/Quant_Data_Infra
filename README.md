@@ -133,6 +133,10 @@ Refresh the page to update its snapshot.
 Equibles appears in Data status with its daily backfill schedule and recorded
 progress. **Company transcripts** (`/?view=company-transcripts`) browses stored
 calls by symbol and fiscal period; each call opens paginated speaker text.
+**Transcript extractions** (`/transcript-extractions`) provides a formatted
+reader for saved model outputs, with ticker/fiscal-period search, source links,
+quality and review status, and full original JSON. Each stored transcript links
+to its extraction; reading a saved output does not run a model or collect data.
 Status includes an Equibles progress panel and its daily run. In Daily focus,
 Current news is one collapsed entry; click it to expand the hourly outcomes.
 

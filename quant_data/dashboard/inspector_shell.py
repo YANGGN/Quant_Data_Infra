@@ -52,6 +52,7 @@ INSPECTOR_NAVIGATION = (
     ("Company & news", (
         ("company-fundamentals", "Company fundamentals"),
         ("company-transcripts", "Company transcripts"),
+        ("/transcript-extractions", "Transcript extractions"),
         ("/news", "Current news"),
     )),
     ("Workspace", (
@@ -175,7 +176,11 @@ def render_inspector_table(
             if not href.startswith("/?view=company-transcripts&capture_id="):
                 raise ValueError("Transcript link must use the fixed local view")
             label = f"Read transcript: {row.get('symbol', '')} FY{row.get('fiscal_year', '')} Q{row.get('fiscal_quarter', '')}"
-            cells.append('<td><a href="' + _escape(href) + '" aria-label="' + _escape(label) + '">Read transcript</a></td>')
+            extraction_href = "/transcript-extractions?" + urlencode({"capture_id": row["capture_id"]})
+            extraction_label = f"Read extraction: {row.get('symbol', '')} FY{row.get('fiscal_year', '')} Q{row.get('fiscal_quarter', '')}"
+            cells.append('<td><a href="' + _escape(href) + '" aria-label="' + _escape(label)
+                         + '">Read transcript</a><br><a href="' + _escape(extraction_href)
+                         + '" aria-label="' + _escape(extraction_label) + '">Read extraction</a></td>')
         rendered_rows.append('<tr>' + ''.join(cells) + '</tr>')
     body = ''.join(rendered_rows) or (
         f'<tr><td colspan="{max(1, len(columns) + (row_links is not None))}" class="inspector-empty">'

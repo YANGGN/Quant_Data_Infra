@@ -228,6 +228,23 @@ preserves the complete response in a bounded nested preview plus a complete
 paged strict-JSON view. Typed time series returned by one tool can be reused
 by another tool within that browser session.
 
+The **Transcript extractions** navigation item opens `/transcript-extractions`.
+Search retained calls by ticker and optional fiscal year/quarter, then open a
+capture to read its saved extraction as formatted sections: headline, reported
+results, guidance, business drivers, analyst focus, management tone and watch
+items. Company transcripts list and detail pages also link to the same reader.
+Source references link to the matching original transcript page. The reader
+shows the recorded model, automatic quality status and independent review status
+separately; a flagged or unreviewed draft remains visible as its original output.
+Original structured JSON, output metadata and assessment documents remain
+available in disclosures. An unavailable store is distinct from no saved output.
+
+The page calls only `company.search_transcripts@1.0.0` (25 captures per page)
+and `company.get_transcript_extraction@1.0.0` (10 assessments per page), through
+the existing immutable public reader. Cursor pagination retains the tool's
+selection cutoff and extraction identity. The page adds no collection, model
+request or canonical write and does not modify either public tool contract.
+
 Use the Current news shortcut for a bounded latest `news.search@2.3.0`
 table with text, symbol, source, date, and cursor filters. It exposes retained
 headline metadata and truncation through the public contract without exposing
