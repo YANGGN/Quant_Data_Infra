@@ -520,3 +520,24 @@ and foreign keys verified. The first 60-call publication passed raw-byte,
 complete-bundle, lineage, and pre-existing company-table preservation checks.
 See the [dated operating evidence](CURRENT_OPERATING_ENVELOPE.md#september-7-2026--equibles-activation-evidence)
 and `.local/equibles-activation.json`.
+
+## Company short-description allocation and population - September 22, 2026
+
+The user's explicit request for short descriptions across the existing selected
+universe allocates and applies company ordinal 19 after company 0018:
+company:0019_short_descriptions,
+resource quant_data/migrations/company/0019_short_descriptions.sql,
+SHA-256 7c734a408c2407e86cac7fc1baac12726cb6839112d9d10cd70339b3902701d3, registry 2.91.0,
+reconstruction state fixture_validated. All earlier migration bytes, ledger rows
+and SQL definitions were preserved. The existing migration engine's full
+foreign-key gate passed.
+
+The private company.profile_evidence dataset owns company_profile_evidence.
+The derived company.short_descriptions dataset owns
+company_short_description_versions and the current company_short_descriptions
+view. The short_description field is populated for all 2,248 selected securities;
+source profiles, instrument identity, input snapshots, source timing and
+publication timing are retained. Exact semantic replay writes zero rows.
+The full contract, focused and independent checks, finite provider scope and
+completion receipts are recorded in
+[Company short descriptions](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md).

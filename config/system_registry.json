@@ -3747,6 +3747,57 @@
     "max_rows": 1000,
     "max_seconds": 30
    }
+  },
+  {
+   "configuration_env": [
+    "FMP_API_KEY"
+   ],
+   "handler": "company.short_descriptions",
+   "id": "fmp.company.short_descriptions",
+   "input_datasets": [
+    "market.collection.membership",
+    "market.collection.provider_mappings"
+   ],
+   "mutation_policy": {
+    "mode": "append_versions_and_capture_membership",
+    "unchanged": "zero_persistent_writes"
+   },
+   "network": true,
+   "output_datasets": [
+    "company.profile_evidence",
+    "company.short_descriptions"
+   ],
+   "physical_locks": "derived_from_output_store_paths",
+   "retry_policy": {
+    "backoff": "none_single_attempt",
+    "honor_retry_after": false,
+    "max_attempts": 1,
+    "transient_classes": []
+   },
+   "schedule_eligibility": {
+    "mode": "manual_only"
+   },
+   "semantic_identity": {
+    "excludes": [
+     "api_key",
+     "captured_at",
+     "http_headers",
+     "source_row_order",
+     "raw_response_identity"
+    ],
+    "includes": [
+     "request_scope",
+     "normalization_version",
+     "normalized_records"
+    ]
+   },
+   "version": "1.0.0",
+   "workload_bounds": {
+    "max_bytes": 33554432,
+    "max_requests": 516,
+    "max_rows": 2248,
+    "max_seconds": 1800
+   }
   }
  ],
  "compatibility_target": {
@@ -10287,6 +10338,147 @@
     "company.search_transcript_evidence"
    ],
    "version": "1.0.0"
+  },
+  {
+   "active": true,
+   "collector_ids": [
+    "fmp.company.short_descriptions"
+   ],
+   "dashboard_ids": [],
+   "export_ids": [],
+   "freshness": {
+    "cadence": "manual",
+    "expected_lag": "P0D",
+    "health_severity": "warning",
+    "if_new": true,
+    "measured_from": "successful_capture",
+    "stale_after": "P30D"
+   },
+   "id": "company.profile_evidence",
+   "identity": {
+    "stable_fields": [
+     "content_sha256",
+     "source_pointer"
+    ],
+    "version_fields": [
+     "evidence_id"
+    ]
+   },
+   "layer": "evidence",
+   "physical": {
+    "relations": [
+     {
+      "kind": "table",
+      "name": "company_profile_evidence"
+     }
+    ]
+   },
+   "quality_contract": {
+    "missingness": "not_applicable",
+    "required_warnings": [],
+    "rules": [
+     "source_profile_identity",
+     "immutable_raw_evidence",
+     "local_capture_cutoff",
+     "explicit_extractive_method",
+     "zero_write_semantic_replay"
+    ],
+    "units": "not_applicable"
+   },
+   "revision_policy": "immutable_capture",
+   "store": "company",
+   "temporal": {
+    "availability_fields": [
+     "captured_at"
+    ],
+    "availability_precision": "datetime",
+    "history_basis": "local_capture",
+    "missingness": "not_applicable",
+    "observation_fields": [
+     "captured_at"
+    ],
+    "observation_precision": "datetime",
+    "range_semantics": "inclusive",
+    "timezone_rule": "source_native_no_conversion",
+    "vintage_modes": [
+     "latest",
+     "as_of"
+    ]
+   },
+   "tool_ids": [],
+   "version": "1.0.0"
+  },
+  {
+   "active": true,
+   "collector_ids": [
+    "fmp.company.short_descriptions"
+   ],
+   "dashboard_ids": [],
+   "export_ids": [],
+   "freshness": {
+    "cadence": "manual",
+    "expected_lag": "P0D",
+    "health_severity": "warning",
+    "if_new": true,
+    "measured_from": "successful_capture",
+    "stale_after": "P30D"
+   },
+   "id": "company.short_descriptions",
+   "identity": {
+    "stable_fields": [
+     "instrument_id"
+    ],
+    "version_fields": [
+     "version_id"
+    ]
+   },
+   "layer": "derived",
+   "physical": {
+    "relations": [
+     {
+      "kind": "table",
+      "name": "company_short_description_versions"
+     },
+     {
+      "kind": "view",
+      "name": "company_short_descriptions"
+     }
+    ]
+   },
+   "quality_contract": {
+    "missingness": "not_applicable",
+    "required_warnings": [],
+    "rules": [
+     "source_profile_identity",
+     "immutable_raw_evidence",
+     "local_capture_cutoff",
+     "explicit_extractive_method",
+     "zero_write_semantic_replay"
+    ],
+    "units": "not_applicable"
+   },
+   "revision_policy": "append_version",
+   "store": "company",
+   "temporal": {
+    "availability_fields": [
+     "available_at"
+    ],
+    "availability_precision": "datetime",
+    "history_basis": "local_capture",
+    "missingness": "not_applicable",
+    "observation_fields": [
+     "available_at"
+    ],
+    "observation_precision": "datetime",
+    "range_semantics": "inclusive",
+    "timezone_rule": "source_native_no_conversion",
+    "vintage_modes": [
+     "latest",
+     "as_of"
+    ]
+   },
+   "tool_ids": [],
+   "version": "1.0.0"
   }
  ],
  "exports": [
@@ -12344,6 +12536,18 @@
    "store": "company"
   },
   {
+   "dependencies": [
+    "company:0018_structured_transcripts"
+   ],
+   "id": "company:0019_short_descriptions",
+   "ordinal": 19,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/company/0019_short_descriptions.sql",
+   "semantic_scope": "Add immutable profile evidence and versioned derived short descriptions with source identity and availability; preserve all earlier migrations and source records.",
+   "sha256": "7c734a408c2407e86cac7fc1baac12726cb6839112d9d10cd70339b3902701d3",
+   "store": "company"
+  },
+  {
    "dependencies": [],
    "id": "news:0001_foundation",
    "ordinal": 1,
@@ -12556,7 +12760,7 @@
    "company.search_transcript_evidence"
   ]
  },
- "registry_version": "2.90.0",
+ "registry_version": "2.91.0",
  "schema_id": "quant_data.system_registry",
  "schema_version": "1.9.0",
  "status": "validated",
@@ -12707,7 +12911,8 @@
     "company:0015_sec_completion_indexes",
     "company:0016_fmp_research_lookup_indexes",
     "company:0017_sharadar_direct",
-    "company:0018_structured_transcripts"
+    "company:0018_structured_transcripts",
+    "company:0019_short_descriptions"
    ],
    "path_env": "QUANT_COMPANY_DB_PATH",
    "write_coordination": {

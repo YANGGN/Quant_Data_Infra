@@ -4235,3 +4235,34 @@ Local receipts are in `.local/transcript-tools-20260914/`.
 This implementation grants no new collector, model, scheduler, migration,
 network-hosting or operational-store connection authority. Existing normal
 clock execution retains only its previously recorded scope.
+
+## September 22, 2026 - selected company short descriptions completed
+
+The user authorized populating a short description for all selected tickers,
+reusing existing information and fetching missing profiles from FMP. The finite
+scope was the existing 2,248-security major_index_liquid selection and at most
+516 single-attempt profile requests through the existing FMP credential resolver,
+account allowance, bounded transport and physical-store publication locks.
+No recurring unit was changed or manually executed.
+
+The reviewed additive company migration 0019 is applied at registry 2.91.0.
+Its full foreign-key gate and prior-schema/ledger/source-count preservation
+checks passed. WSL temporarily became unresponsive to new commands during the
+migration; it recovered and the original command completed. No WSL restart or
+migration repeat was performed by this task.
+
+At 2026-09-22T19:11:00.643053Z, one publication saved all 2,248 short descriptions:
+1,732 reused retained FMP text and 516 used newly acquired profiles. All 516
+requests returned HTTP 200; total response bytes were 1,386,226, with no retries.
+Every description is an extractive source summary, capped at 400 characters;
+seven carry an explicit truncation flag. Full descriptions and original raw
+source profiles remain retained separately. There are zero coverage gaps and
+no industry-only fallback rows.
+
+The immutable completion audit verified every selected identity, source byte
+digest and saved description, and both new tables' foreign keys. Full-batch
+semantic replay returned unchanged with zero writes and unchanged scoped state.
+This completed population must not be repeated without a new finite request.
+There is no new scheduler, public tool, UI, export, hosting, or provider family.
+See [the contract and completion evidence](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md)
+and .local/company-short-descriptions-20260922/completion-receipt.json.

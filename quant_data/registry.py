@@ -1945,7 +1945,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -4028,7 +4028,7 @@ def load_registry(
             max_workload_bytes = 8_388_608
         if collector_id in ("nasdaq.company.sharadar_sf1","sharadar.company.direct_sf1"):
             max_workload_bytes = 268_435_456
-        if collector_id in ("nasdaq.company.sharadar_definitions","sharadar.company.direct_definitions"):
+        if collector_id in ("nasdaq.company.sharadar_definitions","sharadar.company.direct_definitions","fmp.company.short_descriptions"):
             max_workload_bytes = 33_554_432
         if collector_id in ("local.market.collection_manifest","local.market.selected_instruments"):
             max_workload_bytes = 67_108_864
@@ -4528,6 +4528,10 @@ def load_registry(
             from quant_data.company.fmp_statement_registry import identity_declaration
             if collector != identity_declaration(raw):
                 raise _error(pointer, "selected_instruments", "Selected instrument collector drifted")
+        elif collector_id == "fmp.company.short_descriptions":
+            from quant_data.company.short_description_registry import collector_declaration
+            if collector != collector_declaration(raw):
+                raise _error(pointer, "short_descriptions", "Description collector drifted")
         elif collector_id == "fmp.company.statement_history":
             from quant_data.company.fmp_statement_registry import declaration
             if collector != declaration(raw):
@@ -5884,6 +5888,8 @@ _ETF_SNAPSHOT_V2_PREDECESSOR_CATALOG_SHA256 = (
 
 def transcript_research_registry_profile(registry: Registry) -> Registry:
     """Remove only transcript research tools and the targeted-turn variant; restore exact 2.89."""
+    from .company.short_description_registry import predecessor_profile
+    registry = predecessor_profile(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.90.0"):
         return registry
     from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
@@ -15098,7 +15104,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
         json.dumps(
             registry.raw,
             ensure_ascii=True,
-            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0"), ("1.9.0", "2.87.0"), ("1.9.0", "2.88.0"), ("1.9.0", "2.89.0"), ("1.9.0", "2.90.0")} else 2,
+            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0"), ("1.9.0", "2.87.0"), ("1.9.0", "2.88.0"), ("1.9.0", "2.89.0"), ("1.9.0", "2.90.0"), ("1.9.0", "2.91.0")} else 2,
             sort_keys=True,
         )
         + "\n"
