@@ -2725,6 +2725,20 @@ def input_schema(input_kind: str, series_schema: Mapping[str, Any]) -> dict[str,
     re-declaring (or weakening) its observation bound here.
     """
 
+    if input_kind == "forward_pe_analysis_v1":
+        from .forward_pe_analysis_access import schema
+        return schema()
+    if input_kind == "forward_pe_v1":
+        from .forward_pe_access import schema
+        return schema()
+    from .sharadar_company_contracts import KINDS as SHARADAR_KINDS
+    if input_kind in SHARADAR_KINDS.values():
+        from .sharadar_company_contracts import schema
+        return schema(input_kind)
+    from .transcript_research_contracts import KINDS as RESEARCH_KINDS
+    if input_kind in RESEARCH_KINDS.values():
+        from .transcript_research_contracts import schema
+        return schema(input_kind)
     from .transcript_contracts import KINDS
     if input_kind in KINDS.values():
         from .transcript_contracts import schema
@@ -5331,6 +5345,20 @@ def parse_arguments(
     before any decoder invocation.
     """
 
+    if input_kind == "forward_pe_analysis_v1":
+        from .forward_pe_analysis_access import parse
+        return parse(public)
+    if input_kind == "forward_pe_v1":
+        from .forward_pe_access import parse
+        return parse(public)
+    from .sharadar_company_contracts import KINDS as SHARADAR_KINDS
+    if input_kind in SHARADAR_KINDS.values():
+        from .sharadar_company_contracts import parse
+        return parse(input_kind, public)
+    from .transcript_research_contracts import KINDS as RESEARCH_KINDS
+    if input_kind in RESEARCH_KINDS.values():
+        from .transcript_research_contracts import parse
+        return parse(input_kind, public)
     from .transcript_contracts import KINDS
     if input_kind in KINDS.values():
         from .transcript_contracts import parse
@@ -5882,6 +5910,20 @@ def preflight_dimensions(
     count, matching the platform's correlation/alignment workload ceiling.
     """
 
+    if input_kind == "forward_pe_analysis_v1":
+        parsed = parse_arguments(input_kind, public, lambda value: value)
+        return {"rows": parsed.limit, "series": 0, "operations": 30000 * 128}
+    if input_kind == "forward_pe_v1":
+        parsed = parse_arguments(input_kind, public, lambda value: value)
+        return {"rows":parsed.limit,"series":0,"operations":parsed.limit*10}
+    from .sharadar_company_contracts import KINDS as SHARADAR_KINDS
+    if input_kind in SHARADAR_KINDS.values():
+        parsed = parse_arguments(input_kind, public, lambda value: value)
+        return {"rows": parsed.limit + 1, "series": 1, "operations": 5000000}
+    from .transcript_research_contracts import KINDS as RESEARCH_KINDS
+    if input_kind in RESEARCH_KINDS.values():
+        parsed = parse_arguments(input_kind, public, lambda value: value)
+        return {"rows": parsed.limit, "series": 0, "operations": 5000000}
     from .transcript_contracts import KINDS
     if input_kind in KINDS.values():
         parsed = parse_arguments(input_kind, public, lambda value: value)

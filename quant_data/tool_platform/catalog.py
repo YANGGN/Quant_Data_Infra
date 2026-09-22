@@ -23,7 +23,7 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.32.0"
+VERSIONED_CATALOG_VERSION = "2.36.0"
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -41,6 +41,9 @@ ADDITIVE_NEWS_RESEARCH_TOOLS = (
     "news.headline_sentiment",
     "research.news_event_impact",
 )
+ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS = ("company.get_transcript_history", "company.search_transcript_evidence")
+ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS = ("company.get_forward_pe_analysis",)
+ADDITIVE_FORWARD_PE_TOOLS = ("company.get_forward_pe",)
 ADDITIVE_TRANSCRIPT_TOOLS = ("company.search_transcripts", "company.get_transcript", "company.get_transcript_extraction")
 ADDITIVE_FMP_RESEARCH_TOOLS = ("price_realtime", "company.get_research_inputs")
 ADDITIVE_ETF_TOOLS = ("portfolio.get_etf_allocator_snapshot",)
@@ -56,6 +59,9 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_ETF_TOOLS,
     *ADDITIVE_FMP_RESEARCH_TOOLS,
     *ADDITIVE_TRANSCRIPT_TOOLS,
+    *ADDITIVE_FORWARD_PE_TOOLS,
+    *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
+    *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -152,6 +158,7 @@ VERSIONED_TOOL_NAMES = (
     *VERSIONED_NEWS_TOOLS,
     *VERSIONED_INVESTMENT_ANALYSIS_TOOLS,
     *VERSIONED_ETF_SNAPSHOT_TOOLS,
+    "company.get_transcript",
     *NEW_PRICE_BASIS_POLICIES,
 )
 
@@ -232,7 +239,7 @@ CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
     "market": 9,
-    "company": 14,
+    "company": 18,
     "research": 24,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
@@ -267,6 +274,9 @@ _CURRENT_PUBLIC_NAMES.insert(
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_ETF_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FMP_RESEARCH_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -618,6 +628,11 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
     additive += tuple(ToolProfile(name=name,family="company",input_kind=KINDS[name],
         stores=("company",),datasets=(RAW_DATASET,) if name=="company.get_transcript" else (RAW_DATASET,STRUCTURED_DATASET))
         for name in ADDITIVE_TRANSCRIPT_TOOLS)
+    additive += (ToolProfile(name="company.get_forward_pe",family="company",input_kind="forward_pe_v1",stores=(),datasets=()),)
+    additive += (ToolProfile(name="company.get_forward_pe_analysis", family="company", input_kind="forward_pe_analysis_v1", stores=(), datasets=()),)
+    from .transcript_research_contracts import KINDS as RESEARCH_KINDS
+    additive += tuple(ToolProfile(name=name, family="company", input_kind=RESEARCH_KINDS[name],
+        stores=("company",), datasets=(RAW_DATASET, STRUCTURED_DATASET)) for name in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -1221,8 +1236,59 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *_build_etf_snapshot_entries(),
         *_build_fmp_research_entries(),
         *_build_transcript_entries(),
+        *_build_transcript_research_entries(),
+        _build_forward_pe_entry(),
+        _build_forward_pe_analysis_entry(),
     )
 
+
+
+def _build_forward_pe_analysis_entry():
+    from .forward_pe_analysis_access import TOOL, MAX_RECORDS, schema
+    entry = _build_forward_pe_entry()
+    graph = f"tool_platform.{TOOL}.v1"
+    entry.update(id=TOOL, handler=graph, operation_graph_id=graph,
+        description="Read raw forward P/E and trailing z-scores with optional rolling winsorization from the dashboard research publication.",
+        input_type="ForwardPeAnalysisArgumentsV1",
+        input_schema_id=_versioned_schema_id(TOOL,"input",version="1.0.0"), input_schema=schema(),
+        output_schema_id=_versioned_schema_id(TOOL,"output",version="1.0.0"),
+        output_schema=query_result_schema(TOOL,{"type":"object","additionalProperties":False,"properties":{},"required":[]}),
+        examples=[{"ticker":"MU","range":"5y","window_sessions":756,"min_observations":252,"winsor_tail_pct":"2.5"}],
+        assumptions=["host_selected_immutable_research_publication","no_canonical_store_reads",
+            "reconstructed_estimates_not_point_in_time","original_raw_pe_preserved",
+            "trailing_sessions_including_current","nulls_occupy_sessions_excluded_from_moments",
+            "population_standard_deviation","linear_type_7_quantiles","signed_pe_descriptive_only"],
+        workload_bounds={"max_rows":MAX_RECORDS,"max_series":1,"max_operations":3840000,
+            "max_request_bytes":1048576,"max_response_bytes":8388608},
+        availability_policy={"modes":["latest"],"point_in_time_default":"not_established",
+            "date_bounds":"trailing_display_range_with_prior_session_warmup_max_30000_output_sessions"})
+    entry["output_schema"]["properties"]["series"]["maxItems"]=0
+    return entry
+
+
+def _build_forward_pe_entry():
+    from .forward_pe_access import TOOL, KIND, MAX_RECORDS, schema
+    entry=copy.deepcopy(_build_data_status_entries()[0])
+    graph=f"tool_platform.{TOOL}.v1"
+    entry.update(id=TOOL,family="company",owner="company",handler=graph,operation_graph_id=graph,
+        description="Read saved daily forward P/E, forward EPS, prices and fiscal windows from the dashboard research publication.",
+        stores=[],datasets=[],input_type="ForwardPeArgumentsV1",
+        input_schema_id=_versioned_schema_id(TOOL,"input",version="1.0.0"),input_schema=schema(),
+        output_schema_id=_versioned_schema_id(TOOL,"output",version="1.0.0"),
+        output_schema=query_result_schema(TOOL,{"type":"object","additionalProperties":False,"properties":{},"required":[]}),
+        examples=[{"ticker":"MU","start_date":"2021-09-20","end_date":"2026-09-18"}],
+        assumptions=["host_selected_immutable_research_publication","no_canonical_store_reads",
+            "reconstructed_estimates_not_point_in_time","original_historical_denominators_preserved",
+            "signed_nonzero_forward_eps","complete_inclusive_date_range","window_components_in_documented_json_fields"],
+        workload_bounds={"max_rows":MAX_RECORDS,"max_series":1,"max_operations":100000,
+            "max_request_bytes":1048576,"max_response_bytes":8388608},
+        availability_policy={"modes":["latest"],"point_in_time_default":"not_established",
+            "date_bounds":"inclusive_trade_dates_max_3661_calendar_days"},
+        contracts={"availability":"saved_research_publication","point_in_time":"not_established_reconstructed_proxy","returns":"not_applicable"},
+        composable={"input_types":[],"output_types":["QueryResultV1"]})
+    entry["output_schema"]["properties"]["series"]["maxItems"]=0
+    entry["output_schema"]["properties"]["records"]["maxItems"]=MAX_RECORDS
+    return entry
 
 
 def _build_transcript_entries() -> tuple[dict[str, Any], ...]:
@@ -1260,6 +1326,55 @@ def _build_transcript_entries() -> tuple[dict[str, Any], ...]:
         entry["output_schema"]["properties"]["records"]["maxItems"]=max_rows
         entries.append(entry)
     return tuple(entries)
+
+
+def _transcript_research_entry(name, version="1.0.0"):
+    from .transcript_research_contracts import HISTORY, SEARCH, TARGET, KINDS, SECTIONS, schema
+    base = _build_transcript_entries()[1 if name == TARGET else 2]
+    entry = copy.deepcopy(base)
+    graph = f"tool_platform.{name}.v{version[0]}"
+    descriptions = {
+        HISTORY: "Read selected saved summary sections across a ticker's calls, ordered by actual call date.",
+        SEARCH: "Search saved structured summaries for literal text with cited original transcript excerpts; paginate bounded capture scans.",
+        TARGET: "Read exact original speaker turns by turn ID with optional neighboring context.",
+    }
+    max_rows = 100 if name == TARGET else 20
+    entry.update(id=name, handler=graph, operation_graph_id=graph,
+        description=descriptions[name], input_type="TranscriptResearchArguments",
+        input_schema_id=_versioned_schema_id(name, "input", version=version),
+        output_schema_id=_versioned_schema_id(name, "output", version=version),
+        input_schema=schema(KINDS[name]),
+        output_schema=query_result_schema(name, {"type":"object","additionalProperties":False,"properties":{},"required":[]}),
+        examples=([{"ticker":"MU","limit":8,"sections":["guidance","business_drivers"],"include_blocked":False}] if name==HISTORY else
+                  [{"query":"margin","tickers":["MU"],"limit":5,"sections":list(SECTIONS),"include_blocked":False}] if name==SEARCH else
+                  [{"capture_id":"equibles_transcript_"+"a"*32,"turn_ids":["t1","t2"],"context_turns":1}]),
+        assumptions=["host_selected_immutable_company_store","local_capture_and_model_completion_cutoff",
+            "selective_model_drafts_not_exhaustive_facts","quality_and_review_outcomes_remain_separate",
+            "actual_call_date_no_fiscal_calendar_inference","bounded_reads_no_provider_calls",
+            "latest_eligible_capture_per_provider_event","blocked_drafts_excluded_unless_requested",
+            "json_content_in_documented_scalar_fields"])
+    if name == TARGET:
+        entry["assumptions"] = ["host_selected_immutable_company_store","local_raw_capture_cutoff",
+            "original_provider_text","exact_turn_ids_with_deduplicated_neighboring_context",
+            "bounded_reads_no_provider_calls","json_content_in_documented_scalar_fields"]
+    entry["workload_bounds"]["max_rows"]=max_rows
+    entry["output_schema"]["properties"]["series"]["maxItems"]=0
+    entry["output_schema"]["properties"]["records"]["maxItems"]=max_rows
+    return entry
+
+def _build_transcript_research_entries():
+    return tuple(_transcript_research_entry(name) for name in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
+
+def _build_transcript_turns_policy():
+    entry = _transcript_research_entry("company.get_transcript", "2.0.0")
+    entry.update(version="2.0.0", operation_version="2.0.0",
+        compatibility={"status":"successor_breaking_v2","predecessor":"1.0.0"})
+    return {"tool":"company.get_transcript","default_version":"1.0.0",
+        "selector_field":"tool_version","variants":[entry],"deprecations":[{
+            "version":"1.0.0","code":"tool_version_deprecated",
+            "message":"Version 1.0.0 remains available for sequential pages; select 2.0.0 for targeted speaker turns.",
+            "replacement":{"tool":"company.get_transcript","version":"2.0.0"},
+            "removal":{"status":"not_scheduled","milestone":None}}]}
 
 def _build_fmp_research_entries() -> tuple[dict[str, Any], ...]:
     entries = []
@@ -3306,7 +3421,9 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
         )
     )
     result.extend(_build_etf_snapshot_v2_policies())
-    return add_price_basis_policies(result, build_additive_tool_entries())
+    from .sharadar_company_contracts import add_policies
+    result.append(_build_transcript_turns_policy())
+    return add_policies(add_price_basis_policies(result, build_additive_tool_entries()))
 
 
 def _build_quality_transform_policies(
@@ -5156,6 +5273,8 @@ OPERATION_GRAPH_IDS = frozenset(
 )
 VERSIONED_OPERATION_GRAPH_IDS = frozenset(
     [
+        "tool_platform.company.get_fundamentals.v3",
+        "tool_platform.company.get_share_count_history.v3",
         "tool_platform.econometrics.regression.v3",
         *(f"tool_platform.{name}.v{version[:-2].replace('.', '_')}"
           for name, (_, version) in PRICE_BASIS_VERSIONS.items()

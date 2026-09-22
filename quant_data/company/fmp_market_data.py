@@ -12,6 +12,8 @@ source-unspecified units. These values are explicitly distinct from USD.
 
 from __future__ import annotations
 
+from ..ingestion import PublicationDeferred
+
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -21,6 +23,7 @@ import math
 from pathlib import PurePosixPath
 import re
 import sqlite3
+import time
 from typing import Any, Final, Literal
 
 from ..contracts import IngestionReceipt
@@ -28,7 +31,7 @@ from ..errors import ConflictError, ResourceLimitError, ValidationError
 from ..ingestion import ArtifactWrite, IngestionCoordinator, SnapshotWrite, WriteResult
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import HeldWriteLocks, StoreMap, StoreRole, stable_id
+from ..stores import HeldWriteLocks, StoreMap, StoreRole, stable_id, acquire_write_session
 from ..temporal import TemporalPrecision, TemporalValue
 
 
@@ -1378,6 +1381,7 @@ class FmpCompanyMarketDataPublisher:
         }
         if not required.issubset(registered):
             raise _fail("existing company action and expectation datasets are not registered")
+        self._store_map = store_map
         self._coordinator = IngestionCoordinator(
             store_map,
             code_version="fmp_company_market_data.1.0.0",
@@ -1388,8 +1392,22 @@ class FmpCompanyMarketDataPublisher:
         parsed: ParsedFmpCompanyResponse,
         *,
         held_locks: HeldWriteLocks | None = None,
+        deadline=None,
+        monotonic=time.monotonic,
     ) -> IngestionReceipt:
+        def check_deadline():
+            if deadline is not None and monotonic()>=deadline:
+                raise PublicationDeferred("FMP company publication exceeded its invocation deadline")
+        check_deadline()
         _validate_prepared(parsed)
+        check_deadline()
+        if deadline is not None and held_locks is None:
+            with acquire_write_session(self._store_map,(StoreRole.COMPANY,)) as locks:
+                check_deadline()
+                return self.publish(parsed,held_locks=locks,deadline=deadline,monotonic=monotonic)
+        if held_locks is not None:
+            held_locks._require_target(self._store_map,StoreRole.COMPANY)
+        check_deadline()
         run_id = stable_id(
             "fmp_company_market_data_run",
             parsed.canonical_dataset_id,
@@ -1400,6 +1418,7 @@ class FmpCompanyMarketDataPublisher:
         control_snapshot_id = _control_snapshot_id(parsed)
 
         def writer(connection: sqlite3.Connection, active_run_id: str) -> WriteResult:
+            check_deadline()
             if active_run_id != run_id:
                 raise _fail("coordinator supplied an unexpected run identity")
             _require_existing_issuer(connection, parsed.subject)
@@ -1440,6 +1459,7 @@ class FmpCompanyMarketDataPublisher:
                 warnings=parsed.warnings,
             )
 
+        check_deadline()
         return self._coordinator.execute(
             role=StoreRole.COMPANY,
             dataset_id=parsed.evidence_dataset_id,

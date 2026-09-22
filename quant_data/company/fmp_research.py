@@ -1,9 +1,11 @@
 """Bounded retained FMP company research inputs; no provider transport."""
 from __future__ import annotations
+
+from ..ingestion import PublicationDeferred
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from datetime import date
-import hashlib, sqlite3
+from datetime import date, timezone
+import hashlib, sqlite3, time, re
 from pathlib import PurePosixPath
 from types import MappingProxyType
 from typing import Any, Final, Literal
@@ -55,6 +57,16 @@ def _capture(v: object) -> str:
         raise _fail('captured_at must be an offset-aware datetime')
     return p.raw
 
+def _instant_key(value: str) -> str:
+    # SQLite julianday rounds fractions; retain exact microseconds and UTC offsets.
+    parsed = TemporalValue.parse(_capture(value))
+    return parsed.value.astimezone(timezone.utc).isoformat(timespec="microseconds")
+
+
+def _exact_time_sql(connection: sqlite3.Connection) -> None:
+    connection.create_function("fmp_capture_key", 1, _instant_key, deterministic=True)
+
+
 def _reference(v: object) -> str:
     s = _text(v, 'source_reference')
     p = PurePosixPath(s)
@@ -89,7 +101,7 @@ def _estimate_basis_from_payload_json(payload_json: object) -> str:
         return _explicit_estimate_basis(payload) or 'SOURCE_UNSPECIFIED'
     return 'SOURCE_UNSPECIFIED'
 
-def _params(v: Mapping[str, str], subject: FmpCompanySubject, endpoint: str) -> Mapping[str, str]:
+def _params(v: Mapping[str, str], subject: FmpCompanySubject, endpoint: str, *, maximum=100) -> Mapping[str, str]:
     if not isinstance(v, Mapping):
         raise _fail('parameters are invalid')
     d = {}
@@ -104,9 +116,32 @@ def _params(v: Mapping[str, str], subject: FmpCompanySubject, endpoint: str) -> 
         raise _fail('request scope is invalid')
     if 'page' in d and (endpoint != 'analyst-estimates' or d['page'] != '0'):
         raise _fail('request page is unsupported')
-    if not d['limit'].isdigit() or not 1 <= int(d['limit']) <= 100:
+    if not d['limit'].isdigit() or not 1 <= int(d['limit']) <= maximum:
         raise _fail('request limit is invalid')
     return MappingProxyType(dict(sorted(d.items())))
+
+def _document_date(value: object) -> str:
+    # Normalize only the date encoding, leaving the retained payload unchanged.
+    # Full month names and numeric dates with just one possible month are
+    # unambiguous; never infer a missing year or a numeric date convention.
+    if isinstance(value,str):
+        value=value.replace('\u00a0',' ').strip()
+        months=('january','february','march','april','may','june','july','august','september','october','november','december')
+        names='('+'|'.join(months)+')'
+        named=re.fullmatch(names+r" ([0-9]{1,2}), ([0-9]{4})",value,re.IGNORECASE)
+        day_first=re.fullmatch(r"([0-9]{1,2}) "+names+r" ([0-9]{4})",value,re.IGNORECASE)
+        numeric=re.fullmatch(r"([0-9]{1,2})/([0-9]{1,2})/([0-9]{4})",value)
+        parts=None
+        if named:parts=(int(named[3]),months.index(named[1].lower())+1,int(named[2]))
+        elif day_first:parts=(int(day_first[3]),months.index(day_first[2].lower())+1,int(day_first[1]))
+        elif numeric:
+            first,second=int(numeric[1]),int(numeric[2])
+            if 1<=first<=12<second:parts=(int(numeric[3]),first,second)
+            elif 1<=second<=12<first:parts=(int(numeric[3]),second,first)
+        if parts is not None:
+            try:return date(*parts).isoformat()
+            except ValueError as error:raise _fail('document period end date is invalid') from error
+    return _date(value,'document period end date')
 
 def _nested(row: Mapping[str, Any]) -> str | None:
     out = []
@@ -115,7 +150,7 @@ def _nested(row: Mapping[str, Any]) -> str | None:
         if isinstance(x, Mapping):
             for k, v in x.items():
                 if k.lower() in {'documentperiodenddate', 'document_period_end_date'} and v not in (None, ''):
-                    out.append(_date(v, 'document period end date'))
+                    out.append(_document_date(v))
                 else:
                     walk(v)
         elif isinstance(x, list):
@@ -163,6 +198,7 @@ class ParsedResearchResponse:
     completeness: Literal['complete', 'partial']
     warnings: tuple[str, ...]
     raw_body: bytes
+    history_profile: bool = False
 
     def request_scope(self) -> dict[str, object]:
         return {'endpoint': self.endpoint, 'parameters': dict(self.parameters), 'subject': self.subject.semantic_mapping()}
@@ -207,21 +243,34 @@ def _fingerprint(endpoint: str, params: Mapping[str, str], subject: FmpCompanySu
     material = sorted((r.material() for r in rows), key=lambda x: (str(x['natural_identity']), dumps_strict(x)))
     return hashlib.sha256(dumps_strict({'version': FMP_RESEARCH_NORMALIZATION_VERSION, 'endpoint': endpoint, 'parameters': dict(params), 'subject': subject.semantic_mapping(), 'rows': material}).encode()).hexdigest()
 
-def parse_research_response(body: bytes, *, endpoint: str, parameters: Mapping[str, str], subject: FmpCompanySubject, captured_at: str, source_reference: str) -> ParsedResearchResponse:
+def _history_limits(history_profile, endpoint):
+    if type(history_profile) is not bool:
+        raise _fail('history profile is invalid')
+    if history_profile:
+        if endpoint not in {'income-statement','balance-sheet-statement','cash-flow-statement','financial-statement-full-as-reported'}:
+            raise _fail('history profile applies only to statements')
+        from .fmp_statement_registry import MAX_BYTES, MAX_ROWS
+        return MAX_BYTES, MAX_ROWS
+    return _MAX_BYTES, _MAX_ROWS
+
+def parse_research_response(body: bytes, *, endpoint: str, parameters: Mapping[str, str], subject: FmpCompanySubject, captured_at: str, source_reference: str, history_profile: bool = False) -> ParsedResearchResponse:
+    max_bytes, max_rows = _history_limits(history_profile, endpoint)
     if endpoint not in ENDPOINTS or not isinstance(subject, FmpCompanySubject):
         raise _fail('endpoint or subject is invalid')
     if not isinstance(body, bytes) or not body:
         raise _fail('body must be nonempty bytes')
-    if len(body) > _MAX_BYTES:
+    if len(body) > max_bytes:
         raise ResourceLimitError('FMP research response exceeds byte bound')
-    p = _params(parameters, subject, endpoint)
+    p = _params(parameters, subject, endpoint, maximum=max_rows)
     period = p.get('period', 'all')
     limit = int(p['limit'])
     if period not in _PERIODS or (endpoint in {'income-statement', 'balance-sheet-statement', 'cash-flow-statement', 'financial-statement-full-as-reported'} and period == 'all'):
         raise _fail('request period is invalid')
-    value = loads_strict(body, max_bytes=_MAX_BYTES)
-    if not isinstance(value, list) or len(value) > _MAX_ROWS or any((not isinstance(x, Mapping) for x in value)):
+    value = loads_strict(body, max_bytes=max_bytes)
+    if not isinstance(value, list) or len(value) > max_rows or any((not isinstance(x, Mapping) for x in value)):
         raise _fail('response must be a bounded JSON object array')
+    if history_profile and len(value)>limit:
+        raise _fail("Statement history returned more rows than its exact request limit")
     allrows = []
     warnings = []
     seen = set()
@@ -239,9 +288,13 @@ def parse_research_response(body: bytes, *, endpoint: str, parameters: Mapping[s
         warnings.append('fmp_segment_response_retained_raw_all_normalized_requested_limit')
     if endpoint == 'analyst-estimates' and len(value) == limit:
         warnings.append('fmp_analyst_estimates_may_be_truncated_at_limit')
+    if history_profile:
+        warnings.append("fmp_statement_history_completeness_unverified")
+        if len(value)>=limit:
+            warnings.append("fmp_statement_history_truncated_at_limit")
     rows = tuple(rows)
     semantic = _fingerprint(endpoint, p, subject, rows)
-    return ParsedResearchResponse(endpoint, p, subject, _capture(captured_at), _reference(source_reference), hashlib.sha256(body).hexdigest(), len(body), len(value), rows, semantic, 'partial' if any(('truncated' in x or 'segment' in x for x in warnings)) else 'complete', tuple(sorted(set(warnings)),), body)
+    return ParsedResearchResponse(endpoint, p, subject, _capture(captured_at), _reference(source_reference), hashlib.sha256(body).hexdigest(), len(body), len(value), rows, semantic, 'partial' if history_profile or any(('truncated' in x or 'segment' in x for x in warnings)) else 'complete', tuple(sorted(set(warnings)),), body, history_profile)
 
 def _validate_prepared(prepared: ParsedResearchResponse) -> None:
     """Re-derive every persisted row field before a write is eligible to start."""
@@ -249,15 +302,16 @@ def _validate_prepared(prepared: ParsedResearchResponse) -> None:
         raise _fail('prepared response is invalid')
     if prepared.endpoint not in ENDPOINTS or not isinstance(prepared.subject, FmpCompanySubject):
         raise _fail('prepared response is invalid')
-    params = _params(prepared.parameters, prepared.subject, prepared.endpoint)
+    max_bytes, max_rows = _history_limits(prepared.history_profile, prepared.endpoint)
+    params = _params(prepared.parameters, prepared.subject, prepared.endpoint, maximum=max_rows)
     period = params.get('period', 'all')
     if dict(params) != dict(prepared.parameters) or period not in _PERIODS:
         raise _fail('prepared response is invalid')
     if prepared.endpoint in {'income-statement', 'balance-sheet-statement', 'cash-flow-statement', 'financial-statement-full-as-reported'} and period == 'all':
         raise _fail('prepared response is invalid')
-    if isinstance(prepared.raw_row_count, bool) or not isinstance(prepared.raw_row_count, int) or not 0 <= prepared.raw_row_count <= _MAX_ROWS:
+    if isinstance(prepared.raw_row_count, bool) or not isinstance(prepared.raw_row_count, int) or not 0 <= prepared.raw_row_count <= max_rows:
         raise _fail('prepared response is invalid')
-    if isinstance(prepared.byte_count, bool) or not isinstance(prepared.byte_count, int) or not 1 <= prepared.byte_count <= _MAX_BYTES:
+    if isinstance(prepared.byte_count, bool) or not isinstance(prepared.byte_count, int) or not 1 <= prepared.byte_count <= max_bytes:
         raise _fail('prepared response is invalid')
     if not isinstance(prepared.content_sha256, str) or len(prepared.content_sha256) != 64 or any(ch not in '0123456789abcdef' for ch in prepared.content_sha256):
         raise _fail('prepared response is invalid')
@@ -272,6 +326,7 @@ def _validate_prepared(prepared: ParsedResearchResponse) -> None:
         subject=prepared.subject,
         captured_at=prepared.captured_at,
         source_reference=prepared.source_reference,
+        history_profile=prepared.history_profile,
     )
     if (
         reparsed.content_sha256,
@@ -318,7 +373,7 @@ def _validate_prepared(prepared: ParsedResearchResponse) -> None:
         raise _fail('prepared response is invalid')
     if prepared.endpoint == 'revenue-product-segmentation' and prepared.raw_row_count > len(prepared.rows) and 'fmp_segment_response_retained_raw_all_normalized_requested_limit' not in prepared.warnings:
         raise _fail('prepared response is invalid')
-    expected_completeness = 'partial' if any(('truncated' in warning or 'segment' in warning for warning in prepared.warnings)) else 'complete'
+    expected_completeness = 'partial' if prepared.history_profile or any(('truncated' in warning or 'segment' in warning for warning in prepared.warnings)) else 'complete'
     if prepared.completeness != expected_completeness or _fingerprint(prepared.endpoint, params, prepared.subject, tuple(normalized)) != prepared.semantic_identity:
         raise _fail('prepared response is invalid')
 
@@ -327,18 +382,19 @@ def _issuer(c: sqlite3.Connection, s: FmpCompanySubject) -> None:
     if r is None or str(r['issuer_id']) != s.issuer_id or str(r['cik']) != s.cik:
         raise ConflictError('FMP research subject issuer/CIK is not an existing exact match')
 
-def _pubid(store: StoreMap, p: ParsedResearchResponse) -> str:
+def _pubid(store: StoreMap, p: ParsedResearchResponse) -> str | None:
     """Resolve exact replay or a correction identity while the company lock is held."""
     wanted = {row.natural_identity: row.semantic_hash for row in p.rows}
     if not wanted:
         return p.semantic_identity
     with quiet_immutable_read_connection(store, StoreRole.COMPANY) as connection:
+        _exact_time_sql(connection)
         latest_rows = connection.execute(
             'SELECT natural_identity,semantic_hash,research_row_id,publication_identity FROM ('
             'SELECT r.natural_identity,r.semantic_hash,r.research_row_id,'
             's.semantic_identity publication_identity,'
             'ROW_NUMBER() OVER(PARTITION BY r.natural_identity '
-            'ORDER BY julianday(r.captured_at) DESC,r.research_row_id DESC) q '
+            'ORDER BY fmp_capture_key(r.captured_at) DESC,r.research_row_id DESC) q '
             'FROM company_fmp_research_rows r '
             'JOIN company_fmp_research_snapshots s ON s.snapshot_id=r.snapshot_id '
             'WHERE r.issuer_id=?) WHERE q=1',
@@ -357,6 +413,7 @@ def _pubid(store: StoreMap, p: ParsedResearchResponse) -> str:
         identities = {value['publication_identity'] for value in current.values()}
         if len(identities) == 1:
             return next(iter(identities))
+        return None  # Unchanged composite; no single capture represents these rows.
     if not current:
         return p.semantic_identity
     predecessors = tuple(
@@ -379,36 +436,60 @@ class FmpResearchPublisher:
             raise _fail('publisher dependencies are invalid')
         if not {FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, FMP_COMPANY_RESEARCH_INPUTS_DATASET_ID}.issubset({x.id for x in registry.datasets_for('company')}):
             raise _fail('research input datasets are not registered')
+        from .fmp_statement_registry import COLLECTOR_ID
+        self.history_registered = COLLECTOR_ID in {c["id"] for c in registry.collectors}
         self.store_map = store_map
         self.coordinator = IngestionCoordinator(store_map, code_version='fmp_company_research.1.0.0')
+        self.history_coordinator = IngestionCoordinator(store_map, code_version='fmp_company_statement_history.1.0.0')
 
-    def publish(self, prepared: ParsedResearchResponse, *, request_id: str, held_locks: HeldWriteLocks | None=None) -> IngestionReceipt:
+    def publish(self, prepared: ParsedResearchResponse, *, request_id: str, held_locks: HeldWriteLocks | None=None,
+                deadline=None, monotonic=time.monotonic) -> IngestionReceipt:
+        def check_deadline():
+            if deadline is not None and monotonic()>=deadline:
+                raise PublicationDeferred("FMP research publication exceeded its invocation deadline")
+        check_deadline()
         _validate_prepared(prepared)
+        check_deadline()
+        if prepared.history_profile and not self.history_registered:
+            raise _fail("Statement history collector is not registered")
         if not isinstance(request_id, str) or not request_id:
             raise _fail('request_id is invalid')
         if held_locks is None:
             with acquire_write_session(self.store_map, (StoreRole.COMPANY,)) as acquired_locks:
-                return self.publish(prepared, request_id=request_id, held_locks=acquired_locks)
+                return self.publish(prepared, request_id=request_id, held_locks=acquired_locks, deadline=deadline, monotonic=monotonic)
         held_locks._require_target(self.store_map, StoreRole.COMPANY)
+        check_deadline()
         pid = _pubid(self.store_map, prepared)
+        if pid is None:
+            return IngestionReceipt(
+                outcome="unchanged", store="company",
+                dataset_id=FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID,
+                semantic_identity=prepared.semantic_identity, run_id=None,
+                artifact_id=None, snapshot_id=None, written_count=0,
+                warnings=prepared.warnings,
+            )
         run = stable_id('fmp_research_run', request_id, pid)
         snap = stable_id('fmp_research_snapshot', pid)
         art = stable_id('fmp_research_artifact', pid, prepared.content_sha256)
 
         def writer(c: sqlite3.Connection, rid: str) -> WriteResult:
+            check_deadline()
+            _exact_time_sql(c)
             _issuer(c, prepared.subject)
             c.execute('INSERT INTO company_fmp_research_snapshots VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)', (snap, pid, prepared.subject.issuer_id, prepared.subject.cik, prepared.subject.symbol, prepared.content_sha256, prepared.captured_at, prepared.source_reference, prepared.endpoint, dumps_strict(prepared.request_scope()), prepared.raw_row_count, dumps_strict(list(prepared.warnings)), rid))
             written = 1
             for row in prepared.rows:
-                prior = c.execute('SELECT research_row_id,captured_at FROM company_fmp_research_rows WHERE natural_identity=? ORDER BY julianday(captured_at) DESC,research_row_id DESC LIMIT 1', (row.natural_identity,)).fetchone()
-                if prior is not None and c.execute('SELECT julianday(?)<=julianday(?)', (prepared.captured_at, prior['captured_at'])).fetchone()[0]:
+                prior = c.execute('SELECT research_row_id,captured_at FROM company_fmp_research_rows WHERE natural_identity=? ORDER BY fmp_capture_key(captured_at) DESC,research_row_id DESC LIMIT 1', (row.natural_identity,)).fetchone()
+                if prior is not None and c.execute('SELECT fmp_capture_key(?)<=fmp_capture_key(?)', (prepared.captured_at, prior['captured_at'])).fetchone()[0]:
                     raise ConflictError('FMP research revisions require increasing capture time')
                 ident = stable_id('fmp_research_row', snap, row.natural_identity, row.semantic_hash)
                 c.execute('INSERT INTO company_fmp_research_rows VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', (ident, snap, row.issuer_id, row.cik, row.symbol, row.endpoint, row.request_period, row.fiscal_year, row.fiscal_period, row.period_end, row.event_date, row.currency, row.accepted_date_raw, dumps_strict(_plain_json(row.payload)), row.source_row_index, row.source_row_pointer, row.natural_identity, row.semantic_hash, None if prior is None else str(prior['research_row_id']), prepared.captured_at, rid))
                 written += 1
             a = ArtifactWrite(art, FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, prepared.content_sha256, 'application/json', prepared.byte_count, prepared.source_reference, prepared.request_scope(), prepared.captured_at, 'datetime', FMP_RESEARCH_NORMALIZATION_VERSION)
             return WriteResult(written, (a,), SnapshotWrite(stable_id('fmp_research_control', pid), FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, pid, prepared.request_scope(), prepared.completeness, len(prepared.rows), prepared.captured_at, 'datetime', 'validated', (art,), prepared.warnings), (), warnings=prepared.warnings)
-        return self.coordinator.execute(role=StoreRole.COMPANY, dataset_id=FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, output_dataset_ids=(FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, FMP_COMPANY_RESEARCH_INPUTS_DATASET_ID), semantic_identity=pid, run_id=run, command=FMP_COMPANY_RESEARCH_COLLECTOR_ID, scope=prepared.request_scope(), started_at=prepared.captured_at, completed_at=prepared.captured_at, fetched_count=prepared.raw_row_count, writer=writer, held_locks=held_locks)
+        coordinator = self.history_coordinator if prepared.history_profile else self.coordinator
+        check_deadline()
+        return coordinator.execute(role=StoreRole.COMPANY, dataset_id=FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, output_dataset_ids=(FMP_COMPANY_RESEARCH_EVIDENCE_DATASET_ID, FMP_COMPANY_RESEARCH_INPUTS_DATASET_ID), semantic_identity=pid, run_id=run, command="fmp.company.statement_history" if prepared.history_profile else FMP_COMPANY_RESEARCH_COLLECTOR_ID, scope=prepared.request_scope(), started_at=prepared.captured_at, completed_at=prepared.captured_at, fetched_count=prepared.raw_row_count, writer=writer, held_locks=held_locks)
 
 @dataclass(frozen=True, slots=True)
 class FmpResearchInputsQuery(Mapping[str, object]):
@@ -459,11 +540,14 @@ def parse_research_inputs_arguments(a: object) -> FmpResearchInputsQuery:
 def research_inputs_schema() -> dict[str, object]:
     return {'type': 'object', 'additionalProperties': False, 'required': ['cik'], 'properties': {'cik': {'type': 'string', 'minLength': 10, 'maxLength': 10}, 'endpoints': {'type': 'array', 'maxItems': 7, 'items': {'type': 'string', 'enum': sorted(ENDPOINTS)}}, 'period': {'type': 'string', 'enum': ['annual', 'quarter', 'all']}, 'mode': {'type': 'string', 'enum': ['latest', 'as_of']}, 'as_of': {'type': 'string', 'maxLength': 64}, 'limit': {'type': 'integer', 'minimum': 1, 'maximum': 100}}}
 
-def read_research_inputs(context: ToolExecutionContext, query: FmpResearchInputsQuery) -> QueryResult:
+def read_research_inputs(context: ToolExecutionContext, query: FmpResearchInputsQuery, *, source_symbol: str | None=None) -> QueryResult:
     context.checkpoint()
     cutoff = query.as_of or _capture(context.clock.instant())
-    where = ['r.cik=?', 'julianday(r.captured_at)<=julianday(?)']
+    where = ['r.cik=?', 'fmp_capture_key(r.captured_at)<=fmp_capture_key(?)']
     args = [query.cik, cutoff]
+    if source_symbol is not None:
+        where.append('r.symbol=?')
+        args.append(_text(source_symbol, 'source symbol', 32))
     if query.endpoints:
         where.append('r.endpoint IN (' + ','.join(('?' for _ in query.endpoints)) + ')')
         args += list(query.endpoints)
@@ -471,7 +555,8 @@ def read_research_inputs(context: ToolExecutionContext, query: FmpResearchInputs
         where.append('r.request_period=?')
         args.append(query.period)
     with quiet_immutable_read_connection(context.store_map, StoreRole.COMPANY) as c:
-        rows = c.execute('SELECT * FROM (SELECT r.*,s.source_reference,s.content_sha256,s.warnings_json,ROW_NUMBER() OVER(PARTITION BY r.natural_identity ORDER BY julianday(r.captured_at) DESC,r.research_row_id DESC) q FROM company_fmp_research_rows r JOIN company_fmp_research_snapshots s ON s.snapshot_id=r.snapshot_id WHERE ' + ' AND '.join(where) + ') WHERE q=1 ORDER BY COALESCE(period_end,event_date) DESC,endpoint,julianday(captured_at) DESC,research_row_id LIMIT ?', (*args, query.limit + 1)).fetchall()
+        _exact_time_sql(c)
+        rows = c.execute('SELECT * FROM (SELECT r.*,s.source_reference,s.content_sha256,s.warnings_json,ROW_NUMBER() OVER(PARTITION BY r.natural_identity ORDER BY fmp_capture_key(r.captured_at) DESC,r.research_row_id DESC) q FROM company_fmp_research_rows r JOIN company_fmp_research_snapshots s ON s.snapshot_id=r.snapshot_id WHERE ' + ' AND '.join(where) + ') WHERE q=1 ORDER BY COALESCE(period_end,event_date) DESC,endpoint,fmp_capture_key(captured_at) DESC,research_row_id LIMIT ?', (*args, query.limit + 1)).fetchall()
     more = len(rows) > query.limit
     rows = rows[:query.limit]
     context.budget.require(rows=len(rows), series=1, operations=len(rows))

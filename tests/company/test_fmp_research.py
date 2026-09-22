@@ -199,6 +199,42 @@ class FmpResearchTests(unittest.TestCase):
         self.assertTrue(result.truncation.has_more)
         self.assertIsNone(result.truncation.total_known_count)
 
+    def test_as_reported_named_month_date_preserves_payload_precedence_and_replay(self):
+        def parse(value,extra=None):
+            body=[{'symbol':'NST','date':'2023-07-30','period':'Q3','data':{'documentperiodenddate':value}}]
+            if extra is not None:body[0]['document_period_end_date']=extra
+            raw=json.dumps(body).encode()
+            return parse_research_response(raw,endpoint='financial-statement-full-as-reported',
+                parameters={'symbol':'NST','period':'quarter','limit':'1000'},subject=self.subject,
+                captured_at='2026-09-05T12:00:00Z',source_reference='fmp-research/blobs/named-month.json',history_profile=True)
+        parsed=parse('July 31, 2023','2023-07-31')
+        self.assertEqual(parsed.rows[0].period_end,'2023-07-31')
+        self.assertEqual(parsed.rows[0].payload['data']['documentperiodenddate'],'July 31, 2023')
+        self.assertIn('fmp_full_as_reported_document_period_end_overrides_top_date',parsed.warnings)
+        self.assertEqual(self.publisher.publish(parsed,request_id='named-month').outcome,'succeeded')
+        before=mutation_fingerprint(self.store_map)
+        self.assertEqual(self.publisher.publish(parsed,request_id='named-month-replay').outcome,'unchanged')
+        self.assertEqual(before,mutation_fingerprint(self.store_map))
+        self.assertEqual(parse('February 29, 2024').rows[0].period_end,'2024-02-29')
+        spaced=parse('September\u00a030, 2021')
+        self.assertEqual(spaced.rows[0].period_end,'2021-09-30')
+        self.assertEqual(spaced.rows[0].payload['data']['documentperiodenddate'],'September\u00a030, 2021')
+        for value,expected in (
+            ('DECEMBER\u00a031, 2022','2022-12-31'),
+            ('December 31, 2022 ','2022-12-31'),
+            ('31 DECEMBER 2022','2022-12-31'),
+            ('31 December 2021','2021-12-31'),
+            ('9/30/2021','2021-09-30'),
+            ('30/9/2021','2021-09-30')):
+            with self.subTest(value=value):
+                normalized=parse(value)
+                self.assertEqual(normalized.rows[0].period_end,expected)
+                self.assertEqual(normalized.rows[0].payload['data']['documentperiodenddate'],value)
+        for invalid in ('February 29, 2023','July 32, 2023','07/08/2023','Jul 31, 2023','July 31, 2023 12:00',
+                        'December 31','31 DECEMBER','31/31/2022','2/30/2023','0/30/2023'):
+            with self.subTest(value=invalid),self.assertRaises(ValidationError):parse(invalid)
+        with self.assertRaises(ValidationError):parse('July 31, 2023','2023-07-30')
+
     def test_full_as_reported_period_precedence_limits_and_malformed_rows(self) -> None:
         body=[{"symbol":"NST","date":"2026-01-01","calendarYear":"2025","period":"FY","Financial Statements":{"Income Statement":{"documentperiodenddate":"2025-12-31"}}}]
         raw=json.dumps(body).encode()

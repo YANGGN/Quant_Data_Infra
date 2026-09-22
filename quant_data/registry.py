@@ -32,6 +32,9 @@ from .tool_platform.catalog import (
     CURRENT_PUBLIC_TOOL_NAMES,
     ADDITIVE_FMP_RESEARCH_TOOLS,
     ADDITIVE_TRANSCRIPT_TOOLS,
+    ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
+    ADDITIVE_FORWARD_PE_TOOLS,
+    ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
     FAMILY_COUNTS,
     LEGACY_TOOL_NAMES,
     OPERATION_GRAPH_IDS,
@@ -563,7 +566,7 @@ _PLACEHOLDER_SUCCESSOR_VERSIONED_TOOL_IDS = frozenset(
 _TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
     "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
-_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in (*ADDITIVE_FMP_RESEARCH_TOOLS, *ADDITIVE_TRANSCRIPT_TOOLS))
+_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in (*ADDITIVE_FMP_RESEARCH_TOOLS, *ADDITIVE_TRANSCRIPT_TOOLS, *ADDITIVE_FORWARD_PE_TOOLS, *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS, *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS))
 _PRE_ETF_TOOL_NAMES = tuple(name for name in _PRE_FMP_RESEARCH_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
 _PRE_DATA_STATUS_OPTIONS_TOOL_NAMES = tuple(
     name
@@ -1942,7 +1945,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2736,7 +2739,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=224,
+        expected_count=238,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3516,6 +3519,7 @@ def load_registry(
                 policy["tool"] in PRICE_BASIS_VERSIONS
                 and policy["tool"] not in NEW_PRICE_BASIS_POLICIES
             )
+            + int(policy["tool"] in {"company.get_fundamentals", "company.get_share_count_history"})
             or not isinstance(policy["deprecations"], list)
             or len(policy["deprecations"]) != 1
         ):
@@ -3615,7 +3619,7 @@ def load_registry(
         elif policy["tool"] in VERSIONED_INVESTMENT_ANALYSIS_TOOLS:
             expected_variant_stores = tuple(variant_stores)
             expected_variant_datasets = tuple(variant_datasets)
-        elif policy["tool"] in {"market.get_price_series", "research.news_event_impact"}:
+        elif policy["tool"] in {"market.get_price_series", "research.news_event_impact", "company.get_transcript"}:
             expected_variant_stores = tuple(base["stores"])
             expected_variant_datasets = tuple(base["datasets"])
         elif policy["tool"] in VERSIONED_ETF_SNAPSHOT_TOOLS:
@@ -3712,7 +3716,12 @@ def load_registry(
             is_price_basis_variant = (
                 basis_pair is not None and additional_variant.get("version") == basis_pair[1]
             )
+            is_sharadar_variant = (
+                policy["tool"] in {"company.get_fundamentals", "company.get_share_count_history"}
+                and additional_variant.get("version") == "3.0.0"
+            )
             expected_version = (
+                "3.0.0" if is_sharadar_variant else
                 basis_pair[1] if is_price_basis_variant else
                 "2.3.0" if is_news_v23_variant else
                 "3.0.0"
@@ -3734,6 +3743,7 @@ def load_registry(
                 else "2.1.0"
             )
             expected_graph_suffix = (
+                "v3" if is_sharadar_variant else
                 "v" + basis_pair[1][:-2].replace(".", "_") if is_price_basis_variant else
                 "v2_3" if is_news_v23_variant else
                 "v3"
@@ -3774,7 +3784,7 @@ def load_registry(
                 )
             seen_tool_versions.add(version_key)
             if (
-                not is_price_basis_variant and policy["tool"]
+                not is_price_basis_variant and not is_sharadar_variant and policy["tool"]
                 not in {
                     "econometrics.regression",
                     "econometrics.rolling_regression",
@@ -3839,7 +3849,11 @@ def load_registry(
                 "energy.get_weekly_fundamentals",
                 "company.get_fundamentals",
             }
-            if policy["tool"] == "news.search":
+            if is_sharadar_variant:
+                from .tool_platform.sharadar_company_contracts import DATASETS
+                if additional_datasets != DATASETS or additional_stores != ("market", "company"):
+                    raise _error(f"{variant_pointer}/datasets", "routing", "Sharadar successor routing is invalid")
+            elif policy["tool"] == "news.search":
                 expected_news_datasets = (
                     *tuple(variant["datasets"]),
                     "news.current_multi_source_evidence",
@@ -5815,8 +5829,9 @@ _REGISTRY_259_ADDITIVE_VARIANTS = frozenset(
 
 
 def _pre_website_policies() -> tuple[dict[str, Any], ...]:
-    policies = tuple(copy.deepcopy(policy) for policy in remove_price_basis_policies(build_tool_version_policies())
-                     if policy["tool"] not in VERSIONED_ETF_SNAPSHOT_TOOLS)
+    from .tool_platform.sharadar_company_contracts import remove_policies
+    policies = tuple(copy.deepcopy(policy) for policy in remove_policies(remove_price_basis_policies(build_tool_version_policies()))
+                     if policy["tool"] not in (*VERSIONED_ETF_SNAPSHOT_TOOLS, "company.get_transcript"))
     for policy in policies:
         if policy["tool"] == "news.search":
             policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
@@ -5867,8 +5882,120 @@ _ETF_SNAPSHOT_V2_PREDECESSOR_CATALOG_SHA256 = (
 
 
 
+def transcript_research_registry_profile(registry: Registry) -> Registry:
+    """Remove only transcript research tools and the targeted-turn variant; restore exact 2.89."""
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.90.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True)+chr(10)).encode()
+    if (registry.source_sha256 != _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.90.0")]
+        or hashlib.sha256(render(registry.raw)).hexdigest() != registry.source_sha256
+        or tuple(dict(t) for t in registry.tools) != tuple(registry.raw["tools"])
+        or tuple(dict(p) for p in registry.tool_version_policies) != tuple(registry.raw["tool_versions"])
+        or {d.id:list(d.tool_ids) for d in registry.datasets} != {d["id"]:d["tool_ids"] for d in registry.raw["datasets"]}):
+        raise RegistryError("Transcript research registry source drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.89.0"
+    raw["tools"] = [t for t in raw["tools"] if t["id"] not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS]
+    raw["presentation_order"]["tools"] = [n for n in raw["presentation_order"]["tools"] if n not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS]
+    raw["tool_versions"] = [p for p in raw["tool_versions"] if p["tool"] != "company.get_transcript"]
+    for dataset in raw["datasets"]:
+        dataset["tool_ids"] = [n for n in dataset["tool_ids"] if n not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS]
+    raw["tool_version_schema_catalog"] = {'resource': 'quant_data/generated/tool_contract_schemas_v2.json', 'schema_id': 'quant_data.tool_contract_catalog.v2', 'schema_version': '2.35.0', 'sha256': '89cb46f59bdd1a6719f9e71482a0be82582569442e10ee6f184e2ef011ced974'}
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.89.0")]
+    if hashlib.sha256(render(raw)).hexdigest() != source:
+        raise RegistryError("Transcript research predecessor projection drifted")
+    return replace(registry, registry_version="2.89.0", raw=raw, source_sha256=source,
+        tools=tuple(t for t in registry.tools if t["id"] not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS),
+        tool_version_policies=tuple(p for p in registry.tool_version_policies if p["tool"] != "company.get_transcript"),
+        datasets=tuple(replace(d, tool_ids=tuple(n for n in d.tool_ids if n not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)) for d in registry.datasets))
+
+
+def forward_pe_analysis_registry_profile(registry: Registry) -> Registry:
+    """Remove only the forward-P/E analysis tool; reproduce exact registry 2.88."""
+    registry = transcript_research_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.89.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+chr(10)).encode()
+    if (registry.source_sha256!=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.89.0")]
+            or hashlib.sha256(render(registry.raw)).hexdigest()!=registry.source_sha256
+            or tuple(dict(t) for t in registry.tools)!=tuple(registry.raw["tools"])
+            or tuple(dict(p) for p in registry.tool_version_policies)!=tuple(registry.raw["tool_versions"])):
+        raise RegistryError("Forward P/E public-tool registry source drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.88.0"
+    raw["tools"]=[t for t in raw["tools"] if t["id"] not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS]
+    raw["presentation_order"]["tools"]=[n for n in raw["presentation_order"]["tools"] if n not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS]
+    raw["tool_version_schema_catalog"]={'resource': 'quant_data/generated/tool_contract_schemas_v2.json', 'schema_id': 'quant_data.tool_contract_catalog.v2', 'schema_version': '2.34.0', 'sha256': '4eedf12a76bc55319c0a7360e18a9d12f5090215e772cf3d75c5a2bcadc63978'}
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.88.0")]
+    if hashlib.sha256(render(raw)).hexdigest()!=source:
+        raise RegistryError("Forward P/E public-tool predecessor projection drifted")
+    return replace(registry,registry_version="2.88.0",raw=raw,source_sha256=source,
+        tools=tuple(t for t in registry.tools if t["id"] not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS))
+
+
+def forward_pe_tools_registry_profile(registry: Registry) -> Registry:
+    """Remove only the saved forward-P/E tool; reproduce exact registry 2.87."""
+    registry = forward_pe_analysis_registry_profile(registry)
+    if (registry.schema_version,registry.registry_version)!=("1.9.0","2.88.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    render=lambda value:(json.dumps(value,ensure_ascii=True,indent=1,sort_keys=True)+chr(10)).encode()
+    if (registry.source_sha256!=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.88.0")]
+            or hashlib.sha256(render(registry.raw)).hexdigest()!=registry.source_sha256
+            or tuple(dict(t) for t in registry.tools)!=tuple(registry.raw["tools"])
+            or tuple(dict(p) for p in registry.tool_version_policies)!=tuple(registry.raw["tool_versions"])):
+        raise RegistryError("Forward P/E public-tool registry source drifted")
+    raw=copy.deepcopy(dict(registry.raw))
+    raw["registry_version"]="2.87.0"
+    raw["tools"]=[t for t in raw["tools"] if t["id"] not in ADDITIVE_FORWARD_PE_TOOLS]
+    raw["presentation_order"]["tools"]=[n for n in raw["presentation_order"]["tools"] if n not in ADDITIVE_FORWARD_PE_TOOLS]
+    raw["tool_version_schema_catalog"]={'resource': 'quant_data/generated/tool_contract_schemas_v2.json', 'schema_id': 'quant_data.tool_contract_catalog.v2', 'schema_version': '2.33.0', 'sha256': '84aedd9ede6efdbc4afba7f42244842b73c81e54177ddf22f3e3b41293f343ee'}
+    source=_REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0","2.87.0")]
+    if hashlib.sha256(render(raw)).hexdigest()!=source:
+        raise RegistryError("Forward P/E public-tool predecessor projection drifted")
+    return replace(registry,registry_version="2.87.0",raw=raw,source_sha256=source,
+        tools=tuple(t for t in registry.tools if t["id"] not in ADDITIVE_FORWARD_PE_TOOLS))
+
+
+def sharadar_company_tools_registry_profile(registry: Registry) -> Registry:
+    """Remove only Sharadar v3 readers and reproduce exact registry 2.86."""
+    registry = forward_pe_tools_registry_profile(registry)
+    if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.87.0"):
+        return registry
+    from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    from .tool_platform.sharadar_company_contracts import remove_policies
+    render = lambda value: (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True) + chr(10)).encode()
+    if (registry.source_sha256 != _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.87.0")]
+        or hashlib.sha256(render(registry.raw)).hexdigest() != registry.source_sha256
+        or tuple(dict(p) for p in registry.tool_version_policies) != tuple(registry.raw["tool_versions"])
+        or tuple(dict(t) for t in registry.tools) != tuple(registry.raw["tools"])
+        or {d.id: list(d.tool_ids) for d in registry.datasets} != {d["id"]: d["tool_ids"] for d in registry.raw["datasets"]}):
+        raise RegistryError("Sharadar public-tool registry source drifted")
+    raw = copy.deepcopy(dict(registry.raw))
+    raw["registry_version"] = "2.86.0"
+    policies = remove_policies(registry.tool_version_policies)
+    raw["tool_versions"] = list(policies)
+    raw["tool_version_schema_catalog"] = {'resource': 'quant_data/generated/tool_contract_schemas_v2.json', 'schema_id': 'quant_data.tool_contract_catalog.v2', 'schema_version': '2.32.0', 'sha256': 'bd2588b1d9b1813472c60bd746ec6855ae5c31b715dcf7d330ef5530a9c956ec'}
+    bindings = {d["id"]: [] for d in raw["datasets"]}
+    for t in [*raw["tools"], *(v for p in policies for v in p["variants"])]:
+        for dataset in t["datasets"]:
+            if t["id"] not in bindings[dataset]:
+                bindings[dataset].append(t["id"])
+    for d in raw["datasets"]:
+        d["tool_ids"] = bindings[d["id"]]
+    source = _REVIEWED_REGISTRY_SOURCE_SHA256[("1.9.0", "2.86.0")]
+    if hashlib.sha256(render(raw)).hexdigest() != source:
+        raise RegistryError("Sharadar public-tool predecessor projection drifted")
+    return replace(registry, registry_version="2.86.0", raw=raw, source_sha256=source,
+        tool_version_policies=policies,
+        datasets=tuple(replace(d, tool_ids=tuple(bindings[d.id])) for d in registry.datasets))
+
+
 def transcript_tools_registry_profile(registry: Registry) -> Registry:
     """Remove only the three local transcript readers and restore exact registry 2.85."""
+    registry = sharadar_company_tools_registry_profile(registry)
     if (registry.schema_version,registry.registry_version)!=("1.9.0","2.86.0"):
         return registry
     from .tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
@@ -14971,7 +15098,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
         json.dumps(
             registry.raw,
             ensure_ascii=True,
-            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0")} else 2,
+            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0"), ("1.9.0", "2.87.0"), ("1.9.0", "2.88.0"), ("1.9.0", "2.89.0"), ("1.9.0", "2.90.0")} else 2,
             sort_keys=True,
         )
         + "\n"

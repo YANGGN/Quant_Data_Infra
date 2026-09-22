@@ -30,6 +30,7 @@ from ..errors import ConflictError, ResourceLimitError, ValidationError
 from ..ingestion import (
     ArtifactWrite,
     IngestionCoordinator,
+    PublicationDeferred,
     QualityWrite,
     SnapshotWrite,
     WriteResult,
@@ -1722,6 +1723,16 @@ def _append_fundamental(
     return 1
 
 
+def sec_companyfacts_run_id(parsed: ParsedSecAaplBundle) -> str:
+    """Return the established canonical publication identity without store access."""
+    return stable_id(
+        _profile_id(parsed, legacy="sec_aapl_companyfacts_run",
+                    generic="sec_companyfacts_run_v1_5"),
+        SEC_AAPL_COMPANYFACTS_CANONICAL_DATASET_ID,
+        parsed.semantic_identity,
+    )
+
+
 class SecCompanyFactsPublisher:
     """Publish one prepared issuer-scoped SEC bundle through company relations."""
 
@@ -1753,23 +1764,29 @@ class SecCompanyFactsPublisher:
         parsed: ParsedSecAaplBundle,
         *,
         held_locks: HeldWriteLocks | None = None,
+        deadline: float | None = None,
+        monotonic_clock=monotonic,
     ) -> IngestionReceipt:
         if (
             not isinstance(parsed, ParsedSecAaplBundle)
             or parsed.legacy_aapl != self._legacy_aapl
         ):
             raise _fail("prepared bundle is invalid")
-        run_id = stable_id(
-            _profile_id(
-                parsed,
-                legacy="sec_aapl_companyfacts_run",
-                generic="sec_companyfacts_run_v1_5",
-            ),
-            SEC_AAPL_COMPANYFACTS_CANONICAL_DATASET_ID,
-            parsed.semantic_identity,
-        )
+        if deadline is not None and (
+            type(deadline) not in (int, float) or not 0 < deadline < float("inf")
+            or not callable(monotonic_clock)
+        ):
+            raise ValidationError("SEC publication deadline is invalid")
+
+        def check_deadline():
+            if deadline is not None and monotonic_clock() >= deadline:
+                raise PublicationDeferred("SEC retained publication reached its deadline")
+
+        check_deadline()
+        run_id = sec_companyfacts_run_id(parsed)
 
         def writer(connection: sqlite3.Connection, active_run_id: str) -> WriteResult:
+            check_deadline()
             if active_run_id != run_id:
                 raise _fail("coordinator supplied an unexpected run identity")
             written = _ensure_issuer(connection, parsed=parsed, run_id=active_run_id)
@@ -1927,7 +1944,7 @@ class SecCompanyFactsPublisher:
             warnings = (_CONTEXT_POLICY_WARNING,)
             if parsed.excluded_unsupported_core_row_count:
                 warnings += (_CORE_ROW_POLICY_WARNING,)
-            return WriteResult(
+            result = WriteResult(
                 written_count=written,
                 artifacts=control_artifacts,
                 snapshot=SnapshotWrite(
@@ -1986,7 +2003,10 @@ class SecCompanyFactsPublisher:
                 ),
                 warnings=warnings,
             )
+            check_deadline()
+            return result
 
+        check_deadline()
         return self._coordinator.execute(
             role=StoreRole.COMPANY,
             dataset_id=SEC_AAPL_COMPANYFACTS_CANONICAL_DATASET_ID,

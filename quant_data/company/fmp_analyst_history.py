@@ -1,12 +1,15 @@
 """Retained FMP analyst observations, versioned on local capture; no HTTP."""
 from __future__ import annotations
 
+from ..ingestion import PublicationDeferred
+
 from dataclasses import dataclass
 from collections.abc import Mapping
 from datetime import datetime, timezone
 import hashlib
 import math
 import sqlite3
+import time
 
 from ..contracts import IngestionReceipt
 from ..errors import ConflictError, ResourceLimitError, ValidationError
@@ -206,7 +209,11 @@ class FmpAnalystPublisher:
         self.store_map = store_map
         self.coordinator = IngestionCoordinator(store_map, code_version=VERSION)
 
-    def publish(self, prepared: AnalystResponse, *, request_id: str):
+    def publish(self, prepared: AnalystResponse, *, request_id: str, deadline=None, monotonic=time.monotonic):
+        def check_deadline():
+            if deadline is not None and monotonic() >= deadline:
+                raise PublicationDeferred("Analyst publication exceeded its invocation deadline")
+        check_deadline()
         if not isinstance(prepared, AnalystResponse):
             raise _error("prepared response is invalid")
         p = parse_analyst_response(prepared.raw_body, endpoint=prepared.endpoint,
@@ -215,7 +222,9 @@ class FmpAnalystPublisher:
         if p != prepared:
             raise _error("prepared bytes and normalized fields differ")
         _text(request_id, "request_id", 256)
+        check_deadline()
         with acquire_write_session(self.store_map, (StoreRole.COMPANY,)) as locks:
+            check_deadline()
             with quiet_immutable_read_connection(self.store_map, StoreRole.COMPANY) as c:
                 _issuer(c, p.subject)
                 latest = {r["natural_identity"]: dict(r) for r in c.execute(
@@ -246,6 +255,7 @@ class FmpAnalystPublisher:
             run = stable_id("fmp_analyst_run", request_id, pid)
             artifact = stable_id("fmp_analyst_artifact", pid, p.content_sha256)
             def writer(c: sqlite3.Connection, rid: str):
+                check_deadline()
                 _issuer(c, p.subject)
                 common = dict(issuer_id=p.subject.issuer_id, cik=p.subject.cik,
                     symbol=p.subject.symbol, instrument_id=p.subject.instrument_id,
@@ -283,6 +293,7 @@ class FmpAnalystPublisher:
                 snap = SnapshotWrite(stable_id("fmp_analyst_control", pid), EVIDENCE, pid, p.scope(),
                     "partial", len(p.rows), p.captured_at, "datetime", "validated", (artifact,), p.warnings)
                 return WriteResult(written, (art,), snap, (), warnings=p.warnings)
+            check_deadline()
             return self.coordinator.execute(role=StoreRole.COMPANY, dataset_id=OBSERVATIONS,
                 output_dataset_ids=(EVIDENCE, OBSERVATIONS), semantic_identity=pid, run_id=run,
                 command="company.fmp_analyst_history", scope=p.scope(), started_at=p.captured_at,

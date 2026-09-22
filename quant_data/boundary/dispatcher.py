@@ -89,6 +89,7 @@ _STAGE5_INPUT_KINDS = {
     profile.name: profile.input_kind for profile in current_tool_profiles()
 }
 _VERSIONED_INPUT_KINDS = {
+    ("company.get_transcript", "2.0.0"): "transcript_turns_v2",
     ("news.search", "2.0.0"): "current_news_search_v2",
     ("news.search", "2.1.0"): "current_news_search_v2_1",
     ("news.search", "2.2.0"): "current_news_search_v2_2",
@@ -143,6 +144,8 @@ _VERSIONED_INPUT_KINDS = {
         "energy.get_weekly_fundamentals",
         "2.1.0",
     ): "energy_weekly_fundamentals_v2",
+    ("company.get_fundamentals", "3.0.0"): "get_fundamentals_sharadar_v3",
+    ("company.get_share_count_history", "3.0.0"): "get_share_count_history_sharadar_v3",
     ("company.get_fundamentals", "2.0.0"): "company_fundamentals_v2",
     (
         "company.get_fundamentals",

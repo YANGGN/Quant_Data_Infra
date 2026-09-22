@@ -17,6 +17,9 @@ from quant_data.tool_platform.catalog import (
     VERSIONED_ETF_SNAPSHOT_TOOLS,
     ADDITIVE_FMP_RESEARCH_TOOLS,
     ADDITIVE_TRANSCRIPT_TOOLS,
+    ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
+    ADDITIVE_FORWARD_PE_TOOLS,
+    ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
     ADDITIVE_NEWS_RESEARCH_TOOLS,
     CATALOG_ID,
     CATALOG_VERSION,
@@ -46,6 +49,10 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.90.0"): "6461ffcee659803bfff1a30c834e4d807aa70639a956026edabc7f8a8a47fc86",
+    ("1.9.0", "2.89.0"): "c4293d0c5985429d97a7c6def93a8b8a2c841b02318bb7408818a9e924b9de1b",
+    ("1.9.0", "2.88.0"): "88dcf8cf30ab3541477992041e3d5bd2d2d05bbc5a6ab313eff45622cf8e93cf",
+    ("1.9.0", "2.87.0"): "6c21f0004b6b5462583846a26e7502ab46a7a0628b619435b03b8d26c63988ab",
     ("1.9.0", "2.82.0"): "1d541b532e535124ea45d2af991541348319f7d7ced937114c39aaffc2ccdfc2",
     ("1.9.0", "2.83.0"): "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97",
     ("1.9.0", "2.84.0"): "7c729d2d80d84faa121ef33986d68590bebf7b0018ade76d641c00214b783f0c",
@@ -785,7 +792,7 @@ def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
 def _render(value: Any) -> bytes:
     # Registry 2.72 uses less whitespace to remain within the unchanged
     # local JSON byte bound as explicit versioned contracts accumulate.
-    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0"} else 2
+    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0"} else 2
     return (json.dumps(value, ensure_ascii=True, indent=indent, sort_keys=True) + "\n").encode(
         "utf-8"
     )
@@ -881,6 +888,23 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version < ("1.9.0", "2.89.0"):
+        entries = tuple(t for t in entries if t["id"] not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
+        additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
+        version_policies = tuple(p for p in version_policies if p["tool"] != "company.get_transcript")
+        catalog_version = "2.35.0"
+    if source_version < ("1.9.0", "2.88.0"):
+        entries = tuple(t for t in entries if t["id"] not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
+        additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
+        catalog_version = "2.34.0"
+    if source_version < ("1.9.0", "2.87.0"):
+        entries = tuple(t for t in entries if t["id"] not in ADDITIVE_FORWARD_PE_TOOLS)
+        additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_FORWARD_PE_TOOLS)
+        catalog_version = "2.33.0"
+    if source_version < ("1.9.0", "2.86.0"):
+        from .sharadar_company_contracts import remove_policies
+        version_policies = remove_policies(version_policies)
+        catalog_version = "2.32.0"
     if source_version < ("1.9.0", "2.85.0"):
         entries = tuple(t for t in entries if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS)
@@ -1211,6 +1235,10 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.84.0"),
         ("1.9.0", "2.85.0"),
         ("1.9.0", "2.86.0"),
+        ("1.9.0", "2.87.0"),
+        ("1.9.0", "2.88.0"),
+        ("1.9.0", "2.89.0"),
+        ("1.9.0", "2.90.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1304,7 +1332,11 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.83.0"): "2.84.0",
         ("1.9.0", "2.84.0"): "2.85.0",
         ("1.9.0", "2.85.0"): "2.86.0",
-        ("1.9.0", "2.86.0"): "2.86.0",
+        ("1.9.0", "2.86.0"): "2.87.0",
+        ("1.9.0", "2.87.0"): "2.88.0",
+        ("1.9.0", "2.88.0"): "2.89.0",
+        ("1.9.0", "2.89.0"): "2.90.0",
+        ("1.9.0", "2.90.0"): "2.90.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

@@ -1,0 +1,145 @@
+{
+  "contract": "quant_data.collection_bindings",
+  "version": "1.1.0",
+  "max_selected_members": 5000,
+  "initial_manifest": {
+    "path": "Major Index Liquid_2026-09-08.csv",
+    "sha256": "9393c72160eae41fc3af10a16af4ecc5ab2ab8f8bb7a5d4130162fa9e4aff15a",
+    "member_count": 2248
+  },
+  "bindings": [
+    {
+      "id": "sharadar_fundamentals",
+      "provider": "sharadar",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_subject",
+        "provider_symbol"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "daily_prices",
+      "provider": "fmp",
+      "retain_universes": [
+        "curated_etfs",
+        "major_indexes"
+      ],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "sec_filings_companyfacts",
+      "provider": "sec",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "cik"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "dividends_splits",
+      "provider": "fmp",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id",
+        "cik"
+      ],
+      "mode": "prepared",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "earnings_dates",
+      "provider": "fmp",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id",
+        "cik"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "fmp_statements",
+      "provider": "fmp",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id",
+        "cik"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "fmp_analyst_estimates",
+      "provider": "fmp",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id",
+        "cik"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "fmp_distinct_inputs",
+      "provider": "fmp",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id",
+        "cik"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "news",
+      "provider": "fmp",
+      "retain_universes": [
+        "curated_etfs",
+        "major_indexes"
+      ],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    },
+    {
+      "id": "equibles_transcripts",
+      "provider": "equibles",
+      "retain_universes": [],
+      "required_identity_fields": [
+        "provider_symbol",
+        "instrument_id"
+      ],
+      "mode": "active",
+      "universe_id": "major_index_liquid"
+    }
+  ],
+  "provider_allowances": {
+    "fmp": {
+      "mode": "active",
+      "policy": {
+        "daily_ceiling": 60000,
+        "maintenance_reserve": 6000,
+        "min_interval_milliseconds": 120,
+        "effective_at": "2026-09-10T12:53:00.468903+00:00",
+        "initial_day_charged": 5000,
+        "evidence_reference": "data/.operations/collection/company-selected/allowance-activation-20260911.json"
+      }
+    }
+  }
+}

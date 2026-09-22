@@ -111,6 +111,14 @@ def invoke_operation(
         from .price_basis_adapter import invoke_price_basis_tool
         return invoke_price_basis_tool(name, arguments, context, registry)
 
+    from .transcript_research_contracts import NEW_TOOLS
+    if name in NEW_TOOLS or (name == "company.get_transcript" and context.tool_version == "2.0.0"):
+        version = "2.0.0" if name == "company.get_transcript" else "1.0.0"
+        if context.tool_version != version or context.operation_graph_id != f"tool_platform.{name}.v{version[0]}":
+            raise LookupError("Selected transcript research graph is invalid")
+        from .transcript_research_access import invoke
+        return invoke(name, arguments, context)
+
     versioned_timeseries = (
         context.tool_version == "2.0.0"
         and name in VERSIONED_TIMESERIES_ANALYSIS_TOOLS
@@ -204,6 +212,11 @@ def invoke_operation(
         from .domain_operations import invoke_domain_operation
 
         return invoke_domain_operation(name, arguments, context, registry)
+    if context.tool_version == "3.0.0" and name in ("company.get_fundamentals", "company.get_share_count_history"):
+        if context.operation_graph_id != f"tool_platform.{name}.v3":
+            raise LookupError("Selected Sharadar company operation graph is invalid")
+        from .sharadar_company_access import invoke_sharadar_company
+        return invoke_sharadar_company(name, arguments, context, registry)
     if versioned_company_share_count:
         expected_graph = "tool_platform.company.get_share_count_history.v2"
         if context.operation_graph_id != expected_graph:
@@ -378,6 +391,12 @@ def invoke_operation(
         if name in TOOLS:
             from .transcript_access import invoke_transcript
             return invoke_transcript(name, arguments, context)
+        if name == "company.get_forward_pe_analysis":
+            from .forward_pe_analysis_access import invoke_analysis
+            return invoke_analysis(arguments, context, registry)
+        if name == "company.get_forward_pe":
+            from .forward_pe_access import invoke_forward_pe
+            return invoke_forward_pe(arguments,context,registry)
         if name == "price_realtime":
             from .realtime_quote import invoke_quote
             return invoke_quote(arguments, context)
