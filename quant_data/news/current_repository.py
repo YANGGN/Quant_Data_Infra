@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
-from collections import defaultdict
+from contextlib import nullcontext
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -19,7 +19,9 @@ from typing import Any
 from ..errors import ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection
+from ..stores import StoreMap, StoreRole
+from .read_session import news_read_connection
+from .selection_sql import select_news_rows
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -410,46 +412,6 @@ def _required_row_text(row: Mapping[str, object], name: str) -> str:
     return value
 
 
-def _query_rows(connection: Any) -> list[Mapping[str, object]]:
-    try:
-        rows = list(
-            connection.execute(
-                """
-                SELECT article.article_id, article.site, article.source_url,
-                       article.symbol, article.created_capture_id,
-                       version.article_version_id,
-                       version.article_id AS version_article_id,
-                       version.title, version.published_date_raw,
-                       version.published_normalized_at, version.published_precision,
-                       version.published_offset_status, version.version_sequence,
-                       version.supersedes_article_version_id, version.capture_id,
-                       version.source_row, capture.captured_at,
-                       membership.source_row AS membership_source_row
-                FROM fmp_stock_latest_current_article_versions AS version
-                JOIN fmp_stock_latest_current_articles AS article
-                  ON article.article_id=version.article_id
-                JOIN fmp_stock_latest_current_captures AS capture
-                  ON capture.capture_id=version.capture_id
-                JOIN fmp_stock_latest_current_capture_articles AS membership
-                  ON membership.capture_id=version.capture_id
-                 AND membership.article_version_id=version.article_version_id
-                 AND membership.source_row=version.source_row
-                ORDER BY article.article_id, version.version_sequence,
-                         version.article_version_id
-                LIMIT ?
-                """,
-                (_MAX_CANDIDATE_ROWS + 1,),
-            )
-        )
-    except sqlite3.Error as exc:
-        raise StoreUnavailableError("Current FMP news store is unavailable") from exc
-    if len(rows) > _MAX_CANDIDATE_ROWS:
-        raise ResourceLimitError(
-            "Current-news version history exceeds the bounded query contract"
-        )
-    return rows
-
-
 def _version_rank(row: Mapping[str, object]) -> tuple[int, datetime, str]:
     sequence = row["version_sequence"]
     if isinstance(sequence, bool) or not isinstance(sequence, int) or sequence < 1:
@@ -571,58 +533,27 @@ class CurrentNewsRepository:
         query: CurrentNewsQuery,
         *,
         after: CurrentNewsKeysetAnchor | None = None,
+        connection=None,
+        checkpoint=None,
     ) -> CurrentNewsSelection:
         if not isinstance(query, CurrentNewsQuery):
             raise ValidationError("Current-news selection requires a typed query")
         if after is not None and not isinstance(after, CurrentNewsKeysetAnchor):
             raise ValidationError("Current-news selection anchor is invalid")
         self._require_datasets()
-        with quiet_immutable_read_connection(
-            self._store_map,
-            StoreRole.NEWS,
-            expected_anchor=_CURRENT_ARTICLES_TABLE,
-        ) as connection:
-            rows = _query_rows(connection)
-            migration_ids, migrations = _migration_receipt(connection)
-        cutoff = query.cutoff
+        with (nullcontext(connection) if connection is not None else news_read_connection(
+            self._store_map, expected_anchor=_CURRENT_ARTICLES_TABLE, checkpoint=checkpoint
+        )) as active:
+            rows, total = select_news_rows(
+                active, query, multi_source=False, published=_published, after=after)
+            migration_ids, migrations = _migration_receipt(active)
+            selected = [_record(row) for row in rows]
         warnings: set[str] = set()
-        grouped: dict[str, list[Mapping[str, object]]] = defaultdict(list)
-        for row in rows:
-            if cutoff is not None:
-                decision = availability_at_or_before(
-                    _capture_temporal(row), cutoff, query.date_only_policy
-                )
-                warnings.update(decision.warnings)
-                if not decision.included:
-                    continue
-            grouped[_required_row_text(row, "article_id")].append(row)
-        selected = [
-            _record(max(rows_for_article, key=_version_rank))
-            for rows_for_article in grouped.values()
+        rendered = [
+            {name: value for name, value in record.items()
+             if name not in {"provider_calendar_date", "publication_instant", "_captured_instant"}}
+            for record in selected
         ]
-        filtered = [record for record in selected if _matches(record, query)]
-        _sort(filtered)
-        if after is not None:
-            filtered = [
-                record
-                for record in filtered
-                if record_is_after_current_news_anchor(record, after)
-            ]
-        total = len(filtered)
-        rendered: list[dict[str, object]] = []
-        for record in filtered[: query.limit]:
-            rendered.append(
-                {
-                    name: value
-                    for name, value in record.items()
-                    if name
-                    not in {
-                        "provider_calendar_date",
-                        "publication_instant",
-                        "_captured_instant",
-                    }
-                }
-            )
         receipt = {
             "dataset_ids": list(CURRENT_NEWS_DATASET_IDS),
             "migrations": migrations,

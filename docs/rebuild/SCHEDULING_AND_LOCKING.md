@@ -978,3 +978,17 @@ schedule list and to the observational per-run receipt allowlist. Its unchanged
 zero-argument collector is called exactly once; recorder failures cannot replace
 its exit outcome. The daily timer, quota state, page/call checkpoint ordering,
 network/write-lock separation and terminal backfill behavior are unchanged.
+
+## Retained-news reader coordination — September 23, 2026
+
+Current-news search and public source status use the existing physical news
+store lock for the duration of one immutable read. A merged search reads both
+current-news families under the same lock and descriptor. Read lock acquisition
+is bounded to one second; the existing five-second tool deadline also interrupts
+long SQL work. Publishers retain their existing short publication locks, with
+network work outside them. Readers do not schedule, refresh, retry, write facts,
+or disable descriptor/sidecar/change checks. Concurrent readers serialize on
+this existing exclusive lock; long publication/migration work can produce an
+explicit lock conflict. This bounded choice avoids a new snapshot service or
+changes to the shared locking engine. See
+[consumer behavior](../LOCAL_AGENT_TOOLS.md#retained-news-reads-during-collection).

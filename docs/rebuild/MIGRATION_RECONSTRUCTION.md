@@ -541,3 +541,19 @@ publication timing are retained. Exact semantic replay writes zero rows.
 The full contract, focused and independent checks, finite provider scope and
 completion receipts are recorded in
 [Company short descriptions](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md).
+
+## Retained-news capture lookup — September 23, 2026
+
+| ID | Store | Ordinal | Resource | SHA-256 | State |
+| --- | --- | --- | --- | --- | --- |
+| news:0010_current_news_capture_lookup | news | 10 | quant_data/migrations/news/0010_current_news_capture_lookup.sql | 63cf675540c6a89c19ecfce4ffc71910d8f5bde649842726caf725bef32794c2 | fixture_validated; applied 2026-09-23 |
+
+A single metadata index on existing feed, capture-time and capture-ID fields.
+No article, capture, publication/availability timestamp, raw evidence or source
+identity changes. Earlier SQL resources remain byte-identical. The user requested
+efficient retained-news search and source-status reads; this allocation adds no
+provider workload or recurring unit. Registry 2.92.0 is active. The exact
+predecessor is preserved; focused tests, independent verification, atomic
+rollback/replay tests and canonical foreign-key validation passed. One index
+and ledger row were added; prior schema/ledger and all fact counts were
+unchanged. See [the repair receipt](RETAINED_NEWS_READ_REPAIR_2026-09-23.md).

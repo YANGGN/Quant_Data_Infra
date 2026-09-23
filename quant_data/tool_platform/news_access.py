@@ -25,6 +25,7 @@ from quant_data.news.current_repository import (
     CurrentNewsRepository,
     CurrentNewsSelection,
 )
+from quant_data.news.read_session import news_read_connection
 from quant_data.registry import Registry
 
 from .arguments import (
@@ -181,7 +182,7 @@ def invoke_news_search_v2(
         series=0,
         operations=query.limit,
     )
-    selection = CurrentNewsRepository(context.store_map, registry).search(query)
+    selection = CurrentNewsRepository(context.store_map, registry).search(query, checkpoint=context.checkpoint)
     if len(selection.records) > query.limit:
         raise ResourceLimitError("Current-news selection exceeded its limit")
     context.checkpoint()
@@ -418,21 +419,23 @@ def invoke_news_search_v21(
         if source_id != FMP_CURRENT_SOURCE_ID
     )
     include_multi = not source_ids or bool(selected_multi_ids)
-    fmp_selection = (
-        CurrentNewsRepository(context.store_map, registry).search(query)
-        if include_fmp
-        else None
-    )
-    multi_selection = (
-        CurrentMultiSourceNewsRepository(
-            context.store_map, registry
-        ).search(
-            query,
-            source_ids=selected_multi_ids if source_ids else CURRENT_MULTI_SOURCE_FEED_IDS,
+    with news_read_connection(context.store_map, checkpoint=context.checkpoint) as connection:
+        fmp_selection = (
+            CurrentNewsRepository(context.store_map, registry).search(query, connection=connection)
+            if include_fmp
+            else None
         )
-        if include_multi
-        else None
-    )
+        multi_selection = (
+            CurrentMultiSourceNewsRepository(
+                context.store_map, registry
+            ).search(
+                query,
+                connection=connection,
+                source_ids=selected_multi_ids if source_ids else CURRENT_MULTI_SOURCE_FEED_IDS,
+            )
+            if include_multi
+            else None
+        )
 
     records: list[dict[str, object]] = []
     if fmp_selection is not None:
@@ -652,20 +655,22 @@ def _invoke_news_search_page(
         source_id for source_id in source_ids if source_id != FMP_CURRENT_SOURCE_ID
     )
     include_multi = not source_ids or bool(selected_multi_ids)
-    fmp_selection = (
-        CurrentNewsRepository(context.store_map, registry).search(query, after=after)
-        if include_fmp
-        else None
-    )
-    multi_selection = (
-        CurrentMultiSourceNewsRepository(context.store_map, registry).search(
-            query,
-            source_ids=selected_multi_ids if source_ids else CURRENT_MULTI_SOURCE_FEED_IDS,
-            after=after,
+    with news_read_connection(context.store_map, checkpoint=context.checkpoint) as connection:
+        fmp_selection = (
+            CurrentNewsRepository(context.store_map, registry).search(query, after=after, connection=connection)
+            if include_fmp
+            else None
         )
-        if include_multi
-        else None
-    )
+        multi_selection = (
+            CurrentMultiSourceNewsRepository(context.store_map, registry).search(
+                query,
+                connection=connection,
+                source_ids=selected_multi_ids if source_ids else CURRENT_MULTI_SOURCE_FEED_IDS,
+                after=after,
+            )
+            if include_multi
+            else None
+        )
 
     records: list[dict[str, object]] = []
     if fmp_selection is not None:

@@ -562,6 +562,57 @@ or article bodies, never fetch from a provider, and remain read-only. An empty,
 `unavailable`, `insufficient_history`, or `not_established` result is an
 honest data-dependent outcome.
 
+#### Retained-news reads during collection
+
+Registry `2.92.0` adds one capture metadata index and improves the existing
+`news.search@2.3.0` and `news.get_source_status@1.0.0` implementations.
+Their input/output schemas and opaque cursor format are unchanged.
+The September 23 real read returned ten AAPL articles in 0.127 seconds
+(1.036 seconds including launcher startup); all eight source statuses completed
+in 1.536 seconds. Seventeen as-of pages matched all 165 eligible articles.
+Exact registry, manifest and schema hashes, source coverage and receipts are in
+the [retained-news repair handoff](rebuild/RETAINED_NEWS_READ_REPAIR_2026-09-23.md).
+Search applies source, ticker, publication-date and cursor predicates inside
+SQLite, chooses the latest cutoff-eligible version independently of those
+filters, and returns only each family's requested page to Python. Existing ticker
+and article-version indexes are reused. Source status uses a new index on
+feed, capture time and capture ID instead of scanning retained response bodies.
+
+A search holds one existing physical-store lock across both news families;
+source status uses the same coordinated immutable reader. Short collector
+publications complete before the read begins, or wait until it ends.
+Descriptor, role, sidecar and before/after file-integrity checks remain active.
+There is no provider request or automatic retry. Lock acquisition is bounded
+to one second, within the unchanged five-second tool deadline; sustained
+contention can still return `conflict`, and excessive work returns
+`deadline_exceeded`.
+
+Publication and local availability remain distinct:
+
+- Date bounds are inclusive source calendar dates, not capture dates.
+- Known publication instants sort newest first, then capture time and article
+  ID resolve ties. Unknown/date-only/naive publication times follow the known
+  instants; their precision remains explicit, with no invented timezone.
+- Capturing an old article today does not change its publication date.
+- `as_of` selects only versions locally available by the cutoff. Use one fixed
+  cutoff and unchanged filters for reproducible multi-page reads.
+- `total_known_count` counts matching articles remaining after the cursor;
+  `has_more` and `next_cursor` describe the retained result, not provider-wide
+  completeness. Capture freshness does not prove publication freshness.
+
+Source status version 1.0 supports the original **eight** sources, through
+`alpaca_benzinga`. Its empty `source_ids` selects those eight; `finviz` and
+`financialjuice` are supported by search 2.3 but not source status 1.0.
+Use each tool's advertised source list rather than sharing a single list.
+
+An `ok` search with zero records means no eligible retained match. An
+unsupported source is a validation error; an unreadable store returns
+`store_unavailable`. Retained source failures are reported by source status,
+separately from its latest successful capture and lifetime counts.
+`no_retained_outcome` means no recorded outcome, not a successful empty fetch.
+Source status does not infer live provider health or credential/scheduler
+failures that never reached the retained outcome ledger.
+
 The operator-only manual batch is
 `python3 scripts/refresh_current_news.py`. It uses `FMP_API_KEY` for FMP and
 `ALPACA_API_KEY` plus `ALPACA_API_SECRET` for Alpaca; absent credentials yield

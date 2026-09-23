@@ -49,6 +49,8 @@ def predecessor_profile(registry):
     import json
     from ..errors import RegistryError
     from ..tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256
+    from ..news.lookup_registry import predecessor_profile as news_predecessor
+    registry = news_predecessor(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", VERSION):
         return registry
     render = lambda raw: (json.dumps(raw, ensure_ascii=True, indent=1, sort_keys=True)+"\n").encode()

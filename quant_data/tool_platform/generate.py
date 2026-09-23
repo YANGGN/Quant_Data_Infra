@@ -49,6 +49,7 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.92.0"): "69df849df7edca58a724021bd36661c6e7b0037d2980fe37f8da11645d4921ad",
     ("1.9.0", "2.90.0"): "6461ffcee659803bfff1a30c834e4d807aa70639a956026edabc7f8a8a47fc86",
     ("1.9.0", "2.91.0"): "893c9bf9e93a4062b2a20cebf5928d29488600fd769fc88d107b6849c126af19",
     ("1.9.0", "2.89.0"): "c4293d0c5985429d97a7c6def93a8b8a2c841b02318bb7408818a9e924b9de1b",
@@ -793,7 +794,7 @@ def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
 def _render(value: Any) -> bytes:
     # Registry 2.72 uses less whitespace to remain within the unchanged
     # local JSON byte bound as explicit versioned contracts accumulate.
-    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0"} else 2
+    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0"} else 2
     return (json.dumps(value, ensure_ascii=True, indent=indent, sort_keys=True) + "\n").encode(
         "utf-8"
     )
@@ -1241,6 +1242,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.89.0"),
         ("1.9.0", "2.90.0"),
         ("1.9.0", "2.91.0"),
+        ("1.9.0", "2.92.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1340,6 +1342,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.89.0"): "2.90.0",
         ("1.9.0", "2.90.0"): "2.90.0",
         ("1.9.0", "2.91.0"): "2.91.0",
+        ("1.9.0", "2.92.0"): "2.92.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

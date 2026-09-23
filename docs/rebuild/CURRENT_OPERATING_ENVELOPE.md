@@ -4266,3 +4266,20 @@ This completed population must not be repeated without a new finite request.
 There is no new scheduler, public tool, UI, export, hosting, or provider family.
 See [the contract and completion evidence](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md)
 and .local/company-short-descriptions-20260922/completion-receipt.json.
+
+## Retained-news read repair — September 23, 2026
+
+The user requested repair and real read-only verification of recent ticker
+news search and source status during ordinary collection. The bounded operation
+applied only news migration 0010 (one existing capture-metadata lookup index)
+through the established locked migration runner and activated exact registry
+2.92.0. No provider request, population, scheduler action, retry service or
+consumer-project change was performed. Existing facts, prior migration entries
+and schema objects were preserved; the canonical foreign-key gate passed.
+
+Public news.search@2.3.0 and news.get_source_status@1.0.0 retain their schemas.
+The independent focused gate passed 36 tests and 192 semantic comparisons;
+real public AAPL reads, complete as-of pagination and all eight source statuses
+passed. This does not authorize another migration, provider fetch or recurring
+unit change. Detailed hashes, timing, scope and limitations:
+[retained-news repair receipt](RETAINED_NEWS_READ_REPAIR_2026-09-23.md).

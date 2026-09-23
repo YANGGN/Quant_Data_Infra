@@ -12664,6 +12664,18 @@
    "semantic_scope": "Extend shared current news source/provider allowlists for Finviz and FinancialJuice, preserving all existing rows and guards.",
    "sha256": "992f83f7c9fdd49eade78ab52fc01221746e78f4abe1e851641c75be184f860b",
    "store": "news"
+  },
+  {
+   "dependencies": [
+    "news:0009_website_source_extension"
+   ],
+   "id": "news:0010_current_news_capture_lookup",
+   "ordinal": 10,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/news/0010_current_news_capture_lookup.sql",
+   "semantic_scope": "Add a retained-news capture metadata lookup index; preserve source facts, capture availability, version selection and all existing migrations.",
+   "sha256": "63cf675540c6a89c19ecfce4ffc71910d8f5bde649842726caf725bef32794c2",
+   "store": "news"
   }
  ],
  "presentation_order": {
@@ -12760,7 +12772,7 @@
    "company.search_transcript_evidence"
   ]
  },
- "registry_version": "2.91.0",
+ "registry_version": "2.92.0",
  "schema_id": "quant_data.system_registry",
  "schema_version": "1.9.0",
  "status": "validated",
@@ -12957,7 +12969,8 @@
     "news:0006_fmp_stock_latest_current",
     "news:0007_current_multi_source",
     "news:0008_adopt_fmp_news_legacy",
-    "news:0009_website_source_extension"
+    "news:0009_website_source_extension",
+    "news:0010_current_news_capture_lookup"
    ],
    "path_env": "QUANT_NEWS_DB_PATH",
    "write_coordination": {

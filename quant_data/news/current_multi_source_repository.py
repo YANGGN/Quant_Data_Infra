@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
-from collections import defaultdict
+from contextlib import nullcontext
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -14,7 +14,9 @@ from typing import Any
 from ..errors import ResourceLimitError, StoreUnavailableError, ValidationError
 from ..json_codec import dumps_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection
+from ..stores import StoreMap, StoreRole
+from .read_session import news_read_connection
+from .selection_sql import select_news_rows
 from ..temporal import (
     TemporalPrecision,
     TemporalValue,
@@ -37,6 +39,7 @@ CURRENT_MULTI_SOURCE_REPOSITORY_DATASET_IDS = (
 )
 _CURRENT_ARTICLES_TABLE = "current_multi_source_articles"
 _MAX_CANDIDATE_ROWS = 200_000
+_SYMBOL_QUERY_BATCH_SIZE = 500
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,59 +140,31 @@ def _text(row: Mapping[str, object], name: str) -> str:
     return value
 
 
-def _query_rows(connection: Any) -> list[Mapping[str, object]]:
-    try:
-        rows = list(
-            connection.execute(
-                """
-                SELECT article.article_id, article.feed_id, article.provider,
-                       article.source_item_key, article.created_capture_id,
-                       version.article_version_id, version.article_id AS version_article_id,
-                       version.title, version.summary, version.site, version.source_url,
-                       version.published_date_raw, version.published_normalized_at,
-                       version.published_precision, version.published_offset_status,
-                       version.version_sequence, version.supersedes_article_version_id,
-                       version.capture_id, version.source_row, capture.captured_at,
-                       membership.source_row AS membership_source_row
-                FROM current_multi_source_article_versions AS version
-                JOIN current_multi_source_articles AS article
-                  ON article.article_id=version.article_id
-                JOIN current_multi_source_captures AS capture
-                  ON capture.capture_id=version.capture_id
-                JOIN current_multi_source_capture_articles AS membership
-                  ON membership.capture_id=version.capture_id
-                 AND membership.article_version_id=version.article_version_id
-                 AND membership.source_row=version.source_row
-                ORDER BY article.article_id, version.version_sequence, version.article_version_id
-                LIMIT ?
-                """,
-                (_MAX_CANDIDATE_ROWS + 1,),
-            )
-        )
-    except sqlite3.Error as exc:
-        raise StoreUnavailableError("Current multi-source news store is unavailable") from exc
-    if len(rows) > _MAX_CANDIDATE_ROWS:
-        raise ResourceLimitError("Multi-source news version history exceeds the query bound")
-    return rows
-
-
-def _symbols(connection: Any, article_version_id: str) -> tuple[str, ...]:
-    try:
-        rows = list(
-            connection.execute(
-                """
-                SELECT provider_symbol
+def _symbols_by_version(
+    connection: Any, article_version_ids: tuple[str, ...]
+) -> dict[str, tuple[str, ...]]:
+    """Load symbols for selected versions in bounded, parameterized batches."""
+    grouped: dict[str, list[str]] = {version_id: [] for version_id in article_version_ids}
+    for offset in range(0, len(article_version_ids), _SYMBOL_QUERY_BATCH_SIZE):
+        batch = article_version_ids[offset : offset + _SYMBOL_QUERY_BATCH_SIZE]
+        placeholders = ", ".join("?" for _ in batch)
+        try:
+            rows = connection.execute(
+                f"""
+                SELECT article_version_id, provider_symbol
                 FROM current_multi_source_article_symbols
-                WHERE article_version_id=?
-                ORDER BY provider_symbol COLLATE BINARY
+                WHERE article_version_id IN ({placeholders})
+                ORDER BY article_version_id COLLATE BINARY, provider_symbol COLLATE BINARY
                 """,
-                (article_version_id,),
+                batch,
             )
-        )
-    except sqlite3.Error as exc:
-        raise StoreUnavailableError("Current multi-source news symbols are unavailable") from exc
-    symbols = tuple(_text(row, "provider_symbol") for row in rows)
-    if len(symbols) != len(set(symbols)):
+            for row in rows:
+                version_id = _text(row, "article_version_id")
+                grouped[version_id].append(_text(row, "provider_symbol"))
+        except sqlite3.Error as exc:
+            raise StoreUnavailableError("Current multi-source news symbols are unavailable") from exc
+    symbols = {version_id: tuple(values) for version_id, values in grouped.items()}
+    if any(len(values) != len(set(values)) for values in symbols.values()):
         raise ValidationError("Stored multi-source article symbols are ambiguous")
     return symbols
 
@@ -203,7 +178,7 @@ def _rank(row: Mapping[str, object]) -> tuple[int, datetime, str]:
     return sequence, captured.value.astimezone(timezone.utc), _text(row, "article_version_id")
 
 
-def _record(connection: Any, row: Mapping[str, object]) -> dict[str, object]:
+def _record(row: Mapping[str, object], symbols: tuple[str, ...]) -> dict[str, object]:
     article_id = _text(row, "article_id")
     if row["version_article_id"] != article_id:
         raise ValidationError("Stored multi-source article/version identity is inconsistent")
@@ -218,7 +193,6 @@ def _record(connection: Any, row: Mapping[str, object]) -> dict[str, object]:
     raw, normalized, precision, offset_status, instant, calendar_date = _published(row)
     captured = _captured(row)
     sequence, _, version_id = _rank(row)
-    symbols = _symbols(connection, version_id)
     return {
         "article_id": article_id,
         "article_version_id": version_id,
@@ -329,6 +303,8 @@ class CurrentMultiSourceNewsRepository:
         *,
         source_ids: tuple[str, ...] = (),
         after: CurrentNewsKeysetAnchor | None = None,
+        connection=None,
+        checkpoint=None,
     ) -> CurrentMultiSourceNewsSelection:
         if not isinstance(query, CurrentNewsQuery):
             raise ValidationError("Multi-source news selection requires a typed current-news query")
@@ -336,46 +312,20 @@ class CurrentMultiSourceNewsRepository:
             raise ValidationError("Multi-source news selection anchor is invalid")
         source_ids = _source_ids(source_ids)
         self._require_datasets()
-        with quiet_immutable_read_connection(
-            self._store_map, StoreRole.NEWS, expected_anchor=_CURRENT_ARTICLES_TABLE
-        ) as connection:
-            rows = _query_rows(connection)
-            migration_ids, migrations = _migration_receipt(connection)
-            cutoff = query.cutoff
-            warnings: set[str] = set()
-            grouped: dict[str, list[Mapping[str, object]]] = defaultdict(list)
-            for row in rows:
-                if cutoff is not None:
-                    decision = availability_at_or_before(
-                        _captured(row), cutoff, query.date_only_policy
-                    )
-                    warnings.update(decision.warnings)
-                    if not decision.included:
-                        continue
-                grouped[_text(row, "article_id")].append(row)
-            selected = [
-                _record(connection, max(candidates, key=_rank))
-                for candidates in grouped.values()
-            ]
-        filtered = [
-            record for record in selected
-            if (not source_ids or str(record["feed_id"]) in source_ids)
-            and _matches(record, query)
-        ]
-        _sort(filtered)
-        if after is not None:
-            filtered = [
-                record
-                for record in filtered
-                if record_is_after_current_news_anchor(record, after)
-            ]
+        with (nullcontext(connection) if connection is not None else news_read_connection(
+            self._store_map, expected_anchor=_CURRENT_ARTICLES_TABLE, checkpoint=checkpoint
+        )) as active:
+            rows, total = select_news_rows(
+                active, query, multi_source=True, published=_published,
+                source_ids=source_ids, after=after)
+            migration_ids, migrations = _migration_receipt(active)
+            symbols = _symbols_by_version(
+                active, tuple(str(row["article_version_id"]) for row in rows))
+            selected = [_record(row, symbols[str(row["article_version_id"])]) for row in rows]
+        warnings: set[str] = set()
         rendered = [
-            {
-                key: value
-                for key, value in record.items()
-                if not key.startswith("_")
-            }
-            for record in filtered[: query.limit]
+            {key: value for key, value in record.items() if not key.startswith("_")}
+            for record in selected
         ]
         receipt = {
             "dataset_ids": list(CURRENT_MULTI_SOURCE_REPOSITORY_DATASET_IDS),
@@ -385,16 +335,16 @@ class CurrentMultiSourceNewsRepository:
             "selected_article_versions": [
                 str(record["article_version_id"]) for record in rendered
             ],
-            "total_selected_count": len(filtered),
-            "truncated": len(filtered) > query.limit,
+            "total_selected_count": total,
+            "truncated": total > query.limit,
             "warnings": sorted(warnings),
         }
         if after is not None:
             receipt["after"] = after.receipt_mapping()
         return CurrentMultiSourceNewsSelection(
             records=tuple(rendered),
-            total_selected_count=len(filtered),
-            truncated=len(filtered) > query.limit,
+            total_selected_count=total,
+            truncated=total > query.limit,
             migration_ids=migration_ids,
             receipt_sha256=hashlib.sha256(
                 dumps_strict(receipt).encode("utf-8")

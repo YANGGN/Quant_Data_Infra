@@ -21,6 +21,7 @@ from .current_multi_source_repository import (
     CURRENT_MULTI_SOURCE_REPOSITORY_DATASET_IDS,
 )
 from .current_repository import CURRENT_NEWS_DATASET_IDS
+from .read_session import news_read_connection
 
 
 FMP_STOCK_LATEST_SOURCE_ID = "fmp_stock_latest"
@@ -733,13 +734,14 @@ class CurrentNewsToolRepository:
     def source_status(
         self,
         source_ids: tuple[str, ...] = (),
+        *, checkpoint=None,
     ) -> tuple[dict[str, object], ...]:
         """Return deterministic retained-outcome status for fixed current feeds."""
 
         sources = _selected_sources(source_ids)
-        with quiet_immutable_read_connection(
+        with news_read_connection(
             self._store_map,
-            StoreRole.NEWS,
+            checkpoint=checkpoint,
             expected_anchor="fmp_stock_latest_current_attempts",
         ) as connection:
             return tuple(_status_record(connection, source) for source in sources)

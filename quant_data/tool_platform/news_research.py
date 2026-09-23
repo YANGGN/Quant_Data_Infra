@@ -185,7 +185,7 @@ def _source_status(
 ) -> QueryResult:
     context.checkpoint()
     rows = CurrentNewsToolRepository(context.store_map, registry).source_status(
-        arguments.source_ids
+        arguments.source_ids, checkpoint=context.checkpoint
     )
     records = records_from_mappings(
         "current_news_source_status",
