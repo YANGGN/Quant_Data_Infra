@@ -1,0 +1,12 @@
+[Unit]
+Description=Repair the past trading week of Theta options on Sunday
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00 America/New_York
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=true
+Unit=quant-data-theta-options-weekly.service
+
+[Install]
+WantedBy=timers.target

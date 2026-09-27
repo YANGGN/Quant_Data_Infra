@@ -11,6 +11,8 @@ VERSION = "2.92.0"
 
 
 def predecessor_profile(registry):
+    from ..options.tool_registry import predecessor_profile as theta_predecessor
+    registry = theta_predecessor(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", VERSION):
         return registry
     from ..tool_platform.generate import _REVIEWED_REGISTRY_SOURCE_SHA256

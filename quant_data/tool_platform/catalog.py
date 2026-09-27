@@ -23,7 +23,8 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.36.0"
+VERSIONED_CATALOG_VERSION = "2.37.0"
+from .theta_contracts import TOOLS as ADDITIVE_THETA_TOOLS
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -62,6 +63,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_FORWARD_PE_TOOLS,
     *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
     *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
+    *ADDITIVE_THETA_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -240,6 +242,7 @@ CURRENT_FAMILY_COUNTS = {
     "macro": 13,
     "market": 9,
     "company": 18,
+    "options": 12,
     "research": 24,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
@@ -277,6 +280,7 @@ _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_THETA_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -633,6 +637,8 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
     from .transcript_research_contracts import KINDS as RESEARCH_KINDS
     additive += tuple(ToolProfile(name=name, family="company", input_kind=RESEARCH_KINDS[name],
         stores=("company",), datasets=(RAW_DATASET, STRUCTURED_DATASET)) for name in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
+    from .theta_contracts import KINDS as THETA_KINDS
+    additive += tuple(ToolProfile(name=name, family="options", input_kind=THETA_KINDS[name], stores=(), datasets=()) for name in ADDITIVE_THETA_TOOLS)
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -1239,6 +1245,7 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *_build_transcript_research_entries(),
         _build_forward_pe_entry(),
         _build_forward_pe_analysis_entry(),
+        *_build_theta_entries(),
     )
 
 
@@ -5351,3 +5358,44 @@ __all__ = (
     "current_tool_profiles",
     "tool_profiles",
 )
+
+
+
+def _build_theta_entries():
+    from .theta_contracts import TOOLS, KINDS, MAX_RECORDS, schema
+    descriptions = (
+        "Inspect Theta ETF daily coverage, saved-session gaps, capture freshness and quality.",
+        "Read Theta daily call/put activity, dated OI, concentration and selected-anchor IV proxies.",
+        "Read one coherent Theta daily capture, summary populations and retained activity leaders.",
+        "Calculate selected-anchor ATM IV, bracketed term interpolation, moneyness skew and trailing IV ranks.",
+        "Rank ETF activity on one explicit common session with trailing sample counts and missingness.",
+        "Read and filter at most 300 retained Theta contract details; this is not a full-chain listing.",
+    )
+    output = []
+    for name, description in zip(TOOLS, descriptions, strict=True):
+        entry = _build_forward_pe_entry()
+        graph = f"tool_platform.{name}.v1"
+        example = {"start_date": "2026-09-21", "end_date": "2026-09-23"} if name in TOOLS[:2] else {"session": "2026-09-23"}
+        example.update({"symbols": ["SPY", "QQQ"]} if name in (TOOLS[0], TOOLS[4]) else {"symbol": "SPY"})
+        entry.update(id=name, family="options", owner="market", handler=graph, operation_graph_id=graph,
+            description=description + " Fixed source: options.sqlite / thetadata; no Alpaca or live fallback.",
+            input_type="Theta" + "".join(p.title() for p in name.split(".")[1].split("_")) + "ArgumentsV1",
+            input_schema_id=_versioned_schema_id(name, "input", version="1.0.0"), input_schema=schema(KINDS[name]),
+            output_schema_id=_versioned_schema_id(name, "output", version="1.0.0"),
+            output_schema=query_result_schema(name, {"type":"object","additionalProperties":False,"properties":{},"required":[]}),
+            examples=[example],
+            assumptions=["host_fixed_optional_options_store", "immutable_read_under_physical_store_lock",
+                "theta_source_v1_record_has_options_domain_lineage", "no_legacy_four_store_binding",
+                "no_provider_requests_or_fallback", "compact_selected_contracts_not_full_chain",
+                "capture_time_cutoff_not_historical_public_availability", "json_suffixed_fields_are_documented_structured_records",
+                "trailing_observed_universe_sessions_excluding_current", "gap_calendar_is_not_verified"],
+            workload_bounds={"max_rows":MAX_RECORDS,"max_series":1,"max_operations":5000000,
+                "max_request_bytes":1048576,"max_response_bytes":8388608},
+            availability_policy={"modes":["latest","as_of"],"point_in_time_default":"not_established",
+                "date_bounds":"explicit_session_or_max_366_calendar_days_as_of_is_local_capture_cutoff"},
+            contracts={"availability":"local_capture_time_only","point_in_time":"not_established_backfilled_history",
+                "returns":"not_applicable"})
+        entry["output_schema"]["properties"]["series"]["maxItems"] = 0
+        entry["output_schema"]["properties"]["records"]["maxItems"] = MAX_RECORDS
+        output.append(entry)
+    return tuple(output)

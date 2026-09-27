@@ -105,6 +105,12 @@ def invoke_operation(
 ) -> QueryResult:
     """Invoke one closed read-only graph and return an immutable typed result."""
 
+    from .theta_contracts import TOOLS as THETA_TOOLS
+    if name in THETA_TOOLS:
+        if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
+            raise LookupError("Selected Theta tool graph is invalid")
+        from .theta_access import invoke
+        return invoke(name, arguments, context, registry)
     from .price_basis_versions import PRICE_BASIS_VERSIONS
     pair = PRICE_BASIS_VERSIONS.get(name)
     if pair is not None and context.tool_version == pair[1]:

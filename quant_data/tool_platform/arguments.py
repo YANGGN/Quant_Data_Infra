@@ -2725,6 +2725,9 @@ def input_schema(input_kind: str, series_schema: Mapping[str, Any]) -> dict[str,
     re-declaring (or weakening) its observation bound here.
     """
 
+    from .theta_contracts import KINDS as THETA_KINDS, schema as theta_schema
+    if input_kind in THETA_KINDS.values():
+        return theta_schema(input_kind)
     if input_kind == "forward_pe_analysis_v1":
         from .forward_pe_analysis_access import schema
         return schema()
@@ -5345,6 +5348,9 @@ def parse_arguments(
     before any decoder invocation.
     """
 
+    from .theta_contracts import KINDS as THETA_KINDS, parse as theta_parse
+    if input_kind in THETA_KINDS.values():
+        return theta_parse(input_kind, public)
     if input_kind == "forward_pe_analysis_v1":
         from .forward_pe_analysis_access import parse
         return parse(public)
@@ -5910,6 +5916,10 @@ def preflight_dimensions(
     count, matching the platform's correlation/alignment workload ceiling.
     """
 
+    from .theta_contracts import KINDS as THETA_KINDS, parse as theta_parse, MAX_RECORDS
+    if input_kind in THETA_KINDS.values():
+        theta_parse(input_kind, public)
+        return {"rows": MAX_RECORDS, "series": 0, "operations": 5000000}
     if input_kind == "forward_pe_analysis_v1":
         parsed = parse_arguments(input_kind, public, lambda value: value)
         return {"rows": parsed.limit, "series": 0, "operations": 30000 * 128}

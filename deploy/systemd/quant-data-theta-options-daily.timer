@@ -1,0 +1,12 @@
+[Unit]
+Description=Collect daily Theta options history at 19:15 Eastern
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 19:15:00 America/New_York
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=false
+Unit=quant-data-theta-options-daily.service
+
+[Install]
+WantedBy=timers.target

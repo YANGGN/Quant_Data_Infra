@@ -21,6 +21,112 @@ The command derives this project's root itself. Do not copy its database paths,
 set database-related environment variables, or invoke it with a registry,
 project-root, store, SQL, provider, or credential option; none are supported.
 
+## Current Theta options workflow — September 27, 2026
+
+These six tools are available now through the shared launcher at explicit
+**version 1.0.0**. They read only ThetaData's host-selected
+`data/options.sqlite`; there is no Alpaca or intraday-monitor fallback.
+
+| Tool | Use | Required arguments |
+| --- | --- | --- |
+| `options.get_coverage` | Find available dates, freshness, gaps and quality | `start_date`, `end_date` |
+| `options.get_daily_history` | Read daily volume, OI, put/call ratios and ATM IV | `symbol`, `start_date`, `end_date` |
+| `options.get_daily_snapshot` | Read one capture's summaries and activity leaders | `symbol`, `session` |
+| `options.get_volatility_profile` | Read IV terms, moneyness skew and trailing IV ranks | `symbol`, `session` |
+| `options.screen_activity` | Compare ETF activity on one shared session | `session` |
+| `options.get_selected_contracts` | Read retained contract details, Greeks and selection reasons | `symbol`, `session` |
+
+Supported roots are SPY, QQQ, IWM, DIA, XLB, XLC, XLE, XLF, XLI, XLK, XLP,
+XLRE, XLU, XLV and XLY. Coverage and screening accept optional `symbols`;
+omitting it selects all 15. Other tools accept one `symbol`.
+
+Start with coverage, then use a returned saved session or bounded date range.
+The dates below are historical examples, not the latest-data assumption.
+
+### Discover and call the Theta tools
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe options.get_coverage --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"options.get_coverage","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ"],"start_date":"2026-09-21","end_date":"2026-09-25"}}
+JSON
+```
+
+Windows-native agents use the same WSL launcher:
+
+```powershell
+@'
+{"api_version":"1.0","tool":"options.get_coverage","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ"],"start_date":"2026-09-21","end_date":"2026-09-25"}}
+'@ | wsl.exe -d Ubuntu -- /home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call
+```
+
+Send each remaining envelope separately to the launcher's `call` command
+on standard input:
+
+```json
+{"api_version":"1.0","tool":"options.get_daily_history","tool_version":"1.0.0","arguments":{"symbol":"SPY","start_date":"2026-09-21","end_date":"2026-09-23"}}
+```
+
+```json
+{"api_version":"1.0","tool":"options.get_daily_snapshot","tool_version":"1.0.0","arguments":{"symbol":"SPY","session":"2026-09-23"}}
+```
+
+```json
+{"api_version":"1.0","tool":"options.get_volatility_profile","tool_version":"1.0.0","arguments":{"symbol":"SPY","session":"2026-09-23","lookback_sessions":252,"min_observations":20}}
+```
+
+```json
+{"api_version":"1.0","tool":"options.screen_activity","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ","IWM"],"session":"2026-09-23","lookback_sessions":20,"min_observations":20,"rank_by":"relative_volume"}}
+```
+
+```json
+{"api_version":"1.0","tool":"options.get_selected_contracts","tool_version":"1.0.0","arguments":{"symbol":"SPY","session":"2026-09-23","right":"C"}}
+```
+
+### Arguments and result handling
+
+Date ranges are inclusive and limited to 366 calendar days per call. All tools
+accept optional timezone-aware `as_of`, which filters by **local capture time**,
+not original historical public availability. Omitting it uses the host clock.
+
+Volatility profiles accept `lookback_sessions` 2–252 (default 252); screens
+accept 2–60 (default 20). Both accept `min_observations` from 2 through the
+window, defaulting to the smaller of 20 and the window. Baselines exclude the
+requested session and retain missing-session information. Screening `rank_by`
+accepts `relative_volume`, `put_call_change`, `zero_dte_volume_share` or
+`atm_iv_30_change`; missing scores have null ranks. Selected contracts also
+accept `expiration`, `right` C/P, and positive decimal-string `strike_min`
+and `strike_max` filters.
+
+Read `result.records` as `record_type` plus `fields` name/value pairs.
+Decode `_json` fields once; the `series` array is empty. Every response starts
+with `theta_source`, identifying provider `thetadata`, store role `options`,
+datasets, capture cutoff and derivation version. Preserve that record, the
+receipt, capture IDs, semantic hashes, quality flags and research metadata when
+passing results to another agent. Empty legacy `stores` bindings do not mean
+no source was read: this optional domain is identified by `theta_source`.
+
+OI retains its own effective date. IV and skew are selected-contract estimates;
+detail is capped at 300 contracts and is not a full-chain listing. Full,
+selected and remainder summary populations remain distinct. Missing values
+stay null, and historical point-in-time status stays `not_established`.
+Weekdays with no ETF observations are marked calendar-unverified rather than
+confirmed exchange-session gaps. An unavailable source fails explicitly;
+do not substitute legacy data.
+
+See the [full Theta contracts](rebuild/THETA_AGENT_TOOLS_2026-09-27.md) for
+formulas, interpolation, lineage fields and workload limits.
+
+### Retired Alpaca collection and historical interfaces
+
+The Alpaca options collection schedule is retired; historical data is preserved.
+The older `options.search_captures@2.0.0`,
+`options.search_contracts@2.0.0` and
+`options.get_surface_snapshot@2.0.0` still read the legacy Alpaca cohort.
+They must not be used for current Theta research. Older fixture tools retain
+their existing semantics. Consumers must not open databases directly.
+
+
 ## Cross-project quick start
 
 The absolute launcher path above is the complete integration boundary. An
@@ -298,9 +404,13 @@ the dated ETF version 1 section below is preserved audit evidence only.
 ## Latest contracts
 
 This is the latest-only projection verified through the public launcher for
-registry `2.86.0`, catalog `2.32.0`: 80 logical tools and 169 versioned contracts.
+registry `2.93.0`, catalog `2.37.0`: 90 logical tools and 182 versioned contracts.
 If the registry advances, the semantic maximum advertised by the runtime
 `manifest` overrides this checkpoint.
+
+For current options research, select the six Theta tools in the
+[current options workflow](#current-theta-options-workflow--september-27-2026).
+Older options names in this inventory retain archive or fixture semantics.
 
 | Logical tool | Latest version |
 | --- | --- |
@@ -328,9 +438,9 @@ If the registry advances, the semantic maximum advertised by the runtime
 | `econometrics.local_projection` | `1.0.0` |
 | `company.search_issuers` | `1.0.0` |
 | `company.search_filings` | `2.0.0` |
-| `company.get_fundamentals` | `2.1.0` |
+| `company.get_fundamentals` | `3.0.0` |
 | `company.get_corporate_actions` | `1.0.0` |
-| `company.get_share_count_history` | `2.0.0` |
+| `company.get_share_count_history` | `3.0.0` |
 | `company.get_earnings_calendar` | `1.0.0` |
 | `company.get_consensus_history` | `1.0.0` |
 | `company.get_guidance_history` | `1.0.0` |
@@ -349,6 +459,12 @@ If the registry advances, the semantic maximum advertised by the runtime
 | `rates.get_funding_conditions` | `2.0.0` |
 | `rates.get_repo_facility_usage` | `2.0.0` |
 | `rates.curve_analytics` | `2.0.0` |
+| `options.get_coverage` | `1.0.0` |
+| `options.get_daily_history` | `1.0.0` |
+| `options.get_daily_snapshot` | `1.0.0` |
+| `options.get_volatility_profile` | `1.0.0` |
+| `options.screen_activity` | `1.0.0` |
+| `options.get_selected_contracts` | `1.0.0` |
 | `options.search_captures` | `2.0.0` |
 | `options.search_contracts` | `2.0.0` |
 | `options.get_surface_snapshot` | `2.0.0` |
@@ -382,8 +498,12 @@ If the registry advances, the semantic maximum advertised by the runtime
 | `price_realtime` | `1.0.0` |
 | `company.get_research_inputs` | `1.0.0` |
 | `company.search_transcripts` | `1.0.0` |
-| `company.get_transcript` | `1.0.0` |
+| `company.get_transcript` | `2.0.0` |
 | `company.get_transcript_extraction` | `1.0.0` |
+| `company.get_forward_pe` | `1.0.0` |
+| `company.get_forward_pe_analysis` | `1.0.0` |
+| `company.get_transcript_history` | `1.0.0` |
+| `company.search_transcript_evidence` | `1.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one
@@ -1374,10 +1494,11 @@ read-only `/data-status` view), never by opening the macro store directly.
 
 Do not read `data/*.sqlite` directly, open it through SQLite, attach it to an
 analytics engine, or copy its path into another project. The CLI fixes the
-project root, canonical registry, and four logical store routes itself. Each
-registered operation uses a parameterized read-only gateway and can open only
-the store(s) declared for that tool. It cannot initialise, migrate, repair, or
-write a store.
+project root, canonical registry, and established logical store routes itself.
+The six Theta tools additionally use the fixed optional options-store reader;
+they declare that source in their `theta_source` domain lineage record. Each
+operation uses its registered read-only reader and host-selected source. It
+cannot initialise, migrate, repair, or write a store.
 
 Retained-data tools make no provider requests or credential reads. The explicit
 `price_realtime` invocation is the live FMP quote exception described above;
@@ -1748,6 +1869,10 @@ removes that recommendation and leaves the selection entirely to the app.
    `test_local_warehouse_inputs.py` with standard raw feature/quality records.
    Keep fail-closed cases for missing inputs, unavailable historical evidence,
    receipt mismatch, and absent app policy.
+
+The following dated Alpaca description is historical context; use the
+[current Theta workflow](#current-theta-options-workflow--september-27-2026)
+for new options research.
 
 The existing `options.get_surface_snapshot@2.0.0` interface separately exposes
 retained underlying bid/ask evidence for SPY, QQQ, IWM, DIA, and the eleven

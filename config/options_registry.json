@@ -1,0 +1,158 @@
+{
+  "contract": "quant_data.optional_options_store",
+  "version": "1.1.0",
+  "legacy_registry": "config/system_registry.json",
+  "store_role": "options",
+  "default_path": "data/options.sqlite",
+  "private": true,
+  "migration": {
+    "id": "options:0001_theta_compact",
+    "ordinal": 1,
+    "resource": "quant_data/migrations/options/0001_theta_compact.sql",
+    "sha256": "63691b621c0a4ea0b5e03beb32028dfeea646260be5147c067b287fa914ddbff"
+  },
+  "datasets": [
+    {
+      "id": "options.theta.receipts",
+      "layer": "evidence",
+      "version": "1.0.0"
+    },
+    {
+      "id": "options.theta.selected_contracts",
+      "layer": "canonical",
+      "version": "1.0.0"
+    },
+    {
+      "id": "options.theta.daily_research",
+      "layer": "research",
+      "version": "1.0.0"
+    }
+  ],
+  "collector": {
+    "id": "theta.options.spy_compact_history",
+    "symbol": "SPY",
+    "handler": "quant_data.operations.theta_spy_backfill",
+    "max_requests": 20000,
+    "max_response_bytes": 137438953472,
+    "max_seconds": 86400,
+    "retries": 0,
+    "recurring": false
+  },
+  "retention": {
+    "policy": "selected_extracted_fields_and_summary_only",
+    "source_replayable": false,
+    "discard_after": "verified_atomic_publication"
+  },
+  "journal_mode": "DELETE",
+  "backup": "sqlite_online_backup",
+  "locking": "sha256_canonical_path_uri_v1",
+  "migrations": [
+    {
+      "id": "options:0001_theta_compact",
+      "ordinal": 1,
+      "resource": "quant_data/migrations/options/0001_theta_compact.sql",
+      "sha256": "63691b621c0a4ea0b5e03beb32028dfeea646260be5147c067b287fa914ddbff"
+    },
+    {
+      "id": "options:0002_tier1_etf_roots",
+      "ordinal": 2,
+      "resource": "quant_data/migrations/options/0002_tier1_etf_roots.sql",
+      "sha256": "ae6a5b7b81429b720cd5cfef4c6e65722e0921f785bd88dee3e02ab60d8d1e2d"
+    }
+  ],
+  "expansion_collector": {
+    "id": "theta.options.tier1_compact_history",
+    "symbols": [
+      "QQQ",
+      "IWM",
+      "DIA",
+      "XLB",
+      "XLC",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLRE",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "handler": "quant_data.operations.theta_etf_backfill",
+    "start": "2016-01-04",
+    "end": "2026-09-23",
+    "max_requests": 120000,
+    "max_response_bytes": 274877906944,
+    "max_seconds": 259200,
+    "download_workers": 4,
+    "retries": 1,
+    "recurring": false,
+    "recovery_passes": 1,
+    "recovery_attempts_per_request": 1,
+    "retry_policy": "theta_etf_retry_policy_v1",
+    "retryable_provider_codes": [
+      "ABORTED",
+      "CANCELLED",
+      "DEADLINE_EXCEEDED",
+      "INTERNAL",
+      "RESOURCE_EXHAUSTED",
+      "UNAVAILABLE"
+    ]
+  },
+  "consumers": {
+    "options_monitor_daily_history": {
+      "mode": "read_only",
+      "datasets": [
+        "options.theta.daily_research",
+        "options.theta.selected_contracts"
+      ],
+      "reader": "quant_data.options.monitor.history.read_batch",
+      "derivation_version": "options_daily_chart_v1",
+      "destination": "existing_private_options_monitor_site",
+      "max_points_per_batch": 500,
+      "provider_requests": 0
+    }
+  },
+  "scheduled_collection": {
+    "contract": "theta_daily_and_weekly_v1",
+    "symbols": [
+      "SPY",
+      "QQQ",
+      "IWM",
+      "DIA",
+      "XLB",
+      "XLC",
+      "XLE",
+      "XLF",
+      "XLI",
+      "XLK",
+      "XLP",
+      "XLRE",
+      "XLU",
+      "XLV",
+      "XLY"
+    ],
+    "store": "data/options.sqlite",
+    "history_floor": "2026-09-21",
+    "daily": {
+      "calendar": "Mon..Fri *-*-* 19:15:00 America/New_York",
+      "max_requests": 32,
+      "max_bytes": 2147483648,
+      "max_seconds": 1200,
+      "persistent": false
+    },
+    "weekly": {
+      "calendar": "Sun *-*-* 03:00:00 America/New_York",
+      "max_requests": 152,
+      "max_bytes": 8589934592,
+      "max_seconds": 3600,
+      "persistent": true
+    },
+    "workers": 1,
+    "retries": 0,
+    "missing_only": true,
+    "max_store_bytes": 26843545600,
+    "min_free_bytes": 21474836480,
+    "handler": "quant_data.operations.theta_options_refresh"
+  }
+}

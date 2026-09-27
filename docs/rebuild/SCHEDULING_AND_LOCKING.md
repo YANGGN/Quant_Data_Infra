@@ -242,6 +242,14 @@ manual-only; this exact hardened host unit is the recurring exception.
 
 ## Authorized in-place Alpaca ETF option-surface refresh
 
+**Retired September 26, 2026.** The user explicitly selected the new Theta
+options store and requested retirement of this Alpaca collection. Its timer
+is disabled/removed from the installed schedule; retained historical evidence
+and repository definitions remain. The operating envelope and
+[Theta agent proposal/retirement receipt](THETA_AGENT_TOOL_PROPOSAL_2026-09-26.md)
+record the current decision. The following activation history describes the
+earlier scope and no longer authorizes recurring Alpaca options execution.
+
 On 2026-08-25 the user explicitly authorized the fixed
 `quant-data-alpaca-spy-options.timer`. It was linked and enabled after the
 focused offline tests, independent verification, and host timer status check
@@ -992,3 +1000,14 @@ this existing exclusive lock; long publication/migration work can produce an
 explicit lock conflict. This bounded choice avoids a new snapshot service or
 changes to the shared locking engine. See
 [consumer behavior](../LOCAL_AGENT_TOOLS.md#retained-news-reads-during-collection).
+
+## Daily Theta options and weekly repair
+
+The user-authorized September 26, 2026 daily and weekend routines are specified
+in [the focused options contract](THETA_DAILY_COLLECTION_2026-09-26.md).
+Daily 19:15 Eastern collects only the current date; Sunday 03:00 Eastern repairs
+only missing sessions in the preceding Monday-Friday window. A shared job lock
+and durable per-period admission prevent overlap and automatic repeat. The
+existing resolved-physical-store lock guards immutable audits and atomic
+missing-only publication; provider work occurs outside that lock.
+The operating envelope owns dated activation evidence.

@@ -994,7 +994,7 @@ broaden, install, start, enable, disable, remove, or repurpose a recurring unit.
 | `quant-data-employment-vintages.timer` | First Friday of each month at 10:05 America/New_York. One credential-free BLS request for the fixed payroll and unemployment series; no retry, migration, or Philadelphia Fed historical-workbook fetch. |
 | `quant-data-fmp-macro-calendar.timer` | 08:15 and 08:45 America/New_York on weekdays. One bounded current-window FMP calendar request with no retry. The response is retained as wholesale raw evidence before independent GDP/CPI and employment normalization. |
 | `quant-data-macro-current-refresh.timer` | 18:30 America/New_York on weekdays. Twenty-nine established macro collector operations run sequentially with a total provider-request cap of 94, no retry, a fixed `data/macro.sqlite` target, and semantic no-write behavior when content is unchanged. It covers Treasury curve; both CFTC futures-only positioning families; Treasury securities auctions; NY Fed overnight rates including SOFR distribution, volume, index, and compounded averages, plus Primary Dealer Statistics; Federal Reserve IORB, target bounds, H.4.1, H.8, SLOOS, and INDPRO; repo facilities and SOMA; Chicago Fed NFCI/ANFCI components and CFNAI; BIS credit conditions; CMDI; Treasury cash, Debt to the Penny, and Monthly Treasury Statement receipts, outlays, and deficit/surplus; EIA gas storage, weekly crude-oil stocks, weekly gasoline and distillate stocks, finished-gasoline product supplied, and monthly electricity retail; NBER recession chronology; BLS PPI, earnings, productivity, and ECI; and BEA personal income, disposable personal income, and personal consumption expenditures. |
-| `quant-data-alpaca-spy-options.timer` | Legacy unit name retained for the authorized in-place 15-ETF grid update. It runs at 16:20 America/New_York on weekdays with `Persistent=false`, an OPRA gate, and no retry or catch-up. It targets only `data/market.sqlite`, the fixed paper/indicative feed, the 15 named ETF identities, and ten fixed DTE targets. One invocation is capped at 362 requests, 900,016 rows, 256 MiB, and 900 seconds with a 16-minute host timeout; raw response bytes precede normalization, partial grids exit nonzero, and exact semantic replay writes nothing. |
+| `quant-data-alpaca-spy-options.timer` | **Retired by explicit user decision September 26, 2026; no recurring activation remains.** Historical scope: legacy unit name retained for the authorized in-place 15-ETF grid update. It runs at 16:20 America/New_York on weekdays with `Persistent=false`, an OPRA gate, and no retry or catch-up. It targets only `data/market.sqlite`, the fixed paper/indicative feed, the 15 named ETF identities, and ten fixed DTE targets. One invocation is capped at 362 requests, 900,016 rows, 256 MiB, and 900 seconds with a 16-minute host timeout; raw response bytes precede normalization, partial grids exit nonzero, and exact semantic replay writes nothing. |
 | `quant-data-sec-company-fundamentals.timer` | 07:15 America/New_York on weekdays. It reads the fixed Stage 10 equity roster, performs one bounded SEC ticker discovery, processes sequential submissions/CompanyFacts pairs without retry, and targets only `data/company.sqlite`. |
 | `quant-data-company-market-refresh.timer` | 19:00 America/New_York on weekdays. The zero-argument wrapper reads at most 700 retained FMP equities and existing company identities, makes one SEC ticker discovery, and fetches dividends, splits, and one annual-estimates page for each unambiguous existing identity. It publishes only to `data/company.sqlite`, creates no identities, and is capped at 2,101 requests, 128 MiB, and 30 minutes with a 31-minute host timeout. Partial coverage exits nonzero, exact semantic replay writes nothing, and there is no retry or catch-up. |
 | `quant-data-market-close.timer` | Activation was recorded on 2026-08-29, with no service execution, state directory, provider request, or canonical write during activation. The dated observations are in the canonical market boundary above. On weekdays at 18:00 America/New_York, it snapshots every current FMP provider-native Stage 10 `equity`/`etf`/`index` identity. The 2026-08-29 preflight contained 630 (519 equity, 96 ETF, and 15 index); the dynamic batch is bounded to 800 and begins with `AAPL`. It makes one current-session daily-OHLCV request per symbol. An empty `AAPL` stops the batch. Pinned historical noncoverage symbols remain eligible; only their reviewed empty/HTTP 402 outcomes are terminal. Any durably received per-symbol response outside the accepted status, redirect, media, envelope, or payload policy is retained as a failed result while later independent symbols continue; any such result prevents completion and exits nonzero. Transport/no-response ambiguity and publication/store failures remain fail-fast. It is non-persistent, has no retry or catch-up, targets only `data/market.sqlite`, retains per-unit private evidence, and writes nothing on exact semantic replay. |
@@ -4283,3 +4283,226 @@ real public AAPL reads, complete as-of pagination and all eight source statuses
 passed. This does not authorize another migration, provider fetch or recurring
 unit change. Detailed hashes, timing, scope and limitations:
 [retained-news repair receipt](RETAINED_NEWS_READ_REPAIR_2026-09-23.md).
+
+## September 24, 2026 — Theta historical-options discovery
+
+The user requested Theta API access verification using the configured project
+credential, necessary WSL setup, a dedicated options-store proposal and an
+implementation plan. An isolated Python 3.12 environment with the official
+thetadata 1.0.11 SDK was installed; no terminal, Java or service was needed.
+One authentication and ten bounded AAPL/SPY catalogue/EOD/open-interest/Greeks
+requests succeeded, with zero retries and 397,479 serialized response bytes.
+The announced bounds were ten data requests, five minutes and 20 MiB.
+Private probe evidence and dependency pins are retained under
+.local/theta-discovery-20260924/; no credential value or session token was
+retained. The returned numeric options-tier code was 2; its named tier and
+earliest permitted historical-price date were not verified.
+
+No canonical database was opened, and no options.sqlite, migration, recurring
+unit or backfill was created or started. The
+[storage and execution proposal](THETA_OPTIONS_STORAGE_AND_EXECUTION_PLAN_2026-09-24.md)
+records the requested fifth-store direction, existing Alpaca ownership,
+daily-first assumption and concrete remaining gates. Its proposed pilot and
+full backfill are not executed or newly authorized by this receipt.
+
+## September 24, 2026  - SPY compact Theta implementation authorization
+
+A later explicit user instruction authorized implementing the proposed compact
+options design, fetching SPY first, and discarding unneeded newly acquired source
+detail after calculating and publishing the retained statistics. This supersedes
+the discovery-only/planning limits above for this exact scope; it does not
+change existing Alpaca retention or authorize another ticker or recurring unit.
+
+The declared finite allocation is SPY only: 20,000 data requests including
+preflights, calendars and fallbacks; 128 GiB received; 24 hours from the first
+current preflight; zero automatic retries. The requested outer range began
+2012-06-01; that price probe was denied. The first verified accessible price
+sample is 2016-01-04, not proof of the exact subscription floor. The frozen
+initial manifest covers 2,696 calendar-verified sessions from 2016-01-04 through
+2026-09-23, newest first. The SPY database cap is 15 GiB with a 20 GiB free-space
+reserve. No terminal, purchase, subscription change or recurring unit is added.
+
+ADRs and operational details: [ADR 0013](../adr/0013-optional-options-store-and-compact-retention.md)
+and [SPY implementation receipt](THETA_SPY_IMPLEMENTATION_2026-09-24.md).
+The optional registry owns only `data/options.sqlite`. Publication is atomic,
+read back immutably, then exact newly acquired source files are removed with a
+hash-checked recovery journal. Selected details, summaries, lineage and receipts
+remain; complete source replay is deliberately unavailable. Publication launch
+and subsequent coverage are recorded in the receipt and durable run status.
+
+Activation evidence: native WSL manual PID 137553 launched the fixed SPY
+entry point. Its first immutable-read check found five published sessions,
+SQLite quick_check ok, zero foreign-key violations and verified first-day
+source cleanup. This is a running partial history, not a completion receipt.
+The durable status and implementation receipt above hold current counts.
+
+## September 24, 2026 - SPY parallel-download upgrade
+
+The user explicitly authorized improving the active SPY backfill with parallel
+downloads. This permits replacing the manual sequential process with up to four
+concurrent requests, retaining one database writer and the original frozen
+SPY manifest, 20,000-request/128-GiB/24-hour global allocation and zero retries.
+The authorization clock remains 2026-09-24T14:45:56.548243+00:00.
+
+The sequential process stopped at a verified, fully cached publication boundary
+at 18:07:59 UTC: 1,122 sessions committed and 2022-04-01 inputs retained, with
+no provider request in flight. The fixed cached day must not be refetched.
+The [implementation receipt](THETA_SPY_IMPLEMENTATION_2026-09-24.md) records
+focused checks, independent review and subsequent launch/performance evidence.
+This is a finite manual continuation, not a recurring-unit change.
+
+Parallel activation: PID 155252 launched at 18:19:19 UTC after independent
+verification (35 focused tests passed). Live immutable checks passed; the cached
+handover date was published without a new request and no duplicate attempt IDs
+were found. At 2026-09-24T18:21:22.631578+00:00, 1144 of 2,696 sessions
+were saved with no recorded gaps. The first 22
+parallel-session sample averaged 5.47 seconds/day
+versus 10.83 in the recent sequential sample.
+This dated evidence is not a full-history completion claim.
+
+## September 24, 2026 - SPY Theta history completed; no-repeat scope
+
+The finite manual job completed at 2026-09-24T20:00:18.700484+00:00. All 2,696 planned SPY
+sessions from 2016-01-04 through 2026-09-23 are saved with no session gaps.
+There are 2,444 sessions with IV/Greeks and 252 price-only sessions (2016).
+The main options store and completion backup passed immutable health checks,
+with zero foreign-key violations. Requests total 5,659, with zero retries and
+no duplicate attempt IDs. Staged source files and pending cleanup are empty.
+No recurring unit exists for this collector.
+
+This completed SPY population is on the no-repeat list: do not repeat or broaden
+it without a new explicit request naming the finite population/scope. Missing
+historical Greeks do not authorize retry. The [implementation receipt](THETA_SPY_IMPLEMENTATION_2026-09-24.md)
+and .local/theta-spy-20260924/completion-verification.json retain final evidence.
+
+## September 24, 2026 - authorized Tier-1 ETF expansion
+
+The user explicitly requested extending the completed SPY options history to
+other major ETFs with concurrent workers. The prior Tier-1 plan defines the
+14 additional roots: QQQ, IWM, DIA, XLB, XLC, XLE, XLF, XLI, XLK, XLP, XLRE,
+XLU, XLV, XLY. New finite scope: 37,125 ETF/session units, 2016-01-04 through
+2026-09-23, with XLC beginning at its 2018-06-19 listing. SPY stays on the
+no-repeat list and is excluded from the new collector's request scope.
+
+The declared ceiling is 120,000 requests, 256 GiB received and 72 hours from
+the new run start, zero retries, four downloads globally and one writer.
+The options database cap is 25 GiB with 20 GiB free-space reserve. This is a
+new finite allocation for different symbols, not an extension of the expired
+SPY allocation. No recurring unit, purchase or subscription change is introduced.
+
+The authorized implementation adds options migration 0002 and the fixed ETF
+collector under companion registry 1.1.0. SPY facts and its existing backup are
+preserved; no original migration bytes change. Expected historical missing
+references remain explicit gaps, not invented data. Independent domain review
+and migration/first-publication checks precede activation. See the
+[ETF expansion receipt](THETA_ETF_EXPANSION_2026-09-24.md) for actual evidence.
+
+ETF expansion activation 2026-09-24T23:06:07.806601+00:00: independent review passed
+(44 tests, no skips); options migration 0002 applied with all retained SPY fact
+hashes unchanged against both the pre-migration store and existing backup.
+Quick check passed and foreign-key violations were zero. The finite 14-ETF
+operation started as PID 329558 with the exact allocation above.
+See THETA_ETF_EXPANSION_2026-09-24.md and private migration/launch receipts.
+This is dated activation evidence, not a claim of current process health.
+
+First live verification 2026-09-24T23:07:10.801782+00:00: all 14 new roots saved for
+2026-09-23; 34 ETF/session units complete, zero gaps, four overlapping
+requests, zero repeats, zero SPY requests, completed source caches removed.
+The completed SPY population remains 2,696 sessions. This is a dated snapshot.
+
+## September 25, 2026 - ETF retry/recovery authorization
+
+The user explicitly approved one retry of failed/missing ETF requests, logging
+and continuing after exhaustion, and one final missing-data pass after the main
+pass. This supersedes the prior zero-retry policy for this expansion only.
+Same 14 roots, dates, 37,125 units, store, existing credential resolver and
+120,000-request / 256-GiB / original 72-hour allocation. Maximum per endpoint:
+two main attempts including any existing attempt, plus one final gap attempt.
+All attempts count; no restart resets. Successful responses and completed ETF
+and SPY captures are excluded from provider replay. Original manifest evidence
+is preserved, with a frozen retry-policy amendment and append-only gap events.
+See THETA_ETF_EXPANSION_2026-09-24.md for exact classifications and validation.
+
+Retry recovery cannot infer zero bytes for an interrupted request without its
+terminal receipt. Per-request receipt/attempt mismatches stop before auth; the
+recorded two UNAVAILABLE requests have complete receipts. All 57 focused tests
+passed after this independent-review correction.
+
+Retry activation 2026-09-25T13:18:27.470876+00:00: PID 416018 resumed the exact remaining
+manifest after 57 tests and independent verification passed. Existing capture
+identities and the two successful caches were recorded; cumulative requests,
+bytes, and the original 72-hour clock were not reset. See retry preflight,
+verification and launch evidence in .local/theta-etf-20260924/.
+
+Retry live evidence 2026-09-25T13:19:48.350860+00:00: both original failed requests recovered
+on one retry each, successful caches reused and cleaned, prior capture identities
+unchanged, no SPY requests. 10556 ETF sessions saved, zero outstanding
+gaps, PID 416018 running. See dated retry-live-verification receipt.
+
+## September 25, 2026 - finite ETF expansion completed with gaps
+
+Main and final gap passes completed 2026-09-25T21:09:36.923331+00:00. All 37,125 planned
+units processed; 35,167 saved, 1,958 unresolved. Completed populations are now
+no-repeat; unresolved units exhausted the authorized recovery pass. Additional
+provider attempts require a new explicit finite scope. Main/backup populations
+match, job health is ok, 82,417 attempts match receipts and bounded phase counts.
+SPY remains 2,696 sessions with zero new requests. See expansion receipt and
+.local/theta-etf-20260924/completion-verification.json for dated evidence.
+
+## September 26, 2026 — daily Theta options and weekend repair
+
+The user explicitly requested daily ThetaData collection into the existing
+options.sqlite shape and weekend repair of gaps in the past week, following the
+price-repair pattern. The scope remains the existing 15 ETFs. Implementation
+is complete. After automatic approval review required a separate activation
+decision, the user explicitly replied "Install and enable both timers." This
+authorizes the exact schedules below with no immediate manual fetch and does
+not reopen the completed historical populations.
+
+The [daily/weekly contract](THETA_DAILY_COLLECTION_2026-09-26.md) fixes daily
+19:15 Eastern, Sunday 03:00 Eastern, 32/152 data requests, 2/8 GiB and
+20/60-minute limits, one request at a time, and zero automatic retries. Weekly
+publication is missing-only for the immediately preceding Monday-Friday
+window; historical dates before September 21 are excluded. Existing records
+are preserved under the physical store lock. Validation covers 98 distinct
+passing tests (26 final scheduler tests plus 72 unaffected options/readers);
+fresh independent review passed after a durable-admission correction. The
+immutable preflight matched the schema and latest capture shape without source
+changes or provider calls. Following explicit activation approval, both timers
+were installed/enabled and active/waiting at 2026-09-27T03:20:07Z. Next triggers:
+Sunday September 27 at 03:00 EDT and Monday September 28 at 19:15 EDT. Neither
+service has executed; no manual fetch occurred, and canonical stamps were
+unchanged. Live provider success remains unobserved. See the focused contract
+and .local/theta-daily-20260926/activation.json for actual evidence.
+
+## September 26, 2026 — retire Alpaca options collection; Theta agent source
+
+The user explicitly requested that options data for new agent tools come from
+options.sqlite and that the Alpaca options collection be retired. The idle
+Alpaca timer was disabled/stopped; its linked installed definition was removed
+by systemd disable and its transient failed state cleared without a service
+start. At 2026-09-27T03:42:50Z it was inactive/not-found with no next trigger.
+Historical Alpaca data and repository unit definitions were preserved. No
+provider request, canonical-store access, deletion, unrelated Alpaca/news
+change or Theta/monitor timer change occurred.
+
+The three existing options v2 reads remain explicit legacy Alpaca interfaces,
+not Theta tools. Current agent guidance excludes them from new Theta research.
+The [proposed Theta toolkit](THETA_AGENT_TOOL_PROPOSAL_2026-09-26.md) fixes
+options.sqlite as the only options source, with no fallback, and recommends
+coverage, daily history and daily snapshots first. These new tools are not yet
+implemented or advertised. Exact runtime discovery and retirement evidence is
+in .local/options-tool-review-20260926/.
+
+## September 27, 2026 — local Theta options agent toolkit
+
+The user's "OK great, pls implement" authorizes the six proposed local read-only
+Theta tools. Their [version 1.0.0 contracts](THETA_AGENT_TOOLS_2026-09-27.md)
+are registered in system registry 2.93.0. The fixed source is the existing
+optional options.sqlite through its immutable reader and physical lock.
+This authorizes local tool access, not new network hosting, provider calls,
+manual collector executions, canonical changes, or recurring-unit changes.
+The prior Alpaca retirement remains in effect; archived tool semantics and
+saved evidence remain intact. Validation and read evidence are retained in
+.local/theta-agent-tools-20260927/; implementation existence alone is not a
+claim of provider success or any additional operational activation.
