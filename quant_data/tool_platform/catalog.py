@@ -23,8 +23,9 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.37.0"
+VERSIONED_CATALOG_VERSION = "2.38.0"
 from .theta_contracts import TOOLS as ADDITIVE_THETA_TOOLS
+from .retained_research_contracts import NEW_TOOLS as ADDITIVE_RETAINED_RESEARCH_TOOLS, SUCCESSORS as RETAINED_RESEARCH_SUCCESSORS
 
 ADDITIVE_STAGE10_STATISTICS_TOOLS = (
     "stats.distribution_diagnostics",
@@ -64,6 +65,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
     *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
     *ADDITIVE_THETA_TOOLS,
+    *ADDITIVE_RETAINED_RESEARCH_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -162,6 +164,7 @@ VERSIONED_TOOL_NAMES = (
     *VERSIONED_ETF_SNAPSHOT_TOOLS,
     "company.get_transcript",
     *NEW_PRICE_BASIS_POLICIES,
+    *RETAINED_RESEARCH_SUCCESSORS,
 )
 
 PUBLIC_TOOL_NAMES = (
@@ -240,10 +243,10 @@ FAMILY_COUNTS = {
 CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
-    "market": 9,
-    "company": 18,
-    "options": 12,
-    "research": 24,
+    "market": 10,
+    "company": 20,
+    "options": 13,
+    "research": 28,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
 _CURRENT_PUBLIC_NAMES.insert(
@@ -281,6 +284,7 @@ _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_THETA_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_RETAINED_RESEARCH_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -639,6 +643,8 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
         stores=("company",), datasets=(RAW_DATASET, STRUCTURED_DATASET)) for name in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
     from .theta_contracts import KINDS as THETA_KINDS
     additive += tuple(ToolProfile(name=name, family="options", input_kind=THETA_KINDS[name], stores=(), datasets=()) for name in ADDITIVE_THETA_TOOLS)
+    from .retained_research_contracts import KINDS as RKINDS, stores_for, datasets_for
+    additive += tuple(ToolProfile(name=name, family=_family(name), input_kind=RKINDS[name], stores=stores_for(name), datasets=datasets_for(name)) for name in ADDITIVE_RETAINED_RESEARCH_TOOLS)
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -848,6 +854,11 @@ def build_tool_entries(
             }
         )
     return tuple(generated)
+
+
+def _build_retained_research_entries():
+    from .retained_research_catalog import new_entries
+    return new_entries()
 
 def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
     """Build native tools added after the recovered 57-name compatibility set."""
@@ -1246,6 +1257,7 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         _build_forward_pe_entry(),
         _build_forward_pe_analysis_entry(),
         *_build_theta_entries(),
+        *_build_retained_research_entries(),
     )
 
 
@@ -3430,7 +3442,8 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
     result.extend(_build_etf_snapshot_v2_policies())
     from .sharadar_company_contracts import add_policies
     result.append(_build_transcript_turns_policy())
-    return add_policies(add_price_basis_policies(result, build_additive_tool_entries()))
+    from .retained_research_catalog import policies as retained_policies
+    return (*add_policies(add_price_basis_policies(result, build_additive_tool_entries())), *retained_policies())
 
 
 def _build_quality_transform_policies(

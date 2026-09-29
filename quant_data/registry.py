@@ -34,6 +34,7 @@ from .tool_platform.catalog import (
     ADDITIVE_TRANSCRIPT_TOOLS,
     ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
     ADDITIVE_THETA_TOOLS,
+    ADDITIVE_RETAINED_RESEARCH_TOOLS,
     ADDITIVE_FORWARD_PE_TOOLS,
     ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
     FAMILY_COUNTS,
@@ -567,7 +568,7 @@ _PLACEHOLDER_SUCCESSOR_VERSIONED_TOOL_IDS = frozenset(
 _TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
     "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
 )
-_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in (*ADDITIVE_FMP_RESEARCH_TOOLS, *ADDITIVE_TRANSCRIPT_TOOLS, *ADDITIVE_FORWARD_PE_TOOLS, *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS, *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS, *ADDITIVE_THETA_TOOLS))
+_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(name for name in CURRENT_PUBLIC_TOOL_NAMES if name not in (*ADDITIVE_FMP_RESEARCH_TOOLS, *ADDITIVE_TRANSCRIPT_TOOLS, *ADDITIVE_FORWARD_PE_TOOLS, *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS, *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS, *ADDITIVE_THETA_TOOLS, *ADDITIVE_RETAINED_RESEARCH_TOOLS))
 _PRE_ETF_TOOL_NAMES = tuple(name for name in _PRE_FMP_RESEARCH_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
 _PRE_DATA_STATUS_OPTIONS_TOOL_NAMES = tuple(
     name
@@ -1946,7 +1947,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2740,7 +2741,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=250,
+        expected_count=274,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3617,6 +3618,10 @@ def load_registry(
                 "fixture.market.option_capture_evidence",
                 "fixture.market.options",
             )
+        elif policy["tool"] in {"company.get_earnings_calendar", "company.get_earnings_setup", "company.get_consensus_history", "company.get_estimate_revisions"}:
+            from .tool_platform.retained_research_contracts import stores_for, datasets_for
+            expected_variant_stores = stores_for(policy["tool"])
+            expected_variant_datasets = datasets_for(policy["tool"])
         elif policy["tool"] in VERSIONED_INVESTMENT_ANALYSIS_TOOLS:
             expected_variant_stores = tuple(variant_stores)
             expected_variant_datasets = tuple(variant_datasets)
@@ -5834,9 +5839,10 @@ _REGISTRY_259_ADDITIVE_VARIANTS = frozenset(
 
 
 def _pre_website_policies() -> tuple[dict[str, Any], ...]:
+    from .tool_platform.retained_research_contracts import SUCCESSORS as RSUCCESSORS
     from .tool_platform.sharadar_company_contracts import remove_policies
     policies = tuple(copy.deepcopy(policy) for policy in remove_policies(remove_price_basis_policies(build_tool_version_policies()))
-                     if policy["tool"] not in (*VERSIONED_ETF_SNAPSHOT_TOOLS, "company.get_transcript"))
+                     if policy["tool"] not in (*VERSIONED_ETF_SNAPSHOT_TOOLS, "company.get_transcript", *RSUCCESSORS))
     for policy in policies:
         if policy["tool"] == "news.search":
             policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
@@ -15105,7 +15111,7 @@ def stage2_registry_profile(registry: Registry) -> Registry:
         json.dumps(
             registry.raw,
             ensure_ascii=True,
-            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0"), ("1.9.0", "2.87.0"), ("1.9.0", "2.88.0"), ("1.9.0", "2.89.0"), ("1.9.0", "2.90.0"), ("1.9.0", "2.91.0"), ("1.9.0", "2.92.0"), ("1.9.0", "2.93.0")} else 2,
+            indent=1 if (registry.schema_version, registry.registry_version) in {("1.9.0", "2.72.0"), ("1.9.0", "2.73.0"), ("1.9.0", "2.74.0"), ("1.9.0", "2.75.0"), ("1.9.0", "2.76.0"), ("1.9.0", "2.77.0"), ("1.9.0", "2.78.0"), ("1.9.0", "2.79.0"), ("1.9.0", "2.80.0"), ("1.9.0", "2.81.0"), ("1.9.0", "2.82.0"), ("1.9.0", "2.83.0"), ("1.9.0", "2.84.0"), ("1.9.0", "2.85.0"), ("1.9.0", "2.86.0"), ("1.9.0", "2.87.0"), ("1.9.0", "2.88.0"), ("1.9.0", "2.89.0"), ("1.9.0", "2.90.0"), ("1.9.0", "2.91.0"), ("1.9.0", "2.92.0"), ("1.9.0", "2.93.0"), ("1.9.0", "2.94.0")} else 2,
             sort_keys=True,
         )
         + "\n"

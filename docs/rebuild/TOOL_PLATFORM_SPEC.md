@@ -40,6 +40,17 @@ This document specifies:
 It does not specify collectors, schema migrations, arbitrary SQL access,
 browser-triggered ingestion, or deployment.
 
+## Retained research additions — 2026-09-28
+
+Registry `2.94.0` / catalog `2.38.0` adds the retained-data research contracts
+listed in [Retained research tools](RETAINED_RESEARCH_TOOLS_2026-09-28.md):
+eight additive names and four explicit company `2.0.0` successors, yielding
+98 logical tools / 194 versioned contracts. Defaults and prior version bytes
+remain unchanged. These tools compose bounded immutable readers and saved
+state; they add no collector, scheduler action, migration, or external exposure.
+The source/identity, cutoff, missingness and interpretation limits in the
+focused contract apply in addition to this specification.
+
 ## Normative language
 
 The terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are normative. A public

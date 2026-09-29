@@ -88,7 +88,9 @@ _SEMANTIC_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 _STAGE5_INPUT_KINDS = {
     profile.name: profile.input_kind for profile in current_tool_profiles()
 }
+from quant_data.tool_platform.retained_research_contracts import KINDS as RETAINED_KINDS, SUCCESSORS as RETAINED_SUCCESSORS
 _VERSIONED_INPUT_KINDS = {
+    **{(name, "2.0.0"): RETAINED_KINDS[name] for name in RETAINED_SUCCESSORS},
     ("company.get_transcript", "2.0.0"): "transcript_turns_v2",
     ("news.search", "2.0.0"): "current_news_search_v2",
     ("news.search", "2.1.0"): "current_news_search_v2_1",

@@ -231,12 +231,14 @@ class ThetaToolsTests(unittest.TestCase):
             validate_schema(self.registry.tool(tool)["examples"][0],self.registry.tool(tool)["input_schema"])
 
     def test_exact_predecessor_and_generated_contracts(self):
-        previous=predecessor_profile(self.registry)
+        from quant_data.tool_platform.retained_research_registry import predecessor_profile as retained_predecessor
+        current=retained_predecessor(self.registry)
+        previous=predecessor_profile(current)
         self.assertEqual(previous.source_sha256,"69df849df7edca58a724021bd36661c6e7b0037d2980fe37f8da11645d4921ad")
         for tool in previous.tools:
-            self.assertEqual(tool,self.registry.tool(tool["id"]))
-        self.assertEqual(previous.tool_version_policies,self.registry.tool_version_policies)
-        self.assertEqual(previous.datasets,self.registry.datasets)
+            self.assertEqual(tool,current.tool(tool["id"]))
+        self.assertEqual(previous.tool_version_policies,current.tool_version_policies)
+        self.assertEqual(previous.datasets,current.datasets)
         self.assertEqual(stage5_registry_profile(self.registry).registry_version,"2.3.0")
         generate(ROOT,check=True)
 

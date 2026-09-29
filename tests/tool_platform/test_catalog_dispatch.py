@@ -72,10 +72,10 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
         self.assertEqual(self.registry.schema_version, "1.9.0")
-        self.assertEqual(self.registry.registry_version, "2.93.0")
+        self.assertEqual(self.registry.registry_version, "2.94.0")
         self.assertEqual(
             self.registry.raw["tool_version_schema_catalog"]["schema_version"],
-            "2.37.0",
+            "2.38.0",
         )
         regression_v3 = self.registry.tool(
             "econometrics.regression",
@@ -117,10 +117,10 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
             {
                 **FAMILY_COUNTS,
                 "macro": FAMILY_COUNTS["macro"] + 1,
-                "market": FAMILY_COUNTS["market"] + 4,
-                "company": FAMILY_COUNTS["company"] + 8,
-                "options": FAMILY_COUNTS["options"] + 6,
-                "research": FAMILY_COUNTS["research"] + 14,
+                "market": FAMILY_COUNTS["market"] + 5,
+                "company": FAMILY_COUNTS["company"] + 10,
+                "options": FAMILY_COUNTS["options"] + 7,
+                "research": FAMILY_COUNTS["research"] + 18,
             },
             CURRENT_FAMILY_COUNTS,
         )
@@ -153,7 +153,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         self.assertEqual(after[1], CATALOG_SHA256)
         self.assertEqual(after[1], self.registry.raw["tool_schema_catalog"]["sha256"])
 
-    def test_manifest_has_90_sanitized_contracts(self) -> None:
+    def test_manifest_has_98_sanitized_contracts(self) -> None:
         manifest = self.dispatcher.manifest()
         self.assertEqual(
             manifest["milestone"],
@@ -163,7 +163,7 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
             [item["name"] for item in manifest["tools"]],
             list(CURRENT_PUBLIC_TOOL_NAMES),
         )
-        self.assertEqual(len(manifest["tools"]), 90)
+        self.assertEqual(len(manifest["tools"]), 98)
         for item in manifest["tools"]:
             self.assertNotIn("handler", item)
             self.assertIn("operation_graph_id", item)

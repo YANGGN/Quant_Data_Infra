@@ -21,6 +21,52 @@ The command derives this project's root itself. Do not copy its database paths,
 set database-related environment variables, or invoke it with a registry,
 project-root, store, SQL, provider, or credential option; none are supported.
 
+## Retained-data research tools — September 28, 2026
+
+The shared launcher exposes these additions in registry **2.94.0**, catalog
+**2.38.0** (98 logical tools / 194 versioned contracts). Select the versions
+below explicitly. The four company successors retain their frozen `1.0.0`
+defaults; production readers require `2.0.0`.
+
+| Feature | Tool and version | Use |
+| --- | --- | --- |
+| 1. Earnings | `company.get_earnings_calendar@2.0.0` | Saved earnings dates, actuals and expectations for explicit symbols |
+| 1. Earnings | `company.get_earnings_setup@2.0.0` | Earnings, target-period consensus, prior call drafts, news, prices and saved valuation context |
+| 2. Consensus | `company.get_consensus_history@2.0.0` | Retained estimate snapshots and analyst context |
+| 2. Revisions | `company.get_estimate_revisions@2.0.0` | Comparable adjacent captures; exclusions for unknown currency or EPS basis |
+| 3. Volatility | `options.compare_implied_realized@1.0.0` | Theta IV against complete trailing-session realized volatility |
+| 4. Calls | `company.compare_transcripts@1.0.0` | Saved call summaries, compatible guidance changes and original turn citations |
+| 5. Fundamentals | `company.screen_fundamentals@1.0.0` | Explicit criteria and ranks within matching Sharadar period/currency cohorts |
+| 6. Watchlists | `research.get_watchlist_changes@1.0.0` | New retained evidence and changed versions since a review cutoff |
+| 7. Events | `research.get_event_response_distribution@1.0.0` | Retrospective price, volume and available Theta IV responses |
+| 8. Breadth | `market.get_breadth@1.0.0` | Advances/declines, moving averages, highs/lows and leader persistence |
+| Supporting | `data.get_research_coverage@1.0.0` | Source coverage, capture age and workflow input gaps |
+| Supporting | `data.get_collection_plan@1.0.0` | Persisted Equibles queue, due reasons, backoff and recorded quota |
+
+Start with `describe TOOL --tool-version VERSION` and coverage. Example calls:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_earnings_setup --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"data.get_research_coverage","tool_version":"1.0.0","arguments":{"symbols":["AAPL","SPY"],"start_date":"2026-09-01","end_date":"2026-09-28"}}
+JSON
+```
+
+These are local read-only tools: no provider/model calls, collection controls,
+new schedules or caller-selected paths. All option inputs come from Theta's
+`data/options.sqlite`; no Alpaca fallback exists. The collection plan reads
+saved Equibles state and reports the configured schedule, not live timer
+activation or a guaranteed next-run selection.
+
+Preserve the receipt, `research_contract`, warnings, source records and IDs.
+Results use `records` with `record_type` and name/value `fields`; decode fields
+ending in `_json` once. Capture cutoffs restrict local knowledge; historical
+public availability remains `not_established`. Missing values, incomplete
+windows, unsupported identities and incompatible bases remain explicit.
+
+The [detailed contracts and examples](rebuild/RETAINED_RESEARCH_TOOLS_2026-09-28.md)
+cover every tool, formulas, bounds and interpretation limits.
+
 ## Current Theta options workflow — September 27, 2026
 
 These six tools are available now through the shared launcher at explicit

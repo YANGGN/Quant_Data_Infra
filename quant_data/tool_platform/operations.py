@@ -105,6 +105,12 @@ def invoke_operation(
 ) -> QueryResult:
     """Invoke one closed read-only graph and return an immutable typed result."""
 
+    from .retained_research_contracts import TOOLS as RTOOLS, VERSIONS as RVERSIONS
+    if name in RTOOLS and context.tool_version == RVERSIONS[name]:
+        if context.operation_graph_id != f"tool_platform.{name}.v{RVERSIONS[name][0]}":
+            raise LookupError("Selected retained research graph is invalid")
+        from .retained_research_access import invoke
+        return invoke(name, arguments, context, registry)
     from .theta_contracts import TOOLS as THETA_TOOLS
     if name in THETA_TOOLS:
         if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
