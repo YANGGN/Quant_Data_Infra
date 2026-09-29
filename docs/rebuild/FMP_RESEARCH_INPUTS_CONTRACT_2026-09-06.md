@@ -56,7 +56,15 @@ Annual FY and standalone Q4 remain distinct with the same end date.
 The source payload, fiscal labels, reported currency, digest and original
 row pointer are retained. Full as-reported rows use the nested document
 period end when the top-level provider date disagrees; both are retained
-with a warning. Missing currency and estimate basis remain explicit.
+with a warning. The September 11 selected-universe source check also observed
+unambiguous English full-month document dates, such as `July 31, 2023`.
+Those nested values normalize to the same date-only ISO field; original strings
+and raw bytes remain retained. Case differences, nonbreaking spaces, surrounding
+whitespace, and full-month day-first forms (for example, 31 DECEMBER 2022) are
+accepted. Slash-separated numeric dates require exactly one possible month
+(the other number exceeds 12). Missing years, ambiguous numeric dates, invalid
+calendar dates, and conflicting document dates remain rejected. Existing accepted inputs and shared time semantics are
+unchanged. Missing currency and estimate basis remain explicit.
 
 Cash-flow PPE investment, lease asset additions, debt carrying values,
 lease liabilities and future commitments are distinct measures. Product

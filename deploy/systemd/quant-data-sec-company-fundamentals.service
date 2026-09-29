@@ -9,8 +9,8 @@ ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/compa
 Type=oneshot
 WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/python3 -m quant_data.operations.sec_market_companyfacts_refresh
-TimeoutStartSec=6h
+ExecStart=/usr/bin/python3 -m quant_data.operations.sec_selected_refresh
+TimeoutStartSec=365min
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true

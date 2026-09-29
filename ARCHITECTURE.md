@@ -961,3 +961,20 @@ The recovered physical names and semantic migration order in plan Sections 20.1â
 - Dashboard and Atlas presentation: [UI visual direction](docs/rebuild/UI_VISUAL_DIRECTION.md)
 - Test layers, fixtures, and acceptance gates: [test strategy](docs/rebuild/TEST_STRATEGY.md)
 - Delivery sequence and exit gates: [roadmap](ROADMAP.md)
+
+## Optional Theta options domain   2026-09-24
+
+[ADR 0013](docs/adr/0013-optional-options-store-and-compact-retention.md)
+adds the user-authorized private `data/options.sqlite` companion store and
+`config/options_registry.json`. It has independent migrations, locking,
+immutable reads, health and backup/restore. The existing four-store public
+contracts remain unchanged. Theta selected facts and broad-chain derived
+summaries use compact retention; full temporary inputs are discarded only
+after verified publication. The [SPY implementation receipt](docs/rebuild/THETA_SPY_IMPLEMENTATION_2026-09-24.md)
+records validation and the finite manual acquisition scope.
+
+The later Tier-1 ETF expansion keeps the same optional-domain boundary and
+adds a fixed 14-root collector plus options migration 0002. The companion
+registry is now 1.1.0; the shared registry and original four-store public
+contracts remain unchanged. [Expansion evidence](docs/rebuild/THETA_ETF_EXPANSION_2026-09-24.md)
+records preservation of the completed SPY population and the new finite scope.

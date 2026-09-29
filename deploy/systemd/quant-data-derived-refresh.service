@@ -1,0 +1,17 @@
+[Unit]
+Description=Daily derived research refresh (no provider requests)
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/exports/forward-pe/current.json
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m quant_data.operations.derived_refresh
+TimeoutStartSec=46min
+Restart=no
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=/home/volatility/Python_Projects/Quant_Data_Infra/data/market.sqlite /home/volatility/Python_Projects/Quant_Data_Infra/data/company.sqlite
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/exports/forward-pe /home/volatility/Python_Projects/Quant_Data_Infra/data/.operations /home/volatility/Python_Projects/Quant_Data_Infra/data/.quant_data_locks

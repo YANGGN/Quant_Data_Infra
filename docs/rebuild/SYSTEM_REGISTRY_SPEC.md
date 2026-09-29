@@ -1683,3 +1683,22 @@ The fixed host scheduler exception, raw-byte preservation, bounded request
 scope, and capture-time semantics are defined in the
 [Equibles contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md).
 No public tool, default behavior, or generated catalog is added.
+
+## Optional options companion registry   2026-09-24
+
+Under [ADR 0013](../adr/0013-optional-options-store-and-compact-retention.md),
+`config/options_registry.json` version 1.0.0 solely declares the private options
+store, its checksummed migration, three layered datasets, fixed SPY collector
+and compact-retention policy. This scoped exception does not change the legacy
+registry revision, frozen projections, public tool contracts or four-store
+validator. The optional reader validates its own store anchor, migration ledger
+and dataset declarations. See the [implementation receipt](THETA_SPY_IMPLEMENTATION_2026-09-24.md).
+
+## Options companion registry 1.1.0 - 2026-09-24
+
+The user-authorized Tier-1 ETF expansion adds a fixed 14-symbol collector,
+four-worker concurrency and a second checksummed options migration to
+config/options_registry.json. The legacy SPY collector declaration and all
+shared four-store registry/public contracts remain unchanged. The migration
+ledger is checked against a contiguous declared prefix; writes require the
+current complete chain. See [expansion evidence](THETA_ETF_EXPANSION_2026-09-24.md).

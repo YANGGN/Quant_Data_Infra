@@ -1,0 +1,34 @@
+{
+  "contract": "quant_data.options_monitor.v1",
+  "schema_version": 1,
+  "max_symbols": 3000,
+  "watchlist_max": 100,
+  "cadences": [
+    5,
+    10,
+    15,
+    30
+  ],
+  "max_requests_per_cycle": 2500,
+  "max_response_bytes_per_cycle": 268435456,
+  "max_seconds_per_cycle": 240,
+  "max_requests_per_session": 60000,
+  "max_response_bytes_per_session": 8589934592,
+  "max_workers": 3,
+  "retries": 0,
+  "baseline_min_sessions": 20,
+  "retain_sessions": 90,
+  "derived_store": "data/.operations/options-monitor/monitor.sqlite",
+  "site_url": "https://quant-options-monitor.yanggainan.chatgpt.site",
+  "universe_file": "config/options_monitor_universe.json",
+  "credentials_file": "data/.operations/options-monitor/connection.json",
+  "source_replayable": false,
+  "daily_history": {
+    "enabled": true,
+    "source_store": "data/options.sqlite",
+    "derivation_version": "options_daily_chart_v1",
+    "max_points_per_cycle": 500,
+    "max_site_posts_per_cycle": 1,
+    "clock": "existing_out_of_session_cycles"
+  }
+}

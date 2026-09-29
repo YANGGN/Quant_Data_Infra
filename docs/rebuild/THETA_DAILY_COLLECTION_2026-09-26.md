@@ -157,3 +157,53 @@ independent-review.md,preflight.json,activation.json}. The task changed only its
 new scheduler/entry point/units/tests, the opt-in options publisher argument,
 the additive companion registry declaration, and the relevant operational docs.
 Existing uncommitted work was preserved; nothing was committed or pushed.
+
+## Live fetch Status integration — September 27, 2026
+
+The user's follow-up request connects the two existing Theta jobs to the local
+Inspector's run calendar. The active timer bindings are daily at 19:15 Eastern
+and Sunday repair at 03:00 Eastern, with their three companion-registry Theta
+datasets and explicit source `data/options.sqlite`. The retired Alpaca timer is
+no longer an active binding; its old run receipts remain readable as historical
+evidence. Neither the collector policy nor any installed unit is changed.
+
+The normal daily/weekly CLI forms now use the existing best-effort run observer.
+Future invocations save their original exit result and bounded numeric summaries.
+Counts use ETF sessions (one symbol/date): published, unresolved gaps, already
+present and unfinished. A stopped run's unfinished count does not prove whether
+a request was attempted. Partial Success requires recorded completed work.
+Early failures, all-present audits without calendar counts, and cached replays
+leave counts unavailable instead of inventing totals or counting an old
+publication again. Receipt failures do not alter the collector outcome.
+
+Existing runs without these new receipts still use the established systemd
+completion evidence. The September 27 weekly run is displayed as Completed;
+its original native period result records 30 publications and no unresolved
+gaps, but no per-invocation summary is retroactively manufactured. The next
+daily slot is September 28 at 19:15 EDT. These observations made no provider
+requests and opened no canonical store.
+
+The Inspector's strict registry guard is aligned with the already accepted
+2.93.0 registry. Theta run details link to the existing agent-tool page because
+the optional options datasets are outside the legacy four-store status table;
+no link or fallback points at Alpaca options data. The existing calendar and
+detail layout is reused.
+
+Validation and local reload evidence are retained under
+`.local/theta-fetch-status-20260927/`. This change does not install, restart,
+manually trigger, enable or disable any collector or timer.
+
+Final evidence: 73 distinct focused tests passed (69 schedule/receipt/presentation,
+three Status route checks and one current tool-manifest compatibility check).
+The initial positional-calendar expectation and old 2.92.0/84-tool expectations
+were corrected to the current bindings and 2.93.0/90-tool catalog. Desktop
+1440px and mobile 360px Chromium checks passed for Theta completion, source,
+disclosure, tool link, horizontal bounds and browser exceptions. The in-app
+browser tool could not initialize, so the installed native Chromium was used.
+
+Only the existing manual loopback Inspector on port 8766 was reloaded; its
+health and actual Status response returned HTTP 200. The first Status client
+timed out after 30 seconds; the subsequent bounded check completed in 9.91
+seconds. The collector request policy, installed units and canonical data were
+unchanged. The optional-store status table itself remains outside this update;
+Theta run details route readers to the already available agent tools.

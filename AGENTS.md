@@ -30,6 +30,7 @@ receipts and stage narratives are required only when a decision depends on them.
 
 | Actual change or operation | Read |
 | --- | --- |
+| Use existing public tools or integrate a consumer | [Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md#cross-project-quick-start), its [current price workflow](docs/LOCAL_AGENT_TOOLS.md#current-price-workflow), and runtime `manifest` / versioned `describe`; select versions explicitly and preserve returned metadata |
 | Routine local development | [Fast path](docs/rebuild/FAST_PATH_DEVELOPMENT.md) |
 | UI/UX design, visual implementation, or visual review | [UI design route](.codex/README.md#ui-design), fast path, and the applicable UI/export contract |
 | Additive local read-only tool or Inspector behavior | Fast path and [tool platform](docs/rebuild/TOOL_PLATFORM_SPEC.md); existing time/missingness contracts when used |
@@ -99,6 +100,12 @@ Never assign overlapping paths to active writers. Models and efforts live in
 risk and disclose effective-route differences. Start a fresh trusted session
 after configuration edits before relying on new routes.
 
+`ultra` reasoning effort is allowed for this project whenever the selected
+model and runtime support it, for both single-agent and delegated work.
+Honor an explicit user selection of `ultra`; parallel execution is not a
+prerequisite. Existing routing defaults, role ownership, verification
+independence, and concurrency limits still apply.
+
 The configured design owner handles all UI/UX design, visual judgment, and its
 implementation. Other workers may make specified mechanical UI edits only
 after that design is settled. Keep applicable browser and visual checks.
@@ -119,11 +126,23 @@ unrelated refactors. Batch concrete corrections and review the final diff once.
 ## Validation
 
 [TEST_STRATEGY.md](docs/rebuild/TEST_STRATEGY.md#4-test-layers) owns the selection
-matrix: local fixes use focused checks; additive local tools add compatibility
-and boundary checks; migration/shared safety or generator-semantic changes use
-the full suite and applicable independent verification. Merely changing
-generated output does not by itself require the full suite. Specific accepted
-stage, release, and promotion gates and explicit user requests still apply.
+matrix. Default to the changed component, its affected contracts, and direct
+consumers whose behavior can change. Before running tests, state a short impact
+map: changed behavior, affected boundary, and named checks. Reusing a shared
+file, writing canonical prices, or adding a timer does not by itself require
+the full suite.
+
+A component-scoped ingestion/publication policy uses focused invariant tests
+and regressions for existing callers. Domain-scoped migrations add that domain's
+migration and reader checks. Full-suite escalation requires a concrete change
+to a cross-domain/core invariant, a shared generator/validator algorithm, or an
+explicit current full-suite gate; name that trigger and affected consumers.
+Preserve applicable independent verification and operational authorization.
+
+Unrelated baseline failures are recorded separately. Do not expand this task
+to repair them or block its completion unless they demonstrably affect the
+requested outcome or prevent its required evidence. See the impact and
+escalation rules in the test strategy.
 
 Full offline command when required:
 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -t . -v`.

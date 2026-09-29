@@ -96,9 +96,12 @@ def validate_batch(outputs, assessments):
                    "assessments":sorted(r["semantic_identity"] for r in assessments)})
 
 class StructuredTranscriptPublisher:
-    def __init__(self, stores, registry):
+    def __init__(self, stores, registry, *, lock_timeout_seconds=60):
         if DATASET not in {d.id for d in registry.datasets_for("company")}:
             raise ValidationError("Structured transcript dataset is not registered")
+        if type(lock_timeout_seconds) is not int or not 1 <= lock_timeout_seconds <= 600:
+            raise ValidationError("Invalid structured publication lock timeout")
+        self.lock_timeout_seconds = lock_timeout_seconds
         self.stores,self.registry=stores,registry
         self.coordinator=IngestionCoordinator(stores,code_version=VERSION)
 
@@ -107,7 +110,7 @@ class StructuredTranscriptPublisher:
         published=utc(published_at)
         if any(r["available_at"]>published for r in outputs+assessments):
             raise ValidationError("Publication predates retained model evidence")
-        with acquire_write_session(self.stores,("company",),timeout_seconds=60) as locks:
+        with acquire_write_session(self.stores,("company",),timeout_seconds=self.lock_timeout_seconds) as locks:
             # Re-read full immutable evidence under the physical store lock.
             for row in outputs:
                 if read_source(self.stores,row["source"]["capture_id"])!=row["source"]:

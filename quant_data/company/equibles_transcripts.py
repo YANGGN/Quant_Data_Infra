@@ -1,10 +1,13 @@
 """Raw Equibles call evidence; source dates never establish historical availability."""
 from __future__ import annotations
 
+from ..ingestion import PublicationDeferred
+
 from dataclasses import dataclass
 from datetime import datetime, timezone
 import hashlib
 import re
+import time
 
 from ..contracts import IngestionReceipt
 from ..errors import ValidationError, ResourceLimitError
@@ -144,7 +147,11 @@ class EquiblesTranscriptPublisher:
         self.stores = store_map
         self.coordinator = IngestionCoordinator(store_map, code_version=VERSION)
 
-    def publish(self, *, symbol, instrument_id, event, pages):
+    def publish(self, *, symbol, instrument_id, event, pages, deadline=None, monotonic=time.monotonic):
+        def check_deadline():
+            if deadline is not None and monotonic() >= deadline:
+                raise PublicationDeferred("Transcript publication exceeded its invocation deadline")
+        check_deadline()
         values = validate_bundle(symbol, instrument_id, event, pages)
         scope = {"provider": "equibles", "symbol": symbol, "instrument_id": instrument_id,
                  "event_id": event["id"], "fiscal_year": event["fiscalYear"],
@@ -153,7 +160,12 @@ class EquiblesTranscriptPublisher:
         capture = stable_id("equibles_transcript", semantic)
         latest_at = max(utc(p.captured_at) for p in pages)
         warnings = ("source_call_date_unverified", "availability_is_local_capture", "provider_ticker_binding_at_capture")
-        with acquire_write_session(self.stores, (StoreRole.COMPANY,)) as locks:
+        check_deadline()
+        # Bulk collectors share this store; allow a longer bounded acquisition.
+        # The invocation deadline still limits waiting and the first write.
+        lock_wait = 5.0 if deadline is None else min(60.0, max(0.0, deadline - monotonic()))
+        with acquire_write_session(self.stores, (StoreRole.COMPANY,), timeout_seconds=lock_wait) as locks:
+            check_deadline()
             with quiet_immutable_read_connection(self.stores, StoreRole.COMPANY) as c:
                 exists = c.execute("SELECT capture_id FROM company_equibles_transcripts WHERE semantic_identity=?", (semantic,)).fetchone()
             if exists:
@@ -161,6 +173,7 @@ class EquiblesTranscriptPublisher:
                     semantic_identity=semantic, run_id=None, artifact_id=None, snapshot_id=None,
                     written_count=0, warnings=warnings)
             def writer(c, rid):
+                check_deadline()
                 c.execute("INSERT INTO company_equibles_transcripts VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (capture, semantic, symbol, instrument_id, event["id"], event["fiscalYear"],
                      event["fiscalQuarter"], dumps_strict(event), values[0]["totalTurnCount"],
@@ -179,6 +192,7 @@ class EquiblesTranscriptPublisher:
                     "complete", values[0]["totalTurnCount"], latest_at, "datetime", "validated",
                     tuple(a.artifact_id for a in artifacts), warnings)
                 return WriteResult(1 + len(pages), tuple(artifacts), snap, (), warnings=warnings)
+            check_deadline()
             return self.coordinator.execute(role=StoreRole.COMPANY, dataset_id=DATASET, output_dataset_ids=(DATASET,),
                 semantic_identity=semantic, run_id=stable_id("equibles_run", capture),
                 command="company.equibles_transcripts", scope=scope,

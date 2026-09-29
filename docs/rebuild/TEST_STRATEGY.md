@@ -1,7 +1,7 @@
 # Rebuild Test Strategy
 
 Status: Accepted
-Revised: 2026-09-05 — user-approved risk-based validation lanes
+Revised: 2026-09-15 — user-directed component impact and escalation rules
 
 ## 1. Purpose
 
@@ -91,7 +91,8 @@ Historical evidence and frozen golden contracts are not rewritten by this policy
 | Local fix, calculation, or established private binding | Focused behavior/boundary tests and affected adjacent consumers |
 | Additive bounded local read-only tool or explicit version | Domain tests; strict public schemas/examples, manifest/describe/call and receipt compatibility; generated-output check; frozen/default and exact predecessor checks; cutoff, missingness, bounds and read-only failure cases |
 | Authorized bounded provider/store operation through established mechanisms | Applicable focused offline checks, exact finite preflight, and bounded post-operation integrity/lineage/replay evidence |
-| Migration, registry-wide schema/ownership, shared identity/time/missingness/selection, physical locking, security/host access, cross-store or canonical-safety semantics | Full offline suite, applicable accepted contract, and independent verification of the integrated change |
+| Component-scoped ingestion/publication policy or domain-only schema/migration with unchanged shared contracts | Domain behavior and persisted invariants; affected callers/readers; migration order/checksum/replay/rollback when applicable; independent review where the affected safety contract requires it |
+| Cross-domain/core identity/time/missingness/selection, physical-store locking engine, shared migration engine, registry-wide schema/ownership, security/host access, or cross-store atomicity semantics | Full offline suite, applicable accepted contract, and independent verification; identify the changed invariant and affected consumers |
 | Shared generator algorithm, validator, or contract-core semantics | Full offline suite and independent compatibility verification |
 | Explicit exhaustive request or an accepted stage/release/promotion gate naming it | The named full-suite gate must pass |
 
@@ -133,6 +134,77 @@ locks, ports, process state, and publication paths. Keep shared-resource groups
 serial. Resumed runs must reconcile unique case IDs, retain original failures
 and their explicit successful rechecks, and report skipped or uncovered cases.
 Do not count a skip, interrupted run, or duplicate discovery as a new passing case.
+
+### 4.1 Component impact and escalation
+
+Before implementation or validation, record a short impact map:
+
+1. The behavior and component being changed.
+2. The input/output or persisted invariant that can change.
+3. The existing callers/readers that can observe that change.
+4. The named tests and operational pre/post checks that cover those boundaries.
+
+Use the smallest complete set of checks for that map. Sharing a source file,
+registry, SQLite infrastructure, or a canonical database is not evidence that
+all consumers are affected. An opt-in, component-specific publication policy
+can stay in the focused lane when default callers and shared schema, identity,
+time, locking, and access contracts remain unchanged. Test the new policy and
+the relevant default-caller regression explicitly. A domain-only migration
+covers its own schema, readers, replay, rollback, and integrity boundaries;
+it does not automatically require other domains.
+
+Before escalating to the full suite, identify the actual changed shared/core
+invariant and the independent domains that can observe it, or cite the current
+explicit full-suite gate. Uncertainty about test selection is resolved by
+inspecting callers and contracts. A label such as canonical safety, a large
+shared file, a new timer, or a generated-file diff is not sufficient by itself.
+A newer explicit user decision can revise a previous task-specific validation
+scope; preserve the old run and report that supersession accurately.
+
+A failure outside the impact map is recorded as separate maintenance. Expand
+the current map only with evidence of a causal dependency or an inability to
+establish a required invariant. Do not fix unrelated registry-version tests,
+historical reconstructions, UI behavior, or other domains merely to obtain a
+green repository-wide run. A pre-existing problem that makes the requested
+outcome unsafe or unverifiable remains a blocker for the affected action.
+
+Keep component fixtures small and independent: explicit temporary stores,
+controlled clocks, bounded provider-shape inputs, and no credentials, network,
+or live/default paths. Ordinary price-patching tests should not reconstruct
+unrelated historical registries or initialize unrelated operational datasets.
+Retain exhaustive historical/golden checks for changes to those contracts and
+for their applicable release gates. Avoid introducing a new test framework or
+large refactor merely to select existing unittest modules.
+
+### 4.2 Example: weekly historical-price repair
+
+The affected boundary is market-price repair through the existing publisher.
+Select checks for:
+
+- the previous completed Monday-Friday window, trading calendars, and Toronto
+  Saturday 02:00 scheduling, including daylight-saving transitions;
+- fetching only incomplete symbols, finite request/byte/time caps, and no
+  automatic retry or feature/provider expansion;
+- valid OHLCV inputs, missing-only insertion, preservation of existing rows,
+  exact replay, race/locking behavior, and interruption recovery;
+- the existing daily refresh/correction caller and affected fetch-status
+  receipts; and
+- unit syntax/calendar verification plus authorized bounded read-only preflight
+  and post-operation evidence when a live run is separately authorized.
+
+The existing focused module set for the September 15 repair is:
+
+- tests.operations.test_weekly_price_repair
+- tests.operations.test_collection_price_windows
+- tests.operations.test_selected_price_refresh
+- tests.operations.test_fetch_run_history
+- tests.test_inspector_fetch_status
+
+This is an impact example, not a fixed test-count target or authorization to
+fetch data, activate a timer, or repeat a completed population. Add or remove
+checks when the actual changed boundary warrants it. Company/news collection,
+unrelated tool catalogs, dashboard rendering, and full historical reconstruction
+enter this scope only when their behavior or a consumed contract changes.
 
 ## 5. Fixtures
 

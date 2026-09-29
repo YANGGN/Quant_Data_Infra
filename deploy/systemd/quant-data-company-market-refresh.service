@@ -10,7 +10,7 @@ Type=oneshot
 WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
 Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/usr/bin/python3 -m quant_data.operations.company_market_refresh
-TimeoutStartSec=31min
+TimeoutStartSec=151min
 Restart=no
 UMask=0077
 NoNewPrivileges=true

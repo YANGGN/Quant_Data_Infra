@@ -172,7 +172,6 @@ The older `options.search_captures@2.0.0`,
 They must not be used for current Theta research. Older fixture tools retain
 their existing semantics. Consumers must not open databases directly.
 
-
 ## Cross-project quick start
 
 The absolute launcher path above is the complete integration boundary. An
@@ -196,6 +195,170 @@ catalog `2.26.0` has SHA-256
 `fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
 This snapshot is informative; `manifest` and `describe` remain the runtime
 authority if the project advances.
+
+## Saved forward P/E and forward EPS
+
+Use **company.get_forward_pe@1.0.0** to read the same saved publication as the
+Forward P/E dashboard. The tool accepts one exact uppercase ticker and an
+inclusive trade-date range, with at most 3,661 calendar days per call. It returns
+the complete saved range without pagination or silent truncation. Larger
+requests must be split into date ranges; compare snapshot IDs between calls.
+
+~~~bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"company.get_forward_pe","tool_version":"1.0.0","arguments":{"ticker":"MU","start_date":"2021-09-20","end_date":"2026-09-18"}}
+JSON
+~~~
+
+Read result.records using the existing fields name/value representation:
+
+| Record type | Fields to use |
+| --- | --- |
+| forward_pe_summary | Ticker, snapshot IDs and cutoffs, requested range, coverage, refresh state, per-ticker input freshness and capture times |
+| forward_pe_day | trade_date, close, forward_eps, forward_pe, status, missing_reason, window_id, price_version_id, original calculation/estimate cutoffs and observation kind |
+| forward_pe_window | window_id, announcement and effective dates, reported fiscal-period end, forward EPS, matching status, components_json and flags_json |
+
+Join day and window records on window_id. Decode components_json for the four
+actual fiscal-quarter estimates and their source version/capture evidence.
+Window records are returned once per selected window. Negative P/E remains
+numeric with expected_loss; zero EPS and missing inputs return null with their
+explicit reason. Price gaps are not filled.
+
+This is a **reconstructed research proxy**, not historical point-in-time
+consensus. The response always includes that warning and a research contract
+whose point_in_time_status is not_established. Preserve its complete receipt,
+warnings, summary cutoffs, window flags and source identifiers downstream.
+An old input capture does not automatically mean its P/E history is absent.
+
+The tool reads only the host-selected immutable research baseline and daily
+overlay. It makes no provider calls, writes no data, exposes no database paths
+and accepts no as_of claim. It follows the existing daily publication at 23:30
+weekdays and 06:30 daily, Toronto time. An unknown ticker or an empty saved
+range is explicitly not_established; an unavailable publication is a
+store_unavailable error rather than a live or canonical-store fallback.
+
+### Rolling forward P/E analysis
+
+Use `company.get_forward_pe_analysis@1.0.0` for the exact analysis rendered by
+`/forward-pe`. It reads the same saved publication and calculates statistics
+on demand without changing saved ratios or the daily refresh workflow.
+
+```json
+{"api_version":"1.0","tool":"company.get_forward_pe_analysis","tool_version":"1.0.0","arguments":{"ticker":"MU","range":"5y","window_sessions":756,"min_observations":252,"winsor_tail_pct":"2.5"}}
+```
+
+Only ticker is required. Defaults are five displayed years, a three-year
+window (756 saved trading sessions), 252 usable observations, and a 2.5% cap
+at each tail. `range` is `1y`, `5y` or `all`; window_sessions accepts 20–1,260;
+min_observations accepts 2 through the window and defaults to the smaller of
+252 and that window. winsor_tail_pct is a **string preset**: `"0"`, `"1"`,
+`"2.5"` or `"5"`. Zero disables clipping.
+
+Each row in a `forward_pe_analysis_chunk` retains raw_pe, close, forward_eps, status and
+window_id. It adds winsorized_pe, raw_z_score, z_score, their separate missing
+reasons, means and standard deviations, clipping bounds/counts, was_clipped,
+valid/session/negative counts, and the first/last sample dates. Summary records
+include settings, model version, snapshot identity/cutoffs, freshness and score
+coverage. Fiscal-window details and source evidence remain in details_json.
+
+The window includes the current session and at most window_sessions minus one
+previous saved sessions. Nulls occupy sessions but are excluded from statistics;
+no missing value is filled. Earlier saved history warms up the selected display
+range. Type-7 linear quantiles cap both the sample and current P/E, then the
+population mean and standard deviation produce `(capped P/E - mean) / std`.
+raw_z_score uses the identical sample without caps. Missing current P/E,
+insufficient usable history, and zero variation produce null with a reason.
+Negative P/E is retained; mixing earnings signs limits valuation interpretation.
+The calculation is trailing, but its reconstructed source remains non-PIT.
+
+Chunk records contain columns_json and rows_json; decode both and zip each row
+with its columns. Each chunk contains at most 500 sessions in date order.
+
+Responses are complete or fail explicitly: at most 30,000 displayed sessions,
+10,000 total records, and the existing 8-MiB response bound. Use a shorter range
+when exceeded. Keep the receipt, snapshot ID, model version, parameters and
+window evidence when comparing results. Raw `company.get_forward_pe@1.0.0`
+retains its existing explicit-date contract.
+
+## Transcript research: history, evidence search and targeted source turns
+
+These tools use the saved structured extractions and original transcripts.
+No provider or model calls, new database, or background index is involved.
+They are also available in the Inspector's Agent Tools page.
+
+| Tool and explicit version | Use |
+| --- | --- |
+| `company.get_transcript_history@1.0.0` | Read selected summary sections across a ticker's latest calls |
+| `company.search_transcript_evidence@1.0.0` | Find literal text in structured summaries, with supporting original excerpts |
+| `company.get_transcript@2.0.0` | Retrieve exact source turn IDs and optional neighboring turns |
+
+Start with history or search, then follow each returned capture_id and turn ID:
+
+~~~json
+{"api_version":"1.0","tool":"company.get_transcript_history","tool_version":"1.0.0","arguments":{"ticker":"MU","limit":8,"sections":["guidance","business_drivers","analyst_focus"]}}
+~~~
+
+~~~json
+{"api_version":"1.0","tool":"company.search_transcript_evidence","tool_version":"1.0.0","arguments":{"query":"margin","tickers":["MU","NVDA"],"sections":["guidance","business_drivers"],"start_date":"2024-01-01","limit":5}}
+~~~
+
+~~~json
+{"api_version":"1.0","tool":"company.get_transcript","tool_version":"2.0.0","arguments":{"capture_id":"<capture_id returned above>","turn_ids":["t12","t14"],"context_turns":1}}
+~~~
+
+History requires one exact ticker. Its default limit is 8 calls, maximum 20.
+Calls are ordered by actual provider call date descending, with fiscal year
+and quarter retained as separate labels. No calendar-quarter mapping is
+inferred. Dates come from event.callDate, falling back to checksum-verified
+raw page.callDate. Unknown dates remain null, sort last and are excluded when
+a date filter is supplied. start_date/end_date are inclusive call dates.
+One latest cutoff-eligible capture is selected per ticker/provider event ID;
+a newer capture without an eligible extraction is reported as missing, without
+substituting an older draft. A ticker scan is bounded to 512 calls.
+
+History and search accept sections from headline, reported_results, guidance,
+business_drivers, analyst_focus, watch_items and management_tone; omitted
+sections means all seven. The latest automatic assessment and separate review
+are returned in automatic_assessments_json and latest_review_json, alongside
+their statuses. Automatic blocked drafts are excluded unless include_blocked
+is true. Unassessed drafts and drafts with review findings remain explicitly
+labeled; they are not approvals. Missing extractions and excluded calls are
+counted in diagnostics. Values and units are preserved without normalization.
+
+Search requires query (1–200 characters). It performs case-insensitive literal
+substring matching on the selected summary content, excluding source-ID fields.
+It is not semantic search or exhaustive full-transcript search. Optional
+tickers scopes it to at most 20 exact tickers; omitting tickers searches across
+the retained catalogue. Each transcript_evidence_match record groups matching
+items from one call in matches_json and source excerpts in evidence_json.
+Excerpts retain speaker fields, raw-page checksum, source pointer, capture
+time and turn IDs; they are at most 800 characters, with excerpt_truncated
+explicit. Use the targeted reader for full wording and context.
+Invalid or out-of-range references are listed in unresolved_turn_ids_json.
+
+Search defaults to 10 matching calls, maximum 20, scanning at most 100 retained
+calls per request in capture-time/capture-ID order. Always follow next_cursor
+until it is null, including on an empty result page. Each cursor pins its
+cutoff and filters; only limit may change between pages. Diagnostic counts
+are per page. History has no cursor: a short limit selects the latest N eligible
+calls; use end_date for older dated calls. Unknown dates and model omissions
+cannot establish that a topic or call did not exist.
+
+The targeted reader accepts 1–20 unique turn_ids and context_turns from 0–2
+(default 0). Overlapping context is deduplicated, returned in original order,
+and requested marks the requested turns. Original text and raw_turn_json are
+unchanged. A missing capture is not_established; an invalid turn is an error.
+The existing get_transcript@1.0.0 sequential-page contract remains available
+and remains the compatibility default.
+
+All three tools support the same timezone-aware mode/as_of local-availability
+cutoff as the original readers below. This is not historical public availability.
+Use the returned cutoff for subsequent source retrieval when reproducing a
+search. Preserve receipts, lineage, assessments and warnings downstream.
+Reads are bounded to 32 MiB of selected evidence, with 4-MiB per-page and
+summary/assessment bounds and the existing 8-MiB response limit. Exceeding a
+bound fails explicitly; narrow the request. All access uses the existing
+physical company lock and quiet immutable reader.
 
 ## Retained transcripts and structured extractions
 
@@ -594,6 +757,27 @@ time when assembling a packet, and inspect truncation; the result maximum
 is 100 rows. Source fields are preserved in `payload_json`, alongside
 period, fiscal labels, currency, capture time, content hash and row pointer.
 
+### Routine company fundamentals (Sharadar primary)
+
+Use `company.get_fundamentals@3.0.0` and
+`company.get_share_count_history@3.0.0` for routine research. Arguments are
+`{"symbol":"AAPL","dimension":"ARQ","limit":20}`; symbol is required, ARQ and
+latest are defaults. For a local historical cutoff add `"mode":"as_of"` and an
+explicit timezone-aware `"as_of"`. ARY/ART/MRQ/MRY/MRT are explicit alternatives.
+
+Keep `values_json`, `missingness_json`, dimension, source datekey, local
+availability, schema, capture/version IDs and permanent provider subject.
+Fundamentals include the retained vendor ratios; share history contains
+`sharesbas`, `shareswa`, and `shareswadil`. SEC metric equivalence and share
+adjustments are not inferred. Missing Sharadar coverage is explicit, with no
+automatic SEC/FMP fallback. A cutoff before local collection cannot reconstruct
+historical first releases.
+
+Existing SEC v2.0 facts/shares and v2.1 ratios remain explicit audit alternatives;
+the older examples below retain those meanings. Omitted tool versions retain
+compatibility behavior, so always select v3 for the new primary source.
+See [the source and collector policy](rebuild/SHARADAR_PRIMARY_FUNDAMENTALS_2026-09-19.md).
+
 `company.get_fundamentals@2.1.0` retains its net-margin and
 liabilities-to-assets ratio contract. The new tool supplies additional
 statement and earnings inputs and distinguishes annual FY from quarterly
@@ -727,6 +911,7 @@ lineage, warnings, and truncation only. They never return provider raw bytes
 or article bodies, never fetch from a provider, and remain read-only. An empty,
 `unavailable`, `insufficient_history`, or `not_established` result is an
 honest data-dependent outcome.
+
 
 #### Retained-news reads during collection
 

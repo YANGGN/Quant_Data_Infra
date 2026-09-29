@@ -18,6 +18,8 @@ class CompanyMarketRefreshTests(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name).resolve()
+        root_patch = patch.object(operation, 'PROJECT_ROOT', self.root)
+        root_patch.start(); self.addCleanup(root_patch.stop)
         self.now = 0.0
         self.calls = []
         self.publisher = SimpleNamespace(publish=Mock(return_value=SimpleNamespace(outcome="succeeded", written_count=0)))
@@ -37,6 +39,30 @@ class CompanyMarketRefreshTests(unittest.TestCase):
                     utcnow=lambda: datetime(2026,9,5,4,tzinfo=timezone.utc))
         args.update(overrides)
         return operation.run_company_market_refresh(**args)
+
+    def test_expanded_route_keeps_legacy_estimates_without_duplicate_action_calls(self):
+        report = self.run_refresh(sources=('analyst_estimates',))
+        self.assertEqual([call['source'] for _,call in self.calls], ['analyst_estimates'])
+        self.assertEqual(report['requests'], 2)
+        self.assertEqual(self.publisher.publish.call_count, 1)
+
+    def test_expanded_lanes_preserve_each_other_when_one_raises(self):
+        from quant_data.operations import selected_actions
+        marker=self.root/selected_actions.ACTIVATION
+        marker.parent.mkdir(parents=True);marker.write_text('{}')
+        success={'unit':'steps','successful':2,'failed':0,'partial':0,'skipped':0,'unattempted':0}
+        legacy={'contract':'quant_data.company_market_refresh','exit_code':0}
+        for failed in ('legacy','actions'):
+            out=StringIO()
+            with patch.object(operation,'load_registry',return_value=object()), \
+                 patch.object(operation,'refresh_company_market_live',side_effect=RuntimeError('secret') if failed=='legacy' else None,return_value=legacy) as old, \
+                 patch.object(selected_actions,'run_live',side_effect=RuntimeError('secret') if failed=='actions' else None,return_value={'exit_code':0,'counts':success}) as actions, \
+                 patch('quant_data.operations.fetch_run_summary.summarize_report',return_value=success), \
+                 patch('quant_data.operations.fetch_run_summary.record_report'),redirect_stdout(out):
+                self.assertEqual(operation.main([]),75)
+            old.assert_called_once_with(sources=('analyst_estimates',));actions.assert_called_once()
+            report=json.loads(out.getvalue());self.assertEqual(report['counts']['successful'],2)
+            self.assertEqual(report['counts']['failed'],1);self.assertNotIn('secret',out.getvalue())
 
     def test_capped_estimates_publish_but_report_partial_coverage(self):
         rows = [{"symbol":"AAPL","date":f"{2021+i}-09-30","epsAvg":1.0} for i in range(10)]

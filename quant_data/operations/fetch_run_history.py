@@ -1,4 +1,4 @@
-"""Durable private run receipts around the nine existing scheduled CLI calls.
+"""Durable private run receipts around the fixed scheduled CLI calls.
 
 This observer does not capture output, fetch data, retry, change exit behavior,
 or acquire a canonical-store lock. One private directory belongs to each run.
@@ -22,14 +22,22 @@ from .fetch_run_summary import _CAPTURE, validate_counts
 from .refresh_status import _ensure_write_root, _replace_receipt, _fsync_directory, _parse_timestamp
 
 BATCH_ARGUMENTS = {
+    "quant-data-derived-refresh.timer": (),
+    "quant-data-equibles-refresh.timer": (),
+    "quant-data-weekly-price-repair.timer": (),
     "quant-data-market-close.timer": (),
+    # Retain decoding of archived Alpaca receipts; it is not an active timer binding.
     "quant-data-alpaca-spy-options.timer": (),
+    "quant-data-theta-options-daily.timer": ("--mode", "daily"),
+    "quant-data-theta-options-weekly.timer": ("--mode", "weekly"),
     "quant-data-macro-current-refresh.timer": (),
     "quant-data-macro-vintages.timer": ("--mode", "refresh"),
     "quant-data-employment-vintages.timer": ("--mode", "refresh"),
     "quant-data-fmp-macro-calendar.timer": (),
     "quant-data-sec-company-fundamentals.timer": (),
+    "quant-data-sharadar-selected-refresh.timer": (),
     "quant-data-company-market-refresh.timer": (),
+    "quant-data-selected-company-refresh.timer": (),
     "quant-data-current-news-refresh.timer": (),
     "quant-data-equibles-transcripts.timer": (),
 }
@@ -92,23 +100,31 @@ _SUMMARY_FIELDS = set(_SUMMARY_BINDING) | {"schema", "version", "recorded_at", "
 
 def save_run_summary(path: Path, record: dict[str, Any], counts: dict[str, Any], *,
                      recorded_at: str, provenance: str = "collector_report",
-                     source_sha256: str = "") -> None:
+                     source_sha256: str = "", details: dict[str, Any] | None = None) -> None:
     """Save a separate summary; the original exit receipt is never rewritten."""
     summary = {key: record[key] for key in _SUMMARY_BINDING}
     summary.update(schema="quant_data.fetch_run_summary", version=1, recorded_at=recorded_at,
                    provenance=provenance, source_sha256=source_sha256, counts=validate_counts(counts))
+    if details is not None:
+        from .sharadar_run_details import validate_details
+        summary["details"] = validate_details(details)
     _validated_summary(summary, record, _parse_timestamp(recorded_at))
     _publish(path, summary)
 
 
 def _validated_summary(value: object, record: dict[str, Any], now: datetime) -> dict[str, Any] | None:
-    if (not isinstance(value, dict) or set(value) != _SUMMARY_FIELDS
+    if (not isinstance(value, dict) or set(value) not in (_SUMMARY_FIELDS, _SUMMARY_FIELDS | {"details"})
             or value["schema"] != "quant_data.fetch_run_summary"
             or type(value["version"]) is not int or value["version"] != 1
             or type(value["exit_code"]) is not int
             or any(value[key] != record[key] for key in _SUMMARY_BINDING)
             or record["outcome"] not in {"succeeded", "failed"}):
         raise ValueError("Invalid run summary binding")
+    if "details" in value:
+        from .sharadar_run_details import BATCH, validate_details
+        if record["batch_id"] != BATCH:
+            raise ValueError("Sharadar details require a Sharadar run")
+        validate_details(value["details"])
     provenance, digest = value["provenance"], value["source_sha256"]
     if provenance not in {"collector_report", "retained_evidence"} or not isinstance(digest, str):
         raise ValueError("Invalid summary provenance")
@@ -166,6 +182,7 @@ def run_recorded_cli(batch_id: str, operation: Callable[[], Any], *, argv: list[
         _warn()
 
     summaries: list[dict[str, Any]] = []
+    details: list[dict[str, Any]] = []
 
     def finish(code: int) -> None:
         if record is None or path is None:
@@ -177,10 +194,12 @@ def run_recorded_cli(batch_id: str, operation: Callable[[], Any], *, argv: list[
             completed = {**record, "finished_at": finished, "outcome": "succeeded" if code == 0 else "failed", "exit_code": code}
             _publish(path, completed)
             if summaries:
-                save_run_summary(path.with_name("summary.json"), completed, summaries[-1], recorded_at=finished)
+                save_run_summary(path.with_name("summary.json"), completed, summaries[-1], recorded_at=finished, details=details[-1] if details else None)
         except Exception:
             _warn()
 
+    from .sharadar_run_details import _CAPTURE_DETAILS, BATCH as SHARADAR_BATCH
+    detail_token = _CAPTURE_DETAILS.set(details if batch_id == SHARADAR_BATCH else None)
     token = _CAPTURE.set((batch_id, summaries))
     try:
         try:
@@ -198,6 +217,7 @@ def run_recorded_cli(batch_id: str, operation: Callable[[], Any], *, argv: list[
         return result
     finally:
         _CAPTURE.reset(token)
+        _CAPTURE_DETAILS.reset(detail_token)
 
 
 @contextmanager
@@ -308,6 +328,8 @@ def read_fetch_run_history(root: Path, *, start: datetime, end: datetime, observ
                                             counts = _validated_summary(summary, record, now)
                                             if counts is not None:
                                                 record["counts"] = counts
+                                                if "details" in summary:
+                                                    record["details"] = summary["details"]
                                         except FileNotFoundError:
                                             pass
                                         except (OSError, ValueError, TypeError, OverflowError, QuantDataError):

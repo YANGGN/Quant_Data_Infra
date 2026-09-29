@@ -142,6 +142,14 @@ class TranscriptModelPairPilot:
                 receipt.update(status="failed_or_uncertain", completed_at=self.clock())
                 atomic(receipt_path, receipt, replace=True)
                 raise
+            finally:
+                attempts = getattr(transport, "attempt_count", None)
+                if attempts is not None:
+                    if type(attempts) is not int or not 0 <= attempts <= 3:
+                        raise ConflictError("Invalid native model-attempt count")
+                    receipt["model_attempts"] = attempts
+                    report["requests_this_run"] += max(0, attempts - 1)
+                    atomic(receipt_path, receipt, replace=True)
         item["raw_response_sha256"] = m.digest(raw)
         output, usage = _response(raw, config["model"])
         item["usage"] = usage

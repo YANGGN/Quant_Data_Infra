@@ -99,7 +99,7 @@ generated outputs, and architecture decisions retain one integration owner.
 | Authorized bounded writes through existing mechanisms | Explicit finite scope, focused preflight, and bounded post-write counts/integrity/lineage |
 | Private collector binding to existing datasets | Integration-owner registry edit and adjacent checks |
 | Additive bounded local read-only tool | Domain, public-contract, predecessor compatibility, and read-only/cutoff checks from the test strategy |
-| Migration, new dataset ownership, shared schema, time/identity/missingness semantics, cross-store or canonical-safety invariant | Applicable accepted contract, impact analysis, full suite where selected by the test strategy, and independent verification |
+| Domain-only migration/publication change, or a shared/core invariant change | Map actual affected contracts and consumers; select domain or full-suite evidence through the test strategy, retaining applicable independent verification |
 | New provider/credential/security mechanism, scheduler, deployment, external exposure, writable UI, destructive action, store promotion/replacement/retirement | Explicit authority, operating-envelope review, and the accepted gate for that boundary; independent verification of changed safety guarantees |
 
 A new provider family, credential mechanism, unbounded workload, or materially
@@ -109,9 +109,13 @@ model nor a passing fixture expands operational permission.
 ## Validation and finish
 
 [TEST_STRATEGY.md](TEST_STRATEGY.md#4-test-layers) is the single workflow matrix
-for selecting focused, adjacent, or exhaustive checks. A generated-file change
-alone is not an exhaustive-test trigger. Specific accepted stage/release gates
-and explicit user instructions retain their requirements.
+for selecting focused, adjacent, or exhaustive checks. State the changed
+component, affected contracts/consumers, and named checks before testing.
+Shared-file edits, canonical writes, timers, and generated-file changes do not
+alone trigger exhaustive validation. Apply its component impact/escalation
+rules; record unrelated failures separately instead of expanding the task.
+Specific current stage/release gates and explicit user instructions retain
+their requirements.
 
 Use existing meaningful checks. Documentation-only changes need link/content
 review and diff checks; do not run unrelated executable suites. Add browser

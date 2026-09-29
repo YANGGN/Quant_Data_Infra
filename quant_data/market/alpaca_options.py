@@ -2153,6 +2153,49 @@ def _grid_chain_snapshots(bodies: Sequence[bytes]) -> Mapping[str, Any]:
     return result
 
 
+
+def _grid_catalog_snapshots(
+    snapshots: Mapping[str, Any],
+    contracts: Sequence[Mapping[str, Any]],
+    *,
+    underlying_symbol: str,
+    selected_expiration: str,
+    spot_price: str,
+    session_date: str,
+    completed_at: str,
+) -> tuple[Mapping[str, Any], tuple[str, ...]]:
+    """Exclude only provably stale, in-scope snapshots absent from the catalog.
+
+    Alpaca's chain can retain obsolete symbols after its active catalog drops
+    them. Never invent a contract from a snapshot or relax catalog validation
+    for an unknown current quote. Exact raw response bytes are still retained.
+    """
+    known = {str(row["contract_symbol"]) for row in contracts}
+    extras = set(snapshots) - known
+    if not extras:
+        return snapshots, ()
+    expiry = date.fromisoformat(selected_expiration).strftime("%y%m%d")
+    pattern = re.compile(re.escape(underlying_symbol) + expiry + r"[CP]([0-9]{8})")
+    lower = Decimal(spot_price) * LOWER_STRIKE_MULTIPLIER
+    upper = Decimal(spot_price) * UPPER_STRIKE_MULTIPLIER
+    for symbol in sorted(extras):
+        match = pattern.fullmatch(symbol)
+        if match is None or not lower <= Decimal(match.group(1)) / 1000 <= upper:
+            raise _fail("unknown option chain contract is outside the requested scope")
+        snapshot = _mapping(snapshots[symbol], "unknown option snapshot")
+        if not any(snapshot.get(field) is not None for field in ("latestQuote", "latestTrade")):
+            raise _fail("unknown option chain contract has no dated quote or trade")
+        for field in ("latestQuote", "latestTrade", "dailyBar", "minuteBar", "prevDailyBar"):
+            if snapshot.get(field) is None:
+                continue
+            observation = _mapping(snapshot[field], "unknown option observation")
+            observed = _source_time(observation.get("t"), "unknown option observation time")
+            _require_not_after(observed, cutoff=completed_at, label="unknown option observation time")
+            if _session_for_timestamp(observed, label="unknown option observation time") >= session_date:
+                raise _fail("option chain contains an unknown current contract")
+    return {symbol: value for symbol, value in snapshots.items() if symbol in known}, tuple(sorted(extras))
+
+
 def _grid_response_digest(responses: Mapping[str, bytes]) -> tuple[str, int]:
     digest, total = hashlib.sha256(), 0
     for name in sorted(responses):
@@ -2296,9 +2339,15 @@ def _parse_alpaca_etf_options_capture(
         completed_at=completed,
         underlying_symbol=underlying_symbol,
     )
+    snapshots, excluded_stale = _grid_catalog_snapshots(
+        _grid_chain_snapshots(chain_bodies), contracts,
+        underlying_symbol=underlying_symbol,
+        selected_expiration=selected_expiration, spot_price=underlying.spot_price,
+        session_date=session, completed_at=completed,
+    )
     surfaces = _surfaces(
         contracts,
-        snapshots=_grid_chain_snapshots(chain_bodies),
+        snapshots=snapshots,
         session_date=session,
         completed_at=completed,
         preserve_dated_observations=True,
@@ -2324,6 +2373,11 @@ def _parse_alpaca_etf_options_capture(
         "spot_price": underlying.spot_price,
         "spot_method": underlying.spot_method,
     }
+    if excluded_stale:
+        scope["excluded_stale_chain_symbols"] = list(excluded_stale)
+        scope["chain_snapshot_policy"] = "active_catalog_with_stale_extras_v1"
+    # Keep every accepted capture readable by the options scope reader.
+    dumps_strict(scope, max_bytes=16_384)
     inputs = {
         "underlying": {
             "state": "present",

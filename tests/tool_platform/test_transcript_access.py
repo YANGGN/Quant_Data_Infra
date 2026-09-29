@@ -86,7 +86,7 @@ class TranscriptAccessTests(unittest.TestCase):
         self.assertEqual(previous.revision, "2.85.0")
         self.assertEqual(previous.source_sha256,
             "1b46ab14244717708470bdafcd840fee804c66cff2a572c6a99bba7a482afff2")
-        self.assertEqual({t["id"]: t for t in self.registry.tools if t["id"] not in TOOLS},
+        self.assertEqual({t["id"]: t for t in self.registry.tools if t["id"] in {old["id"] for old in previous.tools}},
                          {t["id"]: t for t in previous.tools})
         for tool in TOOLS:
             out = io.StringIO()

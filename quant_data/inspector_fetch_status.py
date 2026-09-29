@@ -1,4 +1,4 @@
-"""Read-only execution calendar for the ten fixed local fetch batches.
+"""Read-only execution calendar for the fixed local fetch batches.
 
 Current calendar rules describe planned slots, not historical activation proof.
 Private collector run receipts and completed systemd oneshot results establish
@@ -28,14 +28,19 @@ _PROPERTIES = "Id,LoadState,ActiveState,SubState,Type,TimersCalendar,ExecMainSta
 _JOURNAL_FIELDS = "__REALTIME_TIMESTAMP,_BOOT_ID,_UID,_PID,_COMM,_EXE,USER_INVOCATION_ID,USER_UNIT,JOB_ID,JOB_TYPE,JOB_RESULT"
 _JOURNAL_LIMIT = 2000
 _DESCRIPTIONS = {
+    "Derived calculations": "Forward EPS, fiscal-quarter matching and daily P/E from retained inputs",
     "Market close": "Daily equity, ETF and index prices",
-    "ETF options": "Option surfaces for the fixed ETF universe",
+    "Weekly price repair": "Repair missing daily price history",
+    "Theta options daily": "ThetaData end-of-day options for 15 ETFs; source: data/options.sqlite",
+    "Theta options weekly repair": "Repair missing ThetaData options for the preceding trading week; source: data/options.sqlite",
     "Macro current": "Treasury, Fed, NY Fed, energy and economic indicators",
     "GDP / CPI": "Official GDP and inflation vintages",
     "Employment": "Payroll and unemployment vintages",
     "Economic calendar": "Release calendar and normalized economic events",
     "SEC fundamentals": "Company filings and financial facts",
+    "Sharadar fundamentals": "Selected company fundamentals, as reported and restated",
     "Company market": "Dividends, splits and analyst estimates",
+    "Selected company inputs": "Earnings, financial statements, estimates, ratings, price targets and revenue segments",
     "Equibles transcripts": "Raw earnings-call transcripts for the retained stock universe",
     "Current news": "Headlines from the configured current news sources",
 }
@@ -122,11 +127,32 @@ def _slots(calendars: list[str], start: date, days: int = 7) -> tuple[list[datet
                 day = start + timedelta(days=offset)
                 if day.weekday() < 5:
                     result.add(datetime.combine(day, time(hour, minute), EASTERN).astimezone(timezone.utc))
+        elif calendar in ("Mon..Fri *-*-* 23:30:00 America/Toronto", "*-*-* 06:30:00 America/Toronto"):
+            for offset in range(days):
+                day=start+timedelta(days=offset)
+                if calendar.startswith("Mon..Fri") and day.weekday()>=5:
+                    continue
+                hour=23 if calendar.startswith("Mon..Fri") else 6
+                result.add(datetime.combine(day,time(hour,30),ZoneInfo("America/Toronto")).astimezone(timezone.utc))
+        elif calendar == "Sun *-*-* 03:00:00 America/New_York":
+            for offset in range(days):
+                day = start + timedelta(days=offset)
+                if day.weekday() == 6:
+                    result.add(datetime.combine(day, time(3), EASTERN).astimezone(timezone.utc))
+        elif calendar == "Sat *-*-* 02:00:00 America/Toronto":
+            for offset in range(days):
+                day = start + timedelta(days=offset)
+                if day.weekday() == 5:
+                    result.add(datetime.combine(day, time(2), ZoneInfo("America/Toronto")).astimezone(timezone.utc))
         elif calendar == "Fri *-*-01..07 10:05:00 America/New_York":
             for offset in range(days):
                 day = start + timedelta(days=offset)
                 if day.weekday() == 4 and day.day <= 7:
                     result.add(datetime.combine(day, time(10, 5), EASTERN).astimezone(timezone.utc))
+        elif calendar == "*-*-* 05:00:00 America/New_York":
+            for offset in range(days):
+                day = start + timedelta(days=offset)
+                result.add(datetime.combine(day, time(5), EASTERN).astimezone(timezone.utc))
         elif calendar == "*-*-* 00:10:00 UTC":
             instant = first.replace(hour=0, minute=10, second=0, microsecond=0)
             while instant < last:
@@ -155,6 +181,7 @@ class _Run:
     exit_code: int | None = None
     run_id: str = ""
     counts: dict[str, Any] | None = None
+    details: dict[str, Any] | None = None
 
 
 def _journal_runs(output: str, now: datetime) -> list[_Run]:
@@ -245,13 +272,16 @@ def _merge_saved_run(runs: list[_Run], saved: _Run) -> None:
     runs.append(saved)
 
 
-def _event(binding: Any, slot: datetime, runs: list[_Run], now: datetime) -> dict[str, Any]:
+def _event(binding: Any, slot: datetime, runs: list[_Run], now: datetime,
+           derived_root: Path | None = None, *, detailed_derived: bool = True) -> dict[str, Any]:
     service = binding.unit.removesuffix(".timer") + ".service"
     matches = [run for run in runs if run.service == service and slot <= run.started < slot + timedelta(minutes=5)]
     status = "upcoming" if slot > now else "unconfirmed"
     started = finished = None
     evidence, exit_code = "unconfirmed", None
     work_counts = None
+    sharadar_details = None
+    derived = {}
     note = "Planned batch start; no execution result yet." if status == "upcoming" else "No matching completed run is recorded. Missing history is not proof of failure."
     if len(matches) == 1 and slot <= now:
         run = matches[0]
@@ -263,6 +293,7 @@ def _event(binding: Any, slot: datetime, runs: list[_Run], now: datetime) -> dic
             "unconfirmed": "Recorded execution sources disagree; the final outcome is unconfirmed.",
         }[status] + " Matched by a start within five minutes of this slot."
         evidence, exit_code = run.evidence, run.exit_code
+        sharadar_details = run.details
         if run.evidence == "saved_run":
             note = {
                 "succeeded": "Saved run completed successfully (exit code 0). Source data may be unchanged or a holiday check may have skipped fetching.",
@@ -281,6 +312,26 @@ def _event(binding: Any, slot: datetime, runs: list[_Run], now: datetime) -> dic
                 note = ("Recorded run completed some work but did not finish cleanly. "
                         "The counts below distinguish successful, failed and incomplete work. "
                         "Matched by a start within five minutes of this slot.")
+            if binding.unit == "quant-data-derived-refresh.timer":
+                if derived_root is not None:
+                    from .derived_refresh_status import presentation
+                    try:
+                        derived = presentation(derived_root, started_at=started, finished_at=finished,
+                                               **({} if detailed_derived else {"detailed": False}))
+                    except (OSError, ValueError, QuantDataError):
+                        derived = {}
+                if derived:
+                    pending = derived["waiting_inputs"] + derived["catchup_pending"]
+                    status = ("partial" if pending else "warning" if derived["freshness_warnings"] else "succeeded")
+                    note = ("Derived results were published. "
+                            + ("Some symbols are waiting for inputs or catch-up. " if pending else "Calculation work completed. ")
+                            + "Input freshness is shown separately from calculation completion and P/E availability. "
+                            + (f"Recorded process exit code: {run.exit_code}. " if run.exit_code is not None else "")
+                            + "Matched by a start within five minutes of this slot.")
+                elif work_counts and work_counts.get("partial"):
+                    note = ("The recorded derived counts group older input captures and pending catch-up together. "
+                            "They do not establish how many calculations are unfinished or how many P/E values are unavailable. "
+                            "A matching publication receipt is unavailable for this slot.")
     elif len(matches) > 1 and slot <= now:
         note = "Multiple runs match this scheduled slot; its outcome is unconfirmed."
     local = slot.astimezone(EASTERN)
@@ -288,10 +339,12 @@ def _event(binding: Any, slot: datetime, runs: list[_Run], now: datetime) -> dic
         "id": binding.unit + ":" + _utc(slot), "batch_id": binding.unit, "label": binding.label,
         "description": _DESCRIPTIONS[binding.label], "scheduled_at": _utc(slot),
         "scheduled_local": local.strftime("%H:%M %Z"), "date": local.date().isoformat(),
-        "status": status, "status_label": {"succeeded": "Completed", "partial": "Partial Success", "failed": "Failed", "running": "Running", "upcoming": "Scheduled", "unconfirmed": "Unconfirmed"}[status],
+        "status": status, "status_label": {"succeeded": "Completed", "partial": "Partial Success", "warning": "Completed · input warnings", "failed": "Failed", "running": "Running", "upcoming": "Scheduled", "unconfirmed": "Unconfirmed"}[status],
         "color": "green" if status == "succeeded" else "red" if status == "failed" else "amber",
         "started_at": started, "finished_at": finished, "note": note,
         "evidence": evidence, "exit_code": exit_code, "counts": work_counts,
+        **({"sharadar": sharadar_details} if sharadar_details else {}),
+        **({"derived": derived} if derived else {}),
         "datasets": list(binding.datasets),
     }
 
@@ -313,13 +366,14 @@ def _day_markers(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not batch_events:
             continue
         counts = Counter(event["status"] for event in batch_events)
-        status = next(state for state in ("failed", "partial", "running", "unconfirmed", "upcoming", "succeeded") if counts[state])
+        status = next(state for state in ("failed", "partial", "warning", "running", "unconfirmed", "upcoming", "succeeded") if counts[state])
         markers.append({
             "batch_id": binding.unit, "label": binding.label, "status": status,
-            "status_label": {"succeeded": "Completed", "partial": "Partial Success", "failed": "Failed", "running": "Running", "upcoming": "Scheduled", "unconfirmed": "Unconfirmed"}[status],
+            "status_label": {"succeeded": "Completed", "partial": "Partial Success", "warning": "Completed · input warnings", "failed": "Failed", "running": "Running", "upcoming": "Scheduled", "unconfirmed": "Unconfirmed"}[status],
             "color": "green" if status == "succeeded" else "red" if status == "failed" else "amber",
             "run_count": len(batch_events),
-            "counts": {state: counts[state] for state in ("succeeded", "partial", "failed", "running", "upcoming", "unconfirmed")},
+            "counts": {**{state: counts[state] for state in ("succeeded", "partial", "failed", "running", "upcoming", "unconfirmed")},
+                       **({"warning": counts["warning"]} if counts["warning"] else {})},
         })
     return markers
 
@@ -327,7 +381,7 @@ def _day_markers(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def read_fetch_status(selected_date: str | None = None, *, observed_at: datetime | None = None,
                       unit_output: str | None = None, journal_output: str | None = None,
                       probe: bool = True, history_root: Path | None = None,
-                      equibles_root: Path | None = None) -> dict[str, Any]:
+                      equibles_root: Path | None = None, derived_root: Path | None = None) -> dict[str, Any]:
     """Read at most one unit snapshot and one calendar-month metadata-only journal query.
 
     Fixtures supply both outputs with probe=False, so tests never use host defaults.
@@ -388,7 +442,7 @@ def read_fetch_status(selected_date: str | None = None, *, observed_at: datetime
                 record["batch_id"].removesuffix(".timer") + ".service",
                 datetime.fromisoformat(record["started_at"].replace("Z", "+00:00")),
                 datetime.fromisoformat(record["finished_at"].replace("Z", "+00:00")) if record["finished_at"] else None,
-                record["outcome"], record["invocation_id"], "saved_run", record["exit_code"], record["run_id"], record.get("counts"),
+                record["outcome"], record["invocation_id"], "saved_run", record["exit_code"], record["run_id"], record.get("counts"), record.get("details"),
             ))
     events = []
     unavailable = []
@@ -404,7 +458,8 @@ def read_fetch_status(selected_date: str | None = None, *, observed_at: datetime
         service = binding.unit.removesuffix(".timer") + ".service"
         service_runs = [run for run in runs if run.evidence != "systemd" or _property(properties.get(service, {}), "Type") == "oneshot"]
         for slot in slots:
-            events.append(_event(binding, slot, service_runs, now))
+            events.append(_event(binding, slot, service_runs, now, derived_root,
+                                 detailed_derived=slot.astimezone(EASTERN).date() == selected))
     events.sort(key=lambda event: (event["scheduled_at"], event["label"]))
     today = now.astimezone(EASTERN).date()
     days = []
@@ -432,6 +487,8 @@ def read_fetch_status(selected_date: str | None = None, *, observed_at: datetime
         "next_month_date": _month_selection(selected, 1), "days": days,
         "focus_events": focus, "summary": {"total": len(focus),
             "partial": sum(event["status"] == "partial" for event in focus),
+            **({"warning": sum(event["status"] == "warning" for event in focus)}
+               if any(event["status"] == "warning" for event in focus) else {}),
             "pending": sum(event["status"] in {"running", "unconfirmed", "upcoming"} for event in focus),
             **{color: counts[color] for color in ("green", "amber", "red")}},
         "notices": notices, "unavailable_jobs": unavailable,

@@ -1,0 +1,12 @@
+[Unit]
+Description=Repair historical prices Saturday at 02:00 Toronto time
+
+[Timer]
+OnCalendar=Sat *-*-* 02:00:00 America/Toronto
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=true
+Unit=quant-data-weekly-price-repair.service
+
+[Install]
+WantedBy=timers.target

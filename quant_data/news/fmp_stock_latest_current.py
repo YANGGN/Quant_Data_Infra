@@ -222,35 +222,39 @@ class StdlibFmpStockLatestCurrentTransport:
             or max_bytes != FMP_STOCK_LATEST_CURRENT_MAX_BYTES
         ):
             raise ValidationError("FMP current stock-latest transport request is outside scope")
-        connection = http.client.HTTPSConnection(FMP_NEWS_HOST, timeout=timeout_seconds)
-        try:
-            connection.request("GET", f"{path}?{urlencode(expected_query)}", headers=dict(headers))
-            response = connection.getresponse()
-            if response.status in {301, 302, 303, 307, 308}:
-                raise StoreUnavailableError("FMP current stock-latest redirects are not allowed")
-            if response.status != 200:
-                raise StoreUnavailableError("FMP current stock-latest provider response was unavailable")
-            content_type = response.getheader("Content-Type") or ""
-            if not _json_content_type(content_type):
-                raise StoreUnavailableError("FMP current stock-latest provider response was unavailable")
-            declared = response.getheader("Content-Length")
-            if declared is not None:
-                try:
-                    declared_size = int(declared)
-                except ValueError as exc:
-                    raise StoreUnavailableError("FMP current stock-latest provider response was unavailable") from exc
-                if declared_size < 0 or declared_size > max_bytes:
+        def request_with_timeout(remaining):
+            connection = http.client.HTTPSConnection(FMP_NEWS_HOST, timeout=remaining)
+            try:
+                connection.request("GET", f"{path}?{urlencode(expected_query)}", headers=dict(headers))
+                response = connection.getresponse()
+                if response.status in {301, 302, 303, 307, 308}:
+                    raise StoreUnavailableError("FMP current stock-latest redirects are not allowed")
+                if response.status != 200:
+                    raise StoreUnavailableError("FMP current stock-latest provider response was unavailable")
+                content_type = response.getheader("Content-Type") or ""
+                if not _json_content_type(content_type):
+                    raise StoreUnavailableError("FMP current stock-latest provider response was unavailable")
+                declared = response.getheader("Content-Length")
+                if declared is not None:
+                    try:
+                        declared_size = int(declared)
+                    except ValueError as exc:
+                        raise StoreUnavailableError("FMP current stock-latest provider response was unavailable") from exc
+                    if declared_size < 0 or declared_size > max_bytes:
+                        raise ResourceLimitError("FMP current stock-latest response exceeds the reviewed byte bound")
+                body = response.read(max_bytes + 1)
+                if len(body) > max_bytes:
                     raise ResourceLimitError("FMP current stock-latest response exceeds the reviewed byte bound")
-            body = response.read(max_bytes + 1)
-            if len(body) > max_bytes:
-                raise ResourceLimitError("FMP current stock-latest response exceeds the reviewed byte bound")
-            return CapturedFmpStockLatestCurrentResponse(response.status, content_type, body)
-        except (ResourceLimitError, ValidationError, StoreUnavailableError):
-            raise
-        except (OSError, http.client.HTTPException) as exc:
-            raise StoreUnavailableError("FMP current stock-latest provider request failed") from exc
-        finally:
-            connection.close()
+                return CapturedFmpStockLatestCurrentResponse(response.status, content_type, body)
+            except (ResourceLimitError, ValidationError, StoreUnavailableError):
+                raise
+            except (OSError, http.client.HTTPException) as exc:
+                raise StoreUnavailableError("FMP current stock-latest provider request failed") from exc
+            finally:
+                connection.close()
+        from ..operations.collection_provider_policy import invoke_host_fmp
+        return invoke_host_fmp(request_with_timeout,request_material={"endpoint":path,"parameters":dict(query)},
+            priority="maintenance",timeout_seconds=timeout_seconds)
 
 
 @dataclass(frozen=True, slots=True)

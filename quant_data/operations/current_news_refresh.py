@@ -10,11 +10,12 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 import os
 from pathlib import Path
 import sys
+import time
 from typing import Final
 
 from ..credentials import read_project_credential
@@ -77,6 +78,7 @@ class CurrentNewsRefreshStepReport:
     outcome: str
     exit_code: int
     error: str | None = None
+    coverage: dict[str, object] | None = None
 
     def mapping(self) -> dict[str, object]:
         result: dict[str, object] = {
@@ -90,6 +92,8 @@ class CurrentNewsRefreshStepReport:
         }
         if self.error is not None:
             result["error"] = self.error
+        if self.coverage is not None:
+            result["coverage"] = self.coverage
         return result
 
 
@@ -125,6 +129,7 @@ class _AlpacaBatchResult:
     failed_requests: int
     exit_code: int
     error: str | None = None
+    coverage: dict[str, object] | None = None
 
 
 def _utc_text(value: datetime, *, hour: bool = False) -> str:
@@ -201,7 +206,12 @@ def _successful_step(
 ) -> CurrentNewsRefreshStepReport:
     if isinstance(result, _AlpacaBatchResult):
         if (
-            result.request_cap < 1
+            result.request_cap < 0
+            or (result.request_cap == 0 and not (
+                source == "alpaca_benzinga" and result.coverage is not None
+                and result.exit_code == 69 and result.error == "selected_symbols_unavailable"
+                and result.attempted_requests == 0
+            ))
             or result.attempted_requests < 0
             or result.successful_requests < 0
             or result.failed_requests < 0
@@ -217,9 +227,11 @@ def _successful_step(
             attempted_requests=result.attempted_requests,
             successful_requests=result.successful_requests,
             failed_requests=result.failed_requests,
-            outcome="succeeded" if result.exit_code == 0 else "partial",
+            outcome=("unavailable" if result.request_cap == 0 else
+                     "succeeded" if result.exit_code == 0 else "partial"),
             exit_code=result.exit_code,
             error=result.error,
+            coverage=result.coverage,
         )
     outcome = getattr(result, "outcome", None)
     if outcome not in {"succeeded", "unchanged", "published"}:
@@ -344,20 +356,64 @@ def _credential(name: str, environment: Mapping[str, str]) -> str:
 def _run_alpaca_batches(
     batches: Sequence[tuple[str, ...]],
     invoke: Callable[[tuple[str, ...]], object],
+    *, selected_coverage=None, max_run_seconds=1800, monotonic=time.monotonic,
+    sleep=time.sleep,
 ) -> _AlpacaBatchResult:
-    if not batches:
+    if not batches and selected_coverage is None:
         raise StoreUnavailableError("Current market coverage is unavailable")
+    from ..news.selected_market_coverage import (
+        SELECTED_ALPACA_NEWS_BATCH_SIZE, SELECTED_ALPACA_NEWS_MAX_BATCHES)
+    if selected_coverage is not None and (
+        len(batches) > SELECTED_ALPACA_NEWS_MAX_BATCHES
+        or any(not 1 <= len(b) <= SELECTED_ALPACA_NEWS_BATCH_SIZE for b in batches)
+    ):
+        raise ResourceLimitError("Selected news batches exceed their 10-symbol or 6600-symbol total bound")
+    started=monotonic();attempted=0;full_pages=0
+    next_request_at = started
     successes = 0
     failures: list[tuple[int, str]] = []
     for batch in batches:
+        if selected_coverage is not None:
+            # Smaller groups need more requests. Pace starts without retries or
+            # extending the invocation budget, including after failed requests.
+            earliest_start = max(monotonic(), next_request_at)
+            if earliest_start - started + 60 > max_run_seconds:
+                break
+            while True:
+                remaining_wait = earliest_start - monotonic()
+                if remaining_wait <= 0:
+                    break
+                sleep(remaining_wait)
+            if monotonic() - started + 60 > max_run_seconds:
+                break
+            next_request_at = monotonic() + 0.5
+        attempted+=1
         try:
-            outcome = getattr(invoke(batch), "outcome", None)
+            receipt=invoke(batch)
+            outcome = getattr(receipt, "outcome", None)
+            if getattr(receipt,"provider_row_count",0)>=50:full_pages+=1
             if outcome not in {"succeeded", "unchanged", "published"}:
                 raise ValidationError("Current news Alpaca result is invalid")
         except Exception as error:
             failures.append(_failure_details(error))
         else:
             successes += 1
+    if selected_coverage is not None:
+        remaining=len(batches)-attempted
+        coverage={**selected_coverage.report(),"requested_batches":attempted,"deferred_batches":remaining,
+            "response_limit":50,"pages_per_batch":1,"full_response_pages":full_pages,
+            "minimum_request_interval_seconds":0.5,
+            "pagination_status":"first_page_only","time_window_completeness":"unproven",
+            "request_start_deadline_seconds":max_run_seconds,"per_response_byte_limit":64*1024*1024,
+            "global_feed_requests":9,"maximum_total_requests":len(batches)+9,
+            "maximum_total_response_bytes":(len(batches)+9)*64*1024*1024}
+        if not batches:
+            return _AlpacaBatchResult(0,0,0,0,69,"selected_symbols_unavailable",coverage)
+        codes={code for code,_ in failures}
+        if remaining:codes.add(74)
+        exit_code=next((code for code in _FAILURE_PRECEDENCE if code in codes),0)
+        return _AlpacaBatchResult(len(batches),attempted,successes,len(failures),exit_code,
+            "invocation_budget" if remaining else next((name for code,name in failures if code==exit_code),None),coverage)
     if not failures:
         return _AlpacaBatchResult(
             request_cap=len(batches),
@@ -385,9 +441,12 @@ def _live_collectors(
     environment: Mapping[str, str],
     observed_at: datetime,
     website_clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    monotonic: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> dict[str, Collector]:
     """Import live bindings lazily so unit tests remain offline."""
 
+    from ..news.selected_market_coverage import read_host_news_coverage
     from ..news.current_market_coverage import read_current_market_news_coverage
     from ..news.current_multi_source import (
         CurrentMultiSourceCredentials,
@@ -397,6 +456,13 @@ def _live_collectors(
     )
     from .fmp_stock_latest_news_refresh import refresh_fmp_stock_latest_news
 
+    invocation_started = monotonic()
+    coverage_error = None
+    try:
+        coverage = read_host_news_coverage(stores,cutoff=_utc_text(observed_at))
+    except (ConflictError,ResourceLimitError,StoreUnavailableError,ValidationError) as error:
+        coverage = None
+        coverage_error = error
     frozen_clock = lambda: observed_at
     importer = CurrentMultiSourceImporter(stores, registry, clock=frozen_clock)
     website_importer = CurrentMultiSourceImporter(stores, registry, clock=website_clock)
@@ -432,10 +498,18 @@ def _live_collectors(
         )
 
     def run_alpaca() -> _AlpacaBatchResult:
-        coverage = read_current_market_news_coverage(stores)
+        if coverage_error is not None:
+            raise coverage_error
+        selected_coverage = coverage if coverage is not None else read_current_market_news_coverage(stores)
         return _run_alpaca_batches(
-            tuple(tuple(batch) for batch in coverage.alpaca_symbol_batches),
+            tuple(tuple(batch) for batch in selected_coverage.alpaca_symbol_batches),
             lambda batch: run_feed("alpaca_benzinga", batch),
+            selected_coverage=coverage,
+            # Reserve the final two website deadlines and one minute of local
+            # work inside the existing 30-minute service timeout.
+            max_run_seconds=max(0, 1800 - (monotonic() - invocation_started) - 180),
+            monotonic=monotonic,
+            sleep=sleep,
         )
 
     return {

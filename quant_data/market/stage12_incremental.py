@@ -8,11 +8,14 @@ Only an explicitly supplied, already-existing fixture store can be published.
 
 from __future__ import annotations
 
+from ..ingestion import PublicationDeferred
+
 import hashlib
 import os
 import sqlite3
 import stat
 import tempfile
+import time as runtime_time
 import weakref
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -472,6 +475,50 @@ class Stage12BIncrementalCollector:
         collector._research_repair_instruments = None
         return collector
 
+    def _bind_selected_prices(self, *, stores, selection, cutoff):
+        """Bind a selected roster to this already path-bound price publisher.
+
+        Temporary fixtures may use prepared bindings. Canonical publishers must
+        match the activated host binding; callers cannot supply a database path.
+        """
+        from ..operations.collection_targets import selected_market_rows
+        if stores.path("market").resolve(strict=True) != self._store_path:
+            raise ValidationError("Selected prices differ from the publisher store")
+        rows = selected_market_rows(stores, selection, cutoff=cutoff,
+            require_active=self._fixture_root == _CANONICAL_PROJECT_ROOT)
+        if not rows:
+            raise ValidationError("Selected prices have no eligible instruments")
+        self._scheduled_instruments = {
+            r["provider_symbol"]: (r["instrument_id"], r["asset_type"]) for r in rows
+        }
+        self._scheduled_universe_sha256 = selection.scope_sha256
+        self._scheduled_code_version = "selected-prices.v1"
+        self._schedule_authority_sha256 = None
+        self._selected_prices = True
+        self._selected_price_history = None
+        self._selected_price_missing_only = False
+        self._owner = object()  # Prepared publications cannot outlive a roster rebind.
+
+    @classmethod
+    def _for_selected_market_prices(cls, *, stores, selection, cutoff, scope, stage12a_scope):
+        """Fixed canonical target; acquisition and scheduling remain separate."""
+        from ..operations.collection_targets import selected_market_rows
+        rows = selected_market_rows(stores, selection, cutoff=cutoff, require_active=True)
+        sentinel = next((r for r in rows if r["provider_symbol"] == "AAPL"), None)
+        if sentinel is None:
+            raise ValidationError("Selected daily prices lack the AAPL session sentinel")
+        # Reuse the established physical-store constructor. Its legacy bound is
+        # unchanged; the complete selection is checked independently below.
+        initial = {"AAPL": (sentinel["instrument_id"], sentinel["asset_type"])}
+        initial_hash = _sha256_json([{"symbol": "AAPL",
+            "instrument_id": sentinel["instrument_id"], "asset_type": sentinel["asset_type"]}])
+        collector = cls._for_canonical_market_close(scope=scope, stage12a_scope=stage12a_scope,
+            schedule_authority_sha256=_sha256_json({"contract": "selected-prices.v1"}),
+            scheduled_instruments=initial, scheduled_universe_sha256=initial_hash,
+            scheduled_code_version="selected-prices.v1")
+        collector._bind_selected_prices(stores=stores, selection=selection, cutoff=cutoff)
+        return collector
+
     @staticmethod
     def _require_sha256(value: object, *, label: str) -> str:
         if not isinstance(value, str) or len(value) != 64 or any(character not in "0123456789abcdef" for character in value):
@@ -584,9 +631,12 @@ class Stage12BIncrementalCollector:
         )
         return prepared
 
-    def publish(self, prepared: PreparedStage12BPublication) -> Stage12BPublicationReceipt:
+    def publish(self, prepared: PreparedStage12BPublication, *, deadline=None, monotonic=runtime_time.monotonic) -> Stage12BPublicationReceipt:
         """Publish a prepared complete response in one short, locked transaction."""
-
+        def check_deadline():
+            if deadline is not None and monotonic()>=deadline:
+                raise PublicationDeferred("Price publication exceeded its invocation deadline")
+        check_deadline()
         state = _PREPARED.get(prepared)
         if (
             state is None
@@ -598,9 +648,11 @@ class Stage12BIncrementalCollector:
         ):
             raise ValidationError("Prepared Stage 12B publication is not bound to this collector")
         self._require_prepared_fixture_paths_unchanged(state)
+        check_deadline()
         if not state.rows:
             return Stage12BPublicationReceipt("empty", None, None, 0)
         with StoreWriteLock(self._store_path):
+            check_deadline()
             self._require_prepared_fixture_paths_unchanged(state)
             descriptor_snapshot = self._snapshot_process_fds()
             connection = sqlite3.connect(self._store_path, timeout=5.0, isolation_level=None)
@@ -621,6 +673,7 @@ class Stage12BIncrementalCollector:
                     return Stage12BPublicationReceipt("unchanged", state.semantic_identity, None, 0)
                 instrument = self._require_preseeded_instrument(connection, state)
                 self._before_transaction(state, bound_descriptor)
+                check_deadline()
                 connection.execute("BEGIN IMMEDIATE")
                 try:
                     self._assert_raw_response_not_reused(connection, state)
@@ -629,6 +682,7 @@ class Stage12BIncrementalCollector:
                         connection.rollback()
                         return Stage12BPublicationReceipt("unchanged", state.semantic_identity, None, 0)
                     self._before_publication_write(state, bound_descriptor)
+                    check_deadline()
                     receipt = self._write_publication(connection, state, instrument)
                     self._before_commit(state, bound_descriptor)
                     self._commit(connection)
@@ -796,6 +850,9 @@ class Stage12BIncrementalCollector:
         connection.commit()
 
     def _request_scope(self, request: Stage12BFixtureRequest) -> tuple[Mapping[str, object], str]:
+        if getattr(self, "_selected_price_history", None) is not None:
+            from ..operations.collection_price_windows import history_request_scope
+            return history_request_scope(self, request)
         symbol = _require_text(request.symbol, pointer="/symbol", maximum=32)
         if symbol != symbol.upper() or any(character.isspace() for character in symbol):
             raise _issue("/symbol", "symbol", "Fixture symbol must be one frozen uppercase roster symbol")
@@ -851,7 +908,11 @@ class Stage12BIncrementalCollector:
         if scheduled_identity is not None:
             request_scope["scheduled_instrument_id"] = scheduled_identity[0]
             request_scope["scheduled_asset_type"] = scheduled_identity[1]
-            request_scope["scheduled_universe_sha256"] = self._scheduled_universe_sha256
+            if getattr(self, "_selected_prices", False):
+                # Membership belongs to publication lineage, not HTTP/data identity.
+                request_scope["selected_price_contract"] = "v1"
+            else:
+                request_scope["scheduled_universe_sha256"] = self._scheduled_universe_sha256
         if repair_identity is not None:
             request_scope["research_repair_authority_sha256"] = self._research_repair_authority_sha256
             request_scope["research_repair_plan_sha256"] = self._research_repair_plan_sha256
@@ -863,6 +924,9 @@ class Stage12BIncrementalCollector:
         request_scope: Mapping[str, object],
         response: Stage12BFixtureResponse,
     ) -> tuple[_Row, ...]:
+        if getattr(self, "_selected_price_history", None) is not None:
+            from ..operations.collection_price_windows import parse_history_response
+            return parse_history_response(self, request_scope, response)
         if isinstance(response.elapsed_seconds, bool) or not isinstance(
             response.elapsed_seconds, (int, float, Decimal)
         ):
@@ -1016,14 +1080,22 @@ class Stage12BIncrementalCollector:
     ) -> Stage12BPublicationReceipt:
         assert state.semantic_identity is not None
         instrument_id = str(instrument["instrument_id"])
-        self._require_changed_rows_are_later(connection, state, instrument_id)
+        missing_only = state.request_scope.get("missing_price_repair_contract") == "v1"
+        if not missing_only:
+            self._require_changed_rows_are_later(connection, state, instrument_id)
         semantic = state.semantic_identity
         scheduled = self._scheduled_instruments is not None
         repair = self._research_repair
         if repair:
             self._require_research_repair_rows_missing(connection, state, instrument_id)
-        identifier_prefix = "research-price-gap" if repair else ("stage12e" if scheduled else "stage12b")
-        if repair:
+        history = getattr(self, "_selected_price_history", None) is not None
+        identifier_prefix = "selected-price-history" if history else ("research-price-gap" if repair else ("stage12e" if scheduled else "stage12b"))
+        if history:
+            scope_manifest_sha256 = self._scheduled_universe_sha256
+            collector_id = "fmp.market.stage10_daily_history"
+            source_reference = "fmp.selected.historical-price-eod.full"
+            code_version = "selected-price-history.v1"
+        elif repair:
             assert self._research_repair_plan_sha256 is not None
             scope_manifest_sha256 = self._research_repair_plan_sha256
             collector_id = _RESEARCH_REPAIR_COLLECTOR_ID
@@ -1103,7 +1175,11 @@ class Stage12BIncrementalCollector:
             ),
         )
         written_versions = 0
+        history_source_rows = ({value["date"]: index for index, value in enumerate(
+            loads_strict(state.response_body, max_bytes=16*1024*1024), start=1)} if history else {})
         for source_row, row in enumerate(state.rows, start=1):
+            if history:
+                source_row = history_source_rows[row.trade_date]
             current = connection.execute(
                 """
                 SELECT version.version_id, version.correction_sequence, version.open_value,
@@ -1117,7 +1193,7 @@ class Stage12BIncrementalCollector:
                 """,
                 (instrument_id, row.trade_date, STAGE12B_PRICE_VARIANT),
             ).fetchone()
-            if current is not None and self._same_current(current, row):
+            if current is not None and (missing_only or self._same_current(current, row)):
                 continue
             sequence = 1 if current is None else int(current["correction_sequence"]) + 1
             previous = None if current is None else str(current["version_id"])

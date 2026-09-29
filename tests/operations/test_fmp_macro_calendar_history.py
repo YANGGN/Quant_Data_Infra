@@ -370,7 +370,10 @@ class FmpMacroCalendarHistoryTests(unittest.TestCase):
             def close() -> None:
                 return None
 
-        with patch.object(operation.http.client, "HTTPSConnection", _Connection):
+        # This HTTP fixture must not discover or charge the host allowance.
+        with patch.object(operation.http.client, "HTTPSConnection", _Connection), patch(
+            "quant_data.operations.collection_provider_policy.host_allowance", return_value=None
+        ):
             response = operation._StdlibTransport().request(
                 url=operation.FMP_ECONOMIC_CALENDAR_URL,
                 parameters={"country": "US", "from": "2013-01-01", "to": "2013-03-31"},

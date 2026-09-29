@@ -889,6 +889,10 @@ def parse_fmp_stage10_price_response(
         open_value = _decimal(raw["open"], "open")
         high_value = _decimal(raw["high"], "high")
         low_value = _decimal(raw["low"], "low")
+        # FMP full-EOD close is already split-adjusted and excludes dividend
+        # adjustments (https://site.financialmodelingprep.com/faqs). Preserve it
+        # exactly: never apply another split factor or substitute adjClose.
+        # Public adjustment claims require their versioned source binding.
         close_value = _decimal(raw["close"], "close")
         for field_name in ("change", "changePercent", "vwap"):
             _decimal(raw[field_name], field_name)

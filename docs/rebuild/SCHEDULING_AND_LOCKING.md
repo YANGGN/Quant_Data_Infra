@@ -310,6 +310,19 @@ captures, and exits nonzero rather than claiming full success. Network fetch
 and parsing remain outside each short physical market-store publication lock,
 and exact semantic replay writes nothing.
 
+September 22, 2026 correction: the ETF normalizer ignores a chain snapshot
+absent from the active catalog only when its OCC symbol matches the requested
+underlying, expiry and strike interval, it has a dated quote or trade, and
+all supplied quote/trade/bar timestamps precede the capture session and do not
+exceed capture completion. Current, future, undated or foreign-scope unknown
+contracts remain errors. Excluded symbols and the policy version are recorded
+in the capture scope; exact original chain bytes remain in raw evidence.
+The serialized scope must fit the option reader's 16,384-byte limit before
+publication.
+The predecessor SPY normalizer and existing capture identities are unchanged.
+This corrects the reproduced XLE/XLK December 18 stale-chain mismatch without
+raising request/page/byte limits or introducing provider retries.
+
 The registry collector declaration remains `manual_only`; this one hardened
 host unit is the explicit recurring exception. It replaces, rather than runs
 alongside, the SPY wrapper, so SPY is not requested twice. It does not enable
@@ -987,6 +1000,86 @@ zero-argument collector is called exactly once; recorder failures cannot replace
 its exit outcome. The daily timer, quota state, page/call checkpoint ordering,
 network/write-lock separation and terminal backfill behavior are unchanged.
 
+
+## September 11 selected dividends/splits amendment
+
+The existing weekday 19:00 company refresh now has independent legacy-estimates
+and selected-action lanes under the user's explicit dividend/split expansion.
+The action lane uses the exact audited 2,201 ready securities and both action
+endpoints: at most 4,402 requests, 512 MiB and 120 minutes, no retries. Estimates
+retain their prior roster and 30-minute bound. The shared service timeout is
+151 minutes, with the timer's cadence and nonpersistent behavior unchanged.
+A source-lane exception does not suppress the other lane.
+
+An actions-only private receipt gate authorizes this adoption without changing
+shared binding hashes. It admits only the exact canonical-evidence/source-gap
+partition; original completion failures remain nonzero. Each normal daily run
+still includes the 44 symbols whose historical dividend responses were rejected.
+The gate does not admit missing/uncertain attempts, capped responses or arbitrary
+provider/resource failures. Network work finishes before existing physical-store
+write locks are acquired; immutable audits coordinate through those same locks.
+
+Dated authorization, activation and operational limitations are recorded in the
+[operating envelope](CURRENT_OPERATING_ENVELOPE.md) and
+[rollout record](DIVIDENDS_SPLITS_EXPANSION_2026-09-11.md).
+
+## Authorized Saturday historical-price repair - September 15, 2026
+
+The user approved a separate weekly historical-price gap repair at Saturday
+02:00 America/Toronto. The [weekly repair contract](WEEKLY_PRICE_REPAIR_2026-09-15.md)
+defines the pinned existing population, most recent completed Monday-Friday
+window, 3,000-request / 256-MiB / 60-minute bounds and zero automatic retries.
+It uses existing FMP allowance, original response retention, physical market
+locks and the versioned publisher, with an explicit missing-only policy inside
+the transaction. Existing prices are preserved even if another writer fills a
+gap after planning. Exact replay still changes nothing.
+
+Persistent catch-up processes only the latest due week and reports older
+unresolved periods. A first-eligible-slot record prevents an installation-time
+backfill. It does not wake Windows or launch WSL. Dated activation evidence
+belongs in the operating envelope; this specification does not claim current
+host state.
+
+
+## Authorized derived research refresh — September 21, 2026
+
+The user approved quant-data-derived-refresh.timer at 23:30 weekdays and 06:30
+daily, America/Toronto, with Persistent=true. The service executes the fixed
+zero-argument local runner once, Restart=no, with a 46-minute hard timeout.
+It performs no network/provider work and no canonical mutations.
+
+One fixed export lock prevents overlapping derived publishers. Company and
+market inputs use existing physical-store lock ordering and quiet immutable
+read cohorts; source locks are released before derived writes. Per-ticker
+failures preserve prior data. An exclusive staging file, validation and durable
+completion receipt precede atomic pointer publication. Failed precommit work
+does not replace the last serving artifact; postcommit telemetry failure cannot
+claim rollback.
+
+The initial scope is the frozen forward-P/E roster (at most 2,500 identities),
+20 missed sessions per ticker per run, 45 minutes of refresh work, and a
+512-MiB compact overlay. Catch-up processes completed exchange sessions only.
+Current published price version identities are compared over bounded saved
+history, including late commits with old capture times. Previously published
+estimate denominators remain fixed.
+
+Windows host wake adds 23:28 weekdays and 06:28 daily to the existing
+QuantData-WSLHost task, preserving its action, settings and other triggers.
+The [derived refresh contract](../DERIVED_REFRESH_PLAN.md) owns calculation
+scope; the [operating envelope](CURRENT_OPERATING_ENVELOPE.md) records observed
+activation and initial-run outcomes.
+
+## September 22, 2026 — recurring price acquisition exclusions
+
+The active daily-price and weekly-gap wrappers exclude ATAI after its last
+trading date of September 10, 2026 and IRBO after August 9, 2024, before
+request planning. The reviewed policy is in
+quant_data/operations/price_fetch_policy.py and cites the primary exchange
+notices. Exclusions are explicit in each new report; request counts describe
+the remaining active targets. Existing histories, universe snapshots and
+provider mappings are preserved, and ARTY is not silently substituted.
+The user approved this workload reduction; timer cadence and units are unchanged.
+
 ## Retained-news reader coordination — September 23, 2026
 
 Current-news search and public source status use the existing physical news
@@ -1000,6 +1093,7 @@ this existing exclusive lock; long publication/migration work can produce an
 explicit lock conflict. This bounded choice avoids a new snapshot service or
 changes to the shared locking engine. See
 [consumer behavior](../LOCAL_AGENT_TOOLS.md#retained-news-reads-during-collection).
+
 
 ## Daily Theta options and weekly repair
 

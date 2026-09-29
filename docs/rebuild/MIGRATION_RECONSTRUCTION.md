@@ -521,6 +521,179 @@ complete-bundle, lineage, and pre-existing company-table preservation checks.
 See the [dated operating evidence](CURRENT_OPERATING_ENVELOPE.md#september-7-2026--equibles-activation-evidence)
 and `.local/equibles-activation.json`.
 
+## Transcript analysis allocation — 2026-09-08
+
+The user's implementation decision allocates company ordinal 11 only:
+`company:0011_transcript_analysis`, resource
+`quant_data/migrations/company/0011_transcript_analysis.sql`, SHA-256
+`199db61444e8a6ad78f7696b52121725794a67dfc46cb56ae1f79283ff975a73`.
+It depends on company 0010 and changes no applied predecessor bytes. Registry
+2.75.0 adds the private derived dataset `company.transcript.analysis` and manual
+OpenAI collector. Six append-only tables retain Terra analyses, typed guidance,
+analyst blocks/topics, management tone, and Sol reviews with source/run lineage
+and separate local availability. Exact projection restores registry 2.74.0.
+This is an implementation allocation, not operational application evidence.
+See the [analysis contract](TRANSCRIPT_ANALYSIS_CONTRACT_2026-09-08.md).
+
+
+## Transcript-analysis subscription activation — 2026-09-09 UTC
+
+The later explicit request to implement Codex subscription execution and run
+ADM's completed transcript history included activation of the already-reviewed
+`company:0011_transcript_analysis`. The existing migration was applied to the
+fixed company store at `2026-09-09T02:05:45.715315Z`; SHA-256 remains
+`199db61444e8a6ad78f7696b52121725794a67dfc46cb56ae1f79283ff975a73`.
+Registry 2.75.0, ordinal 11 and the six-table allocation are unchanged. The
+prior ten ledger rows and all prior company data were preserved.
+
+The first model attempt subsequently timed out; this does not roll back the
+successful schema activation or establish analysis-population success. All six
+analysis tables remain empty. The [operating envelope](CURRENT_OPERATING_ENVELOPE.md#september-9-2026-utc--codex-subscription-transcript-pilot)
+records the finite scope and actual result. Private activation and immutable
+audit receipts are under `.local/transcript-codex-pilot-20260909/`.
+
+## Shared collection-universe allocation — September 9, 2026
+
+Implementation of the user-selected 2,248-ticker expansion allocates
+market:0012_collection_universes at local market ordinal 12, after
+market:0011_option_raw_evidence. Resource:
+quant_data/migrations/market/0012_collection_universes.sql. This forward
+addition preserves immutable source manifests, membership snapshots and
+observed transitions without changing fixture-era or Stage10 relations.
+The SQL is newly authored and remains unapplied to canonical stores. Current
+fixture-validated SHA-256 is
+83c17b85175b9b3a3ecaf0a98251804eac968601be1f08887b846cb8b55cad73.
+It also retains independent provider mapping snapshots and immutable acquisition
+evidence, distinguishing provider/capture identity from raw response content.
+Independent verification and the full offline gate remain pending. Company
+migration 0011 and all applied resources are unchanged.
+
+
+## SEC completion index allocation — September 9, 2026
+
+The selected-universe rollout exposed repeated scans in the existing SEC
+completion guard. Allocate company ordinal 15:
+`company:0015_sec_completion_indexes`, after company 0014, resource
+`quant_data/migrations/company/0015_sec_completion_indexes.sql`.
+The candidate adds only three indexes: SEC fact versions by run, SEC filings by
+run, and fact membership by fact version and run. Rows, keys, triggers, validation,
+availability and dataset ownership remain unchanged.
+
+The exact immutable query plan records a full fact scan and a correlated full
+membership scan. Initial canonical publications took roughly a minute per issuer,
+while the same retained issuer published in 0.908 seconds in a fresh temporary
+store. Nine issuer publications are retained. The one-off publisher is paused;
+the interrupted transaction left zero running ingestion rows.
+
+Implementation and the required full offline gate run in an isolated candidate
+under `.local/universe-rollout-20260909/sec-index-candidate`. The live registry
+remains at its reviewed 2.79.0 until the migration passes full and independent
+validation, preventing automatic migration by a normal clock-driven collector.
+No applied migration bytes may change. This is allocation, not application
+evidence; final checksum and actual activation are recorded after verification.
+
+### SEC completion index application — September 10, 2026 UTC
+
+The allocated company 0015 resource has SHA-256
+de41c29e4cab863945d1575df6c69642514889dc22a36be6d0440713c88aac3e.
+All 53 predecessor migration resources were independently checked unchanged.
+Registry 2.80.0 has SHA-256
+da3e31a19f62016e34fa201b73b49f72d43ba9bbea715b1aa482382fc1490246.
+After the complete reconciled 2,076-unique-case gate and independent review,
+the migration was applied at 02:56:58 UTC and verified at 02:58:29 UTC. All prior
+company ledger rows, table counts and trigger bodies were preserved; the three
+nonunique indexes match their exact columns and foreign keys have zero violations.
+Private evidence: .local/universe-rollout-20260909/sec-index-canonical-activation-result.json.
+The earlier shared market 0012 and company 0012–0014 activations are recorded in
+the selected-universe rollout receipt and its immutable activation evidence.
+
+
+## FMP research lookup-index allocation — September 11, 2026
+
+The authorized six-group selected-universe backfill exposed repeated full-table
+scans in statement publication and its unchanged revision guard. Allocate
+company ordinal 16, `company:0016_fmp_research_lookup_indexes`, after company
+0015, at `quant_data/migrations/company/0016_fmp_research_lookup_indexes.sql`.
+The isolated candidate adds nonunique lookup indexes for existing natural
+identity/capture and issuer predicates. It changes no fact, key, trigger,
+identity, timestamp, ownership, endpoint or prior migration bytes. The main
+registry remains at 2.80.0 until full offline and independent migration gates
+pass; allocation is not evidence of canonical application. Candidate and
+source preimages live under `.local/company-collectors-expansion-20260911/performance-candidate-20260911`.
+
+
+## Sharadar direct allocation — September 12, 2026
+
+The user approved the direct-delivery migration. Allocate company ordinal 17,
+`company:0017_sharadar_direct`, after company 0016. It preserves retained
+observations and evidence while adding direct normalization and native membership
+pointers through the reviewed date-to-datekey identity bridge. Resource SHA-256:
+`aa6608958ce9410d0bb633618756ca29893d1e4f0a59fd8d7b96f365f20ed429`.
+Registry 2.82 SHA-256: `1d541b532e535124ea45d2af991541348319f7d7ced937114c39aaffc2ccdfc2`.
+See [the implementation and validation record](SHARADAR_DIRECT_MIGRATION_2026-09-12.md).
+This allocation does not by itself prove canonical application.
+
+
+### Sharadar direct application — September 12, 2026 UTC
+
+The allocated company 0017 resource was applied once after the reconciled
+2,316-unique-case offline gate and independent verification. Application began
+at 15:47:18 UTC; verification completed at 15:55:27 UTC. The resource and registry
+checksums remain exactly those recorded in the allocation above.
+
+All 15 Sharadar table hashes and counts (1,459,244 rows), all 16 prior company
+migration rows, and all 276 prior trigger bodies were preserved. Exactly two
+reviewed channel-origin guards were added. The existing runner completed its
+transactional foreign-key check. No provider, backfill or scheduler operation
+was performed. Receipt: `.local/sharadar-direct-implementation-20260912/canonical-result.json`.
+
+
+### Structured transcript storage allocation - September 13, 2026 UTC
+
+The user requested database storage of the existing structured outputs. Allocate company ordinal 18 after company 0017, preserving all existing migration bytes and legacy analysis semantics.
+
+Migration: company:0018_structured_transcripts. SHA-256: 22d587532a4f5ecffbc76e2e16b793b312fc9f116815474328ec4e2ba05d9111. Registry 2.83 SHA-256: 6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97.
+
+Two new immutable tables retain original structured drafts and separate assessments. Full-suite and fresh independent gates precede canonical application. Candidate evidence is .local/transcript-db-publication-20260913/; allocation does not prove application.
+
+
+### Structured transcript storage completion - September 13, 2026 UTC
+
+The authorized existing-batch import completed at 2026-09-13T05:03:17.263570Z: 234 original
+Terra/high structured outputs and 249 separate assessments (234 automatic,
+10 Sol reviews, 5 Astra adjudications) are stored in data/company.sqlite.
+Storing drafts preserves their original quality status; it does not assert
+acceptance or replace them with reviewer revisions. No extraction/review pipeline
+model calls, provider requests, recurring-unit changes, source rewrites or public
+exposure were performed.
+
+Company migration company:0018_structured_transcripts was applied with
+SHA-256 22d587532a4f5ecffbc76e2e16b793b312fc9f116815474328ec4e2ba05d9111.
+Actual migration registry provenance: 2.83.0.
+All prior company migration rows and existing SQL definitions were preserved.
+All 234 canonical source records and original extraction bytes, plus all 249
+assessment payloads and evidence bytes, matched the prepared batch after import.
+The new tables passed foreign-key checks. Exact replay wrote zero records,
+created no new ingestion run, and left the dataset's stored state unchanged.
+
+The complete reconciled offline gate covered 2381 unique cases
+with 0 skips and zero unresolved failures/errors. Required
+correction cases passed actual reruns. Fresh independent review cleared the
+implementation, frozen-runtime harness and evidence reconciliation methods.
+No full-suite certification of unrelated shared-runtime changes is claimed.
+
+During validation, unrelated work advanced the shared active registry beyond
+the initial 2.82 development baseline. The company declarations remained exactly
+compatible. This import used the hash-verified frozen 2.83 runtime and preserved
+the active registry, which was 2.84.0 at final verification.
+This supersedes only the earlier prospective registry-activation sequence;
+the authorized population, storage semantics and gates did not broaden.
+
+Evidence: .local/transcript-db-publication-20260913/completion-receipt.json,
+canonical-schema-audit.json, canonical-final-audit.json, full-suite-result.json,
+frozen-runtime-verification.json and DB_STORAGE_RESULT.md. Future extraction
+auto-publication was not enabled by this existing-batch import.
+
 ## Company short-description allocation and population - September 22, 2026
 
 The user's explicit request for short descriptions across the existing selected
@@ -542,6 +715,7 @@ The full contract, focused and independent checks, finite provider scope and
 completion receipts are recorded in
 [Company short descriptions](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md).
 
+
 ## Retained-news capture lookup — September 23, 2026
 
 | ID | Store | Ordinal | Resource | SHA-256 | State |
@@ -557,3 +731,24 @@ predecessor is preserved; focused tests, independent verification, atomic
 rollback/replay tests and canonical foreign-key validation passed. One index
 and ledger row were added; prior schema/ledger and all fact counts were
 unchanged. See [the repair receipt](RETAINED_NEWS_READ_REPAIR_2026-09-23.md).
+
+## Optional options migration   2026-09-24
+
+The new, independent options domain starts at
+`quant_data/migrations/options/0001_theta_compact.sql`; checksum
+`63691b621c0a4ea0b5e03beb32028dfeea646260be5147c067b287fa914ddbff`.
+Its sole declaration is `config/options_registry.json` under ADR 0013.
+No existing migration bytes, ordinals or store ownership change. This migration
+creates the options anchor/ledger, layered dataset declarations, immutable
+captures/details/summaries/leaders/receipts and mutable current pointers.
+Temporary-store rollback, replay, backup and restore tests cover its boundary.
+
+## Options ordinal 0002 - Tier-1 root expansion, 2026-09-24
+
+Allocated resource: quant_data/migrations/options/0002_tier1_etf_roots.sql;
+SHA-256 ae6a5b7b81429b720cd5cfef4c6e65722e0921f785bd88dee3e02ab60d8d1e2d.
+Scope: optional options store only; atomic replacement of two restricted parent
+tables with exact row copies, unchanged child tables/IDs and restored immutable
+triggers/indexes. Ordinal 0001 is unchanged. The companion registry 1.1.0 owns
+the migration chain; validated older prefixes support the existing SPY backup.
+Applied-state evidence belongs in the [expansion receipt](THETA_ETF_EXPANSION_2026-09-24.md).

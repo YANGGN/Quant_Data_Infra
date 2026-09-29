@@ -60,6 +60,36 @@ class FetchStatusTests(unittest.TestCase):
             command.assert_not_called()
             return result
 
+    def test_selected_company_weekday_schedule_renders_all_six_groups(self):
+        selected='quant-data-selected-company-refresh.timer'
+        units=timer(['Mon..Fri *-*-* 20:00:00 America/New_York']).replace(TIMER,selected)
+        snapshot=self.snapshot(units)
+        event,=snapshot['focus_events']
+        self.assertEqual(event['batch_id'],selected)
+        self.assertEqual(event['scheduled_local'],'20:00 EDT')
+        self.assertEqual(event['status'],'upcoming')
+        for group in ('Earnings','financial statements','estimates','ratings','price targets','revenue segments'):
+            self.assertIn(group,event['description'])
+        self.assertEqual(len(event['datasets']),4)
+        self.assertTrue(all(not day['events'] for day in snapshot['days'] if date.fromisoformat(day['date']).weekday()>4))
+
+    def test_weekly_price_repair_does_not_break_the_monthly_status_snapshot(self):
+        weekly = "quant-data-weekly-price-repair.timer"
+        units = timer(["Sat *-*-* 02:00:00 America/Toronto"]).replace(TIMER, weekly)
+        snapshot = self.snapshot(units)
+        self.assertEqual(snapshot["focus_events"], [])
+        events = [event for day in snapshot["days"] for event in day["events"]]
+        self.assertEqual([event["date"] for event in events],
+                         ["2026-09-05", "2026-09-12", "2026-09-19", "2026-09-26"])
+        for event in events:
+            self.assertEqual(event["batch_id"], weekly)
+            self.assertEqual(event["label"], "Weekly price repair")
+            self.assertEqual(event["description"], "Repair missing daily price history")
+            self.assertEqual(event["scheduled_local"], "02:00 EDT")
+            self.assertEqual(event["status"], "upcoming")
+            self.assertEqual(event["datasets"],
+                             ["market.stage10.daily_prices", "market.stage10.source_evidence"])
+
     def test_recorded_history_and_latest_failure_belong_to_distinct_slots(self):
         units = timer() + "\n\n" + service(Result="exit-code", ExecMainStatus="1", ActiveState="failed")
         snapshot = self.snapshot(units, completed())
@@ -144,12 +174,13 @@ class FetchStatusTests(unittest.TestCase):
     def test_inactive_unsupported_and_missing_metadata_are_explicit(self):
         inactive = self.snapshot(timer(active="inactive") + "\n\n" + service())
         self.assertEqual(inactive["summary"]["total"], 0)
-        self.assertIn("inactive", inactive["unavailable_jobs"][5]["reason"])
+        self.assertIn("inactive", next(job["reason"] for job in inactive["unavailable_jobs"]
+                                      if job["label"] == "Economic calendar"))
         unsupported = self.snapshot(timer(["unsupported rule"]) + "\n\n" + service())
         self.assertEqual(unsupported["summary"]["total"], 0)
         self.assertTrue(any("cannot be displayed" in job["reason"] for job in unsupported["unavailable_jobs"]))
         result = read_fetch_status("2026-09-04", observed_at=NOW, probe=False)
-        self.assertEqual(len(result["unavailable_jobs"]), 10)
+        self.assertEqual(len(result["unavailable_jobs"]), len(_SERVICES))
         self.assertEqual(result["summary"]["green"], 0)
         self.assertTrue(any("unavailable" in note for note in result["notices"]))
 

@@ -9,9 +9,11 @@ import json
 import math
 import re
 
+from .forward_pe_reviews import event_reviews, review_hash
+
 VERSION = "announcement_forward_pe.v1"
 RATIO_POLICY = "signed_nonzero_forward_eps.v1"
-PERIOD_MATCHING_POLICY = "corroborated_fiscal_periods.v2"
+PERIOD_MATCHING_POLICY = "reviewed_and_corroborated_fiscal_periods.v3"
 ESTIMATE_PERIOD_POLICY = "latest_capture_unique_fiscal_period.v1"
 LABEL = "Daily forward P/E - reconstructed estimates"
 UNKNOWN = {None, "", "SOURCE_UNSPECIFIED", "provider_native", "not_established"}
@@ -244,7 +246,14 @@ def make_windows(inputs, sessions, *, allow_unverified_basis=False):
     earnings = latest(inputs["earnings"], "natural_identity", cutoff)
     transcripts = [r for r in inputs.get("transcripts", [])
                    if instant(r["captured_at"]) <= instant(cutoff)]
-    actual_ends = sorted({r["period_end"] for r in statements})
+    reviews = event_reviews(inputs, earnings)
+    reviewed_ends = {r["reported_period_end"] for r in reviews.values()}
+    # Reconcile an observed 52/53-week source date with the reviewed boundary.
+    # A nearby date is an alias, never an extra forward quarter.
+    def canonical_end(value):
+        aliases = [p for p in reviewed_ends if abs((date.fromisoformat(p)-date.fromisoformat(value)).days) <= 7]
+        return aliases[0] if len(aliases) == 1 else value
+    actual_ends = sorted({canonical_end(r["period_end"]) for r in statements} | reviewed_ends)
     by_period = estimate_periods(estimates, actual_ends)
     periods = sorted(set(actual_ends) | set(by_period))
     long_quarters = has_long_fiscal_quarter(statements)
@@ -254,20 +263,43 @@ def make_windows(inputs, sessions, *, allow_unverified_basis=False):
     windows = []
     highest_period = None
     session_keys = ([s[0] for s in sessions], [instant(s[1]) for s in sessions])
-    for event in sorted(earnings, key=lambda r: (r["source_event_date"], r["natural_identity"])):
+    def announcement(event):
+        review = reviews.get(event["natural_identity"])
+        if review and review["announcement_date"] != event["source_event_date"]:
+            return review["announcement_date"]  # corrected date stays date-only
+        return (event["source_time_raw"] if event.get("event_precision") == "datetime"
+                else event["source_event_date"])
+    for event in sorted(earnings, key=lambda r: (announcement(r), r["natural_identity"] not in reviews, r["natural_identity"])):
         raw = json.loads(event["payload_json"])
         if (number(raw.get("epsActual")) is None and number(raw.get("revenueActual")) is None):
             continue  # Scheduled events never advance the window.
         if event["source_event_date"] > instant(cutoff).date().isoformat():
             continue
-        announced = (event["source_time_raw"] if event.get("event_precision") == "datetime"
-                     else event["source_event_date"])
+        announced = announcement(event)
+        if announced[:10] > instant(cutoff).date().isoformat():
+            continue
         effective, flags = effective_session(announced, sessions, session_keys)
         if effective is None:
             continue
         mapping_evidence = {}
-        period, mapping = period_mapping(event, statements, transcripts,
-                                         reported_events=reported_events, evidence=mapping_evidence)
+        review = reviews.get(event["natural_identity"])
+        if review:
+            period, mapping = review["reported_period_end"], "reviewed_reporting_period"
+            mapping_evidence = dict(review=review, review_sha256=review_hash(review),
+                                    source_announcement=event["source_event_date"],
+                                    source_version_id=event["observation_version_id"])
+            flags.append(mapping)
+            if review["confidence"] == "most_likely":
+                flags.append("inferred_reporting_period")
+            if review["reporting_kind"] != "quarter":
+                flags.append("reviewed_" + review["reporting_kind"] + "_boundary")
+            if announced[:10] != event["source_event_date"]:
+                flags.append("reviewed_announcement_date_correction")
+        else:
+            period, mapping = period_mapping(event, statements, transcripts,
+                                             reported_events=reported_events, evidence=mapping_evidence)
+            if period is not None:
+                period = canonical_end(period)
         if mapping == "reported_revenue_match_transcript_conflict":
             flags.append("transcript_fiscal_label_conflict")
         if mapping in ("transcript_fiscal_alias_match", "transcript_fiscal_match_date_disagreement",
@@ -279,7 +311,7 @@ def make_windows(inputs, sessions, *, allow_unverified_basis=False):
         if period is not None:
             highest_period = period
         flags += ["reconstructed_not_point_in_time"]
-        reasons = []
+        reasons = [review["blocking_reason"]] if review and review.get("blocking_reason") else []
         components = []
         if period is None:
             reasons.append(mapping)

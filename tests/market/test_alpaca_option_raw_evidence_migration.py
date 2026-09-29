@@ -222,7 +222,7 @@ class AlpacaOptionRawEvidenceMigrationTests(unittest.TestCase):
             StoreRole.MARKET,
             applied_at="2026-08-30T12:00:00-04:00",
         )
-        self.assertEqual(migrations[-1], "market:0011_option_raw_evidence")
+        self.assertEqual(migrations.count("market:0011_option_raw_evidence"), 1)
 
         with writer_connection(self.stores, StoreRole.MARKET) as connection:
             corrected = connection.execute(

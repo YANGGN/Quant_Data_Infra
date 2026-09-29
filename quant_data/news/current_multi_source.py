@@ -388,34 +388,40 @@ class StdlibCurrentMultiSourceTransport:
         if query:
             separator = "&" if "?" in target else "?"
             target = f"{target}{separator}{urlencode(dict(query))}"
-        connection = http.client.HTTPSConnection(parsed.netloc, timeout=timeout_seconds)
-        try:
-            connection.request("GET", target, headers=dict(headers))
-            response = connection.getresponse()
-            if response.status in {301, 302, 303, 307, 308}:
-                raise StoreUnavailableError("Current multi-source news redirects are not allowed")
-            declared = response.getheader("Content-Length")
-            if declared is not None:
-                try:
-                    declared_size = int(declared)
-                except ValueError as exc:
-                    raise StoreUnavailableError("Current multi-source provider response was unavailable") from exc
-                if declared_size < 0 or declared_size > max_bytes:
+        def request_with_timeout(remaining):
+            connection = http.client.HTTPSConnection(parsed.netloc, timeout=remaining)
+            try:
+                connection.request("GET", target, headers=dict(headers))
+                response = connection.getresponse()
+                if response.status in {301, 302, 303, 307, 308}:
+                    raise StoreUnavailableError("Current multi-source news redirects are not allowed")
+                declared = response.getheader("Content-Length")
+                if declared is not None:
+                    try:
+                        declared_size = int(declared)
+                    except ValueError as exc:
+                        raise StoreUnavailableError("Current multi-source provider response was unavailable") from exc
+                    if declared_size < 0 or declared_size > max_bytes:
+                        raise ResourceLimitError("Current multi-source response exceeds the byte bound")
+                body = response.read(max_bytes + 1)
+                if len(body) > max_bytes:
                     raise ResourceLimitError("Current multi-source response exceeds the byte bound")
-            body = response.read(max_bytes + 1)
-            if len(body) > max_bytes:
-                raise ResourceLimitError("Current multi-source response exceeds the byte bound")
-            return CapturedCurrentMultiSourceResponse(
-                status=response.status,
-                content_type=response.getheader("Content-Type") or "application/octet-stream",
-                body=body,
-            )
-        except (ResourceLimitError, ValidationError, StoreUnavailableError):
-            raise
-        except (OSError, http.client.HTTPException) as exc:
-            raise StoreUnavailableError("Current multi-source provider request failed") from exc
-        finally:
-            connection.close()
+                return CapturedCurrentMultiSourceResponse(
+                    status=response.status,
+                    content_type=response.getheader("Content-Type") or "application/octet-stream",
+                    body=body,
+                )
+            except (ResourceLimitError, ValidationError, StoreUnavailableError):
+                raise
+            except (OSError, http.client.HTTPException) as exc:
+                raise StoreUnavailableError("Current multi-source provider request failed") from exc
+            finally:
+                connection.close()
+        from ..operations.collection_provider_policy import invoke_host_fmp
+        if not (parsed.hostname == "financialmodelingprep.com"):
+            return request_with_timeout(timeout_seconds)
+        return invoke_host_fmp(request_with_timeout,request_material={"endpoint":url,"parameters":{k:v for k,v in query.items() if k.lower() not in ("apikey","api_key")}},
+            priority="maintenance",timeout_seconds=timeout_seconds)
 
 
 @dataclass(frozen=True, slots=True)

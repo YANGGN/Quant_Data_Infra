@@ -2641,7 +2641,7 @@ canonical preservation, validation and evidence paths are in
 [the dividends/splits rollout record](DIVIDENDS_SPLITS_EXPANSION_2026-09-11.md).
 
 
-### Selected company collector index validation and rollback  2026-09-11T18:35:11.766857+00:00
+### Selected company collector index validation and rollback - 2026-09-11T18:35:11.766857+00:00
 
 Within the explicitly requested six-group expansion and weekday refresh, the
 additive lookup-index candidate completed its required full-run reconciliation
@@ -4236,6 +4236,1847 @@ This implementation grants no new collector, model, scheduler, migration,
 network-hosting or operational-store connection authority. Existing normal
 clock execution retains only its previously recorded scope.
 
+
+## User-requested increase to 100 Luna workers - September 14, 2026 UTC
+
+The user explicitly requested another 50 concurrent Luna workers, for 100 total.
+This supersedes the 50-worker runtime setting for the same approved original
+batch. The source population, full-text destination approval, Luna/high profile,
+prompt/schema, request identities, company publisher and 27,668 total-call
+maximum remain unchanged. No retries, additional reviews, provider fetches,
+API fallback, recurring units or agent-routing configuration were added.
+
+The 50-worker coordinator PID 4082042 received parent-only SIGINT. Its in-flight
+calls finished before exit. The settled checkpoint has 19,166 stored outputs
+and 116 failed terminal attempts (19,282 calls consumed), leaving exactly 8,386
+unattempted entries. Every completed record's semantic identity was verified
+against the database. All 11,513 outputs in the previous baseline were
+preserved; the database now contains 19,527 structured outputs, with zero
+structured foreign-key violations. No pending entry has a previous request.
+
+Production changes only raise the bounded runtime override from 50 to 100 and
+update its error/help text. Frozen plans and the default worker count remain
+unchanged. The 100-worker overlap/publication/replay test passed. Of 50 initial
+focused tests, 49 passed; one failure fixture incorrectly assumed no replacement
+could start before the third failure was observed. The fixture was corrected to
+allow at most two replacement calls before that threshold, retain unattempted
+work and prove no retries, and its targeted recheck passed. All 50 current test
+cases therefore have passing evidence. No production failure logic changed.
+The initial test failure and successful recheck remain recorded.
+
+The private 100-worker launcher is prepared for at most 8,386 new calls under
+the unchanged plan. It preserves the old invocation and publishes a new
+active-run.json pointer on launch. This entry records readiness, not live
+100-worker execution. Evidence is under
+.local/transcript-luna-universe-20260913/concurrency-100/:
+before-increase.json, drain-request.json, drain-audit.json, first-test-run.json,
+validation.json, source-before.json and hundred.py.
+
+
+### 100-worker continuation running and initial publications verified
+
+The unchanged plan launched with a 100-worker override at
+2026-09-14T02:15:50.007297Z as PID 2024242. At 02:16:34 UTC, exactly 100
+simultaneous native Luna processes were observed. Their combined proportional
+memory was approximately 1,495 MB, with approximately 3,501 MB host memory
+available. The coordinator reported 100 in-flight entries.
+
+The locked immutable audit at 2026-09-14T02:17:40.598441Z verified 67 new database
+outputs since the increase, for 19,594 outputs total. All 19,527 pre-increase
+output identities were preserved. Five new outputs and their automatic
+assessments passed exact original response/source and Luna/high runtime checks;
+structured foreign-key checks returned zero violations. No new call failure
+had occurred at that audit.
+
+At handoff (2026-09-14T02:20:45.793182Z), the same batch remains running with 100-worker concurrency:
+312 outputs saved since the increase and 1 new failed calls. No extra
+population, retries, review calls, provider fetches or API fallback were added.
+This is ongoing extraction, not full-population completion.
+
+Use .local/transcript-luna-universe-20260913/active-run.json for the current
+invocation. It now identifies concurrency-100/hundred.py and that directory's
+run.log; historical invocation receipts remain intact. Live status files also
+show the current 100-worker run.
+
+Evidence: .local/transcript-luna-universe-20260913/concurrency-100/started.json,
+authorization.json, initial-running-snapshot.json, initial-publication-audit.json
+and handoff-status.json.
+
+
+## User-requested return to 50 Luna workers - September 14, 2026 UTC
+
+After the 100-worker invocation paused on repeated HTTP 429 responses and
+finished draining at 02:51 UTC, the user requested: "ok can you resume with
+50 workers?" This explicitly supersedes the 100-worker runtime setting for
+the same approved frozen plan
+7e2dc1bbee29f32c8364038824651a7e35d8d6ed890d13514c51d65ff6f57c91.
+The continuation permits at most 5,746 new Luna/high extraction calls, skipping
+21,792 stored outputs and 130 terminal failed attempts. The original 27,668
+total-call maximum, full-transcript transfer approval, existing subscription,
+source population, structured template, publisher and failure guard are unchanged.
+No retry, review, provider fetch, API fallback or recurring-unit change is added.
+
+Preflight verified that the old coordinator had exited, all completed records
+were settled and present in the database, and every pending entry lacked a
+previous request receipt. The database contained 22,153 structured outputs with
+zero structured foreign-key violations. The validated production source pins
+were unchanged; the existing focused-test evidence was reused. Only the private
+continuation helper, run evidence and this operating entry were changed.
+
+The continuation launched at 2026-09-14T03:51:21.874487Z as PID 2722186.
+Exactly 50 simultaneous native Luna workers were observed at 03:52:01 UTC.
+The locked immutable audit at 03:53:02 UTC verified 39 new saved outputs
+(22,192 total), all 22,153 prior identities preserved, and five exact original
+response/source/structured-output and automatic-assessment comparisons. Structured
+foreign-key checks returned zero violations. No new failed call had occurred
+at that audit. This records ongoing extraction, not population completion.
+
+The current pointer is .local/transcript-luna-universe-20260913/active-run.json.
+Live readable progress remains in that directory's RUN_STATUS.md.
+Evidence: .local/transcript-luna-universe-20260913/resume-20260914-50/
+authorization.json, preflight.json, helper-validation.json, started.json,
+launch-verification.json and initial-publication-audit.json.
+
+
+## September 15, 2026 UTC - KBH Equibles recovery completed
+
+The user requested retrying the blocked KBH ticker and advancing past null
+transcripts. The finite recovery used eight new GETs (one retry each for
+uncertain KBH 2024 Q3/Q4 plus remaining KBH history), 452,574 bytes, and the
+existing key, company publisher and locks, within an eight-call / 64 MiB /
+15-minute cap. Two saved pages were recovered without GETs. Original uncertain
+attempts and all prior-day quota charges remain preserved.
+
+All eight requests returned valid transcript pages. KBH completed with 26
+transcripts and no unavailable-transcript gaps. The checkpoint is unblocked
+at KBR: 28,411 total transcripts and 1,339 completed mapped histories.
+September 15 UTC usage is eight charged / 9,992 remaining from fresh headers.
+The existing timer is enabled and waiting for September 15 at 20:10 EDT;
+no recurring unit was started, reset or reconfigured.
+
+The collector now records explicit null first-page responses as retained
+transcript gaps and advances, including validated zero-count data:null
+envelopes. Transport failures, invalid quota/identity metadata and null after
+partial pages remain blocked. No canonical empty call is published.
+
+All 91 focused tests passed (six new null cases); the final immutable audit
+preserved 28,401 prior transcripts/pages, validated ten new bundles and
+lineage, and found zero transcript foreign-key violations. Both retried
+quarters replayed with zero GETs and zero canonical writes. Migration,
+selection, old quota and unit evidence were preserved. Full suite not repeated.
+Details and retained evidence are in the
+[dated transcript record](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md#september-15-2026-utc---kbh-request-recovery-and-explicit-null-continuation)
+and data/.operations/equibles-kbh-recovery-20260915/.
+
+
+## September 15, 2026 UTC - Equibles service manually started
+
+The user explicitly requested starting the Equibles fetcher. The existing
+quant-data-equibles-transcripts.service was started once at
+2026-09-15 03:31:29 UTC (September 14 at 23:31:29 EDT), beginning at KBR.
+The eight prior UTC-day calls remain charged, leaving at most 9,992 new
+requests under the existing 10,000 shared daily ceiling. The unchanged
+controller permits four callers, six hours, 4 GiB and 24 inner invocations,
+with no automatic failure retries. Existing credentials, selection,
+checkpoint, publisher and physical locks are reused; timer cadence and
+service configuration were not changed.
+
+At 2026-09-15T03:32:48.379819Z the service process was running. The checkpoint
+reported 36 new charged attempts,
+30 new transcripts, 28441 total
+transcripts, 1340 completed histories and
+KC underway, with no terminal failure recorded.
+This is startup/progress evidence, not a completed-run claim. The existing
+oneshot service remains activating/start while collection runs.
+
+No implementation changed since the 91 focused checks and KBH integrity/replay
+audit, so tests were not repeated. The exact authorization, pre-start checkpoint
+and status receipts, unchanged source/binding/registry/unit hash checks, and
+startup verification are under
+data/.operations/equibles-service-start-20260915/.
+
+
+## Explicit 50-worker Luna resume - September 15, 2026 UTC
+
+After the previous invocation paused on consecutive network response
+disconnections, the user requested "can you resume?" This resumes the same
+approved Luna/high plan at the retained 50-worker setting, with at most 3,937
+new calls for its unattempted transcripts. The 23,579 stored and 152 failed
+attempts are terminal and skipped. The original 27,668-call total cap,
+full-transcript transfer approval, existing Codex subscription, source pages,
+prompt/schema, company publisher and failure guard remain unchanged. No retry,
+review, provider fetch, API fallback or recurring-unit action was added.
+
+Preflight confirmed the old process had exited, all completed record identities
+were present among 23,940 database outputs, and pending entries had no earlier
+request receipt. Structured foreign-key checks passed. Validated production
+source pins were unchanged; existing focused-test evidence was reused. The
+private continuation helper passed syntax, preflight and final difference review.
+
+The continuation launched at 2026-09-15T03:34:41.584621Z as PID 3281127.
+Fifty native Luna processes were observed at 03:35:06 UTC. The locked immutable
+audit at 03:35:58 UTC confirmed nine new outputs (23,949 total), all 23,940 prior
+identities preserved, five exact original response/source/output and automatic
+assessment comparisons, and zero structured foreign-key violations. There were
+no new failed calls at that check. This is ongoing extraction, not completion.
+
+Read .local/transcript-luna-universe-20260913/active-run.json for the current
+invocation and RUN_STATUS.md beside it for live progress. Evidence is in
+.local/transcript-luna-universe-20260913/resume-20260915-50/: authorization.json,
+preflight.json, helper-validation.json, helper.diff, started.json,
+launch-verification.json and initial-publication-audit.json.
+
+
+## September 15, 2026 UTC - retained transport failure diagnostics
+
+The service started at 03:31:29 UTC stopped at 03:35:46 UTC on KFY
+2025 Q1/Q2. Attempts 121 and 122 have reservations but no retained response
+or cancelled-dispatch marker. The run added 104 transcripts, reaching
+28,515 total and 1,344 completed histories; UTC-day usage reached 122 charged
+attempts with 9,878 remaining. The preceding KFY 2024 Q3/Q4 responses were
+HTTP 200 and remain retained. The original worker discarded exception
+details, so the exact transport cause remains unproven. No observed null
+response explains this stop.
+
+After the user challenged the earlier fix, local error handling was corrected:
+the Equibles HTTP worker now reports an allowlisted failure category and any
+received HTTP status, without response content, credentials or exception text.
+The parent preserves typed timeout/connection/partial-response/worker failures;
+serial and parallel acquisition retain failure receipts bound to the exact
+attempt. Parallel settlement includes these diagnostics in its saved block
+and recovers them without a GET or quota refund. Existing historical failures
+receive no invented diagnostic. Null handling, request deadlines, quotas,
+publication, automatic-retry policy and scheduler configuration are unchanged.
+
+All 85 focused diagnostic, transport, parallel, empty/null, publisher and
+daily-controller tests passed in 23.627 seconds. Eight new diagnostic tests
+cover credential/error-text suppression, typed child-process messages,
+persistent failure evidence, replay without retry/refund, and mismatched
+receipt rejection. The full suite was not repeated for this bounded local
+diagnostic fix. This change does not repair or prove the cause of the live
+download failures and does not unblock KFY. The service remains stopped;
+no provider call, credential read, operational-store access or restart was
+performed for this diagnostic correction. Retry/continue behavior awaits a
+separate user choice covering failed downloads.
+
+Changed source: quant_data/operations/equibles_transcript_backfill.py and
+quant_data/operations/equibles_parallel_backfill.py.
+Focused tests: tests/operations/test_equibles_failure_diagnostics.py.
+Baselines, full test log and validation receipt:
+.local/equibles-failure-diagnostics-20260915/.
+
+## Equibles retry-and-continue activation - September 15, 2026 UTC
+
+The user's "ok go ahead" authorized one retry per failed download, then an
+explicit unresolved coverage record and continuation of the existing finite
+selected transcript backfill. The later "approve" authorized restarting the
+unresponsive WSL host; WSL and the existing service session recovered. This
+new decision supersedes the earlier no-automatic-download-retry restriction
+for this backfill only. Hard validation/authentication/publication failures
+still block; HTTP 429 remains quota deferral. Explicit null responses still
+advance as recorded gaps, never complete transcript facts.
+
+After 115 focused tests passed, cache-only recovery published the two retained
+KFY pages with zero requests. The existing service started once at 04:18:09 UTC:
+at most 9,878 new requests within September 15's shared 10,000 ceiling, four
+callers, six hours, 4 GiB and 24 bounded invocations. No timer/unit configuration,
+provider, credential, selection, store/schema, binding or registry changed.
+
+Both uncertain KFY quarters succeeded on their single retry; KFY completed
+with 27 transcripts. The 04:19:30 UTC live integrity check recorded 28,559 total
+transcripts, 1,346 processed histories, KLIC underway, 170 charged requests,
+9,830 remaining, two retry charges and zero unresolved coverage. It preserved
+28,515 prior captures/manifests and verified all 44 additions, retained bytes,
+lineage, migration ledger and transcript foreign keys. Both repaired quarters
+replayed without requests or canonical writes. The service was still running
+at 04:19:57 UTC; these are dated observations, not a current-state guarantee.
+
+See [the Equibles operational contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md)
+for exact retry semantics, limits and validation. Receipts and pinned
+source/binding/registry/unit hashes:
+data/.operations/equibles-retry-continue-20260915/. Focused test log and source
+baselines: .local/equibles-retry-continue-20260915/.
+
+## Equibles user-requested resume - September 15, 2026, 14:56 UTC
+
+The user requested starting Equibles again with its remaining quota. The saved
+checkpoint had 4,709 charged requests, 5,291 remaining, 32,861 transcripts and
+1,583 processed mapped histories, with NTST's four-request batch interrupted.
+The existing source, publisher, binding, registry and unit pins matched the
+previously validated version. WSL completed its normal boot and user-session
+startup during the checks; no host restart, unit configuration change or timer
+change was performed for this request.
+
+One start of the existing service at 14:56:42 UTC resumed the same finite
+selection. The new invocation is limited to at most 5,291 additional requests
+within September 15's shared 10,000-call ceiling, four callers, six hours,
+4 GiB and 24 bounded inner invocations. The existing credential resolver,
+company.sqlite publisher, physical locks and one-retry/then-unresolved policy
+are unchanged. Original charges were not refunded.
+
+The 14:58:06 UTC progress check found the service running (PID 3275): 32,893
+transcripts, 32 additions, 1,584 processed histories and NU underway. NTST
+completed with 24 transcripts. Its retained first response was reused; the
+three uncertain requests recovered on their single retries, attempts
+4710-4712. All four retained response statuses were 200 and their saved byte
+hashes verified. Prior completed histories, original attempt files, earlier
+quota days and the frozen selection were preserved.
+
+There were 36 new charged requests, 4,745 total charged and 5,255 conservatively
+remaining; fresh provider headers were observed at 14:58:03 UTC. No unresolved
+coverage was recorded. The checkpoint's ParallelReservation marker represented
+the next active batch, not a terminal failure. These are startup/progress
+observations, not a completed-run or full canonical-integrity audit.
+
+Evidence: data/.operations/equibles-user-resume-20260915T145642Z/ contains the
+authorization, original checkpoint/status/journal/attempts, start receipt and
+progress verification. The prior 115-test evidence was reused because the
+validated source pins were unchanged; no tests, commit or push were added.
+
+
+## Luna interrupted-attempt recovery and 50-worker resume - September 15, 2026 UTC
+
+The user requested "ok, can you pls resume?" after the previous coordinator
+disappeared with 50 pending request receipts and no retained responses. This
+continues the same approved plan at 50 Luna/high workers for its 2,700 untouched
+entries only. The 50 interrupted calls are set aside alongside 154 earlier
+failures, with all 24,764 completed batch outputs preserved. The original
+27,668-call cap includes the 50 uncertain attempts; it is not reset.
+
+The established single-item no-retry path settled the 50 pending attempts
+locally, using a transport that forbids credential access and network calls.
+It wrote terminal model_failed records carrying the existing uncertain-attempt
+reason and one consumed call each, with zero new calls. Original pending
+receipts and all 25,125 database output identities were unchanged. The old
+running checkpoint was retained privately before reconciliation. The resulting
+checkpoint has 24,968 accounted attempts, 204 failed/uncertain entries and
+2,700 unattempted entries. Structured foreign-key checks passed.
+
+A temporary-store check proved that this settlement makes no credential/model
+request or canonical change, preserves the pending receipt, and permits only an
+untouched entry to run afterward. Its first fixture attempt failed on an
+incorrectly created private directory; the corrected fixture passed, and both
+results are retained. Validated production source pins were unchanged. No
+production code, prompt/schema, publisher, credential, provider, recurring unit
+or retry policy was changed. Existing full-text transfer approval and the
+subscription destination remain in force; no review call or API fallback was added.
+
+The continuation launched at 2026-09-15T15:07:15.810509Z as PID 8316 with 50
+in-flight slots. The 15:08:27 UTC locked immutable audit confirmed nine new
+outputs (25,134 total), preservation of all 25,125 prior identities, five exact
+response/source/output and automatic-assessment comparisons, and zero structured
+foreign-key violations. There were no new failures at that check. This is
+ongoing extraction, not completion of the batch.
+
+The current pointer is .local/transcript-luna-universe-20260913/active-run.json,
+with live progress in RUN_STATUS.md beside it. Evidence is under
+.local/transcript-luna-universe-20260913/resume-20260915-recovery-50/:
+interrupted-original-receipts.json, interruption-recovery.json,
+interruption-recovery-check.json, initial-offline-check-failure.json,
+authorization.json, preflight.json, helper.diff, helper-validation.json,
+started.json, launch-verification.json and initial-publication-audit.json.
+
+
+## Explicit 261-transcript Luna retry prepared; launch approval blocked - September 15, 2026 UTC
+
+The original 27,668-entry batch finished at 16:21:54 UTC with 27,407 stored
+outputs and 261 failed/interrupted attempts. The final locked immutable check
+verified 27,768 database outputs including prior work, every stored batch
+identity and automatic assessment, and zero structured foreign-key violations.
+
+The user selected the 261 failures, including 50 interrupted earlier, and
+requested retrying them. A separate frozen plan
+7f0eb72e4753cad07127035657b19c88d7457094cf14954d7e7b19544f4cb2c6
+selects exactly those 261 original captures across 173 tickers, for one new
+Luna/high attempt each at 50-worker concurrency. All source, request and
+configuration hashes match the approved original inputs; none already has
+a database output. Separate pair/native evidence directories preserve 1,680
+original evidence files. The consumed original cap is not reset. There is
+no added review, subsequent retry, provider fetch, API fallback or recurring
+unit change. Existing publisher, schema and production source pins are unchanged.
+
+The temporary-store retry/replay check passed, proving one explicit new
+attempt, preserved original failure evidence and zero extra calls/canonical
+changes on replay. Preparation's first oversized baseline artifact was rejected;
+the established compact identity baseline corrected it before any model call.
+The private launcher passed syntax/readiness and final source review.
+
+Automatic approval review rejected launch before process creation. A read-only
+proof verified the prior explicit full-text approval and exact 261-source
+subset. Reconsideration of the same command was also rejected: the gate requires
+concrete user confirmation for this sensitive full-transcript transfer to OpenAI
+after the risk was identified. Neither rejection was bypassed. No retry model
+call, native worker or database output was created. The prepared work remains
+ready pending that specific confirmation.
+
+Evidence is under .local/transcript-luna-universe-20260913/retry-261-20260915/:
+authorization.json, prepared-plan.json, preflight.json, offline-retry-validation.json,
+helper-validation.json, original-evidence-hashes.json, transfer-scope-proof.json,
+launch-block.json and launch-reconsideration-block.json. The parent
+pending-retry.json identifies this prepared retry; active-run.json still identifies
+the completed original batch.
+
+
+## Explicit retry full-text approval and launch - September 15, 2026 UTC
+
+After the prior launch rejections and the concrete full-text transfer question,
+the user replied "approve" to sending the 261 original failed/interrupted
+transcripts to OpenAI through the existing subscription, one new Luna/high
+attempt each, 50 workers, with successful outputs saved to the database.
+The explicit-transfer-approval.json receipt records this specific confirmation.
+The private launcher now requires it before launch or execution; both prior
+rejections remain preserved.
+
+The unchanged 261-entry retry plan
+7f0eb72e4753cad07127035657b19c88d7457094cf14954d7e7b19544f4cb2c6
+launched at 2026-09-15T19:05:35.936815Z as PID 730852. The coordinator reports
+50 in-flight slots. An initial process snapshot observed 49 native workers
+while one slot was transitioning. The initial locked immutable audit at
+19:07:02 UTC confirmed 11 new saved outputs (27,779 database total), all 27,768
+earlier output identities preserved, five exact response/source/output and
+automatic-assessment comparisons, and zero structured foreign-key violations.
+No retry had failed at that check. This is ongoing retry execution, not its
+completion.
+
+The original failed receipts remain immutable in their original directories.
+Retry receipts are under model-pair-pilots-retry-261-20260915, native receipts
+under codex-retry-261-20260915, within the existing transcript-analysis state
+root. Active-run.json includes these paths, the retry plan and its parent plan.
+Its maximum is 261 new calls; no subsequent automatic retry, review, provider
+fetch, API fallback or recurring change is added.
+
+Evidence: .local/transcript-luna-universe-20260913/retry-261-20260915/
+explicit-transfer-approval.json, post-approval-helper-validation.json,
+retry.py.before-transfer-approval, started.json, launch-verification.json and
+initial-publication-audit.json. Existing offline retry/replay and production
+source-pin evidence was reused; the approval-only helper addition passed
+syntax, readiness and final source review.
+
+
+### Explicit 261-transcript retry completed and verified
+
+The approved retry finished at 2026-09-15T19:14:32.928376Z after exactly 261
+new attempts: 258 successful outputs saved, three model failures, no untouched
+retry inputs, and no active workers. The remaining failures are CSTL 2020 Q4,
+VTRS 2021 Q2 and ZTS 2023 Q2; their retained native events report network/stream
+disconnections. No further retry was made.
+
+The final locked immutable audit at 19:16:10 UTC verified 28,026 total database
+outputs, preservation of all 27,768 prior identities, and exact original
+responses, source snapshots, structured JSON and automatic assessments for all
+258 recovered outputs. All 261 native receipts confirm Luna/high and subscription
+billing. All 1,680 protected original evidence files remain byte-identical;
+structured foreign-key checks returned zero violations.
+
+Automatic assessments on the 258 recovered drafts are 30 accepted, 180 accepted
+with flags and 48 blocked. These are retained automated judgments, not new
+independent factual reviews. The user-approved one-attempt retry round is
+complete with the three failures above. The original 27,668-attempt evidence
+and both earlier approval rejections remain preserved.
+
+Evidence: .local/transcript-luna-universe-20260913/retry-261-20260915/result.json,
+final-audit.json and completion-receipt.json. Current active-run.json identifies
+the completed retry; pending-retry.json records completed_with_failures.
+
+
+## New 9,873-transcript Luna batch prepared; launch blocked - September 15, 2026 UTC
+
+After an exact membership inventory identified 9,873 new transcripts outside
+the original 28,030-capture universe, the user requested starting their
+extraction. The prepared plan
+80b292daff77c5764d464c9d435f13612a12597a86d6dfbc1253f3dfc661af4b
+selects exactly those 9,873 unextracted, unattempted captures across 476 tickers.
+The four older unresolved calls remain excluded: ADM 2026 Q2, CSTL 2020 Q4,
+VTRS 2021 Q2 and ZTS 2023 Q2. The finite workload is at most 9,873 Luna/high
+calls with 50 workers, unchanged structured template and incremental company
+publication. No review, automatic retry, provider fetch, API fallback or
+recurring change is included.
+
+Preflight verified 28,026 prior structured outputs, zero structured foreign-key
+violations, all 9,873 source/request bindings, and no previous request/native
+attempt for any selected capture. Validated production source pins are unchanged;
+existing focused-test evidence was reused. The private launcher passed syntax,
+readiness and final source review. No production code, schema, prompt or
+publisher changes were made.
+
+Automatic approval review rejected the launch before process creation because
+the previous explicit full-text transfer approval covered the earlier
+261-transcript retry rather than this new 9,873-transcript payload. No workaround
+or indirect launch was attempted. The batch is ready, but no new model/provider
+call or database publication has occurred. The missing confirmation is specific
+approval to send these full transcripts to OpenAI through the existing
+subscription for the stated finite extraction workload and database storage.
+
+Evidence: .local/transcript-luna-new-9873-20260915/authorization.json,
+inventory.json, selected-captures.json, excluded-prior-unresolved.json,
+database-output-baseline.json, preparation-progress.json, prepared-plan.json,
+preflight.json, helper-validation.json and launch-block.json.
+The older batch directory's pending-new-batch.json identifies this prepared
+batch. Its active-run.json still identifies the completed 261-transcript retry;
+RUN_STATUS.md now shows the pending new extraction batch.
+
+
+## September 15, 2026 UTC — completed 25-ETF missing-price repair
+
+The user's "pls fix" authorized the gaps confirmed in the preceding 25-ETF
+audit: August 17–September 1 for 23 ETFs, August 28–September 1 for IWM,
+and September 14 for all 25. Exactly 49 FMP full-EOD requests succeeded with
+zero retries and 69,274 retained bytes. The finite run reused the existing
+credential resolver, shared allowance, active selection, parser, canonical
+market publisher and physical locks; it added 49 captures and 304 missing
+price versions/current rows. No recurring unit, binding, registry, migration,
+production code or schedule changed. This completed population has no repeat
+authority.
+
+The final immutable audit verified all 304 original-response OHLCV/source-row
+comparisons and lineage references, preserved all prior target prices, versions,
+capture metadata, identities and migration ledger, and proved 49 exact replays
+write nothing. Thirty focused tests and a bounded temporary-store
+publication/replay/invalid-response check passed. The public verification at
+19:45:45 UTC returned all 25 ETFs with 9/9 August features, 225/225 values,
+and complete sessions through September 14. The original pre-repair cutoff
+still returned exactly its original 33 features. Historical publication and
+common adjustment-vintage warnings remain unchanged.
+
+The [repair record](ETF_PRICE_GAP_REPAIR_2026-09-15.md) records scope, limits,
+validation and local verification corrections. Private evidence is under
+.local/etf-gap-repair-20260915/; original response and publication receipts
+are under data/.operations/etf-gap-repair-20260915/. No pending provider work,
+test or verification remains for this repair.
+
+
+## New 9,873-transcript batch explicitly approved and running - September 15, 2026 UTC
+
+The user explicitly approved the concrete question covering full-text transfer
+of all 9,873 selected transcripts to OpenAI through the existing subscription,
+at most 9,873 Luna/high calls, 50 workers, and incremental database publication.
+This new approval covers the payload absent from the earlier blocked launch;
+the original launch-block evidence remains unchanged. The private launcher
+now verifies this exact approval before readiness or execution. Its syntax,
+readiness, production source pins and final approval-guard diff passed;
+existing focused test evidence remains applicable.
+
+The batch launched at 2026-09-15T19:50:29.155643Z with coordinator PID 837178.
+Live inspection confirmed 50 native Luna workers. The unchanged frozen plan is
+80b292daff77c5764d464c9d435f13612a12597a86d6dfbc1253f3dfc661af4b.
+It contains 9,873 new captures across 476 tickers, excluding the four older
+unresolved calls. No automatic retries, extra model reviews, provider fetches,
+API fallback or recurring-unit changes are authorized by this launch.
+
+The locked immutable audit at 19:52:27 UTC found 49 new outputs, 28,075 total,
+and all 28,026 prior output identities preserved. Five retained responses,
+source snapshots, structured outputs and automatic assessments matched their
+database rows exactly. Their native receipts confirmed Luna/high and ChatGPT
+subscription billing; structured foreign-key checks returned zero violations.
+At that checkpoint the batch was running with 50 in flight, one failed model
+attempt and 9,823 unfinished inputs. Automatic assessments on the 49 saved
+drafts were five accepted, 32 accepted with flags and 12 blocked; these retained
+draft assessments are not independent factual reviews. This is initial
+publication evidence, not batch completion.
+
+Evidence: .local/transcript-luna-new-9873-20260915/
+explicit-transfer-approval.json, run.py.before-transfer-approval,
+post-approval-helper-validation.json, started.json, launch-verification.json
+and initial-publication-audit.json. The original batch directory's
+active-run.json and pending-new-batch.json now identify this running batch;
+RUN_STATUS.md is updated incrementally in both batch directories.
+
+## September 15, 2026 - weekly historical-price repair authorized
+
+The user explicitly approved implementing a weekly historical-price-only
+missing-price repair and activating it Saturday at 02:00 America/Toronto.
+This authorizes the new quant-data-weekly-price-repair.timer, limited each
+week to the latest completed Monday-Friday window of the existing daily-price
+population, at most 3,000 FMP full-EOD requests, 256 MiB and 60 minutes, no
+automatic retries and the existing shared provider allowance. Persistent
+catch-up covers the latest due week only; no unbounded older backfill or manual
+provider run is authorized. Existing prices must not be overwritten.
+
+The [weekly repair contract](WEEKLY_PRICE_REPAIR_2026-09-15.md) records the
+mechanics and known calendar/listing coverage limits. The read-only preflight
+pinned 2,359 existing symbols and made zero provider requests. The first eligible
+slot is September 19, 2026 at 02:00 Toronto. Activation is pending final
+validation; a later dated receipt will record actual installed state.
+
+
+## September 15, 2026 - weekly repair activation held for full validation
+
+The user's later explicit decision was "Keep inactive; continue full
+validation." This holds the earlier activation approval while validation is
+completed. The new weekly service/timer are linked for inspection only; the
+timer is inactive and not enabled, with no service start. Its prepared
+activation guard pins the first eligible September 19, 02:00 Toronto slot.
+No weekly provider request or canonical price write has occurred.
+
+The full suite is being rerun from a hashed source-only temporary copy after
+the original live-data metadata guard exhausted host memory. The isolated run
+has no operational data, credentials or external network. Two stale test
+expectations were corrected without changing production behavior or frozen
+registry evidence; eight focused checks passed and independent follow-up
+review found no blocker. Complete-suite results remain pending.
+
+## September 16, 2026 UTC - Luna remaining extraction prepared; launch blocked
+
+The user requested launching Luna for the remaining transcripts after restarting
+WSL. Read-only preflight found the existing 9,873-input plan paused after 936
+stored outputs and 18 failed calls, leaving exactly 8,919 untouched entries.
+All 28,962 database output identities were preserved in the preflight baseline;
+structured foreign-key checks passed. Production source pins are unchanged and
+the earlier 50-test evidence remains applicable.
+
+A further 605 unattempted inputs outside that plan were frozen using source
+captures through 00:30:50.380749 UTC. Four of those finished publication during
+the initial inventory, whose earlier snapshot counted 601 new inputs. The
+additional prepared plan is
+9cabc5845145f500aeaa2e679cd16358b33ca23cf01f9d7cc6c4970fab11e3bf.
+The four older unresolved captures remain excluded, for 22 failed captures
+excluded in total. No continuously expanding population is included.
+
+The private resume launcher passed syntax/readiness and seven offline approval
+guard checks. It reuses 50 Luna/high workers, the fixed subscription adapter,
+incremental company publication, source identities and no-retry policy. The
+additional 605 cannot start without a separately recorded full-text approval;
+if approved, they follow the resumed plan only after it finishes normally.
+
+Automatic approval review rejected the attempted 8,919-input resume before
+process creation, despite the saved earlier batch approval. Its stated reason
+was that the current request authorized extraction generally but did not
+explicitly authorize sending this full sensitive payload to the external
+OpenAI subscription and writing derived results. No workaround was attempted.
+No new model request or database publication occurred. A current explicit
+confirmation is required for the entire prepared 9,524-transcript queue,
+at most 9,524 calls, using the existing subscription and 50-worker setting.
+
+Evidence: .local/transcript-luna-new-9873-20260915/resume-20260916/ contains the
+preflight, preserved baseline and records, both fixed selections, additional
+plan, one-use launcher, helper validation and launch-block.json. Preliminary
+read-only evidence scripts encountered an incorrect output-column assumption
+and an oversized JSON snapshot; these were corrected by using actual schema
+fields and a compact identity baseline. A changing source inventory was
+resolved by freezing the capture cutoff. No production code or tests changed.
+
+## September 16, 2026 UTC - explicit remaining-queue approval and running Luna extraction
+
+The user replied "approve" to sending the full text of all 9,524 prepared
+transcripts to OpenAI through the existing Codex ChatGPT subscription, at most
+9,524 Luna/high calls with 50 workers and successful outputs saved to the fixed
+company database. This explicitly covers the 8,919 untouched inputs in the
+existing plan plus the separately frozen 605-input follow-on. The original
+launch-block evidence is preserved; no additional full-text confirmation is
+pending for either selection. Previously failed inputs remain excluded.
+
+The validated launcher started at 00:41:24.831605 UTC as PID 27226. Fifty native
+Luna workers were observed. The first locked immutable audit verified 51 new
+database outputs, preservation of all 28,962 prior identities, five exact
+retained-response/source/output/assessment comparisons, pinned Luna/high
+subscription receipts and zero structured foreign-key violations.
+
+After 70 calls, a backward wall-clock reading of approximately one second
+triggered the existing timestamp guards for KWR 2022 Q2 assessment and KWR
+2021 Q3 publication. Both responses completed at about 00:42:41.7 UTC, while
+the subsequent failure checks read about 00:42:40.8 UTC. No timestamp was
+clamped, fabricated or backdated. The batch drained and paused with 67 newly
+stored outputs, these two retained successful responses and one failed model
+call. The guards and production collector code remain unchanged.
+
+Once current time was later than the retained evidence, both KWR saves were
+recovered through the existing preparation and publisher paths with a
+transport factory that forbids model calls. Their original failure records
+were retained; request, response and native-start receipt bytes were unchanged.
+Two exact replays returned unchanged with zero canonical writes. Recovery
+used zero new model calls and raised the saved count to 69 for this approval.
+
+The continuation started at 00:49:38.581201 UTC as PID 48480, selecting only
+the 8,849 untouched original-plan entries. The explicit cap remains
+70 consumed + 8,849 untouched + 605 queued = 9,524 total calls. The follow-on
+starts only after normal completion of the current plan; existing failure
+guards can still pause the run. No model request is retried.
+
+At 00:50:59.975473 UTC, the continuation audit found 19 more outputs, 29,050
+database outputs total, and preserved all 29,031 identities present after
+recovery. Five fresh exact response/source/output/assessment and subscription
+receipt comparisons passed, with zero structured foreign-key violations.
+The progress checkpoint was running with 50 in flight, 88 new stored outputs
+since approval and one new failed model call. This is verified ongoing
+extraction, not completion of all 9,524 inputs or independent factual review
+of generated drafts.
+
+Production source, prompt/schema, publisher and existing retry policy remain
+unchanged. The private continuation made exact checkpoint/count/path updates
+to the validated helper and added the explicit total-call-cap assertion;
+syntax, readiness and final diff checks passed. Earlier 50-test production
+and seven offline approval-guard checks were reused. No full suite, provider
+fetch, API fallback, extra model review, scheduler change, commit or push was
+performed.
+
+Approval and initial run evidence:
+.local/transcript-luna-new-9873-20260915/resume-20260916/.
+Recovery, preserved failures, zero-write replay, continuation, live audit and
+handoff evidence: its after-clock-recovery/ subdirectory.
+The current pointer remains
+.local/transcript-luna-universe-20260913/active-run.json, with live progress
+in RUN_STATUS.md beside it.
+
+## September 15, 2026 - weekly repair validation narrowed; activation remains held
+
+The user's newer decision requests affected-component testing and a project
+rule update, superseding the earlier task-specific full-suite requirement.
+The weekly repair boundary is covered by 60 focused checks, independent review,
+and unit/calendar verification. Implementation and focused test bytes are
+unchanged from that validated snapshot. The interrupted full-suite attempts
+remain recorded as interrupted, not passing evidence.
+
+The broad test runs were stopped. Unrelated maintenance edits in 32 test files
+and the Inspector registry guard were restored to their exact preimages, with
+a separate applicable patch retained. The project validation rules now require
+a concrete shared-invariant impact or current explicit gate before expanding
+to the full suite.
+
+The weekly timer was read back as ActiveState=inactive and UnitFileState=linked.
+The existing activation hold remains in force. No weekly service start,
+provider request, canonical publication, or expansion of operational authority
+is part of this rule update. See the current validation checkpoint in the
+[weekly repair record](WEEKLY_PRICE_REPAIR_2026-09-15.md).
+
+
+## September 15, 2026 - weekly repair Saturday schedule activated
+
+The user's subsequent "OK go implement" resumes the requested activation
+following the affected-component validation handoff. This supersedes the
+earlier activation hold for quant-data-weekly-price-repair.timer only.
+The existing weekly population, provider limits, missing-only policy, no-retry
+rule, and first eligible September 19 slot are unchanged.
+
+Verified activation readback: UnitFileState=enabled, ActiveState=active,
+SubState=waiting, next trigger September 19, 2026 at 02:00 America/Toronto
+(06:00 UTC). The service has no start timestamp and remains inactive; no
+manual provider request or repair was performed. The timer requires the WSL
+user scheduler to be running; it does not wake Windows or launch WSL.
+
+The validated implementation and focused tests remain byte-identical.
+The existing 60 passing focused checks and independent review were reused;
+installed unit/link, syntax, first-slot, and calendar checks passed.
+See the [weekly repair record](WEEKLY_PRICE_REPAIR_2026-09-15.md) and private
+schedule-activation-20260915.json receipt for exact activation evidence.
+
+
+## September 16, 2026 UTC - Luna publication recovery; requested continuation blocked
+
+The user requested resuming the paused Luna extractor. Its one publication
+failure was MIRM 2025 Q3: the wall clock had moved backward by less than one
+second, so publication predated the retained response/assessment evidence.
+The existing publisher recovered that retained result with zero model calls,
+preserving all 30,973 prior output identities and all original evidence bytes.
+An exact replay wrote nothing; structured foreign-key checks passed. The
+database then contained 30,974 structured outputs, including 2,948 in this batch.
+
+The prepared continuation selects only the 6,884 untouched original entries
+and the already-approved 605-input follow-on. The original transfer cap is
+unchanged: 2,035 consumed under that approval plus 7,489 remaining equals 9,524.
+The 41 failed model/output attempts and four older unresolved inputs remain
+excluded. Existing Luna/high, 50 workers, subscription transport, publisher,
+prompt/schema, original source pins, and no-retry rules are unchanged.
+The private helper passed syntax, exact mechanical diff review, source-pin
+and readiness checks; existing focused validation was reused.
+
+Automatic approval review rejected the launch before process creation,
+stating that the generic resume request did not specifically authorize the
+remaining full transcript payload and OpenAI destination. The saved original
+explicit full-text approval remains preserved. No workaround, new model call,
+or additional run was attempted; a current explicit confirmation is pending.
+Evidence and the ready continuation are under
+.local/transcript-luna-new-9873-20260915/resume-20260916/after-publication-pause/.
+
+
+## September 16, 2026 UTC - approved Luna resume; provider capacity pause
+
+The user explicitly replied "approve" to sending the remaining 7,489 full
+transcripts to OpenAI through the existing Codex subscription, with at most
+7,489 Luna/high calls, 50 workers, and successful results saved to the company
+database. This resolves the preceding launch approval block for that finite
+scope. The current approval is saved separately; original approvals and the
+rejected attempt remain retained.
+
+The prepared continuation launched at 03:15:15.777456 UTC as PID 587865 with
+50 configured workers. It dispatched 52 previously untouched inputs and saved
+43 new outputs. Eight calls failed because Luna reported that the selected
+model was at capacity, and one failed after a response-stream disconnection.
+The existing consecutive-failure guard stopped dispatch and drained the
+in-flight work. At 03:18:42.398492 UTC the run was paused with zero in flight;
+the coordinator exited. No failed request was retried or model switched.
+
+This batch now records 2,991 stored outputs and 50 model/output failures,
+with 6,832 untouched entries plus the 605-input approved follow-on still
+queued. The current approval has 7,437 unused calls. The follow-on has not
+started. The run ledger implies 31,017 total structured outputs; the bounded
+database audit during draining directly verified 31,014 total, 40 of this
+invocation's new outputs, preservation of all 30,974 prior identities, five
+exact response/source/output/assessment comparisons, and zero structured
+foreign-key violations. The final three saves are recorded in the run result.
+
+No production code, schema, model configuration, retry guard, or scheduler
+was changed. Prior focused validation was reused. Evidence:
+current-explicit-transfer-approval.json, started.json, launch-verification.json,
+initial-publication-audit.json, connection-failure-summary.json,
+resume-result.json, and handoff-status.json under
+.local/transcript-luna-new-9873-20260915/resume-20260916/after-publication-pause/.
+
+
+## September 16, 2026 UTC - user-requested 20-worker Luna continuation
+
+The user requested resuming Luna and reducing concurrency to 20 workers.
+The existing full-text transfer and company-database publication approval is
+preserved. This continuation is limited to 6,832 untouched original entries
+plus the approved 605-input follow-on: 7,437 remaining calls, with 52 calls
+already consumed from the latest 7,489-call approval. The 50 prior failed
+model/output attempts and four older unresolved inputs remain excluded.
+
+The private continuation changes only its invocation path, checkpoint counts,
+and the user-requested concurrency. Production source pins, prompt/schema,
+Luna/high subscription transport, publisher, and failure guard are unchanged.
+Syntax, exact helper difference review, readiness, prior-record preservation,
+and unattempted-input checks passed; existing focused validation was reused.
+No full suite or scheduler change was needed.
+
+The continuation launched at 2026-09-16T11:36:13.589958Z as PID 621509.
+Readback observed 20 native Luna workers. The first bounded publication audit
+verified 9 new outputs and 31026 total, preservation of all
+31,017 prior identities, five exact source/response/output/assessment and
+subscription-receipt comparisons, and zero structured foreign-key violations.
+At the handoff snapshot the run status was running, with
+20 in flight, 24 newly saved outputs, and
+3 new unsuccessful model/output attempts. Failed attempts are not retried.
+This is ongoing work, not completion of the remaining queue.
+
+Evidence: authorization.json, concurrency-amendment.json, original transfer
+approvals, helper.diff, helper-validation.json, preflight.json, started.json,
+launch-verification.json, initial-publication-audit.json, and handoff-status.json
+under .local/transcript-luna-new-9873-20260915/resume-20260916/workers-20/.
+The current pointer and live status remain in
+.local/transcript-luna-universe-20260913/active-run.json and RUN_STATUS.md.
+
+
+## September 16, 2026 UTC - user-requested Equibles lock-timeout resume
+
+The user requested resuming Equibles. The normal 00:10 UTC invocation stopped
+at 03:07:39 UTC with exit 75 after a 60-second physical company-store lock
+timeout while publishing VAC. Its four-response batch had settled successfully;
+VAC 2020 Q1/Q2 were published and Q3/Q4 remained in the retained cache.
+There was no quota exhaustion: 5,252 requests were charged and 4,748 remained.
+The former lock holder was not established. A first immutable preflight rejected
+a changing sidecar; a subsequent locked immutable read and full transcript
+metadata baseline succeeded without bypassing the read safeguard.
+
+This explicit decision authorized one start of the existing service for the
+remaining 127 histories in the frozen 2,222-subject selection, with at most
+4,748 additional requests on September 16 within the shared 10,000-call cap.
+The existing EQUIBLES_API_KEY resolver, company.sqlite publisher, physical locks,
+four callers, six-hour/4-GiB/24-invocation ceilings, UTC-midnight deadline, and
+one-retry/then-unresolved policy were preserved. No unit or timer was changed.
+
+Only the exact recorded lock-timeout block was cleared after preserving the
+original checkpoint, journal, attempts and response receipts. Cache-only
+recovery used zero provider requests and published the two complete retained
+VAC calls. The locked immutable audit verified 42,889 canonical transcripts,
+preserved all 42,887 earlier capture/page manifests, checked both added raw
+bodies against retained bytes and ingestion lineage, found no transcript
+foreign-key violations, and confirmed an unchanged migration ledger and quota.
+
+The single service start at 23:11:25 UTC succeeded with PID 663459. At
+23:12:10 UTC the running checkpoint had 42,911 transcripts (24 additions,
+including the two recovered calls), 2,096 processed histories and VAL underway.
+There were 27 new charged requests, 5,279 charged for the day and 4,721
+conservatively remaining. Twelve fresh retained response receipts passed their
+hash/byte checks; provider headers were observed at 23:12:08 UTC. The active
+ParallelReservation marker represented an in-flight batch, not a terminal block.
+Prior completed histories, frozen selection, original attempts and prior quota
+days were preserved. This is a verified startup/progress snapshot, not completion
+of the remaining population or a claim that future lock contention is fixed.
+
+Production source, registry, binding and unit pins matched the September 15
+validated activation, so its 115 focused test results were reused; no new tests,
+production code, commit or push were needed. The private one-use recovery helper
+passed syntax and review. Evidence: data/.operations/equibles-user-resume-20260916/
+contains authorization, original state/receipts, split canonical baselines,
+cache recovery and integrity results, service start receipts and running
+postcheck. Helper: .local/equibles_user_resume_20260916.py.
+
+
+## September 16, 2026 UTC - approved bounded retries for Luna extraction
+
+The user requested adding retries to the Luna process. This newer scoped
+decision supersedes the preceding no-retry rule for this continuation only.
+The saved full-transcript transfer and company-database publication approvals
+remain in force. Concurrency remains 20 Luna/high workers using the existing
+Codex subscription. No other provider, scheduler, schema, prompt, credential,
+or model settings changed.
+
+The continuation covers 6,733 untouched original inputs and the previously
+approved 605-input follow-on. Its total remaining call allowance is 7,338:
+151 consumed plus 7,338 remaining equals the latest 7,489-call approval.
+No earlier completed or failed inputs are reopened. Temporary capacity,
+rate-limit, timeout and connection failures may receive two additional
+attempts, after 30 and 120 seconds plus up to five seconds of jitter.
+Each native attempt is durably charged before launch against the existing
+plan ceiling; retries do not increase approved calls. Exhausted budget may
+leave pending inputs, and the existing consecutive-failure guard can pause
+the run after final failed attempts drain.
+
+Implementation is opt-in in company/transcript_analysis_retry.py and the
+universe batch coordinator; paired receipts now preserve model-attempt
+counts. Existing callers retain no-retry defaults. The contract documents
+the precise policy. Seventy distinct focused retry, adapter, batch, paired
+receipt and history checks passed in an isolated source copy with temporary
+stores. One synthetic fixture was corrected, and the affected module passed
+again. Required source pins and final diff checks passed. No full-suite
+trigger applied. Validation is retained under
+.local/transcript-retries-20260916/.
+
+The continuation launched at 2026-09-16T23:18:07.697140Z as PID 666129.
+Readback observed 20 native Luna workers. The initial locked immutable
+publication audit verified 3 new outputs and
+31111 total, preservation of all 31,108 prior
+identities and 3,140 prior terminal records, exact source/response/output
+and assessment comparisons for 3 samples,
+the expected subscription/model receipts, and zero structured foreign-key
+violations.
+
+At 2026-09-16T23:20:30.016376Z, the coordinator remained alive with
+status running, 20 in flight,
+21 newly stored outputs, and
+0 automatic retries charged. This is startup verification,
+not completion of the remaining queue or evidence of a live retry recovery.
+The approved follow-on remains conditional on normal completion of the
+original plan.
+
+Evidence: retry-authorization.json, preserved transfer approvals,
+preflight.json, helper-validation.json, helper.diff, started.json,
+launch-verification.json, initial-publication-audit.json and handoff-status.json
+under .local/transcript-luna-new-9873-20260915/resume-20260916/retries-v1/.
+The existing active-run pointer and RUN_STATUS.md identify this continuation.
+
+
+## September 17, 2026 UTC - newly saved transcripts added to Luna backlog
+
+The user requested adding newly saved transcripts to the backlog and an ETA.
+A locked immutable company-store snapshot at 02:45:25 UTC found 45,290 saved
+source quarters and 34,028 extracted quarters. Comparing source quarter
+identities with all five existing frozen plans selected exactly 6,782 new
+inputs across 324 symbols, with capture cutoff 02:45:24.539245 UTC.
+The saved local backlog selection excludes extracted quarters, existing plans
+and all prior attempted inputs. No new model calls or canonical writes occurred.
+
+The backlog totals 11,200: 3,805 unattempted original inputs, eight retained
+model outputs awaiting publication, the approved 605-input follow-on and
+6,782 newly queued inputs. Sixty-two older failed inputs remain excluded.
+The active coordinator had paused at 02:44:00.931941 UTC after eight company
+publication lock timeouts; it exited with zero in flight. Those eight native
+outputs and prepared results remain retained. An initial inventory also timed
+out on the store lock; the subsequent ordinary locked immutable read succeeded.
+The exact holder during Luna's failures was not established. No collector or
+recurring service was stopped or changed.
+
+The recent 30/60-minute pace was 13.8-13.9 transcripts per minute with 20
+workers: approximately 13.5-14 processing hours after resumption for the full
+backlog, including about 8.1-8.2 hours attributable to the new selection.
+This is conditional elapsed processing time, not a live finish commitment:
+the run is paused and existing finite execution caps remain unchanged.
+The new selection is queued locally, not started or automatically dispatched.
+
+Validation checked unique capture/quarter identities, zero overlap with
+existing plans, the source cutoff, unchanged hashes of all five frozen plans,
+preserved prior queue fields, retained publication results and exact queue
+readback. Source and canonical database contents were not edited, so no
+executable test suite was required. A final output-rendering exception after
+the successful writes was resolved by reading back the saved checked artifacts.
+
+Evidence: .local/transcript-luna-backlog-20260917T024525Z/ contains the immutable
+selection, inventory, rate samples, prior queue, publication-pending records,
+backlog and checks. The discoverable index and readable summary are
+.local/transcript-luna-universe-20260913/backlog.json and BACKLOG.md;
+pending-new-batch.json preserves its original fields and links the new backlog.
+
+
+## September 17, 2026 UTC - requested AVB, EA and EQR run; provider unavailable
+
+The user explicitly requested an Equibles run for AVB, EA and EQR, the three
+retained FMP equity identities outside the selected 2,248-member CSV. The
+one-time workload was bounded to 300 shared charged attempts, 30 minutes,
+128 MiB, the existing EQUIBLES_API_KEY resolver and company publisher.
+No recurring unit, binding file, registry or production source changed.
+
+The original selected history was complete: 2,222 mapped subjects and 45,290
+transcripts. A locked immutable preflight found no saved AVB/EA/EQR transcripts,
+verified their original retired-roster identities and captured a transcript
+metadata baseline. Pure checkpoint conversion/restoration checks preserved
+membership, completed records and quota. The historical activation configuration
+was used to verify the frozen selection hash; current configuration changes
+had not changed its membership or provider mapping. These preparations made
+zero provider requests or canonical writes.
+
+The first identity reservation was rejected by the history transport's local
+route check before network dispatch. Its charge and diagnostic were retained,
+with a separate not-dispatched reconciliation receipt. The existing bounded
+identity helper then made one screener request at 02:45:20 UTC, returning
+HTTP 200 with an empty result and notFound=[AVB, EA, EQR]. No positive provider
+mapping was invented and no checkpoint selection transition was activated.
+
+Three separately bounded direct earnings-call catalogue checks followed at
+02:48:14-17 UTC, one per explicitly requested ticker. Each returned HTTP 404.
+The run therefore added zero transcripts and made zero canonical writes.
+Original checkpoint fields and the selected scope were unchanged except for
+shared quota accounting. The complete status was refreshed cache-only with
+zero provider calls. Retained response bytes matched all three saved hashes.
+
+Total cost: four actual provider requests and five conservative local charges,
+including the proved pre-dispatch rejection. September 17 accounting reached
+996 charged and 9,004 locally remaining; the last provider header reported
+9,005 remaining. There were no provider retries. Existing 115-test evidence
+was reused for unchanged production pins; the private helpers passed syntax
+and scoped preflight checks. No new suite, commit or push was needed.
+
+Evidence: data/.operations/equibles-three-tickers-20260917/ contains authorization,
+original checkpoint and split canonical baseline, helper validation, original
+and continued launch receipts, route-validation reconciliation, identity
+response, each direct catalogue response, direct result and completion.json.
+Private helpers: .local/equibles_three_tickers_20260917.py and
+.local/equibles_three_direct_catalogues_20260917.py. These results establish
+unavailability under the three exact requested Equibles ticker routes at the
+recorded time, not absence of historical transcripts from every possible source.
+
+
+## September 17, 2026 UTC - Luna resilience implemented; expanded launch held
+
+The user requested resuming the expanded backlog, a more forgiving database
+lock timeout, and automatic continuation after a few minutes when paused.
+Implementation selects five-minute waits and a three-minute delayed resume,
+bounded at ten automatic resumptions per finite plan. Only recognized
+temporary database/transport pauses qualify; permanent errors, uncertain
+evidence and model-budget exhaustion stay held. The existing native retry
+limit remains two retries per input. No recurring unit was changed.
+
+The frozen continuation plan is
+79a892b67c2ab4f7371ae5fb6a328ec2c10839a643744c367f2a8ce364bb762d,
+containing exactly 11,192 untouched inputs: 3,805 original, 605 prior follow-on
+and 6,782 newly queued. All request/native-start receipts were absent.
+The new prepared plan has an explicit 33,576-call ceiling including retries;
+older plans/caps are preserved. Sixty-two older failures stay excluded.
+Model/destination/publication remain Luna/high, 20 workers, existing Codex
+ChatGPT subscription and data/company.sqlite. No extra incoming population,
+provider fetch, review call or API fallback is included.
+
+At 03:21:32.116420 UTC the eight retained publication failures had been
+recovered with zero model calls. Immutable validation confirmed 34,036 total
+structured outputs, all 34,028 prior identities preserved, all 6,060 prior
+terminal record bytes unchanged, all eight response/preparation receipts
+preserved, eight exact output comparisons and no structured foreign-key
+violations.
+
+Fifty-eight focused checks passed in an isolated source copy with explicit
+temporary stores and network disabled. Source pins, final diff, private helper
+syntax, readiness and finite membership checks passed. No full-suite trigger
+applied. An initial constructor-default typo was corrected before the passing
+run; an oversized command failed before writing any file and was split safely.
+
+Automatic approval review rejected the launch before process creation. Its
+stated reason was that the resume request did not explicitly approve sending
+the 11,192 potentially sensitive full transcripts to OpenAI. No workaround,
+new model request or alternative launch occurred. A confirmation naming the
+full payload, destination, 20 workers, 33,576-call maximum and company-database
+publication is pending. The supervisor is implemented and ready, but not
+active for this expanded plan.
+
+Evidence under .local/transcript-resilience-20260917/: exact preimages,
+impact/test-source/focused logs, validation.json, frozen source/continuation
+plans, selection-checks.json, database baselines, preserved records,
+cache-recovery.json, authorization.json, resume.py and launch-block.json.
+The prior active-run pointer remains historical; pending-new-batch.json,
+backlog.json and RUN_STATUS.md report the prepared blocked continuation.
+
+
+## September 17, 2026 UTC - expanded Luna transfer approved and supervised run active
+
+The user explicitly replied "approve" to sending the full text of the 11,192
+queued transcripts to OpenAI through the existing Codex subscription, with
+20 Luna/high workers, at most 33,576 calls including retries, and successful
+outputs saved to the company database. The exact question and reply are
+recorded in explicit-transfer-approval.json. This resolves the preceding
+automatic approval block for this frozen selection; the original rejection
+remains preserved. No wider or continuously growing workload is included.
+
+The prepared continuation launched at 2026-09-17T03:39:47.203392Z as
+PID 1520520, using plan 79a892b67c2ab4f7371ae5fb6a328ec2c10839a643744c367f2a8ce364bb762d.
+Readback verified 20 native Luna workers, the 33,576-call durable budget,
+five-minute database waits, a three-minute restart delay and the persistent
+maximum of ten automatic resumptions. No scheduled job was changed.
+
+At 2026-09-17T03:41:56.830842Z, the locked immutable publication audit verified
+19 new outputs and 34055 total.
+All 34,036 pre-launch identities and 6,060 earlier terminal records were
+preserved. Five exact source/response/output/assessment comparisons and
+Luna/high subscription receipts passed, with no structured foreign-key
+violations. These startup checks do not claim completion of the remaining
+queue or a live automatic-restart recovery.
+
+At 2026-09-17T03:43:12.533785Z, the coordinator remained alive with status
+running, 20 in flight, 46 outputs
+saved in this continuation, 3 automatic model retries and
+0 automatic restarts. The projected finish is roughly
+13.5-14 hours after launch (about 1:10-1:40 p.m. Toronto September 17), subject
+to throughput, retry delays and store contention.
+
+The validated source pins were unchanged, so the 58 passing focused checks
+were reused; no new executable tests were required. Evidence under
+.local/transcript-resilience-20260917/: explicit-transfer-approval.json,
+started.json, launch-verification.json, initial-publication-audit.json and
+handoff-status.json. The current active-run pointer and RUN_STATUS.md identify
+this supervisor; backlog.json and BACKLOG.md record the expanded selection.
+
+
+## September 17, 2026 UTC - one user-requested Sharadar continuation completed
+
+The user explicitly requested one Sharadar fetch. This authorized one start of
+the existing service to finish its pending September 16 update window, preserving
+the selected membership/mapping, September 7-16 lastupdated bounds, existing
+SHARADAR_DIRECT_API resolver, fixed company store and replay-safe publisher.
+The invocation retained the 500-request, 256-MiB, 3,600-second and 1,000-request
+daily ceilings, one-second spacing and no automatic retries. No timer or unit
+was changed; this finite manual start does not authorize further manual starts.
+
+The service started September 16 at 23:42:59 Eastern (September 17 03:42:59 UTC)
+and finished at 23:49:46 Eastern with exit 0. It completed the 392 remaining
+partitions in 392 GETs, all HTTP 200, receiving 3,100,434 bytes. Together with
+the 58 earlier completed partitions, the September 16 checkpoint is now complete
+at 450 partitions with no pending request or pending refresh window. The three
+existing identity gaps remain. No full-history population was repeated.
+
+The new clock-recovery implementation matched its validated source pins.
+Its 38 focused offline checks and the two separately rerun cross-channel
+identity/replay checks were reused. This invocation's journal contains no
+clock-recovery event, so completion does not claim a live clock-step recovery.
+
+The locked immutable postcheck at 03:51:33 UTC preserved all 363,249 previous
+observation identities, 363,513 previous version identities and 1,942 previous
+capture identities. Five prior complete version records had unchanged hashes.
+The continuation added 53 observations, 295 versions (53 first versions plus
+242 revisions) and 392 captures. Final totals were 363,302 observations,
+363,808 versions and 2,334 captures. All 1,462 new capture memberships passed
+scope, identity/version linkage and availability checks; missing or invalid
+heads were zero. All 392 original response bodies matched their retained
+lengths and SHA-256 hashes. This was a bounded Sharadar audit, not a full-store
+integrity scan.
+
+Evidence: .local/sharadar-manual-refresh-20260917/ contains the one-use
+authorization and launch marker, preserved queue/checkpoint and canonical
+identity baseline, startup record, completion, postcheck, journal and timer
+readback. Production code was unchanged by this operation; no commit or push.
+
+
+## September 17, 2026 UTC - requested Luna resume after store-availability pause
+
+The user explicitly requested resuming the paused run. Its existing full-text
+approval covers the same frozen 11,192-input plan, OpenAI through the Codex
+subscription, company publication and a 33,576 aggregate call ceiling.
+The remaining 4,095 inputs are all untouched members of that approved plan:
+4,093 unrecorded inputs plus two TILE input failures with zero consumed calls.
+No completed model attempt or earlier excluded failure is reopened.
+
+The previous run stopped at 11:33:52 UTC after two StoreUnavailableError input
+checks. The precise original availability cause was not established; the
+supervisor intentionally did not classify this error as an automatically
+restartable lock timeout. Current locked immutable checks succeeded, both
+frozen TILE sources matched the canonical source, and all 41,133 pre-resume
+output identities were saved as a baseline.
+
+Preflight preserved 7,097 completed records, the two original input-failure
+records, all existing evidence and the durable counters: 7,255 calls charged,
+158 automatic model retries, zero automatic resumptions. The remaining
+population can use at most 12,285 further native calls (three per input),
+inside the unchanged aggregate cap; counters were not reset. Existing
+Luna/high, 20 workers, five-minute lock waits, three-minute delay and ten
+automatic-resumption ceiling are unchanged. The StoreUnavailableError stop
+classification is unchanged; a future such failure may still require attention.
+
+A private one-use wrapper resumed the existing plan at 2026-09-17T13:24:43.983851Z
+as PID 3424162. The current explicit approval and subset proof were
+accepted without another confirmation. The wrapper reuses the validated
+engine and stores this invocation's log/results separately. Syntax, review,
+membership, preserved-counter and runtime checks passed; production source
+pins matched the 58-check validated baseline, so no new test run was required.
+
+The initial locked immutable audit at 2026-09-17T13:26:36.279967Z verified
+12 new outputs and 41145 total, preservation
+of all 41,133 earlier output identities and 7,097 successful record bytes,
+five exact source/response/output/assessment comparisons, Luna/high
+subscription receipts and no structured foreign-key violations.
+At 2026-09-17T13:28:18.355232Z, the coordinator was running with
+20 in flight and 45 newly saved outputs.
+This is startup evidence, not completion of all remaining inputs or a fix
+for every future store-availability failure.
+
+Evidence: .local/transcript-resilience-20260917/resume-after-store-pause/
+contains original approval, finite subset authorization, saved checkpoint/
+budget/supervisor state, original blocked records, identity baseline,
+preflight.json, helper-validation.json, resume.py, started.json,
+launch-verification.json, initial-publication-audit.json and handoff-status.json.
+The active-run pointer and live summary identify this invocation. No provider
+fetch, new population, production change, scheduler change, commit or push.
+
+
+## September 17, 2026 UTC - Luna resumed with exact timeout-wording correction
+
+The user requested resuming the paused Luna run. The failure snapshot showed
+21 terminal model failures: 20 final stream-disconnection failures after three
+attempts, and one one-attempt native "request timed out" failure. That exact
+message was absent from the transient allowlist and prevented automatic
+continuation. A one-line correction recognizes it under the existing timeout
+policy. Completed/malformed/tool output and permanent authentication/usage
+errors still do not qualify. No request identity, retry limit, supervisor
+allowance or model budget was changed.
+
+Twenty-one focused retry and direct-supervisor checks passed in an isolated
+source copy with explicit temporary stores and network blocked. New cases
+cover recovery, three-attempt exhaustion retaining the transient flag, and a
+timeout with a permanent authentication error. Existing retained native
+evidence now classifies as transient without any evidence change. The prior
+58-check evidence remains applicable to unchanged components; no full-suite
+trigger applied.
+
+Preflight selected exactly 2,143 untouched inputs within the same explicitly
+approved 11,192-input plan. All 9,049 terminal records, including all 21
+failed inputs, remain excluded and byte-preserved. The locked immutable
+baseline contained 43,064 structured outputs. At restart, 9,275 calls and
+226 model retries had been charged, with zero automatic resumptions. The
+remaining population can use at most 6,429 more native calls, within the
+unchanged 33,576 aggregate ceiling. No counter was reset and no previously
+failed input was reopened.
+
+The continuation launched at 2026-09-17T15:56:03.752048Z as PID
+3951213, retaining 20 Luna/high workers, the existing OpenAI Codex
+subscription, company publisher, five-minute lock waits, three-minute
+backoff and ten automatic-resumption ceiling. The existing explicit transfer
+approval and finite-subset proof were accepted without another confirmation.
+
+The locked immutable audit at 2026-09-17T15:57:59.181945Z verified
+12 fresh outputs and 43076 total, all 43,064 prior
+identities and all 9,049 terminal records unchanged, five exact
+source/response/output/assessment comparisons, expected Luna/high subscription
+receipts and no structured foreign-key violations. At 2026-09-17T16:00:05.935289Z,
+the run remained active with 20 in flight, 46 saved since restart,
+0 new model retries and 0 automatic resumptions.
+A live automatic-restart recovery is not claimed by this startup audit.
+
+Evidence under .local/transcript-resilience-20260917/resume-after-timeout-pause/
+includes exact preimages and production/helper diffs, impact and focused logs,
+validation.json, original approval, finite authorization, preserved checkpoints
+and record hashes, database baseline, preflight, selected remaining inputs,
+resume.py, started.json, launch verification, publication audit and handoff.
+Current pointers and backlog summaries identify this invocation. No provider
+fetch, new population, scheduler change, commit or push occurred.
+
+
+## September 18, 2026 UTC - explicit retry of 21 Luna model failures
+
+The user selected the reported 21 held failures and asked, "can you retry this?"
+This explicitly authorizes one fresh bounded retry of those exact failed inputs,
+superseding their earlier held status for this operation only. The original
+11,192-input batch finished with 11,171 saved and 21 failures; its 11,458
+charged calls, 266 retry charges and original evidence remain unchanged.
+
+Preparation verified all 21 inputs still lack a structured output, and their
+full source text, request bytes and Luna/high configuration match the prior
+approved OpenAI-transfer population. The new finite batch permits at most
+63 additional calls, three per input, with 20 workers through the existing
+Codex ChatGPT subscription. Successful drafts and automatic assessments use
+the existing company publisher. Other failed or newly saved inputs are excluded.
+
+The existing retry and supervisor engines are unchanged: 300-second store-lock
+waits, 180-second delayed continuation and at most ten automatic continuations.
+A separate private batch, paired receipts and native evidence directory preserve
+the earlier terminal failures. This does not reset or refund the original budget.
+
+The one-use launcher started at 2026-09-18T02:07:07.245153Z as PID 371952.
+The locked immutable baseline contained 45,207 outputs; 11,501 original evidence
+files were hashed for preservation. Source pins still match the existing
+21-check timeout correction and unchanged 58-check baseline, so these results
+were reused. The private helper passed syntax and bounded membership/readiness
+checks. No full suite, production change, scheduler change, provider fetch,
+extra review, API fallback, commit or push is included.
+
+Evidence: .local/transcript-failed21-retry-20260918/ contains authorization,
+the prior full-text transfer approval, original evidence hashes, database
+baseline, exact selected entries, frozen plan, validation, preflight, one-use
+launcher and started receipt. Its result.json and completion-audit.json record
+the final outcome when available. The active-run pointer identifies this batch.
+
+
+### Completion of the explicit 21-input retry
+
+The retry completed at 2026-09-18T02:10:50.845659Z: all 21 outputs saved,
+28 native calls including seven automatic retries, zero terminal failures and
+zero automatic continuations. The original expanded population now has all
+11,192 outputs; historical failed receipts remain unchanged.
+
+The locked immutable completion audit at 2026-09-18T02:12:28.780977Z
+verified all 21 exact source/request/response/output/assessment bindings,
+Luna/high subscription receipts for all 28 calls, preservation of all 45,207
+previous output identities and all 11,501 protected original evidence files,
+and zero foreign-key violations in both structured transcript tables.
+The verified total is 45,228 outputs. This verifies faithful publication of
+model drafts and automatic assessments, not independent factual approval.
+No additional call or population was started.
+
+The private completion receipt and backlog summaries were updated. Production
+code and earlier test pins remain unchanged; required operational checks passed.
+Evidence: .local/transcript-failed21-retry-20260918/result.json and
+completion-audit.json.
+
+
+## September 18, 2026 - incremental Equibles refresh prepared
+
+The user approved implementing a quota-conscious live transcript refresh with
+recent-reporting tickers on weekdays and fallback work on both weekend days.
+The [incremental contract](EQUIBLES_INCREMENTAL_REFRESH_2026-09-18.md) records
+the fixed 2,222-ticker roster, proposed daily 02:00 America/Toronto schedule,
+shared 100-request UTC-day ceiling, finite retry policy, retained-page recovery
+and deduplicated private Luna queue. It introduces no automatic model calls.
+
+The implementation and 148 unique component/direct-consumer checks passed,
+including the final 35-case refresh run. A separate read-only reviewer passed
+ten affected checks and found no remaining blocker. Systemd definition
+validation passed. This evidence does not claim a live provider run.
+
+Automatic approval review rejected activation before execution because it
+requires explicit confirmation to narrow the shared account cap, create
+activation state and install/enable the recurring timer. The concrete request
+also includes one initial fetch inside the same 100-call daily cap.
+Until that confirmation is received, this new job remains inactive and the
+existing account cap is unchanged. No provider requests have been made for
+this implementation. Evidence: .local/equibles-refresh-20260918/.
+
+## September 19, 2026 - WSL host scheduling repair
+
+The user explicitly requested fixing the repeated WSL shutdowns and broken host
+launch setup. Eight obsolete Windows QuantData tasks referenced a missing legacy
+script and returned 127; their exact definitions were backed up before disabling.
+One least-privileged, interactive Windows host-wake task now launches only
+Ubuntu /usr/bin/true two minutes before the existing collection slots and at logon.
+It does not execute a collector. Supported WSL idle-retention settings and the
+Ubuntu cloud-init opt-out removed the observed host lifecycle failures.
+
+Independent preactivation review passed after bounded corrections. A quiet,
+graceful service shutdown and VM restart reduced observed startup from 124.242
+to 3.296 seconds. All 13 existing Linux timer definitions remained byte-identical
+and recovered enabled/active/waiting. The actual Windows wake schedule passed
+366-day/11,929-slot coverage; a 90.181-second idle observation retained the same boot.
+No manual provider call, retry, completed-population repeat, store operation,
+collector schedule change, new credential, or exposure was performed.
+
+This is dated host evidence, not proof of future provider outcomes. The task uses
+the existing signed-in Windows identity; power-off/signed-out execution and
+sleep/resume were not validated. Earlier collector/data-gap failures remain separate.
+Details, rollback paths, source hash, and exact evidence are in
+[the WSL host repair record](WSL_HOST_REPAIR_2026-09-19.md).
+
+
+### September 19, 2026 - Sharadar primary and conditional SEC facts
+
+The user's approval to implement the Sharadar-primary recommendation supersedes
+the earlier full-pair-every-day SEC refresh policy for future normal weekday
+07:15 executions only. The selected roster, existing timer, provider credentials,
+4,500-request/12-GiB/six-hour cap and no-retry policy remain in force.
+SEC submissions stay current; CompanyFacts is conditional on unseen financial
+accessions or a separately authorized finite discrepancy/gap check.
+The [focused contract](SHARADAR_PRIMARY_FUNDAMENTALS_2026-09-19.md) defines
+consumer versions, trigger semantics, finite targeted checks and retained-state
+boundaries. Existing SEC history and old ledgers remain retained.
+
+The existing service entry point loads this policy on its next scheduled run.
+Implementation does not manually trigger the timer or fetch any provider data.
+This decision changes future behavior and is not evidence that a post-change
+live run has already succeeded.
+
+
+The scoped offline checks and fresh independent verification completed
+successfully; validation and the observed cold-read limitation are recorded in
+the focused contract. Read-only runtime discovery and AAPL v3 reads succeeded.
+The installed SEC timer remained active/enabled, next September 21 at 07:15 EDT.
+No post-change scheduled run or manual provider request is claimed.
+
+
+## September 19, 2026 UTC - selective blocked-extraction rerun prepared; transfer gate
+
+The user approved rerunning genuinely blocked transcript extractions with Luna
+and storing the results. A locked immutable check of all 9,105 currently blocked
+saved extractions selected 3,807 across 1,598 tickers with structural errors;
+5,298 validator-only or ambiguous cases remain deferred, with their statuses
+unchanged. The selection includes 3,790 Luna and 17 Terra originals. It excludes
+the 62 captures without saved extractions. The scope is a single fresh attempt
+per selected transcript, 3,807 calls maximum, no review calls or automatic
+retries, using Luna/high and 20 workers through the existing OpenAI Codex
+ChatGPT subscription. New response identities bind the original response hash;
+the existing publisher appends versions and preserves the original drafts.
+
+Plan `130928215e36af16cedd3eba44b75ef3b81229a1eae4922100df66256425d028`
+and exact selection/source hashes are frozen privately under
+`.local/transcript-blocked-rerun-20260919/`. Nine focused offline tests passed
+after correcting private-directory creation, covering append-only lineage,
+zero-call replay, failed-attempt finality, stale selection, publication recovery,
+evidence tampering, truthful blocked status, and conservative selection.
+
+Automatic approval review rejected the launch before execution: it acknowledged
+rerun and storage approval but required explicit authorization to transfer the
+sensitive full-transcript payload to OpenAI through the Codex subscription.
+No workaround or indirect launch was attempted. There were zero model calls
+and zero new database outputs. A locked immutable postcheck confirmed all
+45,228 outputs and 45,243 assessments unchanged. The scoped launch awaits that
+explicit payload/destination confirmation. Evidence: `launch-blocked.json`,
+`triage-summary.json`, `prepared-plan.json`, `authorization.json`,
+`validation.json`, and `RUN_STATUS.md` in the private directory above.
+
+
+## September 19, 2026 UTC - requested standalone transcript sharing copy prepared
+
+The user requested a dedicated `transcripts.sqlite` copy after the selective
+Luna rerun, containing raw transcripts and extracted summaries for sharing with
+a friend, while leaving existing infrastructure and workflow unchanged. The
+fixed output is `exports/transcripts.sqlite`; it is a non-authoritative, one-time
+local artifact, not a registered operational store or public export service.
+No external file delivery was requested or attempted.
+
+Private contract `transcripts_share_snapshot.v1` and the tested helper under
+`.local/transcripts-share-20260919/` preserve exact raw-page bytes, all extraction
+versions and assessment JSON, and add readable/latest-summary views. Source
+reads use the physical company lock and pinned immutable reader to form a
+consistent transcript-only SQLite snapshot. Rendering occurs from that detached
+read-only snapshot. Count and typed-column hashes, foreign-key checks, integrity
+checks, and non-overwriting atomic publication gate the final file. This adds no
+registry entry, migration, collector, timer, path binding, or application change.
+
+Five focused offline tests passed after a fixture setup correction, with explicit
+temporary stores and no network/default-store fallback. The copy authorization,
+fixed scope, implementation hash, tests and current status are retained in
+`copy-authorization.json`, `validation.json`, and `STATUS.md` in that directory.
+No live snapshot or final database was created: the requested sequencing waits
+for the preceding rerun, whose full-text transfer remains at the automatic
+approval gate described above, or an explicit choice to copy current data.
+
+
+### September 19, 2026 UTC - sharing-copy selection narrowed to one extraction
+
+The user clarified that each raw transcript should have only one extracted
+version in the dedicated sharing database. This supersedes the all-version
+selection for that artifact only. Private contract `transcripts_share_snapshot.v2`
+selects the newest saved extraction by `available_at`, then `analysis_id`, per
+raw `capture_id`, and copies only assessments for that selected extraction.
+A unique capture constraint enforces the single-version invariant. Raw transcripts
+without extraction remain explicit, and original quality labels are preserved.
+The canonical company database retains its original extraction history; nothing
+is overwritten or deleted. Six focused offline tests passed, including equal-time
+tie-breaking, matching assessments and unchanged source-store fingerprints.
+No live snapshot or final file was created, and the separate Luna transfer
+approval remains pending. Evidence stays under `.local/transcripts-share-20260919/`.
+
+
+## September 19, 2026 UTC - full-text transfer confirmed; selective Luna rerun active
+
+In response to the scoped payload/destination request, the user confirmed:
+"OK great, now pls send those to luna and extract again". The exact approval is
+retained in `.local/transcript-blocked-rerun-20260919/explicit-transfer-approval.json`.
+Automatic review permitted the unchanged launch: 3,807 selected full transcripts
+to OpenAI via the existing Codex ChatGPT subscription, Luna/high, 20 workers,
+3,807 calls maximum, one fresh attempt per input, no automatic retries or reviews.
+This supersedes only the earlier transfer hold for this frozen plan.
+
+The coordinator launched at 2026-09-19T22:52:45.655706Z (PID 24301).
+Initial model failures are retained without retry. The first five new saved
+outputs passed exact source/response/output/assessment comparisons. The locked
+immutable audit at 2026-09-19T22:57:42.083207Z verified all 45,228 previous outputs
+and 45,243 previous assessments unchanged, with no structured-table foreign-key
+violations. The run remains in progress; its authoritative private progress and
+result receipts are under `.local/transcript-blocked-rerun-20260919/`.
+
+A one-shot, no-model completion helper (PID 43956) waits for this exact
+finite run, verifies all new saved outputs and original preservation, then invokes
+the tested latest-only `transcripts.sqlite` exporter. Paused, incomplete or
+out-of-scope results stop for attention; the helper adds no model retry, recurring
+unit, scheduler or operational path change. Its finalization gate accepted two
+valid terminal cases and rejected six incomplete/out-of-scope cases. Export
+validation remains six passing temporary-store tests. Current follow-up status:
+`.local/transcripts-share-20260919/pipeline-status.json`; export completion
+receipt will be `completion.json`. No final sharing database exists yet.
+
+
+## September 19, 2026 UTC - user-requested increase to 50 Luna workers
+
+The user requested up to 50 Luna workers for the active selective rerun. This
+changes runtime concurrency only: the frozen 3,807-transcript selection,
+3,807-call cap, Luna/high profile, full-text transfer destination, append-only
+publication and zero automatic retries remain unchanged. The scoped approval
+is `.local/transcript-blocked-rerun-20260919/concurrency-50-approval.json`.
+
+The original coordinator was signalled with SIGINT on its main thread so its
+ThreadPoolExecutor waits for in-flight jobs to finish. Native model child
+sessions were not signalled. The idle one-shot export waiter was stopped for
+reconnection to the continuation. A bounded one-time transition controller
+launched at 2026-09-19T23:10:44.177740Z (PID 74515) waits up to
+25 minutes for the existing calls and coordinator to drain. At this readback,
+1 native call remained in flight; 186 calls had started in the initial
+20-worker segment. No 50-worker launch is claimed yet.
+
+On drain completion the controller verifies every original attempt is terminal,
+freezes hashes of its evidence, resumes the unchanged plan with the supported
+50-worker override, checks the old evidence remains unchanged, and reconnects
+the same latest-only transcript export. It cannot add inputs or retry terminal
+failures. Resume guards preserve the original runner and its nine-test pin.
+The export finalization gate still rejects incomplete/out-of-scope results;
+its coordinator tracking was extended to the new private launcher. Source
+compilation and pure completion-gate checks passed.
+
+Live transition evidence is `resize-status.json`; activation will be recorded
+in `runtime-started.json` and `resize-preflight.json`, with ongoing progress in
+`live-status.json`. The resumed export waiter writes `finalizer-resumed.json`
+and `pipeline-status.json` under `.local/transcripts-share-20260919/`. No
+recurring unit, infrastructure configuration, model prompt, or canonical schema
+was changed.
+
+
+## September 20, 2026 UTC - selective Luna rerun and sharing copy completed
+
+The 50-worker continuation completed at 2026-09-20T01:02:20.601249Z after exactly
+3,807 total native Luna/high subscription calls across both concurrency segments.
+It saved 3,735 new output versions and retained 72 terminal model failures with
+no retry. Automatic assessment outcomes for the new versions are 578 accepted,
+1,955 accepted with flags and 1,202 blocked. The remaining blocked status is
+retained truthfully; neither model completion nor storage claims verified facts.
+
+The locked immutable completion audit at 2026-09-20T01:04:07.822695Z verified all
+3,735 new source/response/output/assessment relationships, all 45,228 original
+output identities and 45,243 original assessments unchanged, and zero structured
+foreign-key violations. There are now 48,963 canonical output versions. The
+original 20-worker segment evidence was also hash-preserved through continuation.
+
+The one-shot export then completed at 2026-09-20T01:06:48.010848Z.
+`exports/transcripts.sqlite` contains 45,290 raw captures, 45,290 exact raw pages,
+45,228 latest-only extractions and 45,243 matching assessments. Exactly one
+extraction per capture is enforced; 62 captures remain explicitly missing an
+extraction. Copy quality totals are 5,653 accepted, 33,003 accepted with flags,
+and 6,572 blocked. It is a self-contained SQLite file of 2,886,385,664 bytes,
+with no WAL/SHM/journal dependency. Exact copied-column hashes, integrity and
+foreign-key checks passed. SHA-256:
+`aa40bb10ce874dba0740147c11479b44d4078b2516d9b1b85b5c0dfc9c26c2aa`.
+
+The database can be shared as the requested standalone copy. No file was sent
+to another person. Existing store ownership, schema, collectors, paths and
+workflow remain unchanged. Completion evidence is retained under
+`.local/transcript-blocked-rerun-20260919/completion-audit.json` and
+`.local/transcripts-share-20260919/completion.json`; current human-readable
+status files and the private run pointer have been updated to completion.
+
+## September 20, 2026 UTC — announcement-based forward P/E research artifact
+
+The user's implementation request authorized a manual retained-data reconstruction
+of four-quarter forward EPS and daily forward P/E, rolling on actual earnings
+announcements. The method and command are documented in
+[the forward P/E research guide](../FORWARD_PE_PROXY.md). It adds two isolated
+calculation/builder modules and focused tests; no canonical schema, public-tool
+contract, collector, recurring unit or UI behavior changes.
+
+The completed build used cutoff `2026-09-20T03:52:40.119234Z`, processed 2,182
+retained quarterly-estimate tickers, and wrote
+`exports/forward-pe/20260920T035241048695Z.sqlite` (6,058,237,952 bytes).
+It contains 12,636,373 daily rows and 6,428,083 provisional P/E values across
+1,936 tickers; 246 tickers have no numeric P/E. All numeric ratios retain the
+explicit unresolved currency/share-basis flag. Unknown announcement time rolls
+to the next US cash-equity session; unmapped/conflicting periods, missing
+quarters/prices and nonpositive EPS remain explicit gaps.
+
+There were zero provider calls, credential reads, canonical writes, migrations,
+scheduler actions or external transfers. Source reads used coordinated physical
+locks and quiet immutable readers, with a shared build cutoff and per-instrument
+coherence. The output is a separate immutable research artifact, not point-in-time
+consensus or operational authority.
+
+All 26 focused tests passed; SQLite integrity/foreign-key checks and eight
+source-arithmetic spot checks passed. The companion manifest preserves both
+implementation hashes; a basename-key collision in the initial embedded hash
+map was corrected for future builds without rewriting this completed database.
+Private execution source copies and receipt are in
+`.local/forward-pe-20260920/`. Earlier three-ticker pilot artifacts and an
+interrupted full derivative build remain separate; the interruption removed a
+repeated metadata scan and performed no provider retry or source mutation.
+
+## September 20, 2026 — weekly price repair empty-response recovery
+
+The user's explicit request authorizes fixing per-ticker empty-response
+handling and one manual recovery of the failed September 14–18 weekly price
+repair. The finite provider scope is ATAI/IRBO for that same week: reuse the
+retained ATAI empty response and make at most **one new IRBO FMP full-EOD
+request**, bounded to 64 KiB/five rows and the existing 60-minute invocation
+deadline, with zero retries. Use the existing `host_fetch(ROOT, "fmp",
+environment={})` credential resolver/shared allowance, fixed `data/market.sqlite`,
+physical locks and missing-only publisher. Existing prices and original run
+receipts are preserved; no alternative symbol, older gap or population is
+authorized by this recovery.
+
+The component change records empty arrays as unresolved ticker outcomes and
+continues other units. Provider stops and uncertain requests remain fatal.
+The new explicit recovery guard checks original request/byte accounting and
+uses only its unused attempt allowance. The existing Saturday timer and service
+configuration are unchanged; normal future runs use the corrected wrapper.
+See [weekly repair](WEEKLY_PRICE_REPAIR_2026-09-15.md#empty-response-isolation-and-explicit-recovery--september-20-2026).
+Task preimages and the exact read-only preflight are retained under
+`.local/weekly-price-repair-recovery-20260920/`. Completion evidence follows
+the bounded manual invocation; this scope entry alone makes no execution claim.
+
+The authorized manual recovery completed with exactly one new IRBO request
+(HTTP 200, empty array, two bytes) and reuse of ATAI's saved empty response.
+Both tickers were processed; `failure=null`. Zero canonical prices were
+published. Ten missing price rows and the existing eight calendar/listing
+issues remain honestly flagged as `complete_with_gaps`; no extra request or
+retry followed. All eight original immutable evidence files and the scoped
+canonical rows were unchanged. Queue totals reconcile to two requests/four
+bytes across original run and recovery, with no pending request or false
+publication receipt.
+
+The final 31 affected weekly/history tests passed, alongside the earlier 26
+adjacent history-window/publication-deadline checks. Independent verification
+inspected the 31-test log and eight additional guard probes; its missing-ledger
+finding was corrected before execution. Final source hash and both preflight
+and execution lineage are recorded in `manual-execution.json` and
+`completion.json` under the task evidence directory.
+
+
+## September 20, 2026 — targeted historical stock-price gaps
+
+The user explicitly requested a targeted fill of historically missing prices
+outside the weekly patch. The frozen read-only audit and a fresh locked
+immutable preflight identify 82,646 missing dates across 724 equities, all
+before September 14, 2026, within each instrument's existing saved-history
+boundary. The latest-week ATAI/IRBO empty cases are excluded.
+
+One finite pass groups those exact gaps into 1,446 bounded historical windows,
+prioritizing August 17–September 1 gaps. Maximum: 1,446 FMP full-EOD GETs,
+512 MiB total response bytes and 3,600 seconds, with zero retries. Use the
+existing host_fetch(ROOT, "fmp", environment={}) credential resolver and shared
+provider allowance, fixed data/market.sqlite, physical locks, original-response
+validation and the existing transactionally missing-only publisher. Previously
+saved prices cannot be corrected; any returned new date outside the frozen
+target set rejects that response. Empty or invalid responses remain unresolved;
+provider stops and uncertain attempts stop the invocation. No recurring unit,
+calendar convention, identity, schema or price semantics changes.
+
+Manifest and baseline:
+data/.operations/collection/daily-prices/targeted-gap-fill-20260920/.
+One-time driver and focused fixture evidence:
+.local/historical-gap-fill-20260920/ (22 passing checks: six new response and
+preservation cases, six direct price cases, nine historical-window cases and
+one empty-response isolation case). This authorization/preflight entry does
+not itself claim execution or completeness. A bounded canonical postcheck
+will record actual fills, unresolved dates and existing-price preservation.
+
+
+The pass completed at 15:35:52 UTC with all **1,446 requests**, **79,378,115
+response bytes**, no retry and no fatal/provider-level failure. It restored
+**6,074 canonical prices across 514 stocks**, comprising the entire observed
+August 17–September 1 shared gap, including GOOGL's 12 missing dates. Of the
+724 targeted stocks, 341 now have no remaining dates missing in their audited
+history. **76,572 older target dates remain**: 75,341 were absent from the
+returned provider rows and 1,231 were present in responses rejected by strict
+validation. These counts do not assert that each calendar absence represents
+a day on which the historical instrument actually traded.
+
+The 1,446 unit outcomes comprise 1,125 validated publications, 62 empty arrays
+and 259 invalid responses (250 date-bound/duplicate failures and nine OHLC
+failures). A validated publication with zero written versions is not reported
+as a repaired gap. Original response bytes remain in the private queue.
+
+The locked immutable postcheck found every baseline current-version identifier
+unchanged, no unapproved new date and no pending request. A second bounded
+lineage check matched all 6,074 new prices to the exact request scope, original
+response hash, capture timestamp and publication receipt; accounting matched
+all charged attempts/bytes. The full 2,248-stock audit therefore retains 76,577
+calendar absences, including the five excluded latest-week ATAI dates; 2,774
+remain in the five-year interval. The weekly schedule and the separate
+forward-P/E serving snapshot were not changed by this operation.
+
+Evidence: manifest.json, baseline.json, started.json, result.json,
+verification.json, completion.json and queue/ beneath the targeted-gap-fill
+root. Human-readable and exact-date results are
+exports/price-coverage/20260920/targeted-fill-result.md and
+exports/price-coverage/20260920/targeted-fill-result.json. There were no source,
+registry/schema, scheduler or canonical reader/publisher changes; the driver
+is task-local, and unrelated workspace changes remain preserved.
+
+
+## September 20 Toronto / September 21 UTC — P/E snapshot price repair
+
+Following the user's report that GOOGL still showed 1,243/1,255 sessions despite
+the completed canonical fill, one finite derived-snapshot refresh applied the
+6,074 repaired dates across all 514 affected tickers. Canonical access used
+the existing physical market lock, quiet immutable reader and capture-validated
+close binding; there were zero provider requests and zero canonical writes.
+The original snapshot and original estimate cutoff were preserved. Only the
+explicitly repaired dates and their source-price lineage were updated in a
+new artifact; full comparisons verified unchanged estimates, windows and all
+other daily rows. No timer, service, recurring automation or core source changed.
+
+Artifact: `exports/forward-pe/20260921T012728147712Z.sqlite`. The dashboard's
+current.json pointer was atomically switched only after integrity, foreign-key,
+source/calculation and full snapshot comparisons passed. GOOGL's actual HTTP
+page and derived reader returned **1,255/1,255**, as did AAPL and NVDA. Three
+isolated merge tests and 31 calculation/dashboard regressions passed. Browser
+automation could not initialize its Windows sandbox; no browser automation
+success is claimed. Evidence: `.local/forward-pe-price-refresh-20260920/` and
+the new artifact's adjacent manifest. The manual price-only run took 420.956
+seconds, within its 900-second bound; the daily P/E schedule remains inactive.
+
+
+## September 20 Toronto / September 21 UTC — forward P/E quarter matching
+
+The user explicitly approved fixing the quarter matcher after the MU diagnosis.
+The local research calculation now prioritizes a unique exact positive
+reported-revenue match to a statement period over inconsistent transcript
+fiscal labels, preserving a visible warning and all existing explicit-period,
+ambiguity, 120-day, announcement-timing, cutoff and nonpositive-EPS rules.
+This changes the derived research calculation only; no shared identity, source
+time/missingness, schema, provider or canonical publication rule changes.
+
+One finite snapshot revision reprocessed 40 affected tickers (335,883 daily
+rows) from the already saved immutable inputs. Source inputs were verified
+byte-identical and all prices unchanged. Zero provider requests, canonical
+reads or canonical writes occurred. The original artifacts remain available.
+Artifact `exports/forward-pe/20260921T015229883870Z.sqlite` passed full integrity
+and foreign-key checks before current.json was atomically switched. MU now
+serves 943/1,255 five-year P/E observations, with 312 nonpositive-EPS sessions;
+GOOGL retains 1,255/1,255. Both were verified in actual HTTP responses and the
+bounded reader. Thirty-six focused calculation/dashboard checks passed.
+
+The initial unpublished bulk replacement was interrupted after detecting
+repeated full-table foreign-key scans. Its completed recomputation and staging
+copy were reused with final mandatory constraint validation; the successful
+continuation ran 455.941 seconds under its 600-second cap. Original failure
+output is retained. WSL command startup also timed out transiently; direct
+Linux-runtime checks verified the job continued and completed. No host service
+was restarted, and no browser automation success is claimed. Evidence and
+preimages: `.local/forward-pe-quarter-match-20260920/`; completion is also in
+the new artifact's adjacent manifest. There was no commit, push or recurring
+activation in this scope.
+
+
+## September 20 Toronto / September 21 UTC — signed forward P/E
+
+The user approved updating the research calculation and dashboard to display
+negative P/E as Expected loss, distinguish zero EPS from missing inputs, and
+break the P/E chart whenever forward EPS changes sign. This supersedes the
+previous derived nonpositive-EPS display rule; other data/basis blockers stay
+in force. No shared canonical semantics or schemas change.
+
+One finite saved-input revision changed 12,357 windows and 748,105 daily rows
+across 946 affected tickers. It adds 746,102 negative ratios, with 1,840 zero-EPS
+sessions separately undefined. Prices, source inputs, positive ratios and
+cutoffs are preserved. There were zero provider requests, canonical reads or
+canonical writes. The artifact is
+`exports/forward-pe/20260921T033230486298Z.sqlite`; current.json was atomically
+selected only after full integrity and foreign-key checks passed. Earlier
+artifacts remain immutable. Unpublished validation failures are retained in
+the receipt directory; final validation reused the completed calculation.
+
+MU's actual HTTP page and Chromium browser now show 1,255/1,255 five-year
+ratios, including 312 negative. GOOGL, AAPL and NVDA retain full five-year
+coverage. Thirty-nine focused tests and desktop/mobile/no-JavaScript browser
+checks passed; screenshots were visually reviewed. The existing manually
+launched Inspector on port 8766 was restarted to load code and cached assets.
+No recurring unit was changed or activated; no commit or push was performed.
+Evidence: `.local/forward-pe-signed-20260920/` and the artifact's adjacent manifest.
+
+
+## September 21, 2026 — all-ticker forward-P/E quarter reconciliation
+
+The user approved the audit recommendation to handle fiscal-label aliases,
+corroborated announcement/quarter disagreements, estimate-date revisions and
+observed long retail quarters in the derived research calculation. This permits
+one finite revision of all 2,182 retained ticker inputs and selection of its
+validated serving artifact. It adds no provider workload, canonical mutation,
+new daily schedule or change to shared source identity/time semantics.
+
+Artifact `exports/forward-pe/20260921T041832814628Z.sqlite` reuses byte-identical
+saved inputs and unchanged prices/cutoffs from its signed-P/E parent. The
+refresh preserves all 12,636,373 daily rows and every previously numeric ratio,
+adding 54,438 ratios across 169 tickers over all history (22,123 across 128
+tickers in the five-year view). C and ADBE now serve 1,255/1,255 five-year
+ratios; MU retains its 312 negative ratios. Unsupported evidence remains
+flagged: the five-year universe still has 289,490 unavailable/undefined ratios.
+
+The one-time computation completed in 809.849 seconds under 1,800 seconds and
+the separate validation in 111.962 seconds under 900 seconds. Full SQLite
+integrity/foreign-key checks, saved-input byte equality, metadata/source-code
+hashes, targeted arithmetic and counts passed before the atomic pointer switch.
+Fifty focused tests passed; Chromium verified the live C, ADBE, MU, GOOGL and KR
+pages, selected-day components and provenance, negative ratios and mobile
+overflow, with no JavaScript errors. Screenshots were visually reviewed.
+
+There were zero provider requests, canonical reads/writes, service restarts or
+recurring-unit actions. A transient WSL connection timeout affected a status
+read only; the existing completion log and later Linux browser check confirmed
+normal completion. No commit or push was performed. Prior artifacts remain
+immutable. Evidence: `.local/forward-pe-link-fix-20260921/`, the adjacent artifact
+manifest, and the detailed receipt in `docs/FORWARD_PE_PROXY.md`.
+
+
+## September 21, 2026 — daily derived research refresh approved
+
+The user approved implementing the inspected daily derived-data plan: one
+retained-input runner at 23:30 weekdays and 06:30 daily, America/Toronto,
+plus preserving additions to the existing Windows host-wake schedule two
+minutes before those slots. Forward EPS, quarter matching, P/E, and derived
+coverage/freshness are the initial scope. Existing provider schedules, source
+stores and the transcript sharing copy remain outside mutation scope.
+
+The concrete finite initial run and recurring limits, compact overlay,
+per-ticker missingness, historical denominator preservation and runner-owned
+copy retention are specified in docs/DERIVED_REFRESH_PLAN.md. The workload
+makes zero provider requests and no canonical writes. New service installation
+and activation follow focused tests and independent boundary verification.
+This entry records approval and implementation scope, not live completion.
+
+
+### Observed activation and bounded first-run completion
+
+On September 21 the two new derived unit files were installed; systemd observed
+the timer enabled/active with next execution at 23:30 EDT September 21, then
+06:30 EDT September 22. Windows QuantData-WSLHost now has 16 triggers. Its
+14 pre-existing triggers, action, principals and settings were verified
+unchanged after adding the two approved wake slots. No collector timer or
+provider workload changed.
+
+The single initial local run checked all 2,182 members in 799.218 seconds and
+completed September 21 at 12:27:14 Toronto. It selected compact artifact
+exports/forward-pe/20260921T161355001773Z.sqlite (1,818,624 bytes), pinned to the
+unchanged historical artifact. No new sessions or changed price versions were
+found through the September 18 completed session. It retains 12,636,373 daily
+rows and 7,243,982 numeric ratios: 217 ticker cohorts were current and 1,965
+flagged older/unchecked estimate or earnings captures; no cohort was unreadable.
+There were zero provider requests and canonical writes.
+
+The detailed publication receipt, quick-check, foreign-key check and targeted
+merged-reader coverage checks passed. The generic activity summary initially
+warned because exit 0 was incompatible with partial counts. Its original exit
+receipt is preserved; the new runner now returns 2 for complete_with_gaps so
+future summaries satisfy the established recorder contract. No shared receipt
+validator changed and no second population run was performed. Independent
+verification cleared this correction and the missing Status description found
+during live browser acceptance.
+
+Component validation: 112 tests, then 51/64 affected checks after the two live
+integration corrections (114 distinct checks overall), plus independent
+boundary verification. Chromium verified C/MU coverage, negative P/E, selected
+days, the new Status section and mobile layout. The manual Inspector was
+restarted; no recurring collector was restarted. No commit/push occurred.
+Complete receipts, task preimages, tests, screenshots and host task XML are in
+.local/derived-refresh-implementation-20260921/. The detailed implementation and
+limitations are in docs/DERIVED_REFRESH_PLAN.md.
+
 ## September 22, 2026 - selected company short descriptions completed
 
 The user authorized populating a short description for all selected tickers,
@@ -4267,6 +6108,230 @@ There is no new scheduler, public tool, UI, export, hosting, or provider family.
 See [the contract and completion evidence](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md)
 and .local/company-short-descriptions-20260922/completion-receipt.json.
 
+
+## September 22, 2026 — Q/XOM identity correction and derived-status presentation
+
+The user explicitly requested mapping Q to Qnity Electronics, Inc. and XOM to
+ExxonMobil Holdings Corporation, correcting the derived-calculation UI labels,
+and explaining why announcements select the estimated-EPS quarter window.
+The finite identity operation corrects exactly two members of the existing
+2,248-member FMP mapping: Q to CIK 0002058873 and XOM to CIK 0002115436.
+Use retained Q FMP profile bytes, the retained SEC directory, existing canonical
+issuers and an explicitly labelled user-reviewed XOM issuer association. Preserve
+FMP's predecessor XOM CIK 0000034088 in its original evidence. Append through
+the existing mapping publisher; preserve all other mapping rows, instruments,
+source data and historical versions. Update only the existing selected-company
+activation population's mapping references so its guard accepts this correction.
+Maximum provider requests: zero; no company-store writes, new migration, timer
+change, collector invocation, retry, or historical population repeat.
+
+The UI uses a read-only projection of completed derived-publication receipts and
+identity/time-bound successful source-check receipts, including unchanged checks.
+Original run counts, capture dates and ratios remain intact. The P/E formula and
+its announcement-based selection of the next four unreported quarters are unchanged.
+Task evidence: .local/q-xom-derived-status-20260922/. Completion follows below.
+
+## September 22, 2026 — Sharadar timed retry policy approved
+
+The user approved two recovery attempts for known server failures, at 10 and
+30 minutes after the initial failure, then recovery on the next scheduled day,
+plus one bounded catch-up of the September 22 failed batch. The existing request,
+byte, duration and daily limits still apply. No other recurring unit or provider
+is authorized to retry by this decision.
+
+The [Sharadar recovery contract](SHARADAR_DIRECT_MIGRATION_2026-09-12.md#september-22-2026--bounded-sharadar-server-error-recovery)
+owns the exact evidence-preserving implementation and validation scope. At this
+entry, local validation is in progress; no provider recovery has been executed.
+
+## September 22, 2026 — Q/XOM correction and derived UI completion
+
+The finite correction published at 2026-09-23T02:48:58Z (September 22 Toronto):
+collection_mapping_f81aa1375470ce8076e63d0cc75eede3 supersedes
+collection_mapping_024203001061dddb7fe0db9e0c01aa92. Exactly Q/XOM changed;
+2,246 members and their existing instrument identities are preserved. Both now
+resolve through the established selected FMP subject reader to their existing
+canonical issuers. Scoped mapping foreign keys passed and semantic replay
+returned unchanged/zero writes with identical market database/sidecar file
+fingerprints. Original activation bytes are retained; its four population
+mapping references alone now select the new mapping. Provider requests and
+company-store writes were zero; no collector or population was rerun.
+
+The UI projection and presentation changes are implemented. The manual local
+Inspector alone was reloaded; recurring units were untouched. Its stale startup
+version check and one assertion were aligned to the already existing registry
+2.91.0 so the corrected UI can load. No registry or migration changed in this task.
+The unrelated frozen predecessor test in tests.tool_platform.test_forward_pe_tools
+still compares the pre-existing 2.91.0 short-description migration against 2.90.0;
+its failure is preserved separately and not repaired by this task.
+
+
+## September 23, 2026 — daily-price mapping guard repair and one catch-up authorized
+
+The user explicitly requested fixing the daily-price startup conflict and one
+September 23 catch-up. The scheduled 18:00 run stopped before acquisition:
+the Q/XOM issuer correction changed the FMP mapping snapshot ID, although all
+2,248 equity price identities and 111 retained ETF/index entries were unchanged.
+
+The price-only compatibility check reconstructs the approved selection at the
+original activation cutoff, validates both pinned selections, and permits only
+CIK and explanatory-note differences. Membership, price symbols, instrument
+identities, provider subjects, resolution status and retained universe snapshots
+must remain identical. Original activation, history, quarantine and audit bytes
+and their hash checks remain authoritative and unchanged. Shared mapping and
+publisher contracts are unchanged.
+
+The one manual run targets session September 23, the existing September 17–23
+seven-day window, at most 2,357 FMP requests after the reviewed ATAI/IRBO
+exclusions, 160 MiB and 1,755 seconds, with zero retries. It uses the existing
+project FMP credential resolver, fixed daily-price queue and replay-safe market
+publisher into data/market.sqlite. No timer cadence change, provider substitution
+or additional population is authorized. Evidence is retained under
+.local/daily-price-gate-20260923/.
+
+Execution evidence: after the derived job finished, the approved WSL restart
+restored Linux command execution. All 30 focused offline tests passed in
+31.140 seconds, and the live read-only preflight passed with all original
+approval hashes unchanged. The existing market-close service was started once
+at 2026-09-23 23:52:19 EDT for the September 23 session. Run receipt 5c4ce28f06844fd9897c2be38faf769f
+records this separate invocation. AAPL returned HTTP 200 with September 17,
+18, 21, 22 and 23 prices and a successful canonical publication. The 2,357-unit
+plan is running; this is launch evidence, not a claim of whole-run completion.
+See launch-evidence.json, preflight.json and tests.log in the evidence directory.
+The original failed 18:00 run remains historical evidence.
+
+## September 22, 2026 — inactive prices and XLE/XLK repair authorized
+
+The user approved stopping future daily and weekly price requests for ATAI and
+IRBO while preserving history, and fixing XLE/XLK options with one fresh
+September 22 New York session acquisition. Scope: at most 50 Alpaca requests,
+64 MiB, 300 seconds, zero retries; fixed paper/indicative feed and existing
+project credential resolver. One shared OPRA calendar and fixed ETF underlying
+snapshot precede only XLE/XLK catalogs and their existing ten-DTE expiry grid.
+Retain original responses before parsing for offline correction without more
+GETs. Canonical publication is limited to XLE/XLK through the existing locked,
+replay-safe publisher into data/market.sqlite after focused checks. No other
+option cohort, timer action, schema change, proxy substitution or FMP
+population is authorized. ETF proxy research is read-only. Evidence lives
+under .local/market-close-repair-20260922/. This entry asserts authorization,
+not successful acquisition or publication.
+
+
+Q/XOM and derived UI validation evidence is retained under
+.local/q-xom-derived-status-20260922/: 174 focused tests passed; one unrelated
+registry-predecessor assertion remains failing. Actual GOOGL/Q HTML pages and
+mobile layouts passed. Browser testing identified and corrected a cold P/E
+reader deadline regression by moving source-check projection to the HTML layer,
+pinned to the returned immutable snapshot hash. Nonselected calendar days use
+publication receipts without re-indexing source checks for the entire month.
+The existing dataset-summary query remains slow (35.302 seconds in the isolated
+read before its deadline); this path was not modified. Provider requests remain
+zero and no canonical P/E value or formula changed.
+
+Final actual Status browser acceptance passed at HTTP 200 in 47.955 seconds:
+2,182 calculated / 2,180 current checks / two input warnings, with original
+counts preserved. Calendar wording, keyboard details and 390px mobile layout
+passed. The existing stored-data summary displayed its deadline/unavailable
+warning; its latency remains an explicitly recorded limitation. Final evidence:
+.local/q-xom-derived-status-20260922/browser/status-final-result.json.
+
+
+## September 22, 2026 — Sharadar recovery implemented and catch-up verified
+
+The approved Sharadar-only server-error policy is implemented: recovery at
+10 and 30 minutes after the initial failure, then the next scheduled day,
+within the existing request, byte, duration and daily limits. The
+[recovery contract and completion evidence](SHARADAR_DIRECT_MIGRATION_2026-09-12.md#september-22-implementation-validation-and-catch-up-completion)
+record its exact scope and validation. Ninety focused tests and independent
+review passed before the one authorized live invocation.
+
+The catch-up completed September 22 at 23:21:02 EDT (exit 0): 447 additional
+requests, all HTTP 200, completed the remaining 447 of 450 partitions for the
+fixed September 22 window. It consumed 1,529,390 bytes and 494.709 seconds.
+The first recovery succeeded; no second retry or additional manual invocation
+was needed. The immutable postcheck verified all new response hashes and
+publication links, preserved prior identities and the original failure evidence.
+Receipt: .local/sharadar-retry-20260922/postcheck.json; saved run
+4f26afa4ce6f4550b8edd5423660b9b9.
+
+The existing timer remains active with its next run September 23 at 05:00 EDT.
+No unit configuration, timer cadence, other provider retry policy, credential,
+schema or database path changed. This completion consumes the one approved
+manual catch-up and grants no additional manual invocation.
+
+## 2026-09-23 — reviewed reporting-period correction for 207 derived symbols
+
+The user's September 23 request explicitly authorized manually resolving the
+remaining uncertain period associations and applying the reviewed 207-symbol
+cohort in production so forward estimates can be selected. One bounded
+retained-input repair published 20260923T042427803995Z.sqlite for September 22:
+207 reviewed latest-session rows (206 replaced, one missing AGM row added),
+186 numeric research P/E values and 21 explicit input/calendar/release gaps.
+The existing 900-second operation bound and 512 MiB export bound were honored.
+There were zero provider requests, zero canonical writes, no timer/unit changes
+or manual recurring-unit execution, and no earlier/unselected daily-row or
+existing-price changes. The previous publication's bytes were verified intact.
+The fixed catalog has 208 event-specific decisions for 207 symbols, including
+Abivax's newer H1 event; future normal clock execution uses those exact-event
+reviews, with inferred-period flags and existing estimate/basis safeguards.
+
+Contract: [forward P/E research proxy](../FORWARD_PE_PROXY.md#reviewed-reporting-periods--september-23-2026).
+Receipt and validation: [production report](../../.local/announcement-quarter-production-20260923/production-report.md),
+[publication receipt](../../.local/announcement-quarter-production-20260923/publication.json),
+[post-publication verification](../../.local/announcement-quarter-production-20260923/production-verification.json).
+This records the finite completed user-authorized repair; it grants no new
+provider workload or repeat population.
+
+
+## September 22, 2026 — XLE/XLK repair completed
+
+Completion recorded September 23 against the earlier
+[inactive-price and XLE/XLK authorization](#september-22-2026--inactive-prices-and-xlexlk-repair-authorized).
+The single acquisition ran September 22 at 23:12:29–23:12:36 EDT
+(September 23 at 03:12:29–03:12:36 UTC), using 21 requests, zero retries and
+2,242,190 bytes. Original responses were retained before parsing.
+Publication completed September 22 at 23:34:39 EDT after independent review
+and a transient WSL command-launch delay, without further provider requests.
+
+The existing publisher added 17 captures (nine XLE and eight XLK), 1,158 present
+indicative quotes and 124 new contracts, covering all ten configured DTE
+targets for each ETF. The reproduced failure was a catalog/chain mismatch:
+six XLE and 38 XLK December 18 snapshots contained stale observations from
+2025 for contracts absent from the active catalog. The corrected normalizer
+excluded those snapshots under the strict
+[stale-chain policy](SCHEDULING_AND_LOCKING.md#authorized-in-place-alpaca-etf-option-surface-refresh).
+Original raw responses and excluded-symbol metadata remain auditable.
+Capture timestamps retain the actual late-evening acquisition time.
+
+The locked immutable postcheck verified preservation of prior capture headers,
+unchanged daily-price row count, all 68 raw-response memberships and hashes,
+and the option-table foreign keys. Exact replay of all 17 parsed inputs
+returned unchanged with zero writes.
+
+Validation evidence:
+
+- [Initial focused suites](../../.local/market-close-repair-20260922/tests.log):
+  86 tests passed.
+- [Corrected parser suites](../../.local/market-close-repair-20260922/review-correction-tests.log):
+  26 tests passed.
+- [Option reader suite](../../.local/market-close-repair-20260922/options-reader-tests.log):
+  nine tests passed. These suite counts overlap.
+- Fresh independent review passed the strict stale-exclusion boundary,
+  reader-size guard and locked immutable publication preflight. All 17 retained
+  scopes passed the actual reader; the 15 captures previously accepted by the
+  original parser retained identical semantic identities, scopes and raw responses.
+
+Receipts:
+[acquisition](../../.local/market-close-repair-20260922/options-acquisition/result.json),
+[offline replay](../../.local/market-close-repair-20260922/offline-replay.json),
+[publication](../../.local/market-close-repair-20260922/publication-progress.json),
+[completion and postchecks](../../.local/market-close-repair-20260922/completion.json).
+
+The daily and weekly price wrappers now apply the reviewed ATAI/IRBO
+acquisition exclusions while preserving existing history. EWA, EWQ, DAX, EWC,
+EWY and EWT remain researched proxy candidates; FMP availability and activation
+are pending. No timer or schema changed. This completed acquisition grants
+no further manual provider invocation.
+
 ## Retained-news read repair — September 23, 2026
 
 The user requested repair and real read-only verification of recent ticker
@@ -4283,6 +6348,7 @@ real public AAPL reads, complete as-of pagination and all eight source statuses
 passed. This does not authorize another migration, provider fetch or recurring
 unit change. Detailed hashes, timing, scope and limitations:
 [retained-news repair receipt](RETAINED_NEWS_READ_REPAIR_2026-09-23.md).
+
 
 ## September 24, 2026 — Theta historical-options discovery
 
@@ -4410,6 +6476,35 @@ First live verification 2026-09-24T23:07:10.801782+00:00: all 14 new roots saved
 requests, zero repeats, zero SPY requests, completed source caches removed.
 The completed SPY population remains 2,696 sessions. This is a dated snapshot.
 
+## September 25, 2026 - Equibles incremental refresh activated
+
+The user explicitly requested enabling the prepared Equibles refresh, resolving
+the September 18 activation-confirmation hold for this scope. The existing
+2,222-ticker roster, two provider endpoints, credential resolver, company store
+and replay-safe publisher are reused. The shared operating cap is now 100
+requests per UTC day; all historical charges and completed histories remain
+unchanged. No additional provider allocation or manual initial run was added.
+
+At 2026-09-25T13:06:28Z, the new quant-data-equibles-refresh user timer was
+enabled and active/waiting. The schedule is daily 02:00 America/Toronto,
+Persistent=true, with first scheduled execution September 26 at 02:00 EDT.
+The first-slot admission boundary is September 25 at 02:00 EDT. The completed
+historical-backfill timer remains unchanged. Activation made zero provider
+requests and no canonical writes.
+
+The locked immutable preflight found 45,290 saved transcripts. Eight original
+core/collector-test/unit hashes matched the prior independent review.
+Current validation produced 158 actual passing cases; an extra nonexistent
+module in the first invocation caused a retained loader error, and the correct
+10-case status module subsequently passed. Systemd definition verification and
+fresh independent activation review passed. Actual postcheck confirmed the
+sole account change to operating_daily_cap=100, unchanged historical usage and
+roster, an empty new request ledger, and enabled/waiting timer state.
+
+This is activation evidence, not a successful provider-run claim. Details:
+[EQUIBLES_INCREMENTAL_REFRESH_2026-09-18.md](EQUIBLES_INCREMENTAL_REFRESH_2026-09-18.md).
+Private receipts: .local/equibles-refresh-activation-20260925/.
+
 ## September 25, 2026 - ETF retry/recovery authorization
 
 The user explicitly approved one retry of failed/missing ETF requests, logging
@@ -4449,6 +6544,57 @@ match, job health is ok, 82,417 attempts match receipts and bounded phase counts
 SPY remains 2,696 sessions with zero new requests. See expansion receipt and
 .local/theta-etf-20260924/completion-verification.json for dated evidence.
 
+
+## September 26, 2026 — options monitoring dashboard
+
+The user requested a private Sites dashboard with the collector on the existing WSL host, ThetaData Standard, aggregate-only retention, and 5/10/15/30-minute priority tiers. Dashboard inbox and opt-in browser notifications are selected. This is a separate current-day monitoring unit, not a retry of completed historical populations.
+
+The frozen scope is 2,251 equities plus 15 ETFs. Each scheduled five-minute unit has caps of 2,500 provider requests, 256 MiB, 240 seconds, three workers, and zero hidden retries; session caps are 60,000 requests and 8 GiB. The unit uses its own derived monitor materialization and private outbound Site publication. Activation and validation evidence are recorded in [the monitor contract](OPTIONS_MONITOR_2026-09-26.md). No activation or successful provider-run claim is made by this decision record alone.
+
+Options Monitor activation evidence, 2026-09-26: private Site deployment succeeded
+at 17:09:53 UTC; frozen roster 2,266 symbols was published. The guarded initial
+connection and one actual systemd verification both returned market_closed with
+zero Theta requests. At 13:11:19 EDT the service finished successfully; the timer
+was enabled and active/waiting with next wake-up September 28 at 09:00 EDT.
+The new derived store had zero provider attempts and zero observations. Fifteen
+focused tests and fresh independent correction review passed; primary API,
+browser, build, and offline Web Push checks passed. See the monitor contract and
+.local/options-monitor-build/activation.json. This proves connection and
+activation, not live Theta throughput or browser delivery.
+
+Options Monitor storage follow-up, September 26: the user explicitly selected 25
+watchlist tickers per user, 100 unique across the Site, and rolling 90-session
+intraday retention. The bounded update personalizes watchlists, deduplicates
+collection, shortens diagnostic request retention to seven sessions, and removes
+acknowledged delivery copies. Provider caps, roster, cadences, timer and audience
+remain unchanged. A requested locked immutable monitor-store audit found 76 KiB
+and no market observations. Offline synthetic sizing and validation are recorded
+in [the storage report](OPTIONS_MONITOR_STORAGE_2026-09-26.md). No live provider
+request, canonical mutation, or manual recurring-unit run was performed.
+
+
+Options Monitor daily-history follow-up, September 26: the user explicitly
+requested implementation of daily ETF charts from the existing options.sqlite
+history. The private read-only consumer and derived Site cache are recorded in
+[the monitor contract](OPTIONS_MONITOR_2026-09-26.md#daily-historical-charts--september-26-follow-up).
+The initial export is capped at capture ID 37863, 80 Site POSTs, 30 minutes,
+zero ThetaData calls, and no hidden retry. Existing out-of-session clock cycles
+may export one page of at most 500 records; no unit is manually run, restarted,
+or rescheduled. The canonical source stays unchanged. This decision does not
+authorize new historical provider collection; completion evidence follows the
+actual export and private deployment.
+
+
+Options Monitor daily-history completion (September26 Eastern): private Site
+commit921d8a981bb1d0f14d7cfc9a8e04659be69182ac deployed successfully at
+2026-09-27T00:20:33.767945+00:00. Initial read-only export completed in76batches,
+37,863records, source checkpoint37863, zeroThetaData calls, no hidden retries.
+Cloud checkpoint readback and unchanged canonical metadata/no-WAL checks passed.
+Fresh independent source/SQL review and focused Python/API/browser/build gates
+passed. No unit execution or restart occurred. See the monitor contract and
+.local/options-monitor-history/ for exact evidence and limitations.
+
+
 ## September 26, 2026 — daily Theta options and weekend repair
 
 The user explicitly requested daily ThetaData collection into the existing
@@ -4475,6 +6621,7 @@ service has executed; no manual fetch occurred, and canonical stamps were
 unchanged. Live provider success remains unobserved. See the focused contract
 and .local/theta-daily-20260926/activation.json for actual evidence.
 
+
 ## September 26, 2026 — retire Alpaca options collection; Theta agent source
 
 The user explicitly requested that options data for new agent tools come from
@@ -4494,6 +6641,7 @@ coverage, daily history and daily snapshots first. These new tools are not yet
 implemented or advertised. Exact runtime discovery and retirement evidence is
 in .local/options-tool-review-20260926/.
 
+
 ## September 27, 2026 — local Theta options agent toolkit
 
 The user's "OK great, pls implement" authorizes the six proposed local read-only
@@ -4506,3 +6654,124 @@ The prior Alpaca retirement remains in effect; archived tool semantics and
 saved evidence remain intact. Validation and read evidence are retained in
 .local/theta-agent-tools-20260927/; implementation existence alone is not a
 claim of provider success or any additional operational activation.
+
+
+## September 28, 2026 — options monitor startup repair and one calendar recovery
+
+After diagnosing the missing dotenv dependency and blocked calendar admission,
+the user explicitly approved the tested runtime repair plus one calendar recovery
+for September 28, with no retry and a two-minute ceiling. The isolated monitor
+runtime now includes cached python-dotenv 1.2.3; import preflight precedes provider
+admission and startup/blocked-calendar failures publish a sanitized failure state.
+Existing unit schedule, roster and recurring bounds remain unchanged.
+
+The single authorized recovery completed with one calendar data request, 59
+received bytes, zero manual option snapshots, no retry, and no canonical write.
+It used the existing Theta credential resolver, a 1 MiB/90-second budget and
+120-second supervisor, and preserved the original 09:30 failed admission under
+a separate explicit recovery identity. The 11:20 normal clock trigger skipped
+because recovery held run.lock; no service was manually started. See the monitor
+contract and .local/options-monitor-repair-20260928/ for evidence and subsequent
+normal-clock publication observations. This approval authorizes no further
+manual provider unit or retry.
+
+
+September 28 monitor verification: the normal 11:25 ET run published 240 records
+in three batches, confirmed by private Site readback. It remained partial: 1,000
+OHLC authentication failures, one OI unavailable response, and only one published
+record with usable volume. Startup/import and upload recovery are proven, full
+market-data coverage is not. The one approved manual calendar request is consumed;
+no manual option snapshot or further retry has occurred. A separately proposed
+one-SPY snapshot diagnostic is pending, not operationally authorized by this note.
+
+
+September 28 additional explicit approval: the user replied "Go ahead" to one
+SPY option_snapshot_ohlc diagnostic (16 MiB, two minutes, no retry, no raw retention)
+and correction of the remaining integration issues. The single request completed
+at approximately 12:06:43 ET with 168,087 bytes; the preceding run.lock refusal
+made no provider request. Its approval is consumed. The tested monitor-only
+mixed-session OHLC interpretation and shared SDK login were applied at 12:11:34 ET,
+without changing recurring schedules, roster or caps. See the monitor contract
+and integration-applied.json; no extra manual provider run is authorized.
+
+
+September 28 integration verification: the ordinary 12:15 ET cycle completed
+successfully with four broad-ETF observations, eight successful data requests,
+zero request errors and one acknowledged Site publication. All four have usable
+volume, put/call and 30-day IV. Cloud state confirmed complete at
+2026-09-28T16:15:05.932Z; outbox was empty. This establishes corrected ETF data
+and upload operation, not full-universe throughput or mature anomaly baselines.
+See .local/options-monitor-repair-20260928/integration-completion.json.
+
+
+## September 28, 2026 — staggered options radar approved and applied
+
+The user explicitly approved six staggered groups for ordinary 30-minute
+universe monitoring, releasing one group every five minutes while preserving
+ETF/watchlist/liquidity/alert priorities. This supersedes aligned eligibility for
+ordinary radar names only; the existing five-minute recurring unit, frozen
+roster, credentials, request/byte/duration/worker caps and zero-retry authority
+remain unchanged. No additional manual provider execution is authorized.
+
+The 46-test isolated candidate was applied under the idle run.lock at
+2026-09-28T12:40:54.710239-04:00. The original request admission identities are
+preserved; observations/baselines use the shifted time. No timer edit, manual
+service execution/restart, canonical mutation, schema change or Site deployment
+occurred. Next normal ticks load the change; full-rotation live throughput has
+not yet been observed. See the monitor contract's staggered-collection section
+and .local/options-monitor-stagger-20260928/applied.json for exact evidence.
+
+
+## September 28, 2026 — interval-volume correction and Site UI approved/applied
+
+The user explicitly approved full-chain cumulative call/put deltas, including
+newly active contracts, and the corresponding Site chart changes. This supersedes
+strict contract-fingerprint equality for volume intervals only. Compact coverage
+counts, separate side corrections and snapshot/time checks retain failure gaps.
+Actual longer/cadence-transition intervals may be displayed but are excluded from
+normal-cadence anomaly baselines and alerts. No raw-chain persistence or historical
+rewrite was authorized or performed.
+
+Site version 6 deployed successfully with existing custom sharing preserved;
+tested collector source was applied under idle run.lock at
+2026-09-28T15:50:56.036521-04:00. Validation: 57 Python tests, 23 Site adapter/API
+checks, TypeScript, production build and desktop/mobile browser review. Existing
+normal clock execution loads the change; no manual provider request, unit
+execution/restart, schedule or recurring-bound change occurred. This decision
+grants no new provider unit or retry. Post-application normal-clock observation
+readback remains pending at this record. See the monitor contract and
+.local/options-monitor-interval-20260928/applied.json.
+
+
+## September 29, 2026 — five Site dashboard improvements completed
+
+The user explicitly approved all five dashboard priorities and subsequently
+requested continuation after WSL recovered, while preserving the decision not to
+restart it. Bounded Site-only implementation added scoped coverage/warm-up,
+activity rankings and radar filters, linked ETF heatmap, prior-session expected
+volume comparisons, and exact alert-time evidence/chart navigation. It reads
+existing saved aggregates and adds no storage schema or raw-data retention.
+
+Version 7, source 7a7d33c49903efefcf0f4b5ed20393be61f29d94, deployed successfully
+at 2026-09-29T14:58:56.519034Z (appgdep_6abbd228849c81918e769cee5e4e7490).
+Existing custom audience was preserved. Validation passed 83 focused calculation,
+local API and SQL/regression checks, TypeScript, production build, final source
+review and 13 grouped local browser scenarios with desktop/mobile visual review.
+This is deployment evidence, not a new live-provider or delivery verification.
+
+No WSL/service restart, collector edit, manual provider call, recurring-unit or
+schedule change, canonical write, production fixture write or parent repository
+commit/push occurred. Only the Site workflow committed/pushed the nested Site.
+This decision grants no extra provider unit or retry. See the monitor contract's
+five-priority section and .local/options-monitor-five-priorities/completion.json.
+
+
+September 29 Site visual refinement: the user requested improved ETF history
+presentation. The two-file chart/CSS update was published as version 8, source
+c0126b1d28a1e18f4cadedf7ca800e7a22070fd6, deployment
+appgdep_6abbdf1ede648191a9fc1f5262fb1f7c (succeeded at 15:54:16Z).
+Existing custom sharing was preserved; no provider unit, scheduler, collector,
+API/schema, storage or restart authority was added or exercised. Thirteen
+existing chart-adapter checks, 14 grouped local browser scenarios, TypeScript,
+build and visual review passed. See the monitor contract and
+.local/options-monitor-history-visual/completion.json.

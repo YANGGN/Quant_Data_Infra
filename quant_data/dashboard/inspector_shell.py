@@ -10,8 +10,13 @@ from urllib.parse import urlencode
 
 
 INSPECTOR_NAVIGATION = (
+    ("Workspace", (
+        ("/status", "Status"),
+        ("/agent-tools", "Agent Tools"),
+    )),
     ("Market", (
         ("market-prices", "Market prices"),
+        ("/forward-pe", "Forward P/E"),
         ("market-instruments", "Market symbols"),
         ("options-surfaces", "Options surfaces"),
         ("spy-options", "SPY options"),
@@ -55,11 +60,6 @@ INSPECTOR_NAVIGATION = (
         ("/transcript-extractions", "Transcript extractions"),
         ("/news", "Current news"),
     )),
-    ("Workspace", (
-        ("/status", "Status"),
-        ("/data-status", "Data status"),
-        ("/agent-tools", "Agent Tools"),
-    )),
 )
 
 
@@ -68,6 +68,8 @@ def _escape(value: object) -> str:
 
 
 def _navigation(active: str) -> tuple[str, str]:
+    if active == "/data-status":
+        active = "/status"
     groups = []
     section = "Inspector"
     for label, destinations in INSPECTOR_NAVIGATION:

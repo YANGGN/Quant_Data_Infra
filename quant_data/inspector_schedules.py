@@ -1,6 +1,6 @@
 """Read-only schedule overlay for the local Inspector, separate from tool results.
 
-Only the ten reviewed per-user timers are queried. No service command, provider,
+Only the reviewed per-user timers are queried. No service command, provider,
 credential, store, or caller-selected unit participates in this projection.
 Dataset bindings describe wrapper outputs, not generic registry job declarations.
 """
@@ -31,9 +31,13 @@ TIMER_BINDINGS = (
     TimerBinding("quant-data-market-close.timer", "Market close", (
         "market.stage10.daily_prices", "market.stage10.source_evidence",
     )),
-    TimerBinding("quant-data-alpaca-spy-options.timer", "ETF options", (
-        "fixture.market.instruments", "fixture.market.option_capture_evidence",
-        "fixture.market.options", "market.alpaca.option_raw_evidence",
+    TimerBinding("quant-data-theta-options-daily.timer", "Theta options daily", (
+        "options.theta.receipts", "options.theta.selected_contracts",
+        "options.theta.daily_research",
+    )),
+    TimerBinding("quant-data-theta-options-weekly.timer", "Theta options weekly repair", (
+        "options.theta.receipts", "options.theta.selected_contracts",
+        "options.theta.daily_research",
     )),
     TimerBinding("quant-data-macro-current-refresh.timer", "Macro current", (
         "fixture.macro.rtdsm_employ_evidence", "fixture.macro.rtdsm_employ",
@@ -60,9 +64,20 @@ TIMER_BINDINGS = (
         "fixture.company.filings", "fixture.company.fundamentals",
         "fixture.company.filing_issuer_membership",
     )),
+    TimerBinding("quant-data-sharadar-selected-refresh.timer", "Sharadar fundamentals", (
+        "company.sharadar.evidence", "company.sharadar.sf1",
+        "company.sharadar.definition_evidence", "company.sharadar.definitions",
+    )),
     TimerBinding("quant-data-company-market-refresh.timer", "Company market", (
         "fixture.company.action_evidence", "fixture.company.corporate_actions",
         "fixture.company.expectation_evidence", "fixture.company.expectations",
+    )),
+    TimerBinding("quant-data-selected-company-refresh.timer", "Selected company inputs", (
+        "company.fmp.research_evidence", "company.fmp.research_inputs",
+        "company.fmp.analyst_evidence", "company.fmp.analyst_observations",
+    )),
+    TimerBinding("quant-data-equibles-refresh.timer", "Equibles transcript refresh", (
+        "company.equibles.transcripts",
     )),
     TimerBinding("quant-data-equibles-transcripts.timer", "Equibles transcripts", (
         "company.equibles.transcripts",
@@ -71,6 +86,10 @@ TIMER_BINDINGS = (
         "news.fmp.stock_latest_current_evidence",
         "news.current_multi_source_evidence",
     )),
+    TimerBinding("quant-data-weekly-price-repair.timer", "Weekly price repair", (
+        "market.stage10.daily_prices", "market.stage10.source_evidence",
+    )),
+    TimerBinding("quant-data-derived-refresh.timer", "Derived calculations", ()),
 )
 
 _PROPERTIES = "Id,LoadState,ActiveState,SubState,TimersCalendar,NextElapseUSecRealtime"
@@ -108,6 +127,16 @@ def _cadence(properties: Mapping[str, list[str]]) -> str:
         weekday = _WEEKDAY.fullmatch(calendar)
         if weekday:
             label = f"Weekdays at {weekday[1]} New York"
+        elif calendar == "Mon..Fri *-*-* 23:30:00 America/Toronto":
+            label = "Weekdays at 23:30 Toronto"
+        elif calendar == "*-*-* 06:30:00 America/Toronto":
+            label = "Daily at 06:30 Toronto"
+        elif calendar == "Sun *-*-* 03:00:00 America/New_York":
+            label = "Sundays at 03:00 New York"
+        elif calendar == "Sat *-*-* 02:00:00 America/Toronto":
+            label = "Saturdays at 02:00 Toronto"
+        elif calendar == "*-*-* 05:00:00 America/New_York":
+            label = "Daily at 05:00 New York"
         elif calendar == "*-*-* 00:10:00 UTC":
             label = "Daily at 00:10 UTC"
         elif calendar == "*-*-* *:10:00 UTC":

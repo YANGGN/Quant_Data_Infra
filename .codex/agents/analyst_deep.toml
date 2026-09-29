@@ -1,6 +1,6 @@
 name = "analyst_deep"
 description = "Deep read-only analysis of migration, replay, cutoff, locking, or publication failure paths."
-model = "gpt-5.6-sol"
+model = "gpt-6-sol"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "read-only"
 

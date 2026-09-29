@@ -118,6 +118,9 @@ def read_current_market_news_coverage(store_map: StoreMap) -> CurrentMarketNewsC
                 WHERE provider='fmp'
                   AND currency_segment='provider_native'
                   AND asset_type IN ('equity', 'etf', 'index')
+                  AND NOT EXISTS (SELECT 1 FROM ingestion_runs enrollment
+                      WHERE enrollment.run_id=stage10_instruments.run_id
+                        AND enrollment.command='local.market.selected_instruments')
                 ORDER BY provider_symbol COLLATE BINARY, instrument_id COLLATE BINARY
                 LIMIT ?
                 """,

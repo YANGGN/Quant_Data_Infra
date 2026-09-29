@@ -267,39 +267,45 @@ class _StdlibTransport:
         target = parsed.path or "/"
         if query:
             target += "?" + query
-        try:
-            connection = http.client.HTTPSConnection(parsed.netloc, timeout=timeout_seconds)
-        except (OSError, http.client.HTTPException) as exc:
-            raise StoreUnavailableError("FMP calendar provider transport failed") from exc
-        try:
-            connection.request("GET", target, headers=dict(headers))
-            response = connection.getresponse()
-            declared_text = response.getheader("Content-Length")
-            if declared_text is not None:
-                try:
-                    declared = int(declared_text)
-                except ValueError as exc:
-                    raise StoreUnavailableError("FMP calendar provider length is invalid") from exc
-                if declared < 0 or declared > max_bytes:
+        def request_with_timeout(remaining):
+            try:
+                connection = http.client.HTTPSConnection(parsed.netloc, timeout=remaining)
+            except (OSError, http.client.HTTPException) as exc:
+                raise StoreUnavailableError("FMP calendar provider transport failed") from exc
+            try:
+                connection.request("GET", target, headers=dict(headers))
+                response = connection.getresponse()
+                declared_text = response.getheader("Content-Length")
+                if declared_text is not None:
+                    try:
+                        declared = int(declared_text)
+                    except ValueError as exc:
+                        raise StoreUnavailableError("FMP calendar provider length is invalid") from exc
+                    if declared < 0 or declared > max_bytes:
+                        raise ResourceLimitError("FMP calendar provider response exceeds its byte bound")
+                body = response.read(max_bytes + 1)
+                if len(body) > max_bytes:
                     raise ResourceLimitError("FMP calendar provider response exceeds its byte bound")
-            body = response.read(max_bytes + 1)
-            if len(body) > max_bytes:
-                raise ResourceLimitError("FMP calendar provider response exceeds its byte bound")
-            return FmpMacroCalendarTransportResponse(
-                status=int(response.status),
-                media_type=response.getheader("Content-Type") or "",
-                body=body,
-                redirected=(
-                    300 <= int(response.status) < 400
-                    or response.getheader("Location") is not None
-                ),
-            )
-        except (ResourceLimitError, StoreUnavailableError):
-            raise
-        except (OSError, http.client.HTTPException) as exc:
-            raise StoreUnavailableError("FMP calendar provider transport failed") from exc
-        finally:
-            connection.close()
+                return FmpMacroCalendarTransportResponse(
+                    status=int(response.status),
+                    media_type=response.getheader("Content-Type") or "",
+                    body=body,
+                    redirected=(
+                        300 <= int(response.status) < 400
+                        or response.getheader("Location") is not None
+                    ),
+                )
+            except (ResourceLimitError, StoreUnavailableError):
+                raise
+            except (OSError, http.client.HTTPException) as exc:
+                raise StoreUnavailableError("FMP calendar provider transport failed") from exc
+            finally:
+                connection.close()
+        from .collection_provider_policy import invoke_host_fmp
+        if not (parsed.hostname == "financialmodelingprep.com"):
+            return request_with_timeout(timeout_seconds)
+        return invoke_host_fmp(request_with_timeout,request_material={"endpoint":url,"parameters":{k:v for k,v in parameters.items() if k.lower() not in ("apikey","api_key")}},
+            priority="maintenance",timeout_seconds=timeout_seconds)
 
 
 class FmpMacroCalendarHistoryRunner:

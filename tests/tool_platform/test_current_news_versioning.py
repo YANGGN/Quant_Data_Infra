@@ -23,7 +23,7 @@ from quant_data.tool_platform.generate import generated_bytes
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CURRENT_REGISTRY_SHA256 = (
-    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
+    "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97"
 )
 CURRENT_CATALOG_SHA256 = (
     "7c1ff084bce29dc64d3a7db793fbb05eafe99921358ab01b308a98395b5e481b"
@@ -76,7 +76,7 @@ class CurrentNewsVersioningTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
-        self.assertEqual(registry.registry_version, "2.74.0")
+        self.assertEqual(registry.registry_version, "2.83.0")
         self.assertEqual(registry.source_sha256, CURRENT_REGISTRY_SHA256)
         self.assertEqual(
             registry.raw["tool_version_schema_catalog"]["sha256"],

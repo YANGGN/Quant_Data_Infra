@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import json
 import unittest
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,18 +62,21 @@ class InspectorScheduleTests(unittest.TestCase):
 
     def test_bindings_cover_reviewed_units_and_only_registered_outputs(self):
         self.assertEqual({b.unit for b in TIMER_BINDINGS},
-                         {p.name for p in (ROOT / "deploy/systemd").glob("*.timer")})
+                         {p.name for p in (ROOT / "deploy/systemd").glob("*.timer")}
+                         - {"quant-data-alpaca-spy-options.timer", "quant-data-options-monitor.timer"})
         dataset_ids = {d.id for d in self.registry.datasets}
+        dataset_ids.update(item["id"] for item in json.loads(
+            (ROOT / "config/options_registry.json").read_text())["datasets"])
         self.assertTrue(all(set(b.datasets) <= dataset_ids for b in TIMER_BINDINGS))
 
     def test_shared_timers_map_sources_and_leave_historical_datasets_unscheduled(self):
         result, _ = self.snapshot("\n\n".join(block(b.unit) for b in TIMER_BINDINGS))
         for identity in ("market.stage10.daily_prices", "fixture.company.fundamentals",
-                         "fixture.company.corporate_actions", "fixture.market.options",
+                         "fixture.company.corporate_actions",
                          "fixture.macro.rtdsm_employ", "news.source.fmp_stock_latest",
                          "news.source.alpaca_benzinga", "news.source.fed_press"):
             self.assertEqual(result[identity]["schedule_state"], "scheduled", identity)
-        for identity in ("market.fmp.daily_prices", "macro.bea.nipa_history",
+        for identity in ("fixture.market.options", "market.fmp.daily_prices", "macro.bea.nipa_history",
                          "macro.fmp.economic_calendar_evidence", "news.fmp.stock_latest_articles",
                          "fixture.news.items", "market.stage10.instruments"):
             self.assertEqual(result[identity]["schedule_state"], "unmapped", identity)

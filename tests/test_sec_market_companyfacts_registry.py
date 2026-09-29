@@ -30,7 +30,7 @@ DATASET_IDS = (
     "fixture.company.filing_issuer_membership",
 )
 CURRENT_SOURCE_SHA256 = (
-    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
+    "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97"
 )
 PREVIOUS_SOURCE_SHA256 = (
     "af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182"
@@ -49,7 +49,7 @@ class SecMarketCompanyFactsRegistryTests(unittest.TestCase):
         current = self._registry()
         self.assertEqual(
             (current.schema_version, current.revision, current.source_sha256),
-            ("1.9.0", "2.74.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.83.0", CURRENT_SOURCE_SHA256),
         )
         collector = next(
             item for item in current.collectors if item["id"] == COLLECTOR_ID
@@ -124,10 +124,10 @@ class SecMarketCompanyFactsRegistryTests(unittest.TestCase):
         timer = TIMER_PATH.read_text(encoding="utf-8")
         self.assertIn(
             "ExecStart=/usr/bin/python3 -m "
-            "quant_data.operations.sec_market_companyfacts_refresh",
+            "quant_data.operations.sec_selected_refresh",
             service,
         )
-        self.assertIn("TimeoutStartSec=6h", service)
+        self.assertIn("TimeoutStartSec=365min", service)
         self.assertIn("NoNewPrivileges=true", service)
         self.assertIn("ProtectSystem=strict", service)
         self.assertIn("ProtectHome=read-only", service)

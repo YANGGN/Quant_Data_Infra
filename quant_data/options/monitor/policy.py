@@ -2,6 +2,7 @@
 from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
+from hashlib import sha256
 from zoneinfo import ZoneInfo
 import json, re
 
@@ -98,3 +99,8 @@ def slot_for(now:datetime,cadence:int,opening:datetime,closing:datetime)->dateti
     elapsed=int((local-opening).total_seconds()//60)
     slot=opening+timedelta(minutes=(elapsed//cadence)*cadence)
     return slot if slot<=closing else None
+
+
+def radar_offset(symbol:str)->int:
+    """Stable six-way phase, independent of roster order and priority changes."""
+    return (int.from_bytes(sha256(symbol.encode("ascii")).digest()[:8],"big")%6)*5

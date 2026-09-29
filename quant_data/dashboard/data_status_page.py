@@ -316,6 +316,7 @@ def _status_row(
     row: Mapping[str, object],
     schedules: Mapping[str, Mapping[str, str | None]] | None,
     metadata: Mapping[str, Any],
+    *, integrated: bool = False, batches: tuple[str, ...] = (),
 ) -> str:
     label, style, note = _display_status(row, metadata)
     identity = str(row.get("id", row.get("dataset_id", "—")))
@@ -357,14 +358,25 @@ def _status_row(
         _detail_cell("public_last_successful_capture", _SUPPLEMENTAL_HEADERS[13], _capture_timestamp_markup(row.get("latest_successful_capture"))),
         _detail_cell("public_latest_retained_outcome", _SUPPLEMENTAL_HEADERS[14], _escape(_outcome(row.get("latest_retained_outcome")))),
     ))
+    extras = ""
+    fetch = _fetch_cell(metadata)
+    schedule = _schedule_cells(row, schedules) if not integrated else ""
+    if integrated:
+        extras = (' data-status-dataset="' + _escape(identity) + '" data-status-batches="'
+                  + _escape(" ".join(batches)) + '"')
+        fetch = fetch.replace("<td ", "<td data-inspector-detail-only ", 1)
+        supplemental = supplemental.replace(
+            '<td data-inspector-detail-only data-field="last_successful_capture"',
+            '<td data-field="last_successful_capture"', 1,
+        )
     return (
-        '<tr data-lifecycle="' + _lifecycle(metadata) + '" data-status-category="' + _status_category(style)
+        '<tr' + extras + ' data-lifecycle="' + _lifecycle(metadata) + '" data-status-category="' + _status_category(style)
         + '"><td data-field="display_status" data-label="Status">'
         + '<strong class="inspector-state inspector-state-' + style + '">' + _escape(label)
         + '</strong>' + _note_markup(note)
         + '</td><th scope="row" data-field="dataset_id" data-label="Dataset or source"><code>'
-        + _escape(identity) + '</code></th>' + _as_of_cell(metadata) + _fetch_cell(metadata)
-        + _schedule_cells(row, schedules) + supplemental + '</tr>'
+        + _escape(identity) + '</code></th>' + _as_of_cell(metadata) + fetch
+        + schedule + supplemental + '</tr>'
     )
 
 

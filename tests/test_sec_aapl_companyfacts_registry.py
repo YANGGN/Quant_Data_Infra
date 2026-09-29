@@ -24,7 +24,7 @@ DATASET_IDS = (
     "fixture.company.filing_issuer_membership",
 )
 CURRENT_SOURCE_SHA256 = (
-    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
+    "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97"
 )
 PREVIOUS_SOURCE_SHA256 = (
     "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
@@ -43,7 +43,7 @@ class SecAaplCompanyFactsRegistryTests(unittest.TestCase):
         current = self._registry()
         self.assertEqual(
             (current.schema_version, current.revision, current.source_sha256),
-            ("1.9.0", "2.74.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.83.0", CURRENT_SOURCE_SHA256),
         )
         collector = next(
             item for item in current.collectors if item["id"] == COLLECTOR_ID

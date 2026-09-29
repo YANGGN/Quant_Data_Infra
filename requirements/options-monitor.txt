@@ -1,0 +1,5 @@
+# Optional browser Web Push delivery. Install only during primary-owned runtime setup.
+thetadata==1.0.11
+# Required by ThetaClient but absent from its published dependency metadata.
+python-dotenv==1.2.3
+pywebpush==2.5.0

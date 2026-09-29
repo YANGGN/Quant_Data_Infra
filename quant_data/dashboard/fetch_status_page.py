@@ -51,7 +51,7 @@ def _instant(value: object) -> str:
 
 def _state(event: Mapping[str, Any]) -> tuple[str, str, str]:
     status = _text(event, "status")
-    labels = {"succeeded": "Completed", "partial": "Partial Success", "failed": "Failed", "running": "Running", "upcoming": "Scheduled", "unconfirmed": "Unconfirmed"}
+    labels = {"succeeded": "Completed", "partial": "Partial Success", "warning": "Completed · input warnings", "failed": "Failed", "running": "Running", "upcoming": "Scheduled", "unconfirmed": "Unconfirmed"}
     if status not in labels:
         return "unconfirmed", "Unconfirmed", "amber"
     color = _text(event, "color")
@@ -60,7 +60,7 @@ def _state(event: Mapping[str, Any]) -> tuple[str, str, str]:
 
 def _badge(event: Mapping[str, Any]) -> str:
     status, label, color = _state(event)
-    icon = "◐" if status == "partial" else {"green": "✓", "red": "!", "amber": "◷"}[color]
+    icon = "✓" if status == "warning" else "◐" if status == "partial" else {"green": "✓", "red": "!", "amber": "◷"}[color]
     return (
         '<span class="fetch-badge fetch-' + color + '" data-fetch-status="' + status + '">'
         + '<span aria-hidden="true">' + icon + '</span> ' + _escape(label) + '</span>'
@@ -74,13 +74,16 @@ def _slot_time(event: Mapping[str, Any]) -> str:
 
 
 _BATCH_CODES = {
+    "Derived calculations": "DC",
     "Market close": "MC",
-    "ETF options": "OP",
+    "Theta options daily": "OP",
+    "Theta options weekly repair": "OR",
     "Macro current": "MA",
     "GDP / CPI": "GI",
     "Employment": "EM",
     "Economic calendar": "EC",
     "SEC fundamentals": "SF",
+    "Sharadar fundamentals": "SH",
     "Company market": "CO",
     "Current news": "NW",
     "Equibles transcripts": "EQ",
@@ -127,9 +130,11 @@ def _calendar_marker(marker: Mapping[str, Any], day_date: str, codes: Mapping[st
         _count(counts.get(key)) + " " + label
         for key, label in (("succeeded", "completed"), ("partial", "partial success"), ("failed", "failed"), ("running", "running"), ("upcoming", "scheduled"), ("unconfirmed", "unconfirmed"))
     )
+    if counts.get("warning"):
+        count_description += ", " + _count(counts["warning"]) + " completed with input warnings"
     description = label + " · " + status_label + " · " + _count(marker.get("run_count")) + " slots; " + count_description
     style = "failed" if status == "failed" else color
-    icon = "!" if status == "failed" else "✓" if status == "succeeded" else "◐" if status == "partial" else "◷"
+    icon = "!" if status == "failed" else "✓" if status in {"succeeded", "warning"} else "◐" if status == "partial" else "◷"
     run_count = marker.get("run_count")
     count_markup = '<span class="fetch-marker-count">×' + _count(run_count) + '</span>' if isinstance(run_count, int) and not isinstance(run_count, bool) and run_count > 1 else ""
     return (
@@ -176,14 +181,74 @@ def _month_grid(days: tuple[Mapping[str, Any], ...], month_start: str, codes: Ma
     return blank * offset + "".join(_calendar_day(day, codes) for day in days) + blank * trailing
 
 
+
+def _sharadar_details(event: Mapping[str, Any]) -> str:
+    detail = event.get("sharadar")
+    if not isinstance(detail, Mapping):
+        return ""
+    status = detail.get("http_status")
+    name = {"ARQ":"as-reported quarterly", "ART":"as-reported trailing",
+            "ARY":"as-reported annual", "MRQ":"restated quarterly",
+            "MRT":"restated trailing", "MRY":"restated annual"}.get(detail.get("dimension"), "field definitions")
+    failure = ("Sharadar returned HTTP " + _count(status) + " while fetching " + name
+               + (" fundamentals for " + _count(detail.get("symbol_count")) + " stocks." if detail.get("dimension") else ".")
+               if status else "No HTTP failure was recorded in this pass.")
+    progress = (_count(detail.get("completed_partitions")) + " of " + _count(detail.get("total_partitions"))
+                + " fundamentals partitions completed." if detail.get("total_partitions") else "Fundamentals partition total was not established.")
+    recovery = {"next_day":"Recovery is deferred to the next scheduled day.",
+                "budget":"The run limit was reached. Unfinished work is retained for the next scheduled day.",
+                "complete":"Completed work and original response evidence are retained.",
+                "blocked":"The request requires attention before recovery can continue."}.get(detail.get("recovery"), "")
+    return ('<section class="fetch-work-summary" data-sharadar-details aria-label="Sharadar recovery details">'
+            '<h4>Sharadar request and recovery</h4><p>' + _escape(failure) + '</p><p>'
+            + _escape(progress) + '</p><p>' + _escape(recovery) + '</p><p class="fetch-muted">'
+            + _count(detail.get("requests")) + ' requests this run; '
+            + _count(detail.get("retries_today")) + ' of 2 timed retries used today.</p></section>')
+
 def _run_counts(event: Mapping[str, Any]) -> str:
+    derived = event.get("derived")
+    if isinstance(derived, Mapping) and derived:
+        fields = (("calculated", "Calculated", "green"),
+                  ("current_inputs", "Current", "green"),
+                  ("stale_inputs", "Stale", "amber"),
+                  ("unconfirmed_inputs", "Freshness unconfirmed", "amber"),
+                  ("input_warnings", "Other input warnings", "amber"),
+                  ("waiting_inputs", "Waiting for inputs", "red"),
+                  ("catchup_pending", "Catch-up pending", "amber"))
+        metrics = "".join(
+            '<div class="fetch-work-count fetch-count-' + color + '"><dt>' + label + '</dt><dd>'
+            + _count(derived.get(key)) + '</dd></div>'
+            for key, label, color in fields if key in {"calculated", "current_inputs", "stale_inputs", "unconfirmed_inputs"} or derived.get(key)
+        )
+        note = ("Current includes older captures confirmed unchanged by recent source checks. "
+                "Stale means a newer changed input is confirmed; missing check evidence is shown as freshness unconfirmed. "
+                "These counts describe inputs at this publication, not unavailable P/E values.")
+        if derived.get("unchanged_checks"):
+            note += " " + _count(derived["unchanged_checks"]) + " symbols have successful unchanged source checks."
+        recorded = derived.get("recorded_freshness_warnings")
+        if isinstance(recorded, int) and recorded != derived.get("freshness_warnings"):
+            note += " The original run recorded " + _count(recorded) + " older-capture warnings; source-check evidence updates the labels above."
+        return ('<section class="fetch-work-summary" data-fetch-work-counts aria-label="Derived calculation and input outcomes">'
+                '<h4>Symbols · recorded publication</h4><dl class="fetch-work-counts">' + metrics
+                + '</dl><p class="fetch-muted">' + _escape(note) + '</p></section>')
     counts = event.get("counts")
-    units = {"sources": "Sources", "issuers": "Issuers", "etfs": "ETFs", "symbols": "Symbols", "steps": "Source steps"}
+    units = {"sources": "Sources", "issuers": "Issuers", "etfs": "ETFs", "symbols": "Symbols", "steps": "Source steps", "symbol_sessions": "ETF sessions"}
     if not isinstance(counts, Mapping) or counts.get("unit") not in units:
         return '<p class="fetch-muted" data-fetch-counts-unavailable>Successful and failed counts were not recorded for this run.</p>'
     fields = (("successful", "Successful", "green"), ("failed", "Failed", "red"),
               ("partial", "Incomplete", "amber"), ("skipped", "Skipped / no coverage", "muted"),
               ("unattempted", "Not attempted", "muted"))
+    theta = _text(event, "batch_id") in {
+        "quant-data-theta-options-daily.timer", "quant-data-theta-options-weekly.timer"}
+    if theta:
+        fields = (("successful", "Published", "green"), ("failed", "Unresolved gaps", "red"),
+                  ("skipped", "Already present", "muted"),
+                  ("unattempted", "Unfinished", "amber"))
+    derived_legacy = _text(event, "batch_id") == "quant-data-derived-refresh.timer"
+    if derived_legacy:
+        fields = (("successful", "Current · recorded", "green"), ("failed", "Waiting for inputs", "red"),
+                  ("partial", "Unclassified · detail unavailable", "amber"),
+                  ("skipped", "Skipped / no coverage", "muted"), ("unattempted", "Not attempted", "muted"))
     metrics = "".join(
         '<div class="fetch-work-count fetch-count-' + color + '"><dt>' + label + '</dt><dd>'
         + _count(counts.get(key)) + '</dd></div>'
@@ -191,16 +256,35 @@ def _run_counts(event: Mapping[str, Any]) -> str:
     )
     return ('<section class="fetch-work-summary" data-fetch-work-counts aria-label="Recorded work outcomes">'
             '<h4>' + units[counts["unit"]] + ' · recorded run</h4><dl class="fetch-work-counts">'
-            + metrics + '</dl><p class="fetch-muted">Successful work includes unchanged data.</p></section>')
+            + metrics + '</dl><p class="fetch-muted">'
+            + ("Older stored captures are not proof that a source was not checked. Publication detail is unavailable for this run."
+               if derived_legacy else
+               "Each ETF session is one symbol on one trading date. Already present includes preserved captures; unfinished work may have been attempted. Source: data/options.sqlite."
+               if theta else "Successful work includes unchanged data.") + '</p></section>')
 
 
-def _focus_event(event: Mapping[str, Any]) -> str:
+def _focus_event(event: Mapping[str, Any], *, linked_data: bool = False) -> str:
     status, _, color = _state(event)
     datasets = tuple(value for value in _items(event.get("datasets")) if isinstance(value, str))
     dataset_markup = (
         '<ul class="fetch-datasets">' + "".join('<li><code>' + _escape(value) + '</code></li>' for value in datasets) + '</ul>'
         if datasets else '<p class="fetch-muted">No datasets are listed for this batch.</p>'
     )
+    dataset_link = (
+        '<a class="status-batch-link" href="#status-datasets" data-status-batch-link="'
+        + _escape(_text(event, "batch_id")) + '">View stored data for this batch <span aria-hidden="true">→</span></a>'
+        if linked_data else ""
+    )
+    dataset_heading = "Datasets in this batch"
+    if _text(event, "batch_id") in {
+            "quant-data-theta-options-daily.timer", "quant-data-theta-options-weekly.timer"}:
+        # The optional options store is not in the legacy four-store data table.
+        dataset_link = ('<a class="status-batch-link" href="/agent-tools">'
+                        'Inspect saved options with agent tools <span aria-hidden="true">→</span></a>')
+    if _text(event, "batch_id") == "quant-data-derived-refresh.timer":
+        dataset_heading = "Research snapshot"
+        dataset_link = '<a class="status-batch-link" href="/forward-pe">View forward P/E <span aria-hidden="true">→</span></a>'
+        dataset_markup = '<p class="fetch-muted">Derived results are saved in the forward P/E research snapshot.</p>'
     return (
         '<li class="fetch-focus-event" data-fetch-event="' + _escape(_text(event, "id")) + '">'
         + '<div class="fetch-focus-time"><span class="fetch-timeline-dot fetch-' + color + '" aria-hidden="true"></span>'
@@ -209,17 +293,17 @@ def _focus_event(event: Mapping[str, Any]) -> str:
         + _escape(_text(event, "description")) + '</p><details data-fetch-event-details><summary>Run details'
         + (' · ' + str(len(datasets)) + ' datasets' if datasets else '') + '</summary><div class="fetch-run-details"><p>'
         + _escape(_text(event, "note", "No execution note is available."))
-        + '</p>' + _run_counts(event) + '<dl><dt>Scheduled batch start</dt><dd>' + _instant(event.get("scheduled_at"))
+        + '</p>' + _sharadar_details(event) + _run_counts(event) + '<dl><dt>Scheduled batch start</dt><dd>' + _instant(event.get("scheduled_at"))
         + '</dd><dt>Recorded start</dt><dd>' + _instant(event.get("started_at"))
         + '</dd><dt>Recorded finish</dt><dd>' + _instant(event.get("finished_at"))
-        + '</dd></dl><h4>Datasets in this batch</h4>' + dataset_markup + '</div></details></article></li>'
+        + '</dd></dl>' + dataset_link + '<h4>' + dataset_heading + '</h4>' + dataset_markup + '</div></details></article></li>'
     )
 
 
 _NEWS_BATCH = "quant-data-current-news-refresh.timer"
 
 
-def _news_group(events: tuple[Mapping[str, Any], ...]) -> str:
+def _news_group(events: tuple[Mapping[str, Any], ...], *, linked_data: bool = False) -> str:
     counts = {key: 0 for key in ("succeeded", "partial", "failed", "running", "upcoming", "unconfirmed")}
     for event in events:
         counts[_state(event)[0]] += 1
@@ -248,21 +332,21 @@ def _news_group(events: tuple[Mapping[str, Any], ...]) -> str:
         + '<span class="fetch-description">' + str(len(events)) + ' hourly slots · expand for each run</span>'
         + '<span class="fetch-summary" aria-label="Hourly news outcomes">' + count_markup + '</span></span></summary>'
         + '<ol class="fetch-timeline fetch-group-runs" aria-label="Hourly news runs">'
-        + "".join(_focus_event(event) for event in events) + '</ol></details></li>'
+        + "".join(_focus_event(event, linked_data=linked_data) for event in events) + '</ol></details></li>'
     )
 
 
-def _focus_timeline(events: tuple[Mapping[str, Any], ...]) -> str:
+def _focus_timeline(events: tuple[Mapping[str, Any], ...], *, linked_data: bool = False) -> str:
     news = tuple(event for event in events if _text(event, "batch_id") == _NEWS_BATCH)
     rendered = []
     grouped = False
     for event in events:
         if _text(event, "batch_id") == _NEWS_BATCH:
             if not grouped:
-                rendered.append(_news_group(news))
+                rendered.append(_news_group(news, linked_data=linked_data))
                 grouped = True
         else:
-            rendered.append(_focus_event(event))
+            rendered.append(_focus_event(event, linked_data=linked_data))
     return "".join(rendered) or '<li class="fetch-empty">No scheduled batch starts are listed for this day.</li>'
 
 
@@ -311,7 +395,7 @@ def _equibles_progress(value: object) -> str:
     )
 
 
-def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: str) -> str:
+def render_fetch_status_content(snapshot: Mapping[str, Any], *, linked_data: bool = False) -> str:
     """Render supplied schedules and outcomes without executing or inferring jobs."""
     selected = _text(snapshot, "selected_date")
     today = _text(snapshot, "today")
@@ -327,7 +411,7 @@ def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: 
         '<li><span class="fetch-code-key">' + _escape(code) + '</span>' + _escape(label) + '</li>'
         for code, label in codes.values()
     )
-    timeline = _focus_timeline(focus)
+    timeline = _focus_timeline(focus, linked_data=linked_data)
     notices = "".join('<li>' + _escape(note) + '</li>' for note in _items(snapshot.get("notices")) if isinstance(note, str))
     unavailable = "".join(
         '<li><strong>' + _escape(_text(job, "label", "Unnamed schedule")) + '</strong><span>'
@@ -338,9 +422,17 @@ def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: 
         '<section class="fetch-unavailable" aria-labelledby="fetch-unavailable-heading"><h2 id="fetch-unavailable-heading">Schedules not shown</h2><ul>'
         + unavailable + '</ul></section>' if unavailable else ""
     )
+    calendar_start = (
+        '<details class="fetch-calendar status-calendar" open><summary><span>Run calendar</span>'
+        '<span>' + month + '</span></summary><section aria-labelledby="fetch-month-heading">'
+        if linked_data else '<section class="fetch-calendar" aria-labelledby="fetch-month-heading">'
+    )
+    calendar_end = "</section></details>" if linked_data else "</section>"
+    warning_summary = ('<span class="fetch-count-amber"><strong>' + _count(summary.get("warning"))
+                       + '</strong> completed with input warnings</span>') if summary.get("warning") else ""
     body = f"""
 <div class="fetch-page" data-fetch-status-page>
-<section class="fetch-calendar" aria-labelledby="fetch-month-heading">
+{calendar_start}
 <div class="fetch-section-header"><div><p class="fetch-kicker">Monthly calendar · Eastern time</p><h2 id="fetch-month-heading">{month}</h2></div>
 <nav class="fetch-week-navigation" aria-label="Calendar month">
 {_month_link(snapshot.get('previous_month_date'), direction='prev')}
@@ -350,6 +442,7 @@ def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: 
 <div class="fetch-month-legend" data-fetch-legend aria-label="Batch marker status legend">
 <span><i class="fetch-legend-completed" aria-hidden="true">✓</i> All completed</span>
 <span><i class="fetch-legend-partial" aria-hidden="true">◐</i> Partial Success</span>
+<span><i class="fetch-legend-partial" aria-hidden="true">✓</i> Completed · input warnings</span>
 <span><i class="fetch-legend-pending" aria-hidden="true">◷</i> Scheduled / running / unconfirmed</span>
 <span><i class="fetch-legend-failed" aria-hidden="true">!</i> Recorded failure</span>
 </div>
@@ -357,12 +450,13 @@ def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: 
 <div class="fetch-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
 <div class="fetch-month-grid" data-fetch-month aria-label="{month} calendar">{calendar}</div>
 <ul class="fetch-batch-key" aria-label="Batch abbreviations">{batch_key}</ul>
-</section>
-<section class="fetch-focus" data-fetch-focus aria-labelledby="fetch-focus-heading">
+{calendar_end}
+<section class="fetch-focus" data-fetch-focus tabindex="0" aria-labelledby="fetch-focus-heading">
 <div class="fetch-section-header"><div><p class="fetch-kicker">{_escape(_date_label(selected, full=True))}</p><h2 id="fetch-focus-heading">{focus_title}</h2></div>
 <div class="fetch-summary" aria-label="Selected day outcomes"><span><strong>{_count(summary.get('total'))}</strong> slots</span>
 <span class="fetch-count-green"><strong>{_count(summary.get('green'))}</strong> completed</span>
 <span class="fetch-count-amber"><strong>{_count(summary.get('partial', 0))}</strong> partial success</span>
+{warning_summary}
 <span class="fetch-count-amber"><strong>{_count(summary.get('pending', summary.get('amber')))}</strong> pending / unconfirmed</span>
 <span class="fetch-count-red"><strong>{_count(summary.get('red'))}</strong> failed</span></div></div>
 <ol class="fetch-timeline">{timeline}</ol></section>
@@ -371,11 +465,16 @@ def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: 
 <section class="fetch-evidence-note" aria-label="Schedule evidence"><p><strong>Snapshot</strong> · {_instant(snapshot.get('observed_at'))}</p>
 <ul>{notices}</ul><p>Unconfirmed means no matching outcome is recorded. It is not proof of success or failure.</p></section>
 </div>"""
+    return body
+
+
+def render_fetch_status_page(snapshot: Mapping[str, Any], *, registry_revision: str) -> str:
+    """Compatibility renderer for the run-only fragment."""
     return render_inspector_shell(
-        title="Status", active="/status", revision=registry_revision, body=body,
+        title="Status", active="/status", revision=registry_revision, body=render_fetch_status_content(snapshot),
         description="Live fetch schedules and recorded batch outcomes.",
         footer="Local · read-only schedule and execution snapshot · Eastern time (EST/EDT)",
     )
 
 
-__all__ = ("render_fetch_status_page",)
+__all__ = ("render_fetch_status_page", "render_fetch_status_content")

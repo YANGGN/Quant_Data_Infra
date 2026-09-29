@@ -46,31 +46,53 @@ def read_equibles_progress(root: Path | None, *, observed_at: datetime):
         if any(getattr(before,k) != getattr(after,k) for k in ("st_dev","st_ino","st_size","st_mtime_ns","st_ctime_ns")) or len(raw) != before.st_size:
             return unavailable
         value = loads_strict(raw.decode("utf-8"))
-        if not isinstance(value, dict) or value.get("contract") != "quant_data.equibles_transcript_backfill.v1":
+        if not isinstance(value, dict) or value.get("contract") not in {
+            "quant_data.equibles_transcript_backfill.v1","quant_data.equibles_transcript_backfill.v2"}:
             return unavailable
-        universe = _integer(value.get("universe"), 1, 519)
+        paid=value["contract"].endswith(".v2")
+        maximum=5000 if paid else 519
+        universe = _integer(value.get("universe"), 0 if paid else 1, maximum)
         completed = _integer(value.get("completed_tickers"), 0, universe)
-        transcripts = _integer(value.get("transcripts"), 0, 519000)
-        requests = _integer(value.get("requests_this_run"), 0, 100)
+        transcripts = _integer(value.get("transcripts"), 0, (5519 if paid else maximum)*1000)
+        requests = _integer(value.get("requests_this_run"), 0, 1000 if paid else 100)
         ticker = value.get("current_ticker")
         if ticker is not None and (not isinstance(ticker, str) or not _SYMBOL.fullmatch(ticker)):
             return unavailable
         outcome = value.get("outcome")
-        if outcome not in {"complete", "blocked", "daily_quota", "provider_quota", "day_or_runtime_limit", "run_resource_limit"}:
+        if outcome not in {"complete", "blocked", "daily_quota", "provider_quota", "day_or_runtime_limit", "run_resource_limit","runtime_limit","quota_verification_required"}:
             return unavailable
-        if (completed == universe) != (outcome == "complete") or (completed == universe) != (ticker is None):
+        terminal=completed==universe
+        if terminal != (ticker is None):
+            return unavailable
+        if outcome=="complete" and not terminal:
+            return unavailable
+        if terminal and outcome!="complete" and not (paid and outcome=="blocked"):
             return unavailable
         quota = value.get("quota")
         used = remaining = reset = None
         if quota is not None:
             if not isinstance(quota, dict):
                 return unavailable
-            used = _integer(quota.get("attempted"), 0, 100)
-            remaining = _integer(quota.get("remaining"), 0, 100)
+            used = _integer(quota.get("attempted"), 0, 100000 if paid else 100)
+            remaining = _integer(quota.get("remaining"), 0, 100000 if paid else 100)
             if quota.get("reset") is not None:
                 reset = datetime.fromtimestamp(_integer(quota["reset"], 0, 4102444800), timezone.utc).isoformat().replace("+00:00", "Z")
-        return {"available": True, "outcome": ("quota_deferred" if outcome in {"daily_quota", "provider_quota"}
-            else "bounded" if outcome in {"day_or_runtime_limit", "run_resource_limit"} else outcome),
+        extra={}
+        if paid:
+            from .operations.equibles_paid_policy import POLICY
+            if value.get("quota_policy")!=POLICY or type(value.get("provider_paid_allowance_verified")) is not bool:
+                return unavailable
+            selected=_integer(value.get("selected_members"),universe,5000)
+            resolved=_integer(value.get("resolved_subjects"),0,selected)
+            gaps=_integer(value.get("identity_gaps"),0,selected)
+            if resolved!=universe or resolved+gaps>selected:
+                return unavailable
+            extra={"selected_members":selected,"resolved_subjects":resolved,"identity_gaps":gaps,
+                "quota_daily_ceiling":100000,"provider_paid_allowance_verified":value["provider_paid_allowance_verified"],
+                "selected_transcripts":_integer(value.get("selected_transcripts"),0,5000000),
+                "completed_outside_selection":_integer(value.get("completed_outside_selection"),0,5519)}
+        return {**extra,"available": True, "outcome": ("quota_deferred" if outcome in {"daily_quota", "provider_quota"}
+            else "bounded" if outcome in {"day_or_runtime_limit", "run_resource_limit","runtime_limit"} else outcome),
             "universe": universe, "completed_tickers": completed, "transcripts": transcripts,
             "current_ticker": ticker, "requests_this_run": requests,
             "quota_used": used, "quota_remaining": remaining, "quota_reset_at": reset,

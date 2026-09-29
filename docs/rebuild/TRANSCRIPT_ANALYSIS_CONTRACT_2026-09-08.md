@@ -1919,3 +1919,281 @@ Live RUN_STATUS.md files are updated by the current callback.
 Evidence: .local/transcript-luna-universe-20260913/resume-20260913-evening/
 started.json, launch-verification.json, initial-publication-audit.json and
 handoff-status.json.
+
+
+## User-requested increase to 100 Luna workers - September 14, 2026 UTC
+
+The user explicitly requested another 50 concurrent Luna workers, for 100 total.
+This supersedes the 50-worker runtime setting for the same approved original
+batch. The source population, full-text destination approval, Luna/high profile,
+prompt/schema, request identities, company publisher and 27,668 total-call
+maximum remain unchanged. No retries, additional reviews, provider fetches,
+API fallback, recurring units or agent-routing configuration were added.
+
+The 50-worker coordinator PID 4082042 received parent-only SIGINT. Its in-flight
+calls finished before exit. The settled checkpoint has 19,166 stored outputs
+and 116 failed terminal attempts (19,282 calls consumed), leaving exactly 8,386
+unattempted entries. Every completed record's semantic identity was verified
+against the database. All 11,513 outputs in the previous baseline were
+preserved; the database now contains 19,527 structured outputs, with zero
+structured foreign-key violations. No pending entry has a previous request.
+
+Production changes only raise the bounded runtime override from 50 to 100 and
+update its error/help text. Frozen plans and the default worker count remain
+unchanged. The 100-worker overlap/publication/replay test passed. Of 50 initial
+focused tests, 49 passed; one failure fixture incorrectly assumed no replacement
+could start before the third failure was observed. The fixture was corrected to
+allow at most two replacement calls before that threshold, retain unattempted
+work and prove no retries, and its targeted recheck passed. All 50 current test
+cases therefore have passing evidence. No production failure logic changed.
+The initial test failure and successful recheck remain recorded.
+
+The private 100-worker launcher is prepared for at most 8,386 new calls under
+the unchanged plan. It preserves the old invocation and publishes a new
+active-run.json pointer on launch. This entry records readiness, not live
+100-worker execution. Evidence is under
+.local/transcript-luna-universe-20260913/concurrency-100/:
+before-increase.json, drain-request.json, drain-audit.json, first-test-run.json,
+validation.json, source-before.json and hundred.py.
+
+
+### 100-worker continuation running and initial publications verified
+
+The unchanged plan launched with a 100-worker override at
+2026-09-14T02:15:50.007297Z as PID 2024242. At 02:16:34 UTC, exactly 100
+simultaneous native Luna processes were observed. Their combined proportional
+memory was approximately 1,495 MB, with approximately 3,501 MB host memory
+available. The coordinator reported 100 in-flight entries.
+
+The locked immutable audit at 2026-09-14T02:17:40.598441Z verified 67 new database
+outputs since the increase, for 19,594 outputs total. All 19,527 pre-increase
+output identities were preserved. Five new outputs and their automatic
+assessments passed exact original response/source and Luna/high runtime checks;
+structured foreign-key checks returned zero violations. No new call failure
+had occurred at that audit.
+
+At handoff (2026-09-14T02:20:45.793182Z), the same batch remains running with 100-worker concurrency:
+312 outputs saved since the increase and 1 new failed calls. No extra
+population, retries, review calls, provider fetches or API fallback were added.
+This is ongoing extraction, not full-population completion.
+
+Use .local/transcript-luna-universe-20260913/active-run.json for the current
+invocation. It now identifies concurrency-100/hundred.py and that directory's
+run.log; historical invocation receipts remain intact. Live status files also
+show the current 100-worker run.
+
+Evidence: .local/transcript-luna-universe-20260913/concurrency-100/started.json,
+authorization.json, initial-running-snapshot.json, initial-publication-audit.json
+and handoff-status.json.
+
+## September 16, 2026 UTC - Luna remaining extraction prepared; launch blocked
+
+The user requested launching Luna for the remaining transcripts after restarting
+WSL. Read-only preflight found the existing 9,873-input plan paused after 936
+stored outputs and 18 failed calls, leaving exactly 8,919 untouched entries.
+All 28,962 database output identities were preserved in the preflight baseline;
+structured foreign-key checks passed. Production source pins are unchanged and
+the earlier 50-test evidence remains applicable.
+
+A further 605 unattempted inputs outside that plan were frozen using source
+captures through 00:30:50.380749 UTC. Four of those finished publication during
+the initial inventory, whose earlier snapshot counted 601 new inputs. The
+additional prepared plan is
+9cabc5845145f500aeaa2e679cd16358b33ca23cf01f9d7cc6c4970fab11e3bf.
+The four older unresolved captures remain excluded, for 22 failed captures
+excluded in total. No continuously expanding population is included.
+
+The private resume launcher passed syntax/readiness and seven offline approval
+guard checks. It reuses 50 Luna/high workers, the fixed subscription adapter,
+incremental company publication, source identities and no-retry policy. The
+additional 605 cannot start without a separately recorded full-text approval;
+if approved, they follow the resumed plan only after it finishes normally.
+
+Automatic approval review rejected the attempted 8,919-input resume before
+process creation, despite the saved earlier batch approval. Its stated reason
+was that the current request authorized extraction generally but did not
+explicitly authorize sending this full sensitive payload to the external
+OpenAI subscription and writing derived results. No workaround was attempted.
+No new model request or database publication occurred. A current explicit
+confirmation is required for the entire prepared 9,524-transcript queue,
+at most 9,524 calls, using the existing subscription and 50-worker setting.
+
+Evidence: .local/transcript-luna-new-9873-20260915/resume-20260916/ contains the
+preflight, preserved baseline and records, both fixed selections, additional
+plan, one-use launcher, helper validation and launch-block.json. Preliminary
+read-only evidence scripts encountered an incorrect output-column assumption
+and an oversized JSON snapshot; these were corrected by using actual schema
+fields and a compact identity baseline. A changing source inventory was
+resolved by freezing the capture cutoff. No production code or tests changed.
+
+## September 16, 2026 UTC - explicit remaining-queue approval and running Luna extraction
+
+The user replied "approve" to sending the full text of all 9,524 prepared
+transcripts to OpenAI through the existing Codex ChatGPT subscription, at most
+9,524 Luna/high calls with 50 workers and successful outputs saved to the fixed
+company database. This explicitly covers the 8,919 untouched inputs in the
+existing plan plus the separately frozen 605-input follow-on. The original
+launch-block evidence is preserved; no additional full-text confirmation is
+pending for either selection. Previously failed inputs remain excluded.
+
+The validated launcher started at 00:41:24.831605 UTC as PID 27226. Fifty native
+Luna workers were observed. The first locked immutable audit verified 51 new
+database outputs, preservation of all 28,962 prior identities, five exact
+retained-response/source/output/assessment comparisons, pinned Luna/high
+subscription receipts and zero structured foreign-key violations.
+
+After 70 calls, a backward wall-clock reading of approximately one second
+triggered the existing timestamp guards for KWR 2022 Q2 assessment and KWR
+2021 Q3 publication. Both responses completed at about 00:42:41.7 UTC, while
+the subsequent failure checks read about 00:42:40.8 UTC. No timestamp was
+clamped, fabricated or backdated. The batch drained and paused with 67 newly
+stored outputs, these two retained successful responses and one failed model
+call. The guards and production collector code remain unchanged.
+
+Once current time was later than the retained evidence, both KWR saves were
+recovered through the existing preparation and publisher paths with a
+transport factory that forbids model calls. Their original failure records
+were retained; request, response and native-start receipt bytes were unchanged.
+Two exact replays returned unchanged with zero canonical writes. Recovery
+used zero new model calls and raised the saved count to 69 for this approval.
+
+The continuation started at 00:49:38.581201 UTC as PID 48480, selecting only
+the 8,849 untouched original-plan entries. The explicit cap remains
+70 consumed + 8,849 untouched + 605 queued = 9,524 total calls. The follow-on
+starts only after normal completion of the current plan; existing failure
+guards can still pause the run. No model request is retried.
+
+At 00:50:59.975473 UTC, the continuation audit found 19 more outputs, 29,050
+database outputs total, and preserved all 29,031 identities present after
+recovery. Five fresh exact response/source/output/assessment and subscription
+receipt comparisons passed, with zero structured foreign-key violations.
+The progress checkpoint was running with 50 in flight, 88 new stored outputs
+since approval and one new failed model call. This is verified ongoing
+extraction, not completion of all 9,524 inputs or independent factual review
+of generated drafts.
+
+Production source, prompt/schema, publisher and existing retry policy remain
+unchanged. The private continuation made exact checkpoint/count/path updates
+to the validated helper and added the explicit total-call-cap assertion;
+syntax, readiness and final diff checks passed. Earlier 50-test production
+and seven offline approval-guard checks were reused. No full suite, provider
+fetch, API fallback, extra model review, scheduler change, commit or push was
+performed.
+
+Approval and initial run evidence:
+.local/transcript-luna-new-9873-20260915/resume-20260916/.
+Recovery, preserved failures, zero-write replay, continuation, live audit and
+handoff evidence: its after-clock-recovery/ subdirectory.
+The current pointer remains
+.local/transcript-luna-universe-20260913/active-run.json, with live progress
+in RUN_STATUS.md beside it.
+
+
+## September 16, 2026 - opt-in transient retries for Luna extraction
+
+The user requested retries after failed Luna model calls. The selected policy,
+transcript_transient_retry.v1, permits at most three native attempts per new
+transcript request: the first attempt and two retries. Backoff is 30 and 120
+seconds, each with up to five seconds of jitter. The existing 20-worker runtime
+limit applies throughout; retries occur sequentially inside their worker.
+
+Only retained, finished native attempts with recognized temporary capacity,
+rate-limit, timeout, or connection errors qualify. Authentication/usage-limit
+errors, unknown errors, unexpected tool events, completed or malformed outputs,
+source-validation failures, and database publication failures do not trigger
+a new model call. Existing received/prepared outputs retain their ordinary
+replay-safe publication recovery. Prior completed and failed transcript
+records remain excluded; this policy does not reopen old attempts.
+
+Each retry has a separate native evidence directory beneath the original
+request. Original events, failures, request hashes, source evidence, and
+model configuration are preserved. Paired request receipts record the number
+of model attempts. An aggregate budget is charged durably before each native
+launch, under a coordinator-owned thread lock and the existing batch job lock.
+The frozen plan's model-call ceiling includes retries and interrupted charges;
+restarts do not reset it. Budget exhaustion pauses pending work. Independent
+callers retain the default no-retry behavior unless they explicitly select
+this policy. No schema, migration, provider, credential, or scheduler changes
+are introduced.
+
+Validation: 70 distinct focused adapter, retry, batch, paired-receipt and
+history checks passed using an isolated source copy and explicit temporary
+stores. This includes native-evidence preservation, concurrent budget limits,
+backoff/exhaustion, permanent-error rejection, exact-cap completion, restart
+accounting, default behavior, and zero-write replay. One malformed synthetic
+error-event fixture was corrected; the entire affected batch module then
+passed. The full repository suite was outside the impact map.
+Evidence: .local/transcript-retries-20260916/validation.json and focused logs.
+
+
+## September 17, 2026 - bounded delayed continuation and longer database waits
+
+The user requested resuming the expanded backlog, making database lock waits
+more forgiving and automatically continuing after pauses. The Luna batch and
+structured publisher accept an explicit lock timeout, bounded at 1-600 seconds;
+existing callers retain the 60-second default. This continuation selects 300
+seconds. The physical-store locking engine and transaction semantics are unchanged.
+
+The opt-in transcript_delayed_resume.v1 supervisor waits 180 seconds after
+recognized temporary database lock timeouts or a pause caused entirely by
+newly observed transient native transport failures. It allows at most ten
+automatic resumptions for the finite plan. Workers drain before backoff;
+neither the store nor batch execution locks are held during the wait.
+A separate supervisor lock excludes a second coordinator. Restart counts and
+the next permitted attempt time are recorded before sleeping and preserved
+across interruption. Auth/usage, permanent/unknown, source/evidence conflicts,
+and exhausted model budgets are not automatically restarted. Failed model
+inputs remain terminal; supervision continues only untouched work and retained
+publication recovery, never exceeding three native calls for one input.
+
+New explicitly retry-enabled plans freeze a ceiling of three calls per
+ready input. Existing plans, budgets and default preparation behavior remain
+unchanged. Prepared publications are prioritized and can recover at an exhausted
+model budget without constructing a model transport. Source, response and
+assessment evidence are revalidated through the existing publisher.
+
+The finite expanded continuation contains 11,192 untouched transcripts:
+3,805 from the original plan, the approved 605 follow-on, and 6,782 newly queued
+inputs. Its prepared ceiling is 33,576 calls at 20 Luna/high workers.
+Sixty-two older failed inputs remain excluded. The eight retained results
+were recovered separately with no new model calls and exact evidence checks.
+No provider fetch, extra review, new credential, API fallback or recurring
+scheduler change is included.
+
+Validation: 58 focused supervisor, batch, retry, structured-publisher and
+history-consumer checks passed in an isolated source copy with temporary
+stores, an empty HOME and network blocked. These cover delayed recovery,
+interrupted backoff, persistent restart limits, zero-call publication at
+budget exhaustion, permanent stops, explicit timeout propagation, finite
+retry caps and default/replay compatibility. A constructor-default typo
+found before tests loaded was corrected before the successful run.
+Evidence: .local/transcript-resilience-20260917/. Live activation and the
+current transfer-approval status are recorded in the operating envelope.
+
+
+## September 17, 2026 - native request-timeout wording correction
+
+The next manual resume exposed an exact native error wording, "request timed
+out", which was missing from the recognized temporary-message set. It is now
+classified with the already supported request/deadline timeouts, but only
+after a finished native receipt, with no completed output or unexpected tool
+event and no permanent authentication/usage error. This is a one-line
+classification correction, not a new retry allowance or changed supervisor
+policy. The existing two retries per input and ten delayed resumptions remain.
+
+Twenty-one focused retry and supervisor checks passed offline in an isolated
+source copy with temporary stores and network disabled. New regressions cover
+recovery after this message, three-attempt exhaustion retaining the transient
+flag used by the supervisor, and rejection of a timeout carrying an
+authentication error. The original retained timeout now passes the classifier
+without modifying its evidence or reopening its terminal record.
+
+The requested continuation selects only the 2,143 untouched members of the
+existing approved plan. All 21 failed inputs remain excluded, including the
+one that had only one call before the wording gap was recognized. The current
+snapshot has 9,275 calls already charged; the remaining population can use
+at most 6,429 more inside the original 33,576-call ceiling. No counter resets,
+new population, provider fetches, scheduler changes or other error-class
+changes are included. The 58-check prior baseline is retained for unchanged
+components. Evidence and current activation details are indexed in the
+operating envelope under resume-after-timeout-pause.

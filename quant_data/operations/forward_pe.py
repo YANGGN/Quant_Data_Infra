@@ -14,6 +14,7 @@ import sqlite3
 import time
 import zlib
 
+from ..company.forward_pe_reviews import load_catalog, for_subject
 from ..company.forward_pe import VERSION, LABEL, SPLIT_ONLY, PERIOD_MATCHING_POLICY, RATIO_POLICY, ESTIMATE_PERIOD_POLICY, digest, make_windows, daily_series
 from ..market.provider_close_series import ProviderClosePriceRepository
 from ..stores import acquire_write_session, quiet_immutable_read_connection, StoreMap
@@ -211,7 +212,8 @@ def read_inputs(stores, subject, cutoff, start, end, *, changed_since=None, hist
     return dict(subject, cutoff=cutoff, start=start, end=end, estimates=estimates,
                 earnings=earnings, statements=statements, transcripts=transcripts, prices=prices,
                 price_basis=basis, price_currency=None, share_basis=None, split_basis_date=None,
-                flags=flags, source_stamps=stamps, freshness=freshness, calendar="XNYS")
+                flags=flags, source_stamps=stamps, freshness=freshness, calendar="XNYS",
+                reviewed_periods=for_subject(load_catalog(), subject, cutoff))
 
 
 SCHEMA = """

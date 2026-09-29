@@ -443,36 +443,40 @@ class _StdlibTransport:
         if path != FMP_PATH or set(query) != {"symbol", "from", "to"} or set(headers) != {"apikey"}:
             raise ValidationError("Stage 12E provider request is invalid")
         target = f"{quote(path, safe='/')}?{urlencode(dict(query))}"
-        connection = http.client.HTTPSConnection(FMP_HOST, timeout=timeout_seconds)
-        try:
-            connection.request("GET", target, headers=dict(headers))
-            response = connection.getresponse()
-            declared_text = response.getheader("Content-Length")
-            if declared_text is not None:
-                try:
-                    declared = int(declared_text)
-                except ValueError as exc:
-                    raise StoreUnavailableError("Stage 12E provider length is invalid") from exc
-                if declared < 0 or declared > max_bytes:
+        def request_with_timeout(remaining):
+            connection = http.client.HTTPSConnection(FMP_HOST, timeout=remaining)
+            try:
+                connection.request("GET", target, headers=dict(headers))
+                response = connection.getresponse()
+                declared_text = response.getheader("Content-Length")
+                if declared_text is not None:
+                    try:
+                        declared = int(declared_text)
+                    except ValueError as exc:
+                        raise StoreUnavailableError("Stage 12E provider length is invalid") from exc
+                    if declared < 0 or declared > max_bytes:
+                        raise ResourceLimitError("Stage 12E provider response exceeds its byte bound")
+                body = response.read(max_bytes + 1)
+                if len(body) > max_bytes:
                     raise ResourceLimitError("Stage 12E provider response exceeds its byte bound")
-            body = response.read(max_bytes + 1)
-            if len(body) > max_bytes:
-                raise ResourceLimitError("Stage 12E provider response exceeds its byte bound")
-            return Stage12ETransportResponse(
-                status=int(response.status),
-                media_type=response.getheader("Content-Type") or "",
-                body=body,
-                redirected=(
-                    300 <= int(response.status) < 400
-                    or response.getheader("Location") is not None
-                ),
-            )
-        except (ResourceLimitError, StoreUnavailableError):
-            raise
-        except (OSError, http.client.HTTPException) as exc:
-            raise StoreUnavailableError("Stage 12E provider transport failed") from exc
-        finally:
-            connection.close()
+                return Stage12ETransportResponse(
+                    status=int(response.status),
+                    media_type=response.getheader("Content-Type") or "",
+                    body=body,
+                    redirected=(
+                        300 <= int(response.status) < 400
+                        or response.getheader("Location") is not None
+                    ),
+                )
+            except (ResourceLimitError, StoreUnavailableError):
+                raise
+            except (OSError, http.client.HTTPException) as exc:
+                raise StoreUnavailableError("Stage 12E provider transport failed") from exc
+            finally:
+                connection.close()
+        from .collection_provider_policy import invoke_host_fmp
+        return invoke_host_fmp(request_with_timeout,request_material={"endpoint":path,"parameters":dict(query)},
+            priority="maintenance",timeout_seconds=timeout_seconds)
 
 
 @dataclass(frozen=True, slots=True)
@@ -635,6 +639,9 @@ def _canonical_scheduled_universe() -> _ScheduledUniverse:
                 WHERE provider='fmp'
                   AND currency_segment='provider_native'
                   AND asset_type IN ('equity', 'etf', 'index')
+                  AND NOT EXISTS (SELECT 1 FROM ingestion_runs enrollment
+                      WHERE enrollment.run_id=stage10_instruments.run_id
+                        AND enrollment.command='local.market.selected_instruments')
                 ORDER BY provider_symbol COLLATE BINARY, instrument_id COLLATE BINARY
                 LIMIT ?
                 """,
@@ -1318,6 +1325,14 @@ class Stage12EMarketCloseRunner(_Runner):
 def run_stage12e_market_close_live() -> Stage12EMarketCloseReport:
     """Run the sole fixed-target scheduled market-close cycle."""
 
+    from ..market.collection_bindings import load_bindings
+    binding_path = PROJECT_ROOT / "config/collection_bindings.json"
+    from .selected_price_refresh import LIVE_ACTIVATION
+    if (binding_path.is_file() and load_bindings(binding_path)["daily_prices"].mode == "active"
+        and (PROJECT_ROOT / LIVE_ACTIVATION).is_file()):
+        from .selected_price_refresh import run_selected_market_close_live
+        return run_selected_market_close_live()
+
     session = scheduled_session_date(datetime.now(timezone.utc))
     session_root = STATE_ROOT / session
     _ensure_private_directory(session_root)
@@ -1349,6 +1364,9 @@ def main() -> int:
         report = run_stage12e_market_close_live()
         sys.stdout.write(dumps_strict(report.mapping()) + "\\n")
         sys.stdout.flush()
+        from .selected_price_refresh import SelectedPriceRefreshReport
+        if isinstance(report, SelectedPriceRefreshReport) and report.result["outcome"] not in ("complete", "no_market_session"):
+            return 75
         return 0
     except ValidationError:
         code, name = 64, "invalid_request"

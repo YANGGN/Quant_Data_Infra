@@ -208,4 +208,82 @@
     groupSelect.addEventListener("change", function () { showStatusGroup(true); });
     groupControl.hidden = false;
   }
+
+  var statusWorkspace = root.querySelector("[data-status-workspace]");
+  var dataControls = root.querySelector("[data-status-data-controls]");
+  if (statusWorkspace && dataControls) {
+    var search = dataControls.querySelector("[data-status-search]");
+    var collection = dataControls.querySelector("[data-status-lifecycle]");
+    var batch = dataControls.querySelector("[data-status-batch]");
+    var dataState = dataControls.querySelector("[data-status-data-state]");
+    var dataRows = Array.from(root.querySelectorAll("[data-status-dataset]"));
+    var matchCount = root.querySelector("[data-status-match-count]");
+    var emptyResults = root.querySelector("[data-status-no-matches]");
+    var clearFilters = root.querySelector("[data-status-clear]");
+    var datasetsHeading = root.querySelector("#status-datasets-heading");
+    function filterData() {
+      resetRecordDetails.forEach(function (reset) { reset(); });
+      var query = search.value.trim().toLowerCase();
+      var visible = 0;
+      dataRows.forEach(function (row) {
+        var active = row.getAttribute("data-lifecycle") === "active";
+        var batches = (row.getAttribute("data-status-batches") || "").split(" ").filter(Boolean);
+        var groupMatches = collection.value === "all" || (collection.value === "active" ? active : !active);
+        var batchMatches = !batch.value || (batch.value === "unmapped" ? !batches.length : batches.includes(batch.value));
+        var stateMatches = !dataState.value || row.getAttribute("data-status-category") === dataState.value;
+        var searchMatches = row.getAttribute("data-status-dataset").toLowerCase().includes(query);
+        row.hidden = !(groupMatches && batchMatches && stateMatches && searchMatches);
+        if (!row.hidden) visible++;
+      });
+      var scope = collection.options[collection.selectedIndex].textContent.split(" · ")[0];
+      if (batch.value) scope += " · " + batch.options[batch.selectedIndex].textContent;
+      matchCount.textContent = visible + " of " + dataRows.length + " datasets · " + scope;
+      emptyResults.hidden = visible > 0 || dataRows.length === 0;
+      clearFilters.hidden = !query && collection.value === "active" && !batch.value && !dataState.value;
+    }
+    function resetData() {
+      search.value = ""; collection.value = "active"; batch.value = ""; dataState.value = "";
+    }
+    search.addEventListener("input", filterData);
+    [collection, batch, dataState].forEach(function (control) {
+      control.addEventListener("change", filterData);
+    });
+    clearFilters.addEventListener("click", function () {
+      resetData(); filterData(); search.focus();
+    });
+    function showDatasets(event) {
+      event.preventDefault();
+      if (location.hash !== "#status-datasets") history.pushState(null, "", "#status-datasets");
+      root.querySelector("#status-datasets").scrollIntoView({block: "start", behavior: "instant"});
+      datasetsHeading.focus({preventScroll: true});
+    }
+    root.querySelectorAll("[data-status-batch-link]").forEach(function (link) {
+      link.addEventListener("click", function (event) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        resetData(); collection.value = "all";
+        batch.value = link.getAttribute("data-status-batch-link");
+        filterData(); showDatasets(event);
+      });
+    });
+    root.querySelectorAll("[data-status-category-link]").forEach(function (link) {
+      link.addEventListener("click", function (event) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        resetData(); dataState.value = link.getAttribute("data-status-category-link");
+        filterData(); showDatasets(event);
+      });
+    });
+    dataControls.hidden = false;
+    filterData();
+  }
+  if (statusWorkspace) {
+    var monthDisclosure = statusWorkspace.querySelector(".status-calendar");
+    if (monthDisclosure && window.matchMedia("(max-width: 900px)").matches) {
+      monthDisclosure.open = false;
+    }
+    if (location.pathname === "/data-status") {
+      history.replaceState(null, "", "/status#status-datasets");
+      var dataAnchor = root.querySelector("#status-datasets");
+      if (dataAnchor) requestAnimationFrame(function () { dataAnchor.scrollIntoView(); });
+    }
+  }
 })();

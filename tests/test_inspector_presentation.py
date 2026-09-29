@@ -47,12 +47,12 @@ class InspectorPresentationTests(unittest.TestCase):
 
     def test_navigation_keeps_every_existing_destination_on_each_section(self):
         expected = {"/?view=" + view for view in _VIEWS}
-        expected.update(("/news", "/status", "/data-status", "/agent-tools"))
+        expected.update(("/news", "/status", "/agent-tools"))
         for active, expected_active in (
             ("market-prices", "/?view=market-prices"),
             ("/news", "/news"),
             ("/status", "/status"),
-            ("/data-status", "/data-status"),
+            ("/data-status", "/status"),
             ("/agent-tools", "/agent-tools"),
         ):
             with self.subTest(active=active):

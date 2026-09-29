@@ -36,7 +36,6 @@ from .dashboard.current_tool_page import (
     latest_tool_version,
     render_current_agent_tools_page,
 )
-from .dashboard.data_status_page import render_data_status_page
 from .dashboard.inspector_shell import render_inspector_shell, render_inspector_table
 from .errors import (
     Issue,
@@ -2263,7 +2262,13 @@ class CanonicalInspectorApplication(Stage1Application):
         schedule_reader: Callable[[], Mapping[str, Mapping[str, str | None]]] | None = None,
         metadata_reader: Callable[[], Mapping[str, Mapping[str, Any]]] | None = None,
         fetch_status_reader: Callable[[str | None], Mapping[str, Any]] | None = None,
+        forward_pe_reader: Callable[[str, str], Mapping[str, Any]] | None = None,
+        derived_status_reader: Callable[[], Mapping[str, Any]] | None = None,
+        derived_ticker_reader: Callable[[str, str], Mapping[str, Any]] | None = None,
     ) -> None:
+        self._derived_ticker_reader = derived_ticker_reader
+        self._derived_status_reader = derived_status_reader
+        self._forward_pe_reader = forward_pe_reader
         self._schedule_reader = schedule_reader
         self._metadata_reader = metadata_reader
         self._fetch_status_reader = fetch_status_reader
@@ -2286,6 +2291,12 @@ class CanonicalInspectorApplication(Stage1Application):
                 "application/javascript; charset=utf-8",
             ),
             "/assets/inter-variable.woff2": (font, "font/woff2"),
+            "/assets/forward-pe.css": (
+                (_ASSET_ROOT / "forward_pe.css").read_bytes(), "text/css; charset=utf-8",
+            ),
+            "/assets/forward-pe.js": (
+                (_ASSET_ROOT / "forward_pe.js").read_bytes(), "application/javascript; charset=utf-8",
+            ),
             "/assets/transcript-extraction.css": (
                 (_ASSET_ROOT / "transcript_extraction.css").read_bytes(),
                 "text/css; charset=utf-8",
@@ -2326,6 +2337,36 @@ class CanonicalInspectorApplication(Stage1Application):
                     route="healthz",
                 ),
             )
+        if path == "/forward-pe":
+            from .dashboard.forward_pe_page import parse_selection, parse_analysis_selection, analysis_tool_view, render_forward_pe_page
+
+            symbol, period = parse_selection(query)
+            window, tail = parse_analysis_selection(query)
+            result, error, status = {}, None, HTTPStatus.OK
+            try:
+                if self._forward_pe_reader is not None:
+                    result = self._forward_pe_reader(symbol, period)
+                else:
+                    result = analysis_tool_view(self.dispatcher.call(
+                        "company.get_forward_pe_analysis",
+                        {"ticker": symbol, "range": period, "window_sessions": window,
+                         "min_observations": min(252, window), "winsor_tail_pct": f"{tail:g}"},
+                        tool_version="1.0.0"))
+                # Retained source-check evidence is a UI annotation, outside the
+                # registered analysis deadline and pinned to that result's snapshot.
+                if self._derived_ticker_reader is not None and result.get("snapshot_id"):
+                    freshness = self._derived_ticker_reader(symbol, result["snapshot_id"])
+                    if freshness:
+                        result = dict(result, ticker_refresh={
+                            **result.get("ticker_refresh", {}), "input_freshness": freshness})
+            except QuantDataError as exc:
+                error, status = exc.safe_message, exc.http_status
+            return HttpResponse(
+                status, render_forward_pe_page(
+                    result, revision=self._registry.revision, symbol=symbol,
+                    period=period, error=error, window_sessions=window, winsor_tail_pct=tail,
+                ).encode("utf-8"), "text/html; charset=utf-8",
+            )
         if path == "/transcript-extractions":
             return self._transcript_extraction_response(query)
         if path == "/api/rows":
@@ -2334,56 +2375,42 @@ class CanonicalInspectorApplication(Stage1Application):
                 HTTPStatus.OK,
                 self._generic_success(result, route="canonical_inspector"),
             )
-        if path == "/status":
-            from .dashboard.fetch_status_page import render_fetch_status_page
+        if path in {"/status", "/data-status"}:
+            from .dashboard.status_page import render_status_page
             from .inspector_fetch_status import read_fetch_status, selected_status_date
 
+            if path == "/data-status" and query:
+                raise ValidationError("Data status does not accept query fields")
             if set(query) - {"date"}:
                 raise ValidationError("Status accepts only a date selection")
             selection = query.get("date")
             selected_status_date(selection, datetime.now(timezone.utc))
             snapshot = (self._fetch_status_reader(selection) if self._fetch_status_reader
                         else read_fetch_status(selection, probe=False))
+            result, metadata, error = {}, None, None
+            try:
+                result = self._dataset_status_result()
+                metadata = self._metadata_reader() if self._metadata_reader else None
+            except QuantDataError as exc:
+                error = exc.safe_message
             return HttpResponse(
                 HTTPStatus.OK,
-                render_fetch_status_page(snapshot, registry_revision=self._registry.revision).encode("utf-8"),
+                render_status_page(
+                    snapshot, result, registry_revision=self._registry.revision,
+                    metadata=metadata, data_error=error,
+                    derived_status=self._derived_status_reader() if self._derived_status_reader else {},
+                ).encode("utf-8"),
                 "text/html; charset=utf-8",
             )
-        if path in {"/data-status", "/api/data-status"}:
+        if path == "/api/data-status":
             if query:
                 raise ValidationError("Data status does not accept query fields")
             try:
-                result = self.dispatcher.call(
-                    "data.get_dataset_status",
-                    {
-                        "stores": [],
-                        "dataset_ids": [],
-                        "statuses": [],
-                        "limit": 128,
-                    },
-                    tool_version=_CURRENT_DATA_STATUS_TOOL_VERSION,
-                )
-                error = None
+                result = self._dataset_status_result()
             except QuantDataError as exc:
-                result = {}
-                error = exc.safe_message
-            if path == "/api/data-status":
-                if error is not None:
-                    raise StoreUnavailableError(error)
-                return self._json_response(
-                    HTTPStatus.OK,
-                    self._generic_success(result, route="data_status"),
-                )
-            return HttpResponse(
-                HTTPStatus.OK,
-                render_data_status_page(
-                    result,
-                    registry_revision=self._registry.revision,
-                    error=error,
-                    schedules=self._schedule_reader() if error is None and self._schedule_reader else None,
-                    metadata=self._metadata_reader() if error is None and self._metadata_reader else None,
-                ).encode("utf-8"),
-                "text/html; charset=utf-8",
+                raise StoreUnavailableError(exc.safe_message) from exc
+            return self._json_response(
+                HTTPStatus.OK, self._generic_success(result, route="data_status"),
             )
         if path == "/api/agent-tools":
             return super()._handle_get(path, query, {})
@@ -2536,6 +2563,13 @@ class CanonicalInspectorApplication(Stage1Application):
         )
         return HttpResponse(status, page.encode("utf-8"), "text/html; charset=utf-8")
 
+    def _dataset_status_result(self) -> Mapping[str, Any]:
+        return self.dispatcher.call(
+            "data.get_dataset_status",
+            {"stores": [], "dataset_ids": [], "statuses": [], "limit": 128},
+            tool_version=_CURRENT_DATA_STATUS_TOOL_VERSION,
+        )
+
     def _handle_post(
         self,
         path: str,
@@ -2550,6 +2584,7 @@ class CanonicalInspectorApplication(Stage1Application):
             "/",
             "/healthz",
             "/transcript-extractions",
+            "/forward-pe",
             "/status",
             "/data-status",
             "/api/data-status",
@@ -2587,8 +2622,13 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
     from .inspector_status import read_inspector_status
     from .inspector_fetch_status import read_fetch_status
 
+    from .derived_refresh_status import read_status, ticker_snapshot_presentation
+
     return CanonicalInspectorApplication(
         stores, registry, schedule_reader=lambda: read_local_refresh_schedules(registry),
+        derived_status_reader=lambda: read_status(root / "exports" / "forward-pe"),
+        derived_ticker_reader=lambda symbol, snapshot: ticker_snapshot_presentation(
+            root / "exports" / "forward-pe", symbol, snapshot),
         metadata_reader=lambda: read_inspector_status(
             stores, registry=registry,
             operations_root=root / "data" / ".operations" / "refresh-status",
@@ -2596,7 +2636,8 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
         ),
         fetch_status_reader=lambda selection: read_fetch_status(
             selection, history_root=root / "data" / ".operations" / "fetch-run-history",
-            equibles_root=root / "data" / ".operations" / "equibles-transcripts"
+            equibles_root=root / "data" / ".operations" / "equibles-transcripts",
+            derived_root=root / "exports" / "forward-pe"
         ),
     )
 

@@ -90,6 +90,59 @@ class PublisherTests(unittest.TestCase):
             with self.assertRaises(ValidationError): self.publish(bad)
         self.assertEqual(before,mutation_fingerprint(self.stores))
 
+    def test_paid_lock_wait_tolerates_contention_beyond_old_five_seconds(self):
+        from contextlib import contextmanager
+        from unittest.mock import patch
+        from quant_data.company import equibles_transcripts as module
+        original = module.acquire_write_session
+        elapsed = [100.0]
+        observed = []
+        @contextmanager
+        def contended(stores, roles, *, timeout_seconds):
+            observed.append(timeout_seconds)
+            if timeout_seconds < 6:
+                raise ConflictError("Timed out acquiring the physical store lock")
+            elapsed[0] += 6
+            with original(stores, roles) as held:
+                yield held
+        with patch.object(module, "acquire_write_session", contended):
+            result = self.publisher.publish(symbol="A", instrument_id="frozen-A",
+                event=event(), pages=(page(body()),), deadline=200,
+                monotonic=lambda: elapsed[0])
+        self.assertEqual(observed, [60.0])
+        self.assertEqual(result.written_count, 2)
+
+    def test_lock_wait_and_publication_cannot_pass_invocation_deadline(self):
+        from contextlib import contextmanager
+        from unittest.mock import patch
+        from quant_data.company import equibles_transcripts as module
+        from quant_data.ingestion import PublicationDeferred
+        elapsed = [100.0]
+        observed = []
+        @contextmanager
+        def expires(stores, roles, *, timeout_seconds):
+            observed.append(timeout_seconds)
+            elapsed[0] += timeout_seconds
+            yield None
+        before = mutation_fingerprint(self.stores)
+        with patch.object(module, "acquire_write_session", expires):
+            with self.assertRaises(PublicationDeferred):
+                self.publisher.publish(symbol="A", instrument_id="frozen-A",
+                    event=event(), pages=(page(body()),), deadline=103,
+                    monotonic=lambda: elapsed[0])
+        self.assertEqual(observed, [3.0])
+        self.assertEqual(before, mutation_fingerprint(self.stores))
+
+    def test_legacy_lock_wait_remains_five_seconds_and_failure_changes_nothing(self):
+        from unittest.mock import patch
+        from quant_data.company import equibles_transcripts as module
+        before = mutation_fingerprint(self.stores)
+        with patch.object(module, "acquire_write_session",
+                side_effect=ConflictError("Timed out acquiring the physical store lock")) as acquire:
+            with self.assertRaises(ConflictError): self.publish((page(body()),))
+        self.assertEqual(acquire.call_args.kwargs["timeout_seconds"], 5.0)
+        self.assertEqual(before, mutation_fingerprint(self.stores))
+
     def test_registry_predecessor_and_migration_rerun(self):
         previous=equibles_transcript_registry_profile(self.registry)
         self.assertEqual(previous.registry_version,"2.73.0")
@@ -221,11 +274,137 @@ class BackfillTests(unittest.TestCase):
         self.assertEqual(self.publisher.calls,[])
         self.assertEqual(report["current_ticker"],"A")
 
-    def test_transcript_404_or_duplicate_events_blocks_before_next_ticker(self):
-        t=FakeTransport([catalog(),(404,b'{"error":"missing"}')])
+    def test_missing_quarter_is_retained_and_next_quarter_precedes_next_ticker(self):
+        missing=b'{"error":"missing"}'
+        t=FakeTransport([catalog("A",(2,1)),(404,missing),body("A",2),catalog("B"),body("B")])
+        report=self.run_job(t)
+        self.assertEqual(report["outcome"],"complete")
+        self.assertEqual(self.publisher.calls,[("A",2),("B",1)])
+        self.assertEqual(report["skipped_quarters"],1)
+        self.assertEqual(report["transcripts"],2)
+        self.assertEqual(report["quota"]["attempted"],5)
+        completed=self.state()["completed"]["A"]
+        self.assertEqual(completed["status"],"completed_with_transcript_gaps")
+        self.assertEqual(completed["without_transcript"],0)
+        gap,=completed["unavailable_transcripts"]
+        self.assertEqual((gap["event_id"],gap["fiscal_year"],gap["fiscal_quarter"]),("A-1",2020,1))
+        self.assertEqual(gap["http_status"],404)
+        self.assertEqual(gap["response_sha256"],hashlib.sha256(missing).hexdigest())
+        self.assertEqual(job.retained(self.root,gap["path"])[1],missing)
+        self.assertEqual(gap["partial_page_paths"],[])
+        replay=self.run_job(FakeTransport([]))
+        self.assertEqual(replay["requests_this_run"],0)
+        self.assertEqual(replay["skipped_quarters"],1)
+
+    def test_missing_quarter_without_quota_headers_stays_charged_and_resumes_next_day(self):
+        class HeaderlessMissing(FakeTransport):
+            def request(self,path):
+                status,headers,raw=super().request(path)
+                return status,({"content-type":"text/html"} if status==404 else headers),raw
+        s=self.state();s["usage"][AT.date().isoformat()]={"attempted":98,"remaining":2};self.save(s)
+        t=HeaderlessMissing([catalog("A",(1,2)),(404,b"not found")],remaining=2)
+        report=self.run_job(t)
+        self.assertEqual(report["outcome"],"daily_quota")
+        self.assertEqual(report["quota"]["attempted"],100)
+        self.assertEqual(report["quota"]["remaining"],0)
+        self.assertEqual(self.state()["current"]["event_index"],1)
+        self.assertIsNone(self.state()["pending"])
+        self.assertEqual(self.run_job(FakeTransport([]))["requests_this_run"],0)
+        self.clock=lambda:AT+timedelta(days=1)
+        t=FakeTransport([body("A",2),catalog("B"),body("B")],clock=self.clock)
+        self.assertEqual(self.run_job(t)["outcome"],"complete")
+        self.assertIn("/2020/2/speakers?",t.paths[0])
+        self.assertEqual(self.publisher.calls,[("A",2),("B",1)])
+
+    def test_missing_later_page_preserves_raw_evidence_without_partial_publication(self):
+        first=body(total=3,count=2)
+        t=FakeTransport([catalog("A",(1,2)),first,(404,b"missing page"),
+                         body("A",2),catalog("B"),body("B")])
+        report=self.run_job(t)
+        self.assertEqual(report["outcome"],"complete")
+        self.assertEqual(self.publisher.calls,[("A",2),("B",1)])
+        gap,=self.state()["completed"]["A"]["unavailable_transcripts"]
+        self.assertTrue(gap["path"].endswith("offset=2"))
+        partial,=gap["partial_page_paths"]
+        self.assertEqual(job.retained(self.root,partial)[1],first)
+        self.assertIn("/2020/2/speakers?limit=200&offset=0",t.paths[3])
+
+    def test_retained_missing_response_recovers_after_crash_without_another_get(self):
+        from unittest.mock import patch
+        class PowerLoss(BaseException): pass
+        original=job.retain_response
+        def interrupted(root,path,raw,captured_at,headers,status,identifier=None):
+            result=original(root,path,raw,captured_at,headers,status,identifier)
+            if status==404: raise PowerLoss()
+            return result
+        with patch.object(job,"retain_response",side_effect=interrupted):
+            with self.assertRaises(PowerLoss):
+                self.run_job(FakeTransport([catalog("A",(1,2)),(404,b"missing")]))
+        self.assertIsNotNone(self.state()["pending"])
+        t=FakeTransport([body("A",2),catalog("B"),body("B")],remaining=98)
+        report=self.run_job(t)
+        self.assertEqual(report["outcome"],"complete")
+        self.assertEqual(report["skipped_quarters"],1)
+        self.assertEqual(report["quota"]["attempted"],5)
+        self.assertNotIn("/A/earnings-calls/2020/1/speakers?",",".join(t.paths))
+
+    def test_gap_and_cursor_are_saved_together_on_restart(self):
+        from unittest.mock import patch
+        class PowerLoss(BaseException): pass
+        original=job.atomic
+        def interrupted(path,value,**kwargs):
+            if path.name=="state.json" and isinstance(value,dict):
+                current=value.get("current")
+                if current and current.get("unavailable_transcripts"): raise PowerLoss()
+            return original(path,value,**kwargs)
+        with patch.object(job,"atomic",side_effect=interrupted):
+            with self.assertRaises(PowerLoss):
+                self.run_job(FakeTransport([catalog("A",(1,2)),(404,b"missing")]))
+        self.assertIsNone(self.state()["pending"])
+        self.assertEqual(self.state()["current"]["event_index"],0)
+        t=FakeTransport([body("A",2),catalog("B"),body("B")],remaining=98)
+        report=self.run_job(t)
+        self.assertEqual(report["outcome"],"complete")
+        self.assertEqual(report["skipped_quarters"],1)
+        self.assertEqual(len(self.state()["completed"]["A"]["unavailable_transcripts"]),1)
+        self.assertNotIn("/A/earnings-calls/2020/1/speakers?",",".join(t.paths))
+
+    def test_gateway_failure_without_headers_is_not_a_missing_quarter_or_retried(self):
+        class GatewayFailure(FakeTransport):
+            def request(self,path):
+                status,headers,raw=super().request(path)
+                return status,({"content-type":"text/html"} if status==502 else headers),raw
+        t=GatewayFailure([catalog(),(502,b"Bad Gateway")])
         report=self.run_job(t)
         self.assertEqual(report["outcome"],"blocked")
-        self.assertEqual(report["current_ticker"],"A")
+        self.assertIn("502",report["blocked"]["reason"])
+        self.assertEqual(report["skipped_quarters"],0)
+        self.assertEqual(self.state()["current"]["event_index"],0)
+        self.assertEqual(self.publisher.calls,[])
+        self.assertEqual(self.run_job(FakeTransport([]))["requests_this_run"],0)
+
+    def test_missing_response_with_partial_quota_headers_remains_blocked(self):
+        class PartialHeaders(FakeTransport):
+            def request(self,path):
+                status,headers,raw=super().request(path)
+                if status==404: del headers["x-ratelimit-reset"]
+                return status,headers,raw
+        report=self.run_job(PartialHeaders([catalog(),(404,b"missing")]))
+        self.assertEqual(report["outcome"],"blocked")
+        self.assertEqual(report["skipped_quarters"],0)
+        self.assertEqual(report["quota"]["attempted"],2)
+        self.assertIsNotNone(self.state()["pending"])
+
+    def test_malformed_success_is_not_classified_as_missing(self):
+        report=self.run_job(FakeTransport([catalog(),b'{"error":"no transcript"}']))
+        self.assertEqual(report["outcome"],"blocked")
+        self.assertEqual(report["skipped_quarters"],0)
+        self.assertEqual(self.publisher.calls,[])
+
+    def test_duplicate_events_still_block_before_transcript_requests(self):
+        t=FakeTransport([catalog("A",(1,1))])
+        self.assertEqual(self.run_job(t)["outcome"],"blocked")
+        self.assertEqual(len(t.paths),1)
         self.assertEqual(self.publisher.calls,[])
     def test_no_coverage_is_recorded_and_next_ticker_proceeds(self):
         t=FakeTransport([(404,b'{"error":"missing"}'),catalog("B"),body("B")])

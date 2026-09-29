@@ -209,13 +209,16 @@ class FetchRunHistoryTests(unittest.TestCase):
         self.assertTrue(self.files()[0].parent.parent.name == "2026-10")
 
     def test_all_ten_deployed_entrypoints_record_exact_original_cli_calls(self):
-        self.assertEqual(set(history.BATCH_ARGUMENTS), {binding.unit for binding in TIMER_BINDINGS})
+        self.assertEqual(set(history.BATCH_ARGUMENTS) - {"quant-data-alpaca-spy-options.timer"},
+                         {binding.unit for binding in TIMER_BINDINGS})
         actual = history.run_recorded_cli
         for batch, expected_args in history.BATCH_ARGUMENTS.items():
             service = ROOT / "deploy/systemd" / batch.replace(".timer", ".service")
             command = next(line.split("=", 1)[1] for line in service.read_text().splitlines() if line.startswith("ExecStart="))
             args = shlex.split(command)
-            self.assertEqual(args[:2], ["/usr/bin/python3", "-m"])
+            python = (str(ROOT / ".local/theta-discovery-20260924/venv/bin/python")
+                      if batch.startswith("quant-data-theta-options-") else "/usr/bin/python3")
+            self.assertEqual(args[:2], [python, "-m"])
             self.assertEqual(tuple(args[3:]), expected_args)
             module = ROOT / (args[2].replace(".", "/") + ".py")
             tree = ast.parse(module.read_text())
@@ -230,10 +233,7 @@ class FetchRunHistoryTests(unittest.TestCase):
                 with self.assertRaises(SystemExit) as caught:
                     exec(compile(ast.Module(body=[entrypoint], type_ignores=[]), str(module), "exec"), namespace)
             self.assertEqual(caught.exception.code, 75)
-            if batch == "quant-data-sec-company-fundamentals.timer":
-                operation.assert_called_once_with(list(expected_args))
-            else:
-                operation.assert_called_once_with()
+            operation.assert_called_once_with()
         self.assertEqual({row["batch_id"] for row in self.read()["records"]}, set(history.BATCH_ARGUMENTS))
 
 

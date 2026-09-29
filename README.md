@@ -99,24 +99,28 @@ manifest, shows only the latest version of each logical tool, supports session-o
 typed-series reuse, and renders bounded nested previews plus the complete
 strict-JSON response in pages.
 The Current news page renders a bounded latest selection through the fixed
-`news.search@2.2.0` public contract, with source, symbol, date, text, and
+`news.search@2.3.0` public contract, with source, symbol, date, text, and
 cursor filters. Retained raw response bytes and article bodies remain private.
-The Data status page reports retained capture/outcome freshness alongside
-Refresh Cadence and Next Scheduled Fetch from a read-only snapshot of the nine
-fixed local project timers. Cadence uses each loaded timer's calendar and time
-zone; the next batch start is shown in UTC. Inactive/unmapped schedules show
-Not scheduled, and unavailable timer data is explicit. Refresh the page to
-update the snapshot. Timer triggers may skip holidays or yield unchanged data;
-they are separate from source publication frequency and retained freshness.
-Last successful capture is displayed in New York time, labelled EST or EDT
-according to the date, with the original timestamp retained in the page markup.
-Next Scheduled Fetch remains explicitly UTC. The retained-status JSON API
-keeps its original timestamps. `GET /healthz` is a process-
-liveness endpoint only and makes no data-freshness or provider-health claim.
-The launcher has no SQL, database-path, credential, provider-request,
-ingestion, or write control.
+The Status workspace (`/status`) combines run activity, retained-data status,
+and current backfill progress. The former `/data-status` URL opens the same
+workspace at Stored data. Summary cards connect run outcomes to retained-data
+coverage; expand a run and select **View stored data for this batch** to inspect
+its datasets. Stored data has search, collection, batch and data-state filters.
+Active data is the default; historical, fixture and planned datasets remain
+available under Collection. Record inspection retains every supporting field,
+including source dates, capture timestamps and successful-fetch evidence.
 
-The Status page (`/status`) adds a monthly live-fetch calendar and Today's
+Selecting a historical run day does not rewind the current data or backfill
+snapshots; the page labels this distinction explicitly. Refresh the page to
+update the snapshots. Source periods, successful polls and retained captures
+remain separate facts. Capture timestamps use New York time, labelled EST or
+EDT, with the original timestamp retained in the markup and JSON API.
+If the stored-data read is unavailable, its section shows the error and a reload
+link while the run history stays visible. `GET /healthz` remains process
+liveness only. The Inspector has no SQL, database-path, credential,
+provider-request, ingestion, or write control.
+
+Run activity includes a monthly live-fetch calendar and the selected day's
 focus, with scheduled batch times and recorded outcomes in Eastern time.
 Compact batch markers use a shared legend: green means completed; amber marks
 Partial Success, scheduled, running or unconfirmed. Expand run details for
@@ -130,7 +134,7 @@ available systemd history. New records appear from the next normal scheduled
 runs; earlier missing history stays unconfirmed. The page cannot trigger jobs.
 Refresh the page to update its snapshot.
 
-Equibles appears in Data status with its daily backfill schedule and recorded
+Equibles appears in Status with its daily backfill schedule and recorded
 progress. **Company transcripts** (`/?view=company-transcripts`) browses stored
 calls by symbol and fiscal period; each call opens paginated speaker text.
 **Transcript extractions** (`/transcript-extractions`) provides a formatted
@@ -141,7 +145,7 @@ Status includes an Equibles progress panel and its daily run. In Daily focus,
 Current news is one collapsed entry; click it to expand the hourly outcomes.
 
 The Inspector shares grouped navigation across Data views, Current news, Status,
-Data status, and Agent Tools. Data tables retain every returned field and its exact
+and Agent Tools. Data tables retain every returned field and its exact
 value; select a record to inspect its fields alongside the table, including
 separate availability and capture timestamps. Close the record panel to return
 keyboard focus to its row. Narrow screens use a collapsible navigation menu
@@ -647,14 +651,19 @@ projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
 deterministic evidence remains reproducible.
 
 The frozen compatibility inventory remains all 57 reviewed public tool names.
-The active registry exposes 65 read-only logical tools: that frozen surface
-plus eight native data/statistics names. Explicit successors, including
-`market.technical_indicators@2.0.0`, `2.1.0`, `2.2.0`, `2.3.0`, `2.4.0`,
-`2.5.0`, `2.6.0`, and `2.7.0`,
-`company.search_filings@2.0.0`,
-`market.search_instruments@2.0.0`, and
-`company.get_share_count_history@2.0.0`, preserve their frozen v1 defaults
-and do not create additional logical names. Registry `2.57.0` also adds the
+Registry `2.85.0` exposes 77 read-only logical tools and catalog `2.31.0`
+contains 166 versioned contracts. Explicit successors preserve compatibility
+defaults and do not create additional logical names. For new integrations,
+select the semantic maximum in the runtime manifest's `versions` array and
+pass it explicitly to both `describe` and `call`; the top-level `version` is
+a compatibility default. The [current price workflow](docs/LOCAL_AGENT_TOOLS.md#current-price-workflow)
+uses `market.get_price_series@2.0.0`, returns `@2.1.0`, indicators `@2.8.0`,
+and `portfolio.get_etf_allocator_snapshot@2.0.0`. Bound FMP full-EOD `close`
+is already split-adjusted and excludes dividends; use it unchanged and pass
+its complete metadata to the matching analytical successors. The
+[latest contract table](docs/LOCAL_AGENT_TOOLS.md#latest-contracts) and
+[current ETF example](docs/LOCAL_AGENT_TOOLS.md#etf-allocator-snapshot) are
+the agent entry points. Registry `2.57.0` also adds the
 explicit v2 investment-analysis successors for macro release-calendar
 pagination, market cross-sectional performance, macro revisions and
 surprises, raw rates/liquidity/credit/regime views, retained EIA energy facts,
@@ -774,3 +783,21 @@ proofs were filesystem-neutral and created only their immutable private
 receipts. Later Stage 12E authorization and operational evidence are indexed
 in the [operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions),
 separately from these historical proofs.
+
+## Transcript guidance, analyst focus and management tone
+
+The private manual pipeline reads stored Equibles calls, uses Terra/high for
+extraction and optional Sol/high pilot review, and retains source-backed derived
+analysis in the company store. It has explicit request, token, time and budget
+bounds, durable attempt receipts, and replay without paid retries. See the
+[transcript analysis contract and commands](docs/rebuild/TRANSCRIPT_ANALYSIS_CONTRACT_2026-09-08.md#manual-operation-and-bounds).
+Implementation does not activate a paid pilot, scheduler or operational migration.
+
+## Reconstructed daily forward P/E
+
+The manual [forward P/E research builder](docs/FORWARD_PE_PROXY.md) stitches four
+quarterly estimates on actual earnings-announcement dates and joins daily prices.
+It writes a separate SQLite artifact with source lineage and explicit quality flags.
+Browse it in the local Inspector at **Market → Forward P/E**
+(`http://127.0.0.1:8766/forward-pe`). The same guide describes the proposed daily
+refresh pipeline; scheduling is not activated.

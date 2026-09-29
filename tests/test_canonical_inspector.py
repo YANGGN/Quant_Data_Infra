@@ -2385,8 +2385,12 @@ class CanonicalInspectorTests(unittest.TestCase):
         manifest_response = self.application.handle("GET", "/api/agent-tools")
         self.assertEqual(manifest_response.status, 200)
         manifest = loads_strict(manifest_response.body)
-        self.assertEqual(manifest["registry_revision"], "2.74.0")
-        self.assertEqual(len(manifest["tools"]), 77)
+        self.assertEqual(manifest["registry_revision"], "2.93.0")
+        self.assertEqual(len(manifest["tools"]), 90)
+        names = {item["name"] for item in manifest["tools"]}
+        self.assertTrue({"options.get_coverage", "options.get_daily_history",
+                         "options.get_daily_snapshot", "options.get_volatility_profile",
+                         "options.screen_activity", "options.get_selected_contracts"} <= names)
         technical = next(
             item
             for item in manifest["tools"]
@@ -2404,6 +2408,7 @@ class CanonicalInspectorTests(unittest.TestCase):
                 "2.5.0",
                 "2.6.0",
                 "2.7.0",
+                "2.8.0",
             ],
         )
         v20 = next(
@@ -2451,10 +2456,10 @@ class CanonicalInspectorTests(unittest.TestCase):
         )
         self.assertEqual(page.status, 200)
         document = page.body.decode("utf-8")
-        self.assertIn("<p>Logical tools</p><strong>77</strong>", document)
+        self.assertIn("<p>Logical tools</p><strong>90</strong>", document)
         self.assertIn('name="tool_version"', document)
         self.assertIn(
-            'name="tool_version" value="2.7.0" readonly required',
+            'name="tool_version" value="2.8.0" readonly required',
             document,
         )
         self.assertNotIn('<option value="2.3.0"', document)
@@ -2467,15 +2472,15 @@ class CanonicalInspectorTests(unittest.TestCase):
         self.assertIn("news.search", document)
         self.assertIn("Current news", document)
         self.assertIn('href="/news"', document)
-        self.assertIn("Data status", document)
-        self.assertIn('href="/data-status"', document)
+        self.assertIn('href="/status"', document)
+        self.assertNotIn('href="/data-status"', document)
         self.assertIn("Registered data coverage", document)
         self.assertNotIn(str(self.market), document)
 
         latest_link = self.application.handle(
             "GET",
             "/agent-tools?tool=market.technical_indicators"
-            "&tool_version=2.7.0",
+            "&tool_version=2.8.0",
         )
         self.assertEqual(latest_link.status, 200)
 
@@ -2605,7 +2610,7 @@ class CanonicalInspectorTests(unittest.TestCase):
                 ),
             )
             expected[tool["name"]] = latest["version"]
-        self.assertEqual(len(expected), 77)
+        self.assertEqual(len(expected), 84)
         self.assertEqual(documented, expected)
 
     def test_current_news_v21_runs_through_inspector_without_store_mutation(
@@ -2799,7 +2804,7 @@ class CanonicalInspectorTests(unittest.TestCase):
             self.assertIn("Completed", document)
             self.assertIn("Failed", document)
             self.assertIn('href="/status" aria-current="page"', document)
-            self.assertIn('href="/data-status"', document)
+            self.assertNotIn('href="/data-status"', document)
             reader.assert_called_once_with("2026-09-04")
             for path in ("/status?unit=secret.service", "/status?date=2026-02-30",
                          "/status?date=2026-09-04&sql=select", "/status?date=2026-9-4"):
@@ -2807,7 +2812,11 @@ class CanonicalInspectorTests(unittest.TestCase):
             self.assertEqual(self.application.handle("POST", "/status").status, 405)
             self.application.handle("GET", "/healthz")
             reader.assert_called_once()
-            dispatcher.assert_not_called()
+            dispatcher.assert_called_once_with(
+                "data.get_dataset_status",
+                {"stores": [], "dataset_ids": [], "statuses": [], "limit": 128},
+                tool_version="1.0.0",
+            )
             stored_rows.assert_not_called()
             host.assert_not_called()
 
@@ -2876,21 +2885,21 @@ class CanonicalInspectorTests(unittest.TestCase):
             page = self.application.handle("GET", "/data-status")
             api = self.application.handle("GET", "/api/data-status")
             self.application.handle("GET", "/healthz")
-            schedule_reader.assert_called_once_with()
+            schedule_reader.assert_not_called()
             metadata_reader.assert_called_once_with()
         self.assertEqual(page.status, 200)
         document = page.body.decode("utf-8")
-        self.assertIn("<h1>Data status</h1>", document)
+        self.assertIn("<h1>Status</h1>", document)
         self.assertIn("macro.fed_h41_liquidity", document)
-        self.assertIn("Live data \u00b7 all supporting fields preserved", document)
-        self.assertIn('data-status-group="live"', document)
-        self.assertIn('data-status-group="other"', document)
-        self.assertIn("read-only status", document)
+        self.assertIn("Stored data · current snapshot", document)
+        self.assertIn('data-status-lifecycle', document)
+        self.assertIn('data-status-batch', document)
+        self.assertIn("read-only", document)
         self.assertIn("2026-08-12", document)
-        self.assertIn("Refresh Cadence", document)
-        self.assertIn("Next Scheduled Fetch", document)
-        self.assertIn("Weekdays at 18:30 New York", document)
-        self.assertIn('datetime="2099-01-05T23:30:00Z"', document)
+        self.assertIn("Last stored capture", document)
+        self.assertIn("Source date", document)
+        self.assertNotIn("Weekdays at 18:30 New York", document)
+        self.assertNotIn('datetime="2099-01-05T23:30:00Z"', document)
         self.assertNotIn(str(self.market), document)
         self.assertEqual(api.status, 200)
         payload = loads_strict(api.body)
@@ -2930,11 +2939,28 @@ class CanonicalInspectorTests(unittest.TestCase):
         schedules.assert_not_called()
         metadata.assert_not_called()
         document = page.body.decode()
-        self.assertIn("Data status could not be loaded", document)
-        self.assertIn("Reload data status", document)
+        self.assertIn("Stored data status is unavailable", document)
+        self.assertIn("Reload this page", document)
         self.assertNotIn("No live data records", document)
         self.assertNotIn('data-status-summary=', document)
         self.assertNotIn('data-status-group-select', document)
+
+    def test_legacy_data_status_url_is_the_same_unified_workspace(self) -> None:
+        from quant_data.inspector_fetch_status import read_fetch_status
+        from tests.test_inspector_fetch_status import NOW
+        snapshot = read_fetch_status(None, observed_at=NOW, probe=False)
+        with (
+            patch.object(self.application, "_fetch_status_reader", return_value=snapshot),
+            patch.object(self.application.dispatcher, "call", return_value={"records": []}) as data,
+            patch.object(self.application, "_metadata_reader", return_value={}) as metadata,
+            patch.object(self.application, "_schedule_reader") as schedules,
+        ):
+            normal = self.application.handle("GET", "/status")
+            legacy = self.application.handle("GET", "/data-status")
+        self.assertEqual(normal.body, legacy.body)
+        self.assertEqual(data.call_count, 2)
+        self.assertEqual(metadata.call_count, 2)
+        schedules.assert_not_called()
 
     def test_data_status_rejects_queries_without_dispatch(self) -> None:
         with patch.object(self.application.dispatcher, "call") as dispatcher_call, patch.object(

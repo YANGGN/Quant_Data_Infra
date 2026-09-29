@@ -57,7 +57,11 @@ def load_inputs(stores: StoreMap) -> tuple[tuple[MarketCompanySecurity, ...], di
     with quiet_immutable_read_connection(stores, "market") as connection:
         rows = connection.execute(
             "SELECT provider_symbol, instrument_id FROM stage10_instruments "
-            "WHERE provider='fmp' AND asset_type='equity' ORDER BY provider_symbol LIMIT ?",
+            "WHERE provider='fmp' AND asset_type='equity' "
+            "AND NOT EXISTS (SELECT 1 FROM ingestion_runs enrollment "
+            "WHERE enrollment.run_id=stage10_instruments.run_id "
+            "AND enrollment.command='local.market.selected_instruments') "
+            "ORDER BY provider_symbol LIMIT ?",
             (MAX_EQUITIES + 1,),
         ).fetchall()
     if not rows or len(rows) > MAX_EQUITIES:
@@ -126,6 +130,7 @@ def run_company_market_refresh(
     state_root: Path, started: float, monotonic: Callable[[], float] = time.monotonic,
     sleeper: Callable[[float], None] = time.sleep,
     utcnow: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    sources: Sequence[str] = SOURCES,
 ) -> dict[str, object]:
     """Run a supplied, already bounded discovery through isolated FMP sources."""
     from ..company.fmp_market_data import FmpCompanySubject, parse_fmp_company_response
@@ -133,6 +138,9 @@ def run_company_market_refresh(
         raise ValidationError("Company refresh clock is invalid")
     if not isinstance(discovery_body, bytes) or len(discovery_body) > MAX_DISCOVERY_BYTES:
         raise ResourceLimitError("Company discovery exceeds its bound")
+    sources = tuple(sources)
+    if not sources or len(set(sources)) != len(sources) or not set(sources) <= set(SOURCES):
+        raise ValidationError('Company refresh source subset is invalid')
     securities = tuple(roster)
     if any(not isinstance(item, MarketCompanySecurity) for item in securities):
         raise ValidationError("Company roster is invalid")
@@ -159,7 +167,7 @@ def run_company_market_refresh(
     last_request: float | None = None
     exhausted = False
     for subject in subjects:
-        for source in SOURCES:
+        for source in sources:
             now = monotonic()
             if last_request is not None:
                 delay = max(0.0, MIN_REQUEST_INTERVAL_SECONDS - (now - last_request))
@@ -237,7 +245,7 @@ def run_company_market_refresh(
     return report
 
 
-def refresh_company_market_live() -> dict[str, object]:
+def refresh_company_market_live(*, sources: Sequence[str] = SOURCES) -> dict[str, object]:
     from ..company.fmp_market_data import FmpCompanyMarketDataPublisher
     if PROJECT_ROOT.resolve(strict=True) != PROJECT_ROOT:
         raise ValidationError("Company project binding is invalid")
@@ -274,7 +282,7 @@ def refresh_company_market_live() -> dict[str, object]:
         return response
     return run_company_market_refresh(
         roster=roster, issuers=issuers, discovery_body=discovery.body, fetch=fetch,
-        publisher=publisher, state_root=PROJECT_ROOT / STATE_RELATIVE, started=started,
+        publisher=publisher, state_root=PROJECT_ROOT / STATE_RELATIVE, started=started, sources=sources,
     )
 
 
@@ -284,7 +292,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(dumps_strict({"error": "invalid_arguments", "exit_code": 64}))
         return 64
     try:
-        report = refresh_company_market_live()
+        from .selected_actions import ACTIVATION, run_live
+        if (PROJECT_ROOT / ACTIVATION).exists():
+            stores = StoreMap.four_explicit(**{r: PROJECT_ROOT / 'data' / (r + '.sqlite')
+                for r in ('market', 'macro', 'company', 'news')})
+            registry = load_registry(PROJECT_ROOT / CANONICAL_REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
+            # Each source lane must run even when its sibling fails before producing a report.
+            from .fetch_run_summary import summarize_report
+            failed_counts = {'unit': 'steps', 'successful': 0, 'failed': 1, 'partial': 0, 'skipped': 0, 'unattempted': 0}
+            try:
+                legacy = refresh_company_market_live(sources=('analyst_estimates',))
+                legacy_counts = summarize_report('quant-data-company-market-refresh.timer', legacy)
+            except Exception as error:
+                legacy = {'outcome': 'failed', 'error': _error_code(error), 'exit_code': 75}
+                legacy_counts = failed_counts
+            try:
+                actions = run_live(project_root=PROJECT_ROOT, stores=stores, registry=registry)
+            except Exception as error:
+                actions = {'outcome': 'failed', 'error': _error_code(error), 'exit_code': 75, 'counts': failed_counts}
+            counts = {k: legacy_counts[k] + actions['counts'][k] for k in ('successful','failed','partial','skipped','unattempted')}
+            report = {'contract': 'quant_data.company_market_refresh.v2',
+                'outcome': 'succeeded' if not legacy['exit_code'] and not actions['exit_code'] else 'partial',
+                'exit_code': 0 if not legacy['exit_code'] and not actions['exit_code'] else 75,
+                'counts': {'unit': 'steps', **counts}, 'legacy_estimates': legacy, 'selected_actions': actions}
+        else:
+            report = refresh_company_market_live()
     except Exception as error:
         print(dumps_strict({"contract": "quant_data.company_market_refresh",
                            "outcome": "failed", "error": _error_code(error), "exit_code": 75}))

@@ -23,7 +23,7 @@ DATASET_IDS = (
     "market.stage10.daily_prices",
 )
 CURRENT_SOURCE_SHA256 = (
-    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
+    "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97"
 )
 PREVIOUS_SOURCE_SHA256 = (
     "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
@@ -42,11 +42,11 @@ class FmpIwmEtfRegistryTests(unittest.TestCase):
         current = self._registry()
         self.assertEqual(
             (current.schema_version, current.revision, current.source_sha256),
-            ("1.9.0", "2.74.0", CURRENT_SOURCE_SHA256),
+            ("1.9.0", "2.83.0", CURRENT_SOURCE_SHA256),
         )
         self.assertEqual(
             (len(current.migrations), len(current.datasets), len(current.collectors)),
-            (48, 64, 70),
+            (57, 73, 78),
         )
         collector = next(
             item for item in current.collectors if item["id"] == COLLECTOR_ID

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from quant_data.tool_platform.price_basis_versions import PRICE_BASIS_VERSIONS, NEW_PRICE_BASIS_POLICIES
+
 import hashlib
 import json
 import tempfile
@@ -66,10 +68,10 @@ V1_CATALOG_SHA256 = (
     "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 )
 V2_CATALOG_SHA256 = (
-    "7c1ff084bce29dc64d3a7db793fbb05eafe99921358ab01b308a98395b5e481b"
+    "20aaade3f5f3b5795bda6ebc8d91ed026485dcf6ae6910f2316dbe3fef1310e3"
 )
 CURRENT_REGISTRY_SHA256 = (
-    "174c4b23a1bbfccd3188d8dd944a64023dd0dad0e08fdd7cf381015a8b498b05"
+    "1b46ab14244717708470bdafcd840fee804c66cff2a572c6a99bba7a482afff2"
 )
 REGISTRY_268_SOURCE_SHA256 = (
     "9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e"
@@ -1186,12 +1188,12 @@ class MarketReturnVersioningTests(unittest.TestCase):
         )
 
 
-    def test_current_registry_has_forty_four_versioned_tools_and_sixty_one_variants(
+    def test_current_registry_has_fifty_one_versioned_tools_and_eighty_nine_variants(
         self,
     ) -> None:
         self.assertEqual(
             (self.registry.schema_version, self.registry.registry_version),
-            ("1.9.0", "2.74.0"),
+            ("1.9.0", "2.85.0"),
         )
         self.assertEqual(self.registry.source_sha256, CURRENT_REGISTRY_SHA256)
         technical_v23_predecessor = (
@@ -1777,13 +1779,13 @@ class MarketReturnVersioningTests(unittest.TestCase):
                     self.registry.tool(name, "2.0.0")["operation_graph_id"],
                     f"tool_platform.{name}.v2",
                 )
-        self.assertEqual(len(self.registry.tool_version_policies), 44)
+        self.assertEqual(len(self.registry.tool_version_policies), 51)
         self.assertEqual(
             sum(
                 len(policy["variants"])
                 for policy in self.registry.tool_version_policies
             ),
-            62,
+            89,
         )
         technical_v21 = self.registry.tool(
             "market.technical_indicators", "2.1.0"
@@ -1923,14 +1925,37 @@ class MarketReturnVersioningTests(unittest.TestCase):
             )
 
     def test_generated_v1_is_frozen_and_v2_catalog_is_separate(self) -> None:
-        generate(PROJECT_ROOT, check=True)
+        from quant_data.tool_platform.generate import (
+            REGISTRY_RESOURCE, CATALOG_RESOURCE, VERSIONED_CATALOG_RESOURCE,
+        )
+        resources = (REGISTRY_RESOURCE, CATALOG_RESOURCE, VERSIONED_CATALOG_RESOURCE)
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            root = Path(temporary)
+            for resource in resources:
+                target = root / resource
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((PROJECT_ROOT / resource).read_bytes())
+            generate(root, check=True)
+            for resource in resources:
+                self.assertEqual((root / resource).read_bytes(),
+                    (PROJECT_ROOT / resource).read_bytes())
         self.assertEqual(hashlib.sha256(V1_CATALOG.read_bytes()).hexdigest(), V1_CATALOG_SHA256)
         self.assertEqual(hashlib.sha256(V2_CATALOG.read_bytes()).hexdigest(), V2_CATALOG_SHA256)
         v1 = loads_strict(V1_CATALOG.read_bytes())
         v2 = loads_strict(V2_CATALOG.read_bytes())
         self.assertEqual(len(v1["contracts"]), 114)
-        self.assertEqual(v2["schema_version"], "2.29.0")
-        self.assertEqual(len(v2["contracts"]), 164)
+        self.assertEqual(v2["schema_version"], "2.31.0")
+        self.assertEqual(len(v2["contracts"]), 218)
+        # Verify the frozen pre-metadata inventory separately from its 52 additions.
+        added_ids = {
+            f"urn:quant-data:tool:{name}:{direction}:{version}"
+            for name, (_, version) in PRICE_BASIS_VERSIONS.items()
+            for direction in ("input", "output")
+        }
+        self.assertEqual(len(added_ids), 52)
+        self.assertTrue(added_ids.issubset({item["id"] for item in v2["contracts"]}))
+        v2["contracts"] = [item for item in v2["contracts"] if item["id"] not in added_ids]
+        self.assertEqual(len(v2["contracts"]), 166)
         self.assertEqual(
             {item["tool"] for item in v2["contracts"]},
             {
@@ -2096,7 +2121,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
 
         self.assertEqual(
             sum(item["id"].endswith(":2.0.0") for item in v2["contracts"]),
-            88,
+            90,
         )
         self.assertEqual(
             sum(item["id"].endswith(":2.1.0") for item in v2["contracts"]),
@@ -2148,7 +2173,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             if item["name"] == "market.get_price_series"
         )
         self.assertEqual(price_series["version"], "1.0.0")
-        self.assertEqual(price_series["lifecycle"], "experimental")
+        self.assertEqual(price_series["lifecycle"], "deprecated")
         self.assertEqual(
             price_series["compatibility"]["status"],
             "additive_native_v1",
@@ -2202,6 +2227,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "company.get_fundamentals",
             "research.liquidity_credit_state",
             "news.search",
+            "portfolio.get_etf_allocator_snapshot",
+            *NEW_PRICE_BASIS_POLICIES,
         }
         for name in versioned:
             tool = next(item for item in manifest["tools"] if item["name"] == name)
@@ -2228,6 +2255,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 expected_versions.extend(("2.2.0", "2.3.0"))
             if name == "econometrics.regression":
                 expected_versions.append("3.0.0")
+            if name in PRICE_BASIS_VERSIONS and name not in NEW_PRICE_BASIS_POLICIES:
+                expected_versions.append(PRICE_BASIS_VERSIONS[name][1])
             self.assertEqual(
                 [item["version"] for item in tool["versions"]],
                 expected_versions,
@@ -2713,7 +2742,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         self.assertEqual(malformed_payload["error"]["code"], "invalid_request")
         self.assertEqual(
             malformed_payload["receipt"],
-            {"registry_revision": "2.74.0"},
+            {"registry_revision": "2.83.0"},
         )
         for response in non_string:
             with self.subTest(body=response.body):
@@ -2722,7 +2751,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 self.assertEqual(payload["error"]["code"], "invalid_request")
                 self.assertEqual(
                     payload["receipt"],
-                    {"registry_revision": "2.74.0"},
+                    {"registry_revision": "2.83.0"},
                 )
 
 

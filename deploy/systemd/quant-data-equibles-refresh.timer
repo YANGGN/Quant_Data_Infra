@@ -1,0 +1,12 @@
+[Unit]
+Description=Equibles recent earnings weekdays and fallback weekends at 02:00 Toronto
+
+[Timer]
+OnCalendar=*-*-* 02:00:00 America/Toronto
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=true
+Unit=quant-data-equibles-refresh.service
+
+[Install]
+WantedBy=timers.target

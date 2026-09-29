@@ -33,12 +33,15 @@ def _install_market(store_map: StoreMap, rows: tuple[tuple[str, str, str], ...])
                 store_role TEXT NOT NULL
             ) STRICT;
             INSERT INTO store_metadata (singleton, store_role) VALUES (1, 'market');
+            CREATE TABLE ingestion_runs (run_id TEXT PRIMARY KEY, command TEXT NOT NULL) STRICT;
+            INSERT INTO ingestion_runs VALUES ('legacy-fixture', 'fixture');
             CREATE TABLE stage10_instruments (
                 instrument_id TEXT PRIMARY KEY,
                 provider TEXT NOT NULL,
                 provider_symbol TEXT NOT NULL,
                 asset_type TEXT NOT NULL,
-                currency_segment TEXT NOT NULL
+                currency_segment TEXT NOT NULL,
+                run_id TEXT NOT NULL DEFAULT 'legacy-fixture' REFERENCES ingestion_runs(run_id)
             ) STRICT;
             """
         )
