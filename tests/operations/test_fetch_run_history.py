@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,8 @@ from quant_data.operations import fetch_run_history as history
 from quant_data.inspector_schedules import TIMER_BINDINGS
 
 ROOT = Path(__file__).resolve().parents[2]
+# Checked-in deployment contract, independent of the source checkout location.
+DEPLOYMENT_ROOT = Path("/home/volatility/Python_Projects/Quant_Data_Infra")
 BATCH = "quant-data-fmp-macro-calendar.timer"
 START = datetime(2026, 9, 4, 12, 15, 12, tzinfo=timezone.utc)
 FINISH = datetime(2026, 9, 4, 12, 15, 24, tzinfo=timezone.utc)
@@ -208,19 +211,41 @@ class FetchRunHistoryTests(unittest.TestCase):
         self.assertEqual(len(result["records"]), 1)
         self.assertTrue(self.files()[0].parent.parent.name == "2026-10")
 
-    def test_all_ten_deployed_entrypoints_record_exact_original_cli_calls(self):
+    def test_deployed_entrypoints_record_exact_original_cli_calls(self):
+        self.assert_deployed_entrypoints(ROOT)
+
+    def test_deployed_entrypoints_work_from_a_relocated_source_checkout(self):
+        checkout = Path(self.temp.name) / "other-checkout"
+        for batch in history.BATCH_ARGUMENTS:
+            relative = Path("deploy/systemd") / batch.replace(".timer", ".service")
+            source = ROOT / relative
+            destination = checkout / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, destination)
+            command = next(line.split("=", 1)[1] for line in source.read_text().splitlines()
+                           if line.startswith("ExecStart="))
+            module = Path(shlex.split(command)[2].replace(".", "/") + ".py")
+            (checkout / module).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / module, checkout / module)
+        with patch(__name__ + ".ROOT", checkout):
+            self.assert_deployed_entrypoints(checkout)
+
+    def assert_deployed_entrypoints(self, checkout):
         self.assertEqual(set(history.BATCH_ARGUMENTS) - {"quant-data-alpaca-spy-options.timer"},
                          {binding.unit for binding in TIMER_BINDINGS})
         actual = history.run_recorded_cli
         for batch, expected_args in history.BATCH_ARGUMENTS.items():
-            service = ROOT / "deploy/systemd" / batch.replace(".timer", ".service")
+            service = checkout / "deploy/systemd" / batch.replace(".timer", ".service")
             command = next(line.split("=", 1)[1] for line in service.read_text().splitlines() if line.startswith("ExecStart="))
             args = shlex.split(command)
-            python = (str(ROOT / ".local/theta-discovery-20260924/venv/bin/python")
+            working_directory = next(line.split("=", 1)[1] for line in service.read_text().splitlines()
+                                     if line.startswith("WorkingDirectory="))
+            self.assertEqual(working_directory, str(DEPLOYMENT_ROOT))
+            python = (str(DEPLOYMENT_ROOT / ".local/theta-discovery-20260924/venv/bin/python")
                       if batch.startswith("quant-data-theta-options-") else "/usr/bin/python3")
             self.assertEqual(args[:2], [python, "-m"])
             self.assertEqual(tuple(args[3:]), expected_args)
-            module = ROOT / (args[2].replace(".", "/") + ".py")
+            module = checkout / (args[2].replace(".", "/") + ".py")
             tree = ast.parse(module.read_text())
             entrypoint = next(node for node in tree.body if isinstance(node, ast.If) and isinstance(node.test, ast.Compare) and isinstance(node.test.left, ast.Name) and node.test.left.id == "__name__")
             operation = Mock(return_value=75)

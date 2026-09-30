@@ -22,6 +22,12 @@ This guide introduces no installation or manual execution step.
 | Derived research | [Daily derived refresh](../../docs/DERIVED_REFRESH_PLAN.md) |
 | Options monitor | [Monitor contract](../../docs/rebuild/OPTIONS_MONITOR_2026-09-26.md) |
 
+Fixed status labels, output-dataset bindings and accepted receipt arguments are
+maintained in [collector metadata](../../quant_data/collector_metadata.py).
+Offline CI compares that metadata with the checked-in timer targets, service
+arguments and both dataset registries. These checks establish consistency of
+source files; they do not inspect installed units or establish activation.
+
 ## Historical activation records
 
 The remaining sections retain their original recorded observations, command

@@ -52,9 +52,10 @@ PYTHONDONTWRITEBYTECODE=1 .local/dev/calendar/bin/python scripts/check_environme
 For optional monitoring development, use Python 3.12 in `.local/dev/options`
 and install `requirements/options-monitor.txt` there. Package installation may
 access a package index; the checker and fixture tests are offline. The recorded
-calendar and Theta pins were also installed successfully in fresh temporary
-environments on 2026-09-29. The Web Push extension was checked against the
-existing monitor runtime. The [test command groups](docs/rebuild/TEST_STRATEGY.md#43-component-command-groups)
+calendar, Theta and Web Push pins were installed successfully in fresh temporary
+environments on 2026-09-29. Web Push verification exercises real encryption and
+signing with generated fixture keys and an intercepted HTTP transport; it sends
+no notification. The [test command groups](docs/rebuild/TEST_STRATEGY.md#43-component-command-groups)
 use the existing unittest runner and explain which profile each group needs.
 
 [Offline CI](.github/workflows/offline-checks.yml) runs separate core, calendar,
@@ -68,10 +69,13 @@ coverage and limits.
 - `.local/` contains host runtimes, private work receipts and recovery artifacts.
   `exports/` contains derived research publications. Both are ignored by Git;
   ignoring them is not a retention or deletion policy.
-- `sites/options-monitor/` is a separate Git repository. As inspected on
-  2026-09-29, it has its own committed history and no configured remote. A push
-  of this repository does not preserve that site's source. Keep its ownership
-  visible; configure its recovery remote in a separate, explicitly scoped step.
+- `sites/options-monitor/` is a separate Git repository. Its `origin` is the
+  private [Intraday Options Monitoring repository](https://github.com/YANGGN/Intraday_Options_Monitoring),
+  with branch `main`. Push website source from that repository; a push of this
+  parent repository does not include it. On 2026-09-29 the existing history was
+  pushed and a fresh clone verified against the same commit and source tree,
+  with Git object integrity checked. This records source recovery, not a site
+  deployment or an operational database backup.
 - Versioned schemas under `docs/rebuild/` are runtime inputs, including the
   transcript analysis/structured-call schemas. Migrations, schemas, frozen
   contracts and dated receipts are preserved during documentation cleanup.

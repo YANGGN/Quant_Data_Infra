@@ -285,6 +285,45 @@ currently use different interpreters; run their component groups with the
 corresponding environment and report interpreter choices, skips and any unrelated
 baseline failures separately. Do not treat a core-only run as full validation.
 
+Web Push integration uses the Python 3.12 options-monitor profile:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .local/dev/options/bin/python -m unittest \
+  tests.options.test_monitor_push \
+  tests.options.test_monitor \
+  tests.options.test_monitor_transport -v
+```
+
+Install `requirements/options-monitor.txt` in that development environment and
+run its metadata checker first. The Web Push SDK test generates ephemeral
+fixture keys, encrypts and decrypts the payload, and checks signing, timeouts,
+redirect refusal and single-attempt failure behavior. DNS is mocked and HTTP is
+intercepted before delivery; fallback socket connections fail. Existing monitor
+fixtures cover per-subscriber opt-out and durable attempt deduplication. No live
+subscription, notification, credential or provider request is used. This optional
+profile is separate from the three core/calendar/Theta CI selections.
+
+Static collector and current-navigation consistency (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.test_collector_metadata \
+  tests.test_documentation_navigation \
+  tests.operations.test_fetch_run_history -v
+```
+
+These checks compare declared timer targets and command arguments with the
+checked-in units, resolve dataset IDs through the main and Theta companion
+registries, and preserve separation of retired receipt decoding. The receipt
+entrypoint regression also runs against a relocated source fixture: deployment
+paths remain fixed by the unit contract, while source lookup follows the checkout.
+
+Navigation checks cover current introductory guidance, the document map, the
+latest-decision index, and development/test instructions. They check inline local
+file links and Markdown/explicit HTML anchors, ignoring fenced examples and
+external URLs. Historical narrative bodies are outside this check. No systemd,
+provider, credential, network or database access is involved in the static checks.
+
 ### 4.4 Installed component CI
 
 [Offline checks](../../.github/workflows/offline-checks.yml) defines three
@@ -292,7 +331,7 @@ independent jobs on pushes and pull requests:
 
 | Job | Environment | Selected boundaries |
 | --- | --- | --- |
-| Core | Python 3.11, standard library | Environment checker, queue policy and saved plan consumers, breadth calculations, collector/status metadata, historical/current registry compatibility, saved company valuation tools |
+| Core | Python 3.11, standard library | Environment checker, current documentation links, queue policy and saved plan consumers, breadth calculations, collector/unit/status consistency, historical/current registry compatibility, saved company valuation tools |
 | Calendar | Python 3.11, `requirements/calendar.txt` | Weekly price repair, price windows, daily refresh, and public composed research calls including cutoffs and read-only fingerprints |
 | Theta | Python 3.12, `requirements/theta.txt` | Mocked SDK session sharing, options publication/replay, daily/weekend collection fixtures, and public Theta tools |
 

@@ -24,6 +24,8 @@ jobs:
             python: '3.11'
             tests: >-
               tests.test_development_environment
+              tests.test_collector_metadata
+              tests.test_documentation_navigation
               tests.company.test_equibles_queue_policy
               tests.operations.test_equibles_refresh
               tests.tool_platform.test_market_breadth
