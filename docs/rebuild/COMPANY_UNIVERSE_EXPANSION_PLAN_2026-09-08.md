@@ -1,6 +1,12 @@
 # Shared universe and collection expansion implementation plan
 
-Status: Implementation in progress. The collection foundation is under offline verification; expanded operational collectors are not active.
+Status at the September 8 planning baseline: implementation in progress; the
+foundation was under offline verification and expanded collectors were not active.
+For subsequent rollout and authorization, use
+[Selected Company Collectors](SELECTED_COMPANY_COLLECTORS_2026-09-11.md) and the
+[operating-envelope index](CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions).
+The plan below is retained as the original design/decision record.
+
 Revision: Full collection matrix, preserving the newer FMP/transcript decisions.
 Decision date: September 8, 2026 America/Toronto (September 9 UTC).
 Integration owner: the primary agent; migration ordinals are not allocated here.

@@ -6,10 +6,27 @@ triggering a service or timer. Before scheduler or provider work, read the
 [current operating envelope](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md)
 and [scheduling contract](../../docs/rebuild/SCHEDULING_AND_LOCKING.md).
 
-Existing recurring units retain their documented state. The Stage 12E
-market-close timer is enabled and waiting as recorded below. Agents may inspect
-status read-only, but must not manually trigger, retry, broaden, disable,
-update, remove, or repurpose any unit.
+## Current routing
+
+Start with the operating envelope's [latest recorded decisions](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions).
+It is the sole authorization index. Dates and activation receipts below do not
+establish today's host state, and several original scopes have been superseded.
+This guide introduces no installation or manual execution step.
+
+| Workflow | Focused guide |
+| --- | --- |
+| Daily prices and weekend gaps | [Selected prices](../../docs/rebuild/PRICE_HISTORY_COMPLETION_2026-09-11.md), [weekly repair](../../docs/rebuild/WEEKLY_PRICE_REPAIR_2026-09-15.md) |
+| Company inputs and source selection | [Selected collectors](../../docs/rebuild/SELECTED_COMPANY_COLLECTORS_2026-09-11.md), [Sharadar primary / conditional SEC](../../docs/rebuild/SHARADAR_PRIMARY_FUNDAMENTALS_2026-09-19.md) |
+| Earnings-based transcript rotation | [Equibles incremental refresh](../../docs/rebuild/EQUIBLES_INCREMENTAL_REFRESH_2026-09-18.md) |
+| Current options collection | [Theta daily / weekend repair](../../docs/rebuild/THETA_DAILY_COLLECTION_2026-09-26.md); Alpaca collection is retired |
+| Derived research | [Daily derived refresh](../../docs/DERIVED_REFRESH_PLAN.md) |
+| Options monitor | [Monitor contract](../../docs/rebuild/OPTIONS_MONITOR_2026-09-26.md) |
+
+## Historical activation records
+
+The remaining sections retain their original recorded observations, command
+examples and bounded scopes. Present-tense status statements belong to those
+historical records; consult the current routing above before operational work.
 
 ## Active current-news refresh timer
 
@@ -159,7 +176,14 @@ These inspection commands are read-only:
 
 Do not manually start the service or change the timer.
 
-## Active in-place Alpaca ETF option-surface timer
+<a id="active-in-place-alpaca-etf-option-surface-timer"></a>
+
+## Retired Alpaca ETF option-surface timer
+
+**Retired by the September 26, 2026 user decision.** See the
+[retirement evidence](../../docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recorded-alpaca-retirement).
+The description below is the historical August activation record. Its retained
+unit files and inspection examples do not imply an active collection schedule.
 
 The enabled `quant-data-alpaca-spy-options.timer` retains its legacy name and
 `Persistent=false`. On 2026-08-30 the user explicitly authorized updating its

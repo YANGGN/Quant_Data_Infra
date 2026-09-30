@@ -40,3 +40,8 @@ Thumbs.db
 /tmp/
 /=1
 /*grep -Ei 2008*
+
+# Host-local runtimes, retained work receipts, and reproducible research exports
+# Ignore only; retention and recovery evidence must not be deleted implicitly.
+/.local/
+/exports/

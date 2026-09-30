@@ -9,6 +9,7 @@ import unittest
 from quant_data.errors import RegistryError
 from quant_data.registry import (
     load_registry,
+    etf_snapshot_v2_registry_profile,
     macro_database_expansion_registry_profile,
 )
 
@@ -28,7 +29,7 @@ DATASET_IDS = (
     "fixture.macro.rtdsm_employ",
     "fixture.macro.stage3_catalog",
 )
-CURRENT_SOURCE_SHA256 = (
+REGISTRY_283_SOURCE_SHA256 = (
     "6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97"
 )
 PRE_EXPANSION_SOURCE_SHA256 = (
@@ -89,10 +90,11 @@ class MacroDatabaseExpansionRegistryTests(unittest.TestCase):
         )
 
     def test_collectors_are_manual_credential_free_and_reciprocal(self) -> None:
-        registry = self._registry()
+        current = self._registry()
+        registry = etf_snapshot_v2_registry_profile(current)
 
         self.assertEqual(registry.revision, "2.83.0")
-        self.assertEqual(registry.source_sha256, CURRENT_SOURCE_SHA256)
+        self.assertEqual(registry.source_sha256, REGISTRY_283_SOURCE_SHA256)
         self.assertEqual(
             (
                 len(registry.migrations),
@@ -113,6 +115,9 @@ class MacroDatabaseExpansionRegistryTests(unittest.TestCase):
             max_seconds,
         ) in SPECS.items():
             collector = collectors[collector_id]
+            current_collector = next(item for item in current.collectors if item["id"] == collector_id)
+            self.assertEqual(collector, current_collector)
+            self.assertIn(collector_id, next(item for item in current.datasets if item.id == DATASET_IDS[0]).collector_ids)
             self.assertEqual(collector["handler"], handler)
             self.assertEqual(collector["configuration_env"], [])
             self.assertTrue(collector["network"])

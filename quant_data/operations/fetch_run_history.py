@@ -16,31 +16,12 @@ import time
 from typing import Callable, Any
 from uuid import uuid4
 
+from ..collector_metadata import BATCH_ARGUMENTS
 from ..errors import QuantDataError, ValidationError
 from ..json_codec import loads_strict
 from .fetch_run_summary import _CAPTURE, validate_counts
 from .refresh_status import _ensure_write_root, _replace_receipt, _fsync_directory, _parse_timestamp
 
-BATCH_ARGUMENTS = {
-    "quant-data-derived-refresh.timer": (),
-    "quant-data-equibles-refresh.timer": (),
-    "quant-data-weekly-price-repair.timer": (),
-    "quant-data-market-close.timer": (),
-    # Retain decoding of archived Alpaca receipts; it is not an active timer binding.
-    "quant-data-alpaca-spy-options.timer": (),
-    "quant-data-theta-options-daily.timer": ("--mode", "daily"),
-    "quant-data-theta-options-weekly.timer": ("--mode", "weekly"),
-    "quant-data-macro-current-refresh.timer": (),
-    "quant-data-macro-vintages.timer": ("--mode", "refresh"),
-    "quant-data-employment-vintages.timer": ("--mode", "refresh"),
-    "quant-data-fmp-macro-calendar.timer": (),
-    "quant-data-sec-company-fundamentals.timer": (),
-    "quant-data-sharadar-selected-refresh.timer": (),
-    "quant-data-company-market-refresh.timer": (),
-    "quant-data-selected-company-refresh.timer": (),
-    "quant-data-current-news-refresh.timer": (),
-    "quant-data-equibles-transcripts.timer": (),
-}
 DEFAULT_HISTORY_ROOT = Path(__file__).resolve().parents[2] / "data" / ".operations" / "fetch-run-history"
 _SCHEMA = "quant_data.fetch_run"
 _MAX_BYTES = 4096

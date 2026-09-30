@@ -2,9 +2,15 @@
 
 ## Status
 
+For the current revision, schema and inventory, read
+[the canonical registry](../../config/system_registry.json). The dated lineage
+below preserves historical hashes and counts; those values are not the current
+inventory. The [object model](#registry-object-model), validation rules and
+compatibility requirements continue to apply.
+
 **Accepted.** The canonical registry path is
 `config/system_registry.json`; the optional host override remains
-`QUANT_SYSTEM_REGISTRY_PATH`. The current accepted configuration is revision
+`QUANT_SYSTEM_REGISTRY_PATH`. The historical configuration recorded here is revision
 `2.69.0`, schema `1.9.0`, with 44 migrations, 59 datasets, and 66 collectors;
 registry SHA-256
 `2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f` and catalog `2.26.0` SHA-256

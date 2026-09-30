@@ -4,39 +4,14 @@ from datetime import datetime,date,time,timedelta,timezone
 from pathlib import Path
 import copy
 import re
-from zoneinfo import ZoneInfo
+from quant_data.company.equibles_queue_policy import CONTRACT, DAILY_CAP, TZ, lane_quotas, next_task as _next_saved_task
 from quant_data.contracts import TruncationV1
 from quant_data.errors import StoreUnavailableError,ValidationError,ResourceLimitError,ConflictError
 from quant_data.json_codec import loads_strict
 from quant_data.operations.equibles_transcript_backfill import read_file
 from .retained_research_common import instant,result,digest
 
-TZ=ZoneInfo("America/Toronto")
 MAX_BYTES=32*1024*1024
-# Saved queue v1 policy; observational projection does not import a live collector.
-CONTRACT="quant_data.equibles_incremental.v1"
-DAILY_CAP=100
-
-def _next_saved_task(state, today, spent, quotas):
-    weekend = today.weekday() >= 5
-    candidates = []
-    for symbol, task in state["tasks"].items():
-        if task.get("blocked") or date.fromisoformat(task["due"]) > today:
-            continue
-        partial = task["phase"] in ("download", "publish")
-        lane = "fallback" if weekend else task["lane"]
-        if weekend and task["lane"] != "fallback" and not partial and task["lane"] != "delayed":
-            continue
-        priority = (0 if partial else 1, state["watch"].get(symbol, {}).get("last_checked", ""),
-                    task["queued_at"], symbol)
-        candidates.append((lane, priority, symbol))
-    if not candidates:
-        return None
-    protected = [x for x in candidates if spent[x[0]] < quotas[x[0]]]
-    partials = [x for x in candidates if x[1][0] == 0]
-    choices = partials or protected or candidates  # complete retained work before discovery
-    lane, _, symbol = min(choices, key=lambda x:x[1])
-    return symbol, lane
 
 def saved(root,relative,bound):
     path=root/relative
@@ -77,7 +52,7 @@ def project(state,account,today,now,limit,symbols=()):
         raise StoreUnavailableError("Saved remaining quota is invalid")
     remaining=min(cap-charged,recorded_remaining) if charged is not None else None
     spent=state.get("daily",{}).get(utc_day,{})
-    quotas=dict(recent=80,delayed=15,fallback=5) if today.weekday()<5 else dict(recent=0,delayed=0,fallback=100)
+    quotas=lane_quotas(today)
     work=dict(tasks=copy.deepcopy(tasks),watch=copy.deepcopy(watch))
     ordered=[]
     for symbol,task in work["tasks"].items():

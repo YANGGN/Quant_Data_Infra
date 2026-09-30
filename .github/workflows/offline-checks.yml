@@ -1,0 +1,72 @@
+name: Offline checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: offline-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  component-checks:
+    name: ${{ matrix.profile }} / Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: core
+            python: '3.11'
+            tests: >-
+              tests.test_development_environment
+              tests.company.test_equibles_queue_policy
+              tests.operations.test_equibles_refresh
+              tests.tool_platform.test_market_breadth
+              tests.test_inspector_schedules
+              tests.test_inspector_fetch_status
+              tests.operations.test_fetch_run_history
+              tests.operations.test_theta_fetch_status
+              tests.dashboard.test_unified_status_page
+              tests.test_macro_database_expansion_registry
+              tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_registry_285_preserves_reviewed_inventory_and_predecessors
+              tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_generated_v1_is_frozen_and_v2_catalog_is_separate
+              tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_manifest_preserves_historical_contracts_and_current_version_policies
+              tests.tool_platform.test_sharadar_company_tools
+              tests.tool_platform.test_forward_pe_tools
+              tests.tool_platform.test_forward_pe_analysis_tools
+          - profile: calendar
+            python: '3.11'
+            tests: >-
+              tests.operations.test_weekly_price_repair
+              tests.operations.test_collection_price_windows
+              tests.operations.test_selected_price_refresh
+              tests.tool_platform.test_retained_research_public
+          - profile: theta
+            python: '3.12'
+            tests: >-
+              tests.options.test_monitor_transport
+              tests.options.test_theta_compact
+              tests.options.test_theta_daily
+              tests.tool_platform.test_theta_tools
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned development dependencies
+        if: matrix.profile != 'core'
+        run: python -m pip install -r requirements/${{ matrix.profile }}.txt
+      - name: Check environment profile
+        run: python scripts/check_environment.py --profile ${{ matrix.profile }}
+      - name: Run isolated fixture checks
+        run: python -m unittest ${{ matrix.tests }} -v

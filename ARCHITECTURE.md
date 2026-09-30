@@ -4,6 +4,14 @@ Status: Accepted
 
 ## Status and scope
 
+Use the [current entry points](README.md#start-here) for day-to-day work and
+[current authorization lookup](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions)
+for operations. The architecture principles and domain ownership below remain
+binding; the stage/revision narrative records historical implementation scope.
+The [Theta companion domain](#theta-companion-domain) is
+additive to the four original domain stores; current options research reads
+`data/options.sqlite` under its existing contract.
+
 This document defines the accepted target architecture for the clean rebuild
 described in the [rebuild plan](plan.md). Stages 1 through 5 are implemented
 and independently verified. The bounded offline Stage 6 four-route local portal
@@ -961,6 +969,8 @@ The recovered physical names and semantic migration order in plan Sections 20.1â
 - Dashboard and Atlas presentation: [UI visual direction](docs/rebuild/UI_VISUAL_DIRECTION.md)
 - Test layers, fixtures, and acceptance gates: [test strategy](docs/rebuild/TEST_STRATEGY.md)
 - Delivery sequence and exit gates: [roadmap](ROADMAP.md)
+
+<a id="theta-companion-domain"></a>
 
 ## Optional Theta options domain   2026-09-24
 

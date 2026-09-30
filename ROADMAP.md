@@ -1,6 +1,13 @@
 # Quant Data Infrastructure Rebuild Roadmap
 
 Status: Accepted
+
+This document preserves the accepted rebuild sequence and its dated exit
+criteria. Routine current work follows the [fast path](docs/rebuild/FAST_PATH_DEVELOPMENT.md)
+and [component checks](docs/rebuild/TEST_STRATEGY.md#4-test-layers). The
+[operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions)
+indexes subsequent operational decisions; completed stages are not new work.
+
 Planning baseline: 2026-08-09
 Scope: accepted implementation sequencing; Stages 1 through 5 are
 independently verified; the bounded Stage 6 four-route portal was accepted on

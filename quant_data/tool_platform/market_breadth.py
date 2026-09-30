@@ -12,12 +12,18 @@ def fraction(count,eligible):
 
 def calculate(prices,days,start,windows,high_low_window,leadership_window,checkpoint=lambda:None):
     out=[];streak={s:0 for s in prices};members={}
+    ordered_prices=sorted(prices.items())
+    numeric={symbol:[] for symbol,_ in ordered_prices}
     for index,day in enumerate(days):
         checkpoint()
         counts=dict(advances=0,declines=0,unchanged=0,advance_decline_eligible=0,new_highs=0,new_lows=0,high_low_eligible=0)
         ma={str(w):dict(above=0,eligible=0) for w in windows};performance={}
-        for symbol,values in sorted(prices.items()):
-            close=number(values.get(day));prior=number(values.get(days[index-1])) if index else None
+        for symbol,values in ordered_prices:
+            # Convert each observed session once. Slice and sum in the original
+            # order to preserve Decimal rounding and incomplete-window behavior.
+            history=numeric[symbol]
+            close=number(values.get(day));history.append(close)
+            prior=history[index-1] if index else None
             member=dict(symbol=symbol,session=day,close=close,advance=None,above_ma={},new_high=None,new_low=None,
                         leadership_return=None,leader=False,leader_streak_sessions=0,missing_features=[])
             if close is not None and prior is not None and close>0 and prior>0:
@@ -27,19 +33,18 @@ def calculate(prices,days,start,windows,high_low_window,leadership_window,checkp
                 member["advance"]=direction
             else: member["missing_features"].append("advance_decline")
             for window in windows:
-                selected=days[max(0,index-window+1):index+1]
-                sample=[number(values.get(d)) for d in selected]
+                sample=history[max(0,index-window+1):index+1]
                 if len(sample)==window and all(v is not None and v>0 for v in sample):
                     above=close>sum(sample)/window;ma[str(window)]["eligible"]+=1;ma[str(window)]["above"]+=above
                     member["above_ma"][str(window)]=above
                 else:
                     member["above_ma"][str(window)]=None;member["missing_features"].append("ma_"+str(window))
-            past=[number(values.get(d)) for d in days[max(0,index-high_low_window):index]]
+            past=history[max(0,index-high_low_window):index]
             if close is not None and close>0 and len(past)==high_low_window and all(v is not None and v>0 for v in past):
                 member["new_high"]=close>max(past);member["new_low"]=close<min(past)
                 counts["high_low_eligible"]+=1;counts["new_highs"]+=member["new_high"];counts["new_lows"]+=member["new_low"]
             else: member["missing_features"].append("high_low")
-            path=[number(values.get(d)) for d in days[max(0,index-leadership_window):index+1]]
+            path=history[max(0,index-leadership_window):index+1]
             if len(path)==leadership_window+1 and all(v is not None and v>0 for v in path):
                 member["leadership_return"]=close/path[0]-1;performance[symbol]=member["leadership_return"]
             else: member["missing_features"].append("leadership")

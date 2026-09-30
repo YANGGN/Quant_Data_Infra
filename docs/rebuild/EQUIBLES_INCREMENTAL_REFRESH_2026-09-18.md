@@ -42,6 +42,15 @@ catalogues contain up to 100 earnings events; truncation is recorded. Complete
 transcripts use 200-turn pages with the existing 50-page safety bound.
 Source dates remain source metadata; availability remains actual local capture.
 
+## Shared selection implementation
+
+The collector and `data.get_collection_plan` share the pure selection policy in
+`quant_data/company/equibles_queue_policy.py`: lane allocations, partial-work
+priority, weekend eligibility and oldest-checked ordering. Each caller retains
+its original date parsing and state-validation boundary. The module performs no
+I/O and grants no execution authority; queue state, quota accounting, acquisition
+and publication remain in their existing owners.
+
 ## Recovery and resource bounds
 
 Persist each charge and request identity before dispatch. Retain each response

@@ -1,5 +1,88 @@
 # Quant Data Infrastructure
 
+Local market, macro, company and news data, with a separate Theta options store,
+versioned read-only agent tools and a loopback Inspector. SQLite remains the
+source of record; research exports are derived artifacts.
+
+## Start here
+
+| Task | Current entry point |
+| --- | --- |
+| Use data from another local agent | [Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md#cross-project-quick-start); select tool versions explicitly |
+| Develop or change a component | [Fast path](docs/rebuild/FAST_PATH_DEVELOPMENT.md), then the [component test matrix](docs/rebuild/TEST_STRATEGY.md#4-test-layers) |
+| Check or prepare a development runtime | [Development environments](#development-environments) |
+| Inspect recorded operational authorization | [Operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions) and the linked latest decisions |
+| Find a contract or historical decision | [Documentation map](docs/rebuild/README.md#2-document-map) |
+
+The current registry and schema inventory are defined by
+[config/system_registry.json](config/system_registry.json) and its generated
+catalogs. Discover public contracts with `bin/quant-data-tools manifest` and
+`bin/quant-data-tools describe TOOL --tool-version VERSION`; see the agent guide
+for request examples. Current options research uses `data/options.sqlite` through
+the Theta tools. Alpaca options collection is retired; retained legacy readers
+remain explicit compatibility interfaces.
+
+## Development environments
+
+Use native Ubuntu/WSL Python from the repository directory. These are separate
+**development profiles**, captured from the working runtimes on 2026-09-29;
+provisioning one does not change installed services or authorize provider work.
+
+| Profile | Reviewed Python | Version pins | Offline check |
+| --- | --- | --- | --- |
+| Core tools and fixture tests | CPython 3.11 or 3.12 | [core.txt](requirements/core.txt), standard library only | `python3 scripts/check_environment.py --profile core` |
+| Exchange calendars / price repair | CPython 3.11 | [calendar.txt](requirements/calendar.txt) | `python3 scripts/check_environment.py --profile calendar` |
+| Theta SDK and mocked transport tests | CPython 3.12 | [theta.txt](requirements/theta.txt) | `python3.12 scripts/check_environment.py --profile theta` |
+| Theta plus Web Push | CPython 3.12 | [options-monitor.txt](requirements/options-monitor.txt) | `python3.12 scripts/check_environment.py --profile options-monitor` |
+
+Run the checker with the interpreter from the environment being checked. It reads
+package metadata only, reports missing/mismatched versions as JSON, and exits
+nonzero for a mismatch. It imports no provider SDK, reads no credentials or
+SQLite stores, and installs nothing. The pins preserve the existing calendar
+version and keep the optional SDK independent of core development.
+
+For an isolated calendar development environment:
+
+```bash
+python3.11 -m venv .local/dev/calendar
+.local/dev/calendar/bin/python -m pip install -r requirements/calendar.txt
+PYTHONDONTWRITEBYTECODE=1 .local/dev/calendar/bin/python scripts/check_environment.py --profile calendar
+```
+
+For optional monitoring development, use Python 3.12 in `.local/dev/options`
+and install `requirements/options-monitor.txt` there. Package installation may
+access a package index; the checker and fixture tests are offline. The recorded
+calendar and Theta pins were also installed successfully in fresh temporary
+environments on 2026-09-29. The Web Push extension was checked against the
+existing monitor runtime. The [test command groups](docs/rebuild/TEST_STRATEGY.md#43-component-command-groups)
+use the existing unittest runner and explain which profile each group needs.
+
+[Offline CI](.github/workflows/offline-checks.yml) runs separate core, calendar,
+and Theta jobs on pushes and pull requests. It installs the pinned development
+dependencies, verifies each environment, then runs the named fixture groups.
+See the [CI scope](docs/rebuild/TEST_STRATEGY.md#44-installed-component-ci) for
+coverage and limits.
+
+## Workspace and source ownership
+
+- `.local/` contains host runtimes, private work receipts and recovery artifacts.
+  `exports/` contains derived research publications. Both are ignored by Git;
+  ignoring them is not a retention or deletion policy.
+- `sites/options-monitor/` is a separate Git repository. As inspected on
+  2026-09-29, it has its own committed history and no configured remote. A push
+  of this repository does not preserve that site's source. Keep its ownership
+  visible; configure its recovery remote in a separate, explicitly scoped step.
+- Versioned schemas under `docs/rebuild/` are runtime inputs, including the
+  transcript analysis/structured-call schemas. Migrations, schemas, frozen
+  contracts and dated receipts are preserved during documentation cleanup.
+
+## Historical rebuild record
+
+The following stage narrative and stage-specific validation commands retain
+historical scope. They are not the default setup or test workflow; use the
+current entry points above and the latest operating-envelope decision for a
+new task.
+
 This repository is a clean rebuild of a personal quant-data platform. The
 Stages 1 through 5 are independently verified; the bounded Stage 6 portal is
 accepted; and the bounded Stage 7 manual rehearsal is independently verified.
@@ -571,7 +654,13 @@ lineage remains in scope.
 
 ## Current public boundary
 
-The canonical registry is revision `2.21.0`, schema `1.8.0`. It preserves the
+Use the versioned [local-agent interface](docs/LOCAL_AGENT_TOOLS.md) and runtime
+manifest for the current inventory. Registry/schema/catalog versions come from
+`config/system_registry.json`, not from a historical stage summary.
+
+### Historical public boundary at registry 2.21
+
+The following records the accepted boundary at revision `2.21.0`, schema `1.8.0`. It preserves the
 four local-private Stage 6 dashboard exposures, eight ordered disabled
 `manual_fixture_only` jobs, and the one fixture-only manual JSON export,
 `atlas.fixture_snapshot`, with reciprocal declarations on

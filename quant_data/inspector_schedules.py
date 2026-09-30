@@ -11,86 +11,12 @@ import os
 import re
 import subprocess
 from collections.abc import Mapping
-from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from .collector_metadata import TimerBinding, TIMER_BINDINGS
 from .data_status import registry_data_status_targets
 from .registry import Registry
 
-
-@dataclass(frozen=True)
-class TimerBinding:
-    unit: str
-    label: str
-    datasets: tuple[str, ...]
-
-
-# These are the output datasets of the fixed wrappers in
-# docs/rebuild/SCHEDULING_AND_LOCKING.md. Historical predecessors stay unmapped.
-TIMER_BINDINGS = (
-    TimerBinding("quant-data-market-close.timer", "Market close", (
-        "market.stage10.daily_prices", "market.stage10.source_evidence",
-    )),
-    TimerBinding("quant-data-theta-options-daily.timer", "Theta options daily", (
-        "options.theta.receipts", "options.theta.selected_contracts",
-        "options.theta.daily_research",
-    )),
-    TimerBinding("quant-data-theta-options-weekly.timer", "Theta options weekly repair", (
-        "options.theta.receipts", "options.theta.selected_contracts",
-        "options.theta.daily_research",
-    )),
-    TimerBinding("quant-data-macro-current-refresh.timer", "Macro current", (
-        "fixture.macro.rtdsm_employ_evidence", "fixture.macro.rtdsm_employ",
-        "fixture.macro.stage3_catalog", "fixture.macro.treasury_yield_curves",
-        "fixture.macro.soma_evidence", "fixture.macro.soma_summary",
-        "macro.eia.electricity_retail_history",
-        "macro.eia.electricity_retail_history_evidence",
-        "macro.eia.petroleum_weekly_stock_history",
-        "macro.eia.petroleum_weekly_stock_history_evidence",
-    )),
-    TimerBinding("quant-data-macro-vintages.timer", "GDP / CPI", (
-        "macro.official_vintages", "macro.official_vintages_evidence",
-    )),
-    TimerBinding("quant-data-employment-vintages.timer", "Employment", (
-        "macro.official_vintages", "macro.official_vintages_evidence",
-    )),
-    TimerBinding("quant-data-fmp-macro-calendar.timer", "Economic calendar", (
-        "fixture.macro.economic_calendar",
-        "macro.fmp.economic_calendar_incremental_evidence",
-        "macro.fmp.economic_calendar_incremental_events",
-    )),
-    TimerBinding("quant-data-sec-company-fundamentals.timer", "SEC fundamentals", (
-        "fixture.company.sec_evidence", "fixture.company.issuers",
-        "fixture.company.filings", "fixture.company.fundamentals",
-        "fixture.company.filing_issuer_membership",
-    )),
-    TimerBinding("quant-data-sharadar-selected-refresh.timer", "Sharadar fundamentals", (
-        "company.sharadar.evidence", "company.sharadar.sf1",
-        "company.sharadar.definition_evidence", "company.sharadar.definitions",
-    )),
-    TimerBinding("quant-data-company-market-refresh.timer", "Company market", (
-        "fixture.company.action_evidence", "fixture.company.corporate_actions",
-        "fixture.company.expectation_evidence", "fixture.company.expectations",
-    )),
-    TimerBinding("quant-data-selected-company-refresh.timer", "Selected company inputs", (
-        "company.fmp.research_evidence", "company.fmp.research_inputs",
-        "company.fmp.analyst_evidence", "company.fmp.analyst_observations",
-    )),
-    TimerBinding("quant-data-equibles-refresh.timer", "Equibles transcript refresh", (
-        "company.equibles.transcripts",
-    )),
-    TimerBinding("quant-data-equibles-transcripts.timer", "Equibles transcripts", (
-        "company.equibles.transcripts",
-    )),
-    TimerBinding("quant-data-current-news-refresh.timer", "Current news", (
-        "news.fmp.stock_latest_current_evidence",
-        "news.current_multi_source_evidence",
-    )),
-    TimerBinding("quant-data-weekly-price-repair.timer", "Weekly price repair", (
-        "market.stage10.daily_prices", "market.stage10.source_evidence",
-    )),
-    TimerBinding("quant-data-derived-refresh.timer", "Derived calculations", ()),
-)
 
 _PROPERTIES = "Id,LoadState,ActiveState,SubState,TimersCalendar,NextElapseUSecRealtime"
 _CALENDAR = re.compile(r"^\{ OnCalendar=(.+?) ; next_elapse=.* \}$")

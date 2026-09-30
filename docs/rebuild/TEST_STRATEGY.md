@@ -206,6 +206,108 @@ checks when the actual changed boundary warrants it. Company/news collection,
 unrelated tool catalogs, dashboard rendering, and full historical reconstruction
 enter this scope only when their behavior or a consumed contract changes.
 
+### 4.3 Component command groups
+
+Run from the repository root with `PYTHONDONTWRITEBYTECODE=1`. Use the
+[development profile](../../README.md#development-environments) appropriate to
+the component. These commands are starting selections for the impact map, not
+a replacement for affected-consumer checks or applicable full-suite gates.
+All listed checks use fixtures or package metadata, without provider calls or
+live/default stores. Keep database/publication groups serial.
+
+Development environment checker (core profile):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_development_environment -v
+```
+
+Historical registry compatibility touched by the September 29 cleanup (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.test_macro_database_expansion_registry \
+  tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_registry_285_preserves_reviewed_inventory_and_predecessors \
+  tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_generated_v1_is_frozen_and_v2_catalog_is_separate \
+  tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_manifest_preserves_historical_contracts_and_current_version_policies \
+  tests.tool_platform.test_sharadar_company_tools -v
+```
+
+Exact historical inventory assertions must use their pinned registry profile.
+Keep frozen hashes and historical definitions intact, and separately check that
+those definitions remain compatible with the current registry. New additive
+contracts should not require rewriting old counts as today's inventory grows.
+The exhaustive predecessor test above can be slow; it is relevant when changing
+those compatibility assertions, not for every component edit.
+
+Shared queue policy and breadth calculations (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.company.test_equibles_queue_policy \
+  tests.operations.test_equibles_refresh \
+  tests.tool_platform.test_market_breadth -v
+```
+
+When their public callers change, include the saved-plan and price/breadth cases
+in `tests.tool_platform.test_retained_research_public` (calendar profile).
+Collector metadata is owned by `quant_data/collector_metadata.py`. Changes to its
+bindings or accepted arguments also select `tests.test_inspector_schedules`,
+`tests.test_inspector_fetch_status`, `tests.operations.test_fetch_run_history`,
+`tests.operations.test_theta_fetch_status` and `tests.dashboard.test_unified_status_page`.
+Those tests use fake unit output and temporary receipts; they do not inspect or
+activate live services. Retired Alpaca receipt decoding remains separate from
+current timer bindings.
+
+Saved forward P/E and forward EPS tools (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.tool_platform.test_forward_pe_tools \
+  tests.tool_platform.test_forward_pe_analysis_tools -v
+```
+
+Price repair uses the calendar profile and the named checks in
+[section 4.2](#42-example-weekly-historical-price-repair). Extend that selection
+only for boundaries changed by the specific repair.
+
+Mocked Theta transport uses the Python 3.12 Theta profile:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .local/dev/options/bin/python -m unittest \
+  tests.options.test_monitor_transport -v
+```
+
+Substitute the actual development interpreter path. Missing optional packages
+are an environment failure, not evidence that the component passed. The core
+profile supports standard-library components; it does not claim to supply every
+optional dependency required by full discovery. Calendar and Theta baselines
+currently use different interpreters; run their component groups with the
+corresponding environment and report interpreter choices, skips and any unrelated
+baseline failures separately. Do not treat a core-only run as full validation.
+
+### 4.4 Installed component CI
+
+[Offline checks](../../.github/workflows/offline-checks.yml) defines three
+independent jobs on pushes and pull requests:
+
+| Job | Environment | Selected boundaries |
+| --- | --- | --- |
+| Core | Python 3.11, standard library | Environment checker, queue policy and saved plan consumers, breadth calculations, collector/status metadata, historical/current registry compatibility, saved company valuation tools |
+| Calendar | Python 3.11, `requirements/calendar.txt` | Weekly price repair, price windows, daily refresh, and public composed research calls including cutoffs and read-only fingerprints |
+| Theta | Python 3.12, `requirements/theta.txt` | Mocked SDK session sharing, options publication/replay, daily/weekend collection fixtures, and public Theta tools |
+
+The workflow owns the exact test selections. Each hosted job receives a separate
+checkout and environment; database/publication tests run serially inside that
+job. Core installs no optional dependencies. Calendar and Theta installation may
+access the package index; the selected tests use temporary fixtures and no live
+provider credentials or default stores. Every job first checks its pinned runtime
+profile. No live collector, scheduler, deployment or manual provider smoke runs.
+
+These are component checks, not full discovery or a promotion gate. Web Push,
+browser/visual checks and unrelated domains retain their own impact-based
+validation. The workflow grants read-only repository permission and pins external
+actions to reviewed commit revisions. A cancelled or failed job is not a pass.
+
 ## 5. Fixtures
 
 ### 5.1 Fixture classes

@@ -220,3 +220,41 @@ migration inventories to the current inventory; both already fail against the
 saved starting registry. This change leaves migration declarations unchanged.
 The frozen v1 catalog, exact 2.93 predecessor, generated-artifact check and real
 launcher discovery are verified. No full-suite or live-provider claim is made.
+
+
+## September 29 implementation maintenance
+
+The two historical compatibility assertions noted in the original validation
+record now use their frozen release profiles and separately verify current
+compatibility. Their historical contract hashes are unchanged.
+
+The saved Equibles collection plan now shares its pure queue-selection policy
+with the collector. Its persisted-queue scope and read-only result are unchanged.
+Breadth converts each symbol/session price once within the request and reuses
+those numeric values across windows. Slice order, Decimal summation order,
+eligibility, missingness, cutoff behavior and output contracts are preserved.
+No cross-request cache, live fetch, store write or new tool version is introduced.
+
+
+### Composed-tool profile
+
+On 2026-09-29, `cProfile` measured 16 dispatcher calls within the existing
+`RetainedResearchPublicTests` fixtures: successors/watchlist coverage,
+transcript comparison/fundamental screening, and prices/Theta/breadth/events.
+Fixture creation and the test harness's before/after mutation fingerprints were
+outside the measured dispatcher span. The integration assertions and fingerprints
+still ran. This used only temporary stores, with provider connections blocked.
+
+The samples took 14–243 ms per dispatcher call under profiling. Each sampled
+price consumer selected its requested series once, except event response, which
+selected the same query twice for close and volume. Across its three scenarios,
+both selections together took 13–14 ms of 213–243 ms total (about 6%). Serialization
+and contract construction accounted for much more of the measured cost. This is
+a small fixture sample, including cold imports, not a production latency target.
+
+No further query cache or repository refactor was justified by this sample.
+The earlier breadth optimization remains request-local. If larger retained
+histories later show a material selection cost, benchmark an opt-in combined
+close/volume read with exact output, cutoff, provenance and missingness parity
+before changing the reader. Preserve the independent domain ownership and
+existing physical-store lock rules.

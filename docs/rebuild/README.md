@@ -14,6 +14,17 @@ a dated activation record proves current host state.
 
 ## 1. Scope
 
+The stage/revision narrative in this section is historical evidence. For current
+work, start at the [project entry points](../../README.md#start-here), use the
+[fast path](FAST_PATH_DEVELOPMENT.md), and select a focused contract from
+[Section 2](#2-document-map). The operating envelope's
+[recurring index](CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions) links the
+latest dated operational amendments. Older statements about closed scope apply
+to their own decision date; they do not supersede those later decisions.
+
+Versioned `*.schema.json` files here are executable contracts, not archive-only
+prose. Keep them at their established paths until a separately tested relocation.
+
 This directory converts the historical recovery specification in
 [plan.md](../../plan.md) into accepted implementation contracts. Stages 1
 through 5 are implemented and independently verified. The bounded Stage 6
@@ -138,7 +149,7 @@ installed, enabled, and active at 08:15 and 08:45 America/New_York on weekdays
 under the user's explicit scheduler approval. Exact projection restores
 byte-exact `2.19.0`.
 
-The latest fully documented registry successor is `2.21.0`/schema `1.8.0`.
+The successor documented at this point in the historical record is `2.21.0`/schema `1.8.0`.
 It adds macro
 migration 0016, one private wholesale calendar evidence dataset, and one
 manual-only collector. The completed one-time run retained all raw response

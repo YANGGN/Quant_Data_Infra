@@ -1,7 +1,8 @@
 # Current Operating Envelope
 
 Status: Current operational routing snapshot; non-authorizing
-Reconciled: 2026-09-05 — policy/status reconciliation; no live host inspection
+Navigation reconciled: 2026-09-29; recorded decisions remain dated evidence,
+not a live host inspection. The original baseline was reconciled 2026-09-05.
 
 ## Purpose
 
@@ -31,6 +32,9 @@ Detailed receipts, hashes, counts, request rules, and historical limitations
 remain in the linked contracts and evidence. This file records only the
 current control boundary.
 
+For recurring work, start with the [latest decision links](#recurring-exceptions).
+They route around superseded baseline scopes without rewriting their evidence.
+
 ## Authority and working-state disclosure
 
 The authority order is the one in the
@@ -40,9 +44,13 @@ supersession under that order and note it briefly. Preserve historical records
 as evidence of their original scope; a later explicit decision does not rewrite
 an earlier proof. Unresolved authority blocks only the affected action.
 
-The current registry is revision `2.70.0`, schema `1.9.0`, with
+The current registry is defined by [the checked-in configuration](../../config/system_registry.json);
+public contracts are discoverable through the [local agent guide](../LOCAL_AGENT_TOOLS.md#cross-project-quick-start).
+The following hashes and counts describe the September 5 historical baseline.
+
+At that baseline, the registry was revision `2.70.0`, schema `1.9.0`, with
 source SHA-256 `4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3`.
-The active versioned catalog is `2.27.0` at SHA-256
+The versioned catalog at that baseline was `2.27.0` at SHA-256
 `6f143f9f32fe0cc7d713b9afb1425901ee96e3fdea1539d09f8d602ca794894b`.
 The additive local ETF snapshot preserves exact registry `2.69.0` at
 SHA-256 `2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f`
@@ -987,6 +995,34 @@ scope; it is not a fresh check of installed units, next triggers, or service
 health. Normal clock-driven execution is the authorized boundary. Without a
 new explicit user decision, agents must not manually trigger, change, retry,
 broaden, install, start, enable, disable, remove, or repurpose a recurring unit.
+
+### Latest recorded decisions by workflow
+
+Use the linked amendments together with their focused contracts; later explicitly
+scoped decisions supersede the earlier baseline below. This is a decision index,
+not an inventory of currently installed or healthy services. Finite catch-up
+receipts inside a decision do not authorize another catch-up.
+
+| Workflow | Recorded decision / contract |
+| --- | --- |
+| Daily market prices | [September 23 mapping-guard amendment](#recorded-price-refresh); [selected-price contract](PRICE_HISTORY_COMPLETION_2026-09-11.md) |
+| Weekly missing-price repair | [September 15 activation](#recorded-weekly-price-repair), [September 20 empty-response amendment](#recorded-weekly-price-recovery); [weekly repair contract](WEEKLY_PRICE_REPAIR_2026-09-15.md) |
+| Macro current, GDP/CPI, employment and calendar | Baseline scopes below; [scheduling contract](SCHEDULING_AND_LOCKING.md) |
+| Company dividends, splits and estimates | [September 11 selected-universe activation](#recorded-company-actions); [actions contract](DIVIDENDS_SPLITS_EXPANSION_2026-09-11.md) |
+| Selected company inputs | [September 11 expansion](#recorded-selected-company); [collector contract](SELECTED_COMPANY_COLLECTORS_2026-09-11.md) |
+| Sharadar primary / conditional SEC facts | [September 19 source policy](#recorded-primary-fundamentals), [September 22 recovery amendment](#recorded-sharadar-recovery); [primary-fundamentals contract](SHARADAR_PRIMARY_FUNDAMENTALS_2026-09-19.md) |
+| News | [September 12 batch-size amendment](#recorded-news-batches); [expanded-news contract](NEWS_UNIVERSE_EXPANSION_2026-09-11.md) |
+| Derived research publications | [September 21 authorization and activation](#recorded-derived-refresh); [derived refresh plan](../DERIVED_REFRESH_PLAN.md) |
+| Equibles earnings-based incremental rotation | [September 25 activation](#recorded-equibles-incremental); [incremental contract](EQUIBLES_INCREMENTAL_REFRESH_2026-09-18.md). The completed historical population remains no-repeat; this decision left its timer unchanged. |
+| Theta daily collection and weekend gap repair | [September 26 authorization and activation](#recorded-theta-collection); [Theta collection contract](THETA_DAILY_COLLECTION_2026-09-26.md) |
+| Alpaca options collection | [September 26 retirement](#recorded-alpaca-retirement). Retained unit definitions and historical readers do not authorize collection. |
+| Options monitor | [September 28 interval-volume amendment](#recorded-options-monitor), following the staggered-radar decision; [monitor contract](OPTIONS_MONITOR_2026-09-26.md) |
+
+### Historical baseline scopes
+
+The table and explanation below preserve the original baseline, with the
+previously recorded Alpaca retirement annotation. Do not use superseded request
+caps, universes or source-selection rules in place of the amendments above.
 
 | Timer | Fixed scope |
 | --- | --- |
@@ -2359,6 +2395,8 @@ progress remains in `data/.operations/equibles-transcripts/status.json`;
 the aggregate daily allocation uses `daily-status.json`.
 
 
+<a id="recorded-selected-company"></a>
+
 ## Selected company collectors — explicit September 11, 2026 expansion
 
 The user explicitly authorized one missing-history backfill and live collection
@@ -2616,6 +2654,8 @@ completion. See the [transcript record](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.
 for exact bounds and preservation evidence.
 
 
+<a id="recorded-company-actions"></a>
+
 ## September 11, 2026 — selected dividends/splits history and weekday activation
 
 The explicit request to implement the two outstanding dividend/split expansions
@@ -2847,6 +2887,8 @@ including original source/checkpoint/journal baselines, both test logs,
 authorization.json, recovery-result.json, started.json and running-postcheck.json.
 The dated worker writes result.json on completion; run.log retains its output.
 
+
+<a id="recorded-news-batches"></a>
 
 ## September 12, 2026 UTC (September 11 Toronto) — news batches reduced to ten
 
@@ -4939,6 +4981,8 @@ is part of this rule update. See the current validation checkpoint in the
 [weekly repair record](WEEKLY_PRICE_REPAIR_2026-09-15.md).
 
 
+<a id="recorded-weekly-price-repair"></a>
+
 ## September 15, 2026 - weekly repair Saturday schedule activated
 
 The user's subsequent "OK go implement" resumes the requested activation
@@ -5579,6 +5623,8 @@ Details, rollback paths, source hash, and exact evidence are in
 [the WSL host repair record](WSL_HOST_REPAIR_2026-09-19.md).
 
 
+<a id="recorded-primary-fundamentals"></a>
+
 ### September 19, 2026 - Sharadar primary and conditional SEC facts
 
 The user's approval to implement the Sharadar-primary recommendation supersedes
@@ -5806,6 +5852,8 @@ Private execution source copies and receipt are in
 interrupted full derivative build remain separate; the interruption removed a
 repeated metadata scan and performed no provider retry or source mutation.
 
+<a id="recorded-weekly-price-recovery"></a>
+
 ## September 20, 2026 — weekly price repair empty-response recovery
 
 The user's explicit request authorizes fixing per-ticker empty-response
@@ -6024,6 +6072,8 @@ immutable. Evidence: `.local/forward-pe-link-fix-20260921/`, the adjacent artifa
 manifest, and the detailed receipt in `docs/FORWARD_PE_PROXY.md`.
 
 
+<a id="recorded-derived-refresh"></a>
+
 ## September 21, 2026 — daily derived research refresh approved
 
 The user approved implementing the inspected daily derived-data plan: one
@@ -6165,6 +6215,8 @@ still compares the pre-existing 2.91.0 short-description migration against 2.90.
 its failure is preserved separately and not repaired by this task.
 
 
+<a id="recorded-price-refresh"></a>
+
 ## September 23, 2026 — daily-price mapping guard repair and one catch-up authorized
 
 The user explicitly requested fixing the daily-price startup conflict and one
@@ -6234,6 +6286,8 @@ passed. The existing stored-data summary displayed its deadline/unavailable
 warning; its latency remains an explicitly recorded limitation. Final evidence:
 .local/q-xom-derived-status-20260922/browser/status-final-result.json.
 
+
+<a id="recorded-sharadar-recovery"></a>
 
 ## September 22, 2026 — Sharadar recovery implemented and catch-up verified
 
@@ -6476,6 +6530,8 @@ First live verification 2026-09-24T23:07:10.801782+00:00: all 14 new roots saved
 requests, zero repeats, zero SPY requests, completed source caches removed.
 The completed SPY population remains 2,696 sessions. This is a dated snapshot.
 
+<a id="recorded-equibles-incremental"></a>
+
 ## September 25, 2026 - Equibles incremental refresh activated
 
 The user explicitly requested enabling the prepared Equibles refresh, resolving
@@ -6595,6 +6651,8 @@ passed. No unit execution or restart occurred. See the monitor contract and
 .local/options-monitor-history/ for exact evidence and limitations.
 
 
+<a id="recorded-theta-collection"></a>
+
 ## September 26, 2026 — daily Theta options and weekend repair
 
 The user explicitly requested daily ThetaData collection into the existing
@@ -6621,6 +6679,8 @@ service has executed; no manual fetch occurred, and canonical stamps were
 unchanged. Live provider success remains unobserved. See the focused contract
 and .local/theta-daily-20260926/activation.json for actual evidence.
 
+
+<a id="recorded-alpaca-retirement"></a>
 
 ## September 26, 2026 — retire Alpaca options collection; Theta agent source
 
@@ -6721,6 +6781,8 @@ occurred. Next normal ticks load the change; full-rotation live throughput has
 not yet been observed. See the monitor contract's staggered-collection section
 and .local/options-monitor-stagger-20260928/applied.json for exact evidence.
 
+
+<a id="recorded-options-monitor"></a>
 
 ## September 28, 2026 — interval-volume correction and Site UI approved/applied
 

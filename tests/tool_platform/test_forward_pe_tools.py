@@ -9,7 +9,10 @@ import unittest
 from unittest.mock import patch
 
 from quant_data.boundary import Stage1Application
-from quant_data.registry import load_registry, CANONICAL_REGISTRY_PATH, forward_pe_tools_registry_profile
+from quant_data.registry import (
+    load_registry, CANONICAL_REGISTRY_PATH, forward_pe_tools_registry_profile,
+    forward_pe_analysis_registry_profile,
+)
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
 from quant_data.tool_platform.local_agent_cli import run
@@ -143,10 +146,26 @@ class ForwardPeToolTests(unittest.TestCase):
         self.assertEqual(declared["stores"],[]);self.assertFalse(declared["live_capability"]["possible"])
 
     def test_exact_predecessor_and_frozen_contracts(self):
-        prior=forward_pe_tools_registry_profile(self.registry)
+        # Check the tool's introduction boundary, not later additive releases.
+        introduced=forward_pe_analysis_registry_profile(self.registry)
+        self.assertEqual(introduced.registry_version,"2.88.0")
+        self.assertEqual(introduced.source_sha256,"88dcf8cf30ab3541477992041e3d5bd2d2d05bbc5a6ab313eff45622cf8e93cf")
+        prior=forward_pe_tools_registry_profile(introduced)
         self.assertEqual(prior.registry_version,"2.87.0")
         self.assertEqual(prior.source_sha256,"6c21f0004b6b5462583846a26e7502ab46a7a0628b619435b03b8d26c63988ab")
-        self.assertEqual(prior.raw["migrations"],self.registry.raw["migrations"])
-        self.assertEqual(prior.raw["datasets"],self.registry.raw["datasets"])
-        self.assertEqual(prior.raw["tool_versions"],self.registry.raw["tool_versions"])
-        for tool in prior.tools:self.assertEqual(tool,self.registry.tool(tool["id"]))
+        self.assertEqual(prior.raw["migrations"],introduced.raw["migrations"])
+        self.assertEqual(prior.raw["datasets"],introduced.raw["datasets"])
+        self.assertEqual(prior.raw["tool_versions"],introduced.raw["tool_versions"])
+        self.assertEqual({tool["id"] for tool in introduced.tools} -
+                         {tool["id"] for tool in prior.tools}, {TOOL})
+        for tool in prior.tools:
+            self.assertEqual(tool,introduced.tool(tool["id"]))
+
+        # Later additions are allowed; historical definitions must stay frozen.
+        current_migrations={item["id"]:item for item in self.registry.raw["migrations"]}
+        for migration in prior.raw["migrations"]:
+            with self.subTest(migration=migration["id"]):
+                self.assertEqual(migration,current_migrations[migration["id"]])
+        for tool in introduced.tools:
+            with self.subTest(tool=tool["id"]):
+                self.assertEqual(tool,self.registry.tool(tool["id"]))

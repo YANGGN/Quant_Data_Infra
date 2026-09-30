@@ -4,12 +4,12 @@ from collections import Counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from statistics import median
-from zoneinfo import ZoneInfo
 import hashlib
 import json
 import sys
 import time
 
+from ..company.equibles_queue_policy import CONTRACT, DAILY_CAP, TZ, lane_quotas, next_task as select_next_task
 from . import equibles_transcript_backfill as old
 from .equibles_paid_policy import validate_checkpoint, quota_bucket, apply_paid_headers, operating_daily_cap
 from ..company.equibles_transcripts import event_page, transcript_page, validate_bundle, RawPage, MAX_PAGES
@@ -21,9 +21,6 @@ from ..json_codec import dumps_strict
 ROOT = old.PROJECT_ROOT
 STATE = "data/.operations/equibles-refresh"
 TIMER = "quant-data-equibles-refresh.timer"
-CONTRACT = "quant_data.equibles_incremental.v1"
-TZ = ZoneInfo("America/Toronto")
-DAILY_CAP = 100
 MAX_SECONDS = 3600
 MAX_BYTES = 400 * 1024 * 1024
 RECHECK_DAYS = (1, 3, 7, 14)
@@ -142,25 +139,7 @@ def sync_queue(state, inventory, today):
 
 
 def next_task(state, today, spent, quotas):
-    weekend = today.weekday() >= 5
-    candidates = []
-    for symbol, task in state["tasks"].items():
-        if task.get("blocked") or day_of(task["due"]) > today:
-            continue
-        partial = task["phase"] in ("download", "publish")
-        lane = "fallback" if weekend else task["lane"]
-        if weekend and task["lane"] != "fallback" and not partial and task["lane"] != "delayed":
-            continue
-        priority = (0 if partial else 1, state["watch"].get(symbol, {}).get("last_checked", ""),
-                    task["queued_at"], symbol)
-        candidates.append((lane, priority, symbol))
-    if not candidates:
-        return None
-    protected = [x for x in candidates if spent[x[0]] < quotas[x[0]]]
-    partials = [x for x in candidates if x[1][0] == 0]
-    choices = partials or protected or candidates  # complete retained work before discovery
-    lane, _, symbol = min(choices, key=lambda x:x[1])
-    return symbol, lane
+    return select_next_task(state, today, spent, quotas, parse_day=day_of)
 
 
 def finish_check(state, task, today, awaiting=False):
@@ -235,7 +214,7 @@ def run_refresh(root, account_root, publisher, transport, inventory, *, clock=ol
             old.private_directory(root/name)
         day_state = state["daily"].setdefault(utc_day, dict(recent=0, delayed=0, fallback=0, bytes=0))
         spent = day_state
-        quotas = dict(recent=80, delayed=15, fallback=5) if today.weekday()<5 else dict(recent=0,delayed=0,fallback=100)
+        quotas = lane_quotas(today)
         counts = Counter()
         def save():
             old.atomic(root/"state.json", state, replace=True)

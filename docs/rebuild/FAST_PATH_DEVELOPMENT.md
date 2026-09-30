@@ -67,6 +67,12 @@ and applicable collector/reader contract before operational execution.
 
 ## Default workflow
 
+Use the [development environment profiles](../../README.md#development-environments)
+and [component command groups](TEST_STRATEGY.md#43-component-command-groups) to
+select a runtime and initial checks. Historical registry tests pin the release
+they describe; they must also retain explicit checks of current compatibility.
+Do not update a frozen hash merely to match today's registry.
+
 1. Inspect branch, index, dirty files, and uncommitted prerequisites before
    substantial edits. Preserve unrelated work; surface dependencies on it early.
 2. State the intended result and select the relevant acceptance checks. For an

@@ -8,7 +8,7 @@ from quant_data.boundary import Stage1Application
 from quant_data.company.sharadar_repository import SharadarSf1Publisher
 from quant_data.fingerprint import mutation_fingerprint
 from quant_data.json_codec import dumps_strict, loads_strict
-from quant_data.registry import sharadar_company_tools_registry_profile
+from quant_data.registry import sharadar_company_tools_registry_profile, forward_pe_tools_registry_profile
 from quant_data.schema import validate_schema
 from quant_data.tool_platform.local_agent_cli import run
 from quant_data.tool_platform.sharadar_company_contracts import TOOLS, KINDS, parse
@@ -80,10 +80,17 @@ class SharadarCompanyToolsTests(unittest.TestCase):
                 parse(KINDS[TOOLS[0]], args)
 
     def test_exact_predecessor_preserves_all_sec_versions_and_migrations(self):
-        previous = sharadar_company_tools_registry_profile(self.f.registry)
+        introduced = forward_pe_tools_registry_profile(self.f.registry)
+        self.assertEqual(introduced.registry_version, "2.87.0")
+        self.assertEqual(introduced.source_sha256, "6c21f0004b6b5462583846a26e7502ab46a7a0628b619435b03b8d26c63988ab")
+        previous = sharadar_company_tools_registry_profile(introduced)
         self.assertEqual(previous.registry_version, "2.86.0")
         self.assertEqual(previous.source_sha256, "6a90749d2514a3846bca8991aa9277e1c595072186203959a124def507a30069")
-        self.assertEqual(previous.raw["migrations"], self.f.registry.raw["migrations"])
+        self.assertEqual(previous.raw["migrations"], introduced.raw["migrations"])
+        current_migrations = {item["id"]: item for item in self.f.registry.raw["migrations"]}
+        for migration in previous.raw["migrations"]:
+            with self.subTest(migration=migration["id"]):
+                self.assertEqual(migration, current_migrations[migration["id"]])
         for name in TOOLS:
             self.assertEqual(previous.tool(name), self.f.registry.tool(name))
             self.assertEqual(previous.tool(name, "2.0.0"), self.f.registry.tool(name, "2.0.0"))

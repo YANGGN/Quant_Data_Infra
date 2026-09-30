@@ -15,6 +15,8 @@ from quant_data.errors import RegistryError, ValidationError
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.registry import (
     CANONICAL_REGISTRY_PATH,
+    transcript_tools_registry_profile,
+    price_basis_registry_profile,
     analytics_foundation_registry_profile,
     alpaca_etf_options_registry_profile,
     alpaca_spy_options_registry_profile,
@@ -67,10 +69,10 @@ V2_CATALOG = (
 V1_CATALOG_SHA256 = (
     "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 )
-V2_CATALOG_SHA256 = (
+CATALOG_231_SHA256 = (
     "20aaade3f5f3b5795bda6ebc8d91ed026485dcf6ae6910f2316dbe3fef1310e3"
 )
-CURRENT_REGISTRY_SHA256 = (
+REGISTRY_285_SOURCE_SHA256 = (
     "1b46ab14244717708470bdafcd840fee804c66cff2a572c6a99bba7a482afff2"
 )
 REGISTRY_268_SOURCE_SHA256 = (
@@ -255,6 +257,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             project_root=PROJECT_ROOT,
             environment={},
         )
+        cls.registry_285 = transcript_tools_registry_profile(cls.registry)
 
     def test_generator_accepts_only_current_or_exact_direct_predecessor(
         self,
@@ -1188,16 +1191,29 @@ class MarketReturnVersioningTests(unittest.TestCase):
         )
 
 
-    def test_current_registry_has_fifty_one_versioned_tools_and_eighty_nine_variants(
+    def test_registry_285_preserves_reviewed_inventory_and_predecessors(
         self,
     ) -> None:
+        # Inventory assertions describe the pinned 2.85 release.
+        registry = self.registry_285
         self.assertEqual(
-            (self.registry.schema_version, self.registry.registry_version),
+            (registry.schema_version, registry.registry_version),
             ("1.9.0", "2.85.0"),
         )
-        self.assertEqual(self.registry.source_sha256, CURRENT_REGISTRY_SHA256)
+        self.assertEqual(registry.source_sha256, REGISTRY_285_SOURCE_SHA256)
+        # Later additions must preserve every contract in this pinned release.
+        for tool in registry.tools:
+            with self.subTest(tool=tool["id"], version="default"):
+                self.assertEqual(tool, self.registry.tool(tool["id"]))
+        for policy in registry.tool_version_policies:
+            for variant in policy["variants"]:
+                with self.subTest(tool=policy["tool"], version=variant["version"]):
+                    self.assertEqual(
+                        registry.tool(policy["tool"], variant["version"]),
+                        self.registry.tool(policy["tool"], variant["version"]),
+                    )
         technical_v23_predecessor = (
-            technical_indicators_v23_registry_profile(self.registry)
+            technical_indicators_v23_registry_profile(registry)
         )
         self.assertEqual(
             (
@@ -1245,8 +1261,9 @@ class MarketReturnVersioningTests(unittest.TestCase):
             ),
             technical_v23_predecessor,
         )
+        # Reuse each verified predecessor; retain every frozen hash assertion.
         investment_predecessor = investment_analysis_v2_registry_profile(
-            self.registry
+            technical_v23_predecessor
         )
         self.assertEqual(
             (
@@ -1283,7 +1300,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             investment_predecessor,
         )
         technical_v22_predecessor = technical_indicators_v22_registry_profile(
-            self.registry
+            investment_predecessor
         )
         self.assertEqual(
             (
@@ -1319,7 +1336,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             technical_v22_predecessor,
         )
         technical_v21_predecessor = technical_indicators_v21_registry_profile(
-            self.registry
+            technical_v22_predecessor
         )
         self.assertEqual(
             (
@@ -1355,7 +1372,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             technical_v21_predecessor,
         )
         placeholder_predecessor = placeholder_successor_registry_profile(
-            self.registry
+            technical_v21_predecessor
         )
         self.assertEqual(
             (
@@ -1386,7 +1403,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 with self.assertRaises(RegistryError):
                     placeholder_predecessor.tool(name, "2.0.0")
         filing_predecessor = company_filing_pagination_registry_profile(
-            self.registry
+            placeholder_predecessor
         )
         self.assertEqual(
             (
@@ -1412,7 +1429,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
         with self.assertRaises(RegistryError):
             filing_predecessor.tool("company.search_filings", "2.0.0")
         research_predecessor = stage10_research_analytics_registry_profile(
-            self.registry
+            filing_predecessor
         )
         self.assertEqual(
             (
@@ -1443,7 +1460,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "research.point_in_time_panel", "2.0.0"
             )
         technical_predecessor = technical_indicators_v2_registry_profile(
-            self.registry
+            research_predecessor
         )
         self.assertEqual(
             (
@@ -1466,7 +1483,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             technical_predecessor,
         )
         analytics_predecessor = analytics_foundation_registry_profile(
-            self.registry
+            technical_predecessor
         )
         self.assertEqual(
             (
@@ -1484,7 +1501,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "sha256": PRE_ANALYTICS_FOUNDATION_CATALOG_SHA256,
             },
         )
-        canonical_predecessor = canonical_access_registry_profile(self.registry)
+        canonical_predecessor = canonical_access_registry_profile(analytics_predecessor)
         self.assertEqual(
             (
                 canonical_predecessor.registry_version,
@@ -1505,8 +1522,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             canonical_access_registry_profile(canonical_predecessor),
             canonical_predecessor,
         )
-        predecessor = market_price_series_v1_registry_profile(self.registry)
-        alpaca_predecessor = alpaca_spy_options_registry_profile(self.registry)
+        alpaca_predecessor = alpaca_spy_options_registry_profile(canonical_predecessor)
         self.assertEqual(
             (
                 alpaca_predecessor.registry_version,
@@ -1516,8 +1532,9 @@ class MarketReturnVersioningTests(unittest.TestCase):
         )
         self.assertIs(alpaca_spy_options_registry_profile(alpaca_predecessor), alpaca_predecessor)
         ticker_predecessor = (
-            market_available_ticker_v1_registry_profile(self.registry)
+            market_available_ticker_v1_registry_profile(alpaca_predecessor)
         )
+        predecessor = market_price_series_v1_registry_profile(ticker_predecessor)
         self.assertEqual(ticker_predecessor.registry_version, "2.41.0")
         self.assertEqual(
             ticker_predecessor.source_sha256,
@@ -1600,7 +1617,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             predecessor,
         )
         drifted_datasets = replace(
-            self.registry,
+            registry,
             datasets=tuple(
                 replace(
                     item,
@@ -1612,10 +1629,10 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 )
                 if item.id == "market.stage10.daily_prices"
                 else item
-                for item in self.registry.datasets
+                for item in registry.datasets
             ),
             raw={
-                **self.registry.raw,
+                **registry.raw,
                 "datasets": [
                     {
                         **item,
@@ -1627,14 +1644,14 @@ class MarketReturnVersioningTests(unittest.TestCase):
                     }
                     if item["id"] == "market.stage10.daily_prices"
                     else item
-                    for item in self.registry.raw["datasets"]
+                    for item in registry.raw["datasets"]
                 ],
             },
         )
         with self.assertRaises(RegistryError):
             market_price_series_v1_registry_profile(drifted_datasets)
         self.assertEqual(
-            tuple(policy["tool"] for policy in self.registry.tool_version_policies),
+            tuple(policy["tool"] for policy in registry.tool_version_policies),
             (
                 "macro.search_series",
                 "macro.describe_series",
@@ -1680,13 +1697,20 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 "energy.get_weekly_fundamentals",
                 "company.get_fundamentals",
                 "research.liquidity_credit_state",
+                "portfolio.get_etf_allocator_snapshot",
+                "market.get_price_series",
+                "research.news_event_impact",
+                "stats.distribution_diagnostics",
+                "stats.covariance_matrix",
+                "stats.bootstrap_confidence_interval",
+                "stats.principal_components",
             ),
         )
         self.assertEqual(
-            self.registry.tool("company.search_filings")["version"],
+            registry.tool("company.search_filings")["version"],
             "1.0.0",
         )
-        filing_v2 = self.registry.tool("company.search_filings", "2.0.0")
+        filing_v2 = registry.tool("company.search_filings", "2.0.0")
         self.assertEqual(
             filing_v2["operation_graph_id"],
             "tool_platform.company.search_filings.v2",
@@ -1697,14 +1721,14 @@ class MarketReturnVersioningTests(unittest.TestCase):
             ["fixture.company.filings"],
         )
         self.assertIn("cursor", filing_v2["input_schema"]["required"])
-        share_count_v2 = self.registry.tool(
+        share_count_v2 = registry.tool(
             "company.get_share_count_history", "2.0.0"
         )
         self.assertEqual(
             share_count_v2["datasets"], ["fixture.company.fundamentals"]
         )
         self.assertEqual(share_count_v2["stores"], ["company"])
-        instrument_search_v2 = self.registry.tool(
+        instrument_search_v2 = registry.tool(
             "market.search_instruments", "2.0.0"
         )
         self.assertEqual(
@@ -1717,8 +1741,8 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "macro.get_series",
         ):
             with self.subTest(name=name):
-                self.assertEqual(self.registry.tool(name)["version"], "1.0.0")
-                v2 = self.registry.tool(name, "2.0.0")
+                self.assertEqual(registry.tool(name)["version"], "1.0.0")
+                v2 = registry.tool(name, "2.0.0")
                 self.assertEqual(
                     v2["operation_graph_id"],
                     f"tool_platform.{name}.v2",
@@ -1735,11 +1759,11 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 )
         for name in ("market.get_returns", "market.get_forward_returns"):
             with self.subTest(name=name):
-                self.assertEqual(self.registry.tool(name)["version"], "1.0.0")
+                self.assertEqual(registry.tool(name)["version"], "1.0.0")
                 self.assertEqual(
-                    self.registry.tool(name, "1.0.0")["version"], "1.0.0"
+                    registry.tool(name, "1.0.0")["version"], "1.0.0"
                 )
-                v2 = self.registry.tool(name, "2.0.0")
+                v2 = registry.tool(name, "2.0.0")
                 self.assertEqual(v2["operation_graph_id"], f"tool_platform.{name}.v2")
                 self.assertEqual(
                     v2["datasets"],
@@ -1750,7 +1774,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                     ],
                 )
                 with self.assertRaises(RegistryError):
-                    self.registry.tool(name, "3.0.0")
+                    registry.tool(name, "3.0.0")
         for name in (
             "timeseries.describe",
             "timeseries.align",
@@ -1771,23 +1795,23 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "forecast.evaluate",
         ):
             with self.subTest(name=name):
-                self.assertEqual(self.registry.tool(name)["version"], "1.0.0")
+                self.assertEqual(registry.tool(name)["version"], "1.0.0")
                 self.assertEqual(
-                    self.registry.tool(name, "2.0.0")["datasets"], []
+                    registry.tool(name, "2.0.0")["datasets"], []
                 )
                 self.assertEqual(
-                    self.registry.tool(name, "2.0.0")["operation_graph_id"],
+                    registry.tool(name, "2.0.0")["operation_graph_id"],
                     f"tool_platform.{name}.v2",
                 )
-        self.assertEqual(len(self.registry.tool_version_policies), 51)
+        self.assertEqual(len(registry.tool_version_policies), 51)
         self.assertEqual(
             sum(
                 len(policy["variants"])
-                for policy in self.registry.tool_version_policies
+                for policy in registry.tool_version_policies
             ),
             89,
         )
-        technical_v21 = self.registry.tool(
+        technical_v21 = registry.tool(
             "market.technical_indicators", "2.1.0"
         )
         self.assertEqual(technical_v21["datasets"], [])
@@ -1799,7 +1823,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "supertrend_ai",
             technical_v21["input_schema"]["properties"]["indicator"]["enum"],
         )
-        technical_v22 = self.registry.tool(
+        technical_v22 = registry.tool(
             "market.technical_indicators", "2.2.0"
         )
         self.assertEqual(technical_v22["datasets"], [])
@@ -1811,7 +1835,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "swing_structure_forecast",
             technical_v22["input_schema"]["properties"]["indicator"]["enum"],
         )
-        technical_v23 = self.registry.tool(
+        technical_v23 = registry.tool(
             "market.technical_indicators", "2.3.0"
         )
         self.assertEqual(technical_v23["datasets"], [])
@@ -1823,7 +1847,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "kdj",
             technical_v23["input_schema"]["properties"]["indicator"]["enum"],
         )
-        technical_v24 = self.registry.tool(
+        technical_v24 = registry.tool(
             "market.technical_indicators", "2.4.0"
         )
         self.assertEqual(technical_v24["datasets"], [])
@@ -1835,7 +1859,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "williams_vix_fix",
             technical_v24["input_schema"]["properties"]["indicator"]["enum"],
         )
-        technical_v25 = self.registry.tool(
+        technical_v25 = registry.tool(
             "market.technical_indicators", "2.5.0"
         )
         self.assertEqual(technical_v25["datasets"], [])
@@ -1847,7 +1871,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "wavetrend_crosses",
             technical_v25["input_schema"]["properties"]["indicator"]["enum"],
         )
-        technical_v26 = self.registry.tool(
+        technical_v26 = registry.tool(
             "market.technical_indicators", "2.6.0"
         )
         self.assertEqual(technical_v26["datasets"], [])
@@ -1859,7 +1883,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "parabolic_sar",
             technical_v26["input_schema"]["properties"]["indicator"]["enum"],
         )
-        technical_v27 = self.registry.tool(
+        technical_v27 = registry.tool(
             "market.technical_indicators", "2.7.0"
         )
         self.assertEqual(technical_v27["datasets"], [])
@@ -1877,7 +1901,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "econometrics.stationarity",
         ):
             with self.subTest(name=name, version="2.1.0"):
-                declaration = self.registry.tool(name, "2.1.0")
+                declaration = registry.tool(name, "2.1.0")
                 self.assertEqual(declaration["datasets"], [])
                 self.assertEqual(
                     declaration["operation_graph_id"],
@@ -1896,7 +1920,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
             "company.get_fundamentals",
         ):
             with self.subTest(name=name, version="2.1.0"):
-                declaration = self.registry.tool(name, "2.1.0")
+                declaration = registry.tool(name, "2.1.0")
                 self.assertEqual(
                     declaration["operation_graph_id"],
                     f"tool_platform.{name}.v2_1",
@@ -1907,7 +1931,7 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 self.assertTrue(
                     declaration["output_schema_id"].endswith(":2.1.0")
                 )
-        regression_v3 = self.registry.tool(
+        regression_v3 = registry.tool(
             "econometrics.regression",
             "3.0.0",
         )
@@ -1918,10 +1942,16 @@ class MarketReturnVersioningTests(unittest.TestCase):
         self.assertTrue(regression_v3["input_schema_id"].endswith(":3.0.0"))
         self.assertTrue(regression_v3["output_schema_id"].endswith(":3.0.0"))
         self.assertEqual(regression_v3["datasets"], [])
+        structural_v21 = registry.tool("econometrics.structural_breaks", "2.1.0")
+        self.assertEqual(
+            structural_v21["operation_graph_id"],
+            "tool_platform.econometrics.structural_breaks.v2_1",
+        )
+        self.assertEqual(structural_v21["datasets"], [])
         with self.assertRaises(RegistryError):
-            self.registry.tool(
+            registry.tool(
                 "econometrics.structural_breaks",
-                "2.1.0",
+                "2.2.0",
             )
 
     def test_generated_v1_is_frozen_and_v2_catalog_is_separate(self) -> None:
@@ -1940,9 +1970,32 @@ class MarketReturnVersioningTests(unittest.TestCase):
                 self.assertEqual((root / resource).read_bytes(),
                     (PROJECT_ROOT / resource).read_bytes())
         self.assertEqual(hashlib.sha256(V1_CATALOG.read_bytes()).hexdigest(), V1_CATALOG_SHA256)
-        self.assertEqual(hashlib.sha256(V2_CATALOG.read_bytes()).hexdigest(), V2_CATALOG_SHA256)
+        current_v2 = loads_strict(V2_CATALOG.read_bytes())
+        self.assertEqual(
+            hashlib.sha256(V2_CATALOG.read_bytes()).hexdigest(),
+            self.registry.raw["tool_version_schema_catalog"]["sha256"],
+        )
+        self.assertEqual(current_v2["schema_version"],
+                         self.registry.raw["tool_version_schema_catalog"]["schema_version"])
         v1 = loads_strict(V1_CATALOG.read_bytes())
-        v2 = loads_strict(V2_CATALOG.read_bytes())
+        # Generate the exact historical successor in a temporary source root.
+        # Use the established generator's ordering, not an invented reconstruction.
+        historical = price_basis_registry_profile(self.registry_285)
+        with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
+            root = Path(temporary)
+            source = root / CANONICAL_REGISTRY_PATH
+            source.parent.mkdir(parents=True)
+            source.write_text(json.dumps(historical.raw, ensure_ascii=True, indent=1, sort_keys=True) + "\n")
+            registry_bytes, historical_v1, historical_bytes = generated_bytes(root)
+        self.assertEqual(json.loads(registry_bytes)["registry_version"], "2.85.0")
+        self.assertEqual(hashlib.sha256(registry_bytes).hexdigest(), REGISTRY_285_SOURCE_SHA256)
+        self.assertEqual(historical_v1, V1_CATALOG.read_bytes())
+        self.assertEqual(hashlib.sha256(historical_bytes).hexdigest(), CATALOG_231_SHA256)
+        v2 = loads_strict(historical_bytes)
+        current_contracts = {entry["id"]: entry for entry in current_v2["contracts"]}
+        for entry in v2["contracts"]:
+            with self.subTest(contract=entry["id"]):
+                self.assertEqual(entry, current_contracts[entry["id"]])
         self.assertEqual(len(v1["contracts"]), 114)
         self.assertEqual(v2["schema_version"], "2.31.0")
         self.assertEqual(len(v2["contracts"]), 218)
@@ -2159,127 +2212,59 @@ class MarketReturnVersioningTests(unittest.TestCase):
             {"econometrics.regression"},
         )
 
-    def test_manifest_exposes_75_names_and_marks_only_versioned_v1_variants_deprecated(self) -> None:
+    def test_manifest_preserves_historical_contracts_and_current_version_policies(self) -> None:
         with tempfile.TemporaryDirectory(dir="/tmp") as temporary:
-            dispatcher = ToolDispatcher(
-                explicit_store_map(Path(temporary) / "stores"), self.registry
-            )
+            dispatcher = ToolDispatcher(explicit_store_map(Path(temporary) / "stores"), self.registry)
             manifest = dispatcher.manifest()
-        self.assertEqual(len(manifest["tools"]), 77)
-        self.assertEqual(len({item["name"] for item in manifest["tools"]}), 77)
-        price_series = next(
-            item
-            for item in manifest["tools"]
-            if item["name"] == "market.get_price_series"
-        )
+        tools = {item["name"]: item for item in manifest["tools"]}
+        self.assertEqual(len(tools), len(manifest["tools"]))
+        self.assertEqual(set(tools), {tool["id"] for tool in self.registry.tools})
+        self.assertEqual(len(self.registry_285.tools), 77)
+        for declaration in self.registry_285.tools:
+            with self.subTest(historical_tool=declaration["id"]):
+                current = tools[declaration["id"]]
+                for key in ("version", "input_schema", "output_schema"):
+                    self.assertEqual(declaration[key], current[key])
+
+        price_series = tools["market.get_price_series"]
         self.assertEqual(price_series["version"], "1.0.0")
         self.assertEqual(price_series["lifecycle"], "deprecated")
-        self.assertEqual(
-            price_series["compatibility"]["status"],
-            "additive_native_v1",
-        )
-        self.assertEqual(
-            price_series["input_schema"]["required"],
-            ["ticker", "mode", "as_of", "date_only_policy", "limit"],
-        )
-        versioned = {
-            "macro.search_series",
-            "macro.describe_series",
-            "macro.get_series",
-            "market.get_returns",
-            "market.get_forward_returns",
-            "market.technical_indicators",
-            "timeseries.describe",
-            "timeseries.align",
-            "timeseries.correlation",
-            "econometrics.regression",
-            "econometrics.rolling_regression",
-            "econometrics.stationarity",
-            "econometrics.structural_breaks",
-            "data.quality_audit",
-            "timeseries.transform",
-            "research.point_in_time_panel",
-            "research.event_study",
-            "alpha.signal_diagnostics",
-            "research.walk_forward_backtest",
-            "research.robustness_suite",
-            "stats.multiple_testing",
-            "forecast.evaluate",
-            "company.search_filings",
-            "company.get_share_count_history",
-            "market.search_instruments",
-            "options.search_captures",
-            "options.search_contracts",
-            "options.get_surface_snapshot",
-            "macro.get_release_calendar",
-            "market.cross_sectional_performance",
-            "macro.revision_analysis",
-            "macro.standardize_surprises",
-            "macro.get_liquidity_snapshot",
-            "macro.get_liquidity_impulse",
-            "macro.get_credit_conditions",
-            "macro.regime_snapshot",
-            "rates.get_funding_conditions",
-            "rates.get_repo_facility_usage",
-            "rates.curve_analytics",
-            "energy.get_electricity_retail_sales",
-            "energy.get_weekly_fundamentals",
-            "company.get_fundamentals",
-            "research.liquidity_credit_state",
-            "news.search",
-            "portfolio.get_etf_allocator_snapshot",
-            *NEW_PRICE_BASIS_POLICIES,
-        }
-        for name in versioned:
-            tool = next(item for item in manifest["tools"] if item["name"] == name)
-            self.assertEqual(tool["version"], "1.0.0")
-            self.assertEqual(tool["lifecycle"], "deprecated")
-            expected_versions = ["1.0.0", "2.0.0"]
-            if name in {
-                "econometrics.regression",
-                "econometrics.rolling_regression",
-                "econometrics.stationarity",
-                "market.technical_indicators",
-                "market.cross_sectional_performance",
-                "energy.get_electricity_retail_sales",
-                "energy.get_weekly_fundamentals",
-                "company.get_fundamentals",
-                "news.search",
-            }:
-                expected_versions.append("2.1.0")
-            if name == "market.technical_indicators":
-                expected_versions.extend(
-                    ("2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0")
-                )
-            if name == "news.search":
-                expected_versions.extend(("2.2.0", "2.3.0"))
-            if name == "econometrics.regression":
-                expected_versions.append("3.0.0")
-            if name in PRICE_BASIS_VERSIONS and name not in NEW_PRICE_BASIS_POLICIES:
-                expected_versions.append(PRICE_BASIS_VERSIONS[name][1])
-            self.assertEqual(
-                [item["version"] for item in tool["versions"]],
-                expected_versions,
-            )
-            self.assertEqual(tool["versions"][0]["lifecycle"], "deprecated")
-            self.assertTrue(
-                all(
-                    item["lifecycle"] == "experimental"
-                    for item in tool["versions"][1:]
-                )
-            )
-            self.assertEqual(
-                tool["deprecation"]["removal"],
-                {"status": "not_scheduled", "milestone": None},
-            )
-        self.assertEqual(
-            {
-                item["name"]
-                for item in manifest["tools"]
-                if item["lifecycle"] == "deprecated"
-            },
-            versioned,
-        )
+        self.assertEqual(price_series["compatibility"]["status"], "additive_native_v1")
+        self.assertEqual(price_series["input_schema"]["required"],
+                         ["ticker", "mode", "as_of", "date_only_policy", "limit"])
+
+        policies = {policy["tool"]: policy for policy in self.registry.tool_version_policies}
+        for declaration in self.registry.tools:
+            name = declaration["id"]
+            public = tools[name]
+            policy = policies.get(name)
+            with self.subTest(tool=name):
+                if policy is None:
+                    self.assertNotIn("versions", public)
+                    self.assertEqual(public["lifecycle"], declaration["lifecycle"])
+                    continue
+                expected = (declaration, *policy["variants"])
+                self.assertEqual([item["version"] for item in public["versions"]],
+                                 [item["version"] for item in expected])
+                self.assertEqual(public["version_selector"], {
+                    "field": policy["selector_field"], "default_version": policy["default_version"],
+                    "explicit_selection_required_for": [item["version"] for item in policy["variants"]],
+                })
+                deprecated = {item["version"]: item for item in policy["deprecations"]}
+                for variant, contract in zip(public["versions"], expected):
+                    for key in ("input_schema", "output_schema"):
+                        self.assertEqual(variant[key], contract[key])
+                    retirement = deprecated.get(variant["version"])
+                    self.assertEqual(variant["lifecycle"], "deprecated" if retirement else contract["lifecycle"])
+                    if retirement:
+                        self.assertEqual(variant["deprecation"], retirement)
+                    else:
+                        self.assertNotIn("deprecation", variant)
+                self.assertEqual(public["deprecation"], deprecated[declaration["version"]])
+                self.assertEqual(public["deprecation"]["removal"],
+                                 {"status": "not_scheduled", "milestone": None})
+        self.assertEqual({item["name"] for item in manifest["tools"] if item["lifecycle"] == "deprecated"},
+                         set(policies))
 
     def test_new_econometric_projections_restore_exact_predecessors(self) -> None:
         pre_model_suite = econometrics_model_suite_v3_registry_profile(

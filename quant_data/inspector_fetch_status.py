@@ -17,6 +17,7 @@ import subprocess
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .collector_metadata import FETCH_DESCRIPTIONS as _DESCRIPTIONS
 from .errors import QuantDataError, ValidationError
 from .inspector_schedules import TIMER_BINDINGS, _CALENDAR, _WEEKDAY, _property
 from .json_codec import loads_strict
@@ -27,23 +28,7 @@ _UNITS = _SERVICES | {binding.unit for binding in TIMER_BINDINGS}
 _PROPERTIES = "Id,LoadState,ActiveState,SubState,Type,TimersCalendar,ExecMainStartTimestamp,ExecMainExitTimestamp,ExecMainCode,ExecMainStatus,Result,InvocationID,NextElapseUSecRealtime"
 _JOURNAL_FIELDS = "__REALTIME_TIMESTAMP,_BOOT_ID,_UID,_PID,_COMM,_EXE,USER_INVOCATION_ID,USER_UNIT,JOB_ID,JOB_TYPE,JOB_RESULT"
 _JOURNAL_LIMIT = 2000
-_DESCRIPTIONS = {
-    "Derived calculations": "Forward EPS, fiscal-quarter matching and daily P/E from retained inputs",
-    "Market close": "Daily equity, ETF and index prices",
-    "Weekly price repair": "Repair missing daily price history",
-    "Theta options daily": "ThetaData end-of-day options for 15 ETFs; source: data/options.sqlite",
-    "Theta options weekly repair": "Repair missing ThetaData options for the preceding trading week; source: data/options.sqlite",
-    "Macro current": "Treasury, Fed, NY Fed, energy and economic indicators",
-    "GDP / CPI": "Official GDP and inflation vintages",
-    "Employment": "Payroll and unemployment vintages",
-    "Economic calendar": "Release calendar and normalized economic events",
-    "SEC fundamentals": "Company filings and financial facts",
-    "Sharadar fundamentals": "Selected company fundamentals, as reported and restated",
-    "Company market": "Dividends, splits and analyst estimates",
-    "Selected company inputs": "Earnings, financial statements, estimates, ratings, price targets and revenue segments",
-    "Equibles transcripts": "Raw earnings-call transcripts for the retained stock universe",
-    "Current news": "Headlines from the configured current news sources",
-}
+
 
 
 def _utc(value: datetime) -> str:
