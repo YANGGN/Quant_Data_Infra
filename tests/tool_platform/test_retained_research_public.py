@@ -176,7 +176,9 @@ class RetainedResearchPublicTests(unittest.TestCase):
             for version in previous.versions_for(old["id"]):
                 self.assertEqual(f.registry.tool(old["id"],version["version"]),version)
         self.assertEqual(stage5_registry_profile(previous).source_sha256,stage5_registry_profile(f.registry).source_sha256)
-        manifest=app.dispatcher.manifest();self.assertEqual(len(manifest["tools"]),98)
+        from quant_data.tool_platform.monitor_registry import predecessor_profile as before_monitor
+        self.assertEqual(len(before_monitor(f.registry).tools),98)
+        manifest=app.dispatcher.manifest();self.assertEqual(len(manifest["tools"]),100)
         for name in TOOLS:
             args=example(name);parse(KINDS[name],args)
             out,err=io.StringIO(),io.StringIO()

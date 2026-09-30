@@ -9,6 +9,8 @@ PREDECESSOR_CATALOG = {'resource': 'quant_data/generated/tool_contract_schemas_v
 PREDECESSOR_SHA256 = "6ee19b30575fc4b2613c0583fd38c36aa1780fdb25bf51e1233a0b61b097316c"
 
 def predecessor_profile(registry):
+    from .monitor_registry import predecessor_profile as monitor_predecessor
+    registry = monitor_predecessor(registry)
     if (registry.schema_version,registry.registry_version)!=("1.9.0","2.94.0"):return registry
     from .generate import _REVIEWED_REGISTRY_SOURCE_SHA256
     render=lambda raw:(json.dumps(raw,ensure_ascii=True,indent=1,sort_keys=True)+"\n").encode()

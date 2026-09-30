@@ -21,6 +21,45 @@ The command derives this project's root itself. Do not copy its database paths,
 set database-related environment variables, or invoke it with a registry,
 project-root, store, SQL, provider, or credential option; none are supported.
 
+## Intraday Options Monitor tools — September 29, 2026
+
+Registry **2.95.0** / catalog **2.39.0** adds two read-only tools at explicit
+**version 1.0.0**:
+
+| Tool | Use | Required arguments |
+| --- | --- | --- |
+| `options.get_intraday_snapshot` | Latest saved monitor observations, with age, coverage and quality | `symbols` (1–50) |
+| `options.get_intraday_history` | Saved intraday aggregates for one symbol | `symbol`, `start_date`, `end_date` |
+
+These use the separate Options Monitor source for monitored equities and ETFs,
+with existing 5/10/15/30-minute collection targets. They do not trigger collection
+or provide streaming quotes or full contract-chain data. Snapshot accepts optional
+`session`; both accept a timezone-aware local-capture `as_of` cutoff.
+History accepts up to seven inclusive calendar days and 1,000 observations.
+Split longer ranges into separate calls.
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe options.get_intraday_snapshot --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe options.get_intraday_history --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"options.get_intraday_snapshot","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ","AAPL"]}}
+JSON
+```
+
+```json
+{"api_version":"1.0","tool":"options.get_intraday_history","tool_version":"1.0.0","arguments":{"symbol":"SPY","start_date":"2026-09-28","end_date":"2026-09-29"}}
+```
+
+Read `monitor_source`, `monitor_observation` and `monitor_missing` records
+using the standard fields representation; decode `_json` fields once.
+Preserve the complete envelope, observation identities, payload hashes,
+timestamps, age, effective OI date, coverage and quality flags. A latest saved
+snapshot may belong to an earlier session. Missing observations and old data
+remain explicit; an unavailable monitor fails without a fallback.
+
+The [intraday tool contract](rebuild/OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md)
+defines bounds, cutoff behavior, freshness interpretation, retention and examples.
+
 ## Retained-data research tools — September 28, 2026
 
 The shared launcher exposes these additions in registry **2.94.0**, catalog
@@ -173,6 +212,12 @@ They must not be used for current Theta research. Older fixture tools retain
 their existing semantics. Consumers must not open databases directly.
 
 ## Cross-project quick start
+
+For intraday options, use `options.get_intraday_snapshot@1.0.0` for the
+latest saved observations and `options.get_intraday_history@1.0.0` for
+bounded history. See the [intraday options workflow and call examples](#intraday-options-monitor-tools--september-29-2026).
+These read the saved monitor data; inspect returned age, coverage and
+quality before using it.
 
 The absolute launcher path above is the complete integration boundary. An
 agent does not need this repository as its working directory and must not add
@@ -612,14 +657,16 @@ the dated ETF version 1 section below is preserved audit evidence only.
 
 ## Latest contracts
 
-This is the latest-only projection verified through the public launcher for
-registry `2.93.0`, catalog `2.37.0`: 90 logical tools and 182 versioned contracts.
+This latest-only projection is verified through the public launcher for
+registry `2.95.0`, catalog `2.39.0`: 100 logical tools and 196 versioned contracts.
 If the registry advances, the semantic maximum advertised by the runtime
 `manifest` overrides this checkpoint.
 
-For current options research, select the six Theta tools in the
-[current options workflow](#current-theta-options-workflow--september-27-2026).
-Older options names in this inventory retain archive or fixture semantics.
+For saved intraday options, select the two monitor tools in the
+[intraday options workflow](#intraday-options-monitor-tools--september-29-2026).
+For daily ETF options research, use the six Theta tools in the
+[daily options workflow](#current-theta-options-workflow--september-27-2026).
+Older options names retain archive or fixture semantics.
 
 | Logical tool | Latest version |
 | --- | --- |
@@ -650,11 +697,11 @@ Older options names in this inventory retain archive or fixture semantics.
 | `company.get_fundamentals` | `3.0.0` |
 | `company.get_corporate_actions` | `1.0.0` |
 | `company.get_share_count_history` | `3.0.0` |
-| `company.get_earnings_calendar` | `1.0.0` |
-| `company.get_consensus_history` | `1.0.0` |
+| `company.get_earnings_calendar` | `2.0.0` |
+| `company.get_consensus_history` | `2.0.0` |
 | `company.get_guidance_history` | `1.0.0` |
-| `company.get_estimate_revisions` | `1.0.0` |
-| `company.get_earnings_setup` | `1.0.0` |
+| `company.get_estimate_revisions` | `2.0.0` |
+| `company.get_earnings_setup` | `2.0.0` |
 | `energy.get_electricity_retail_sales` | `2.1.0` |
 | `energy.get_weekly_fundamentals` | `2.1.0` |
 | `market.search_instruments` | `2.0.0` |
@@ -665,6 +712,7 @@ Older options names in this inventory retain archive or fixture semantics.
 | `market.get_forward_returns` | `2.1.0` |
 | `market.technical_indicators` | `2.8.0` |
 | `market.cross_sectional_performance` | `2.2.0` |
+| `market.get_breadth` | `1.0.0` |
 | `rates.get_funding_conditions` | `2.0.0` |
 | `rates.get_repo_facility_usage` | `2.0.0` |
 | `rates.curve_analytics` | `2.0.0` |
@@ -680,9 +728,14 @@ Older options names in this inventory retain archive or fixture semantics.
 | `options.surface_diagnostics` | `1.0.0` |
 | `options.screen_contracts` | `1.0.0` |
 | `options.strategy_scenario` | `1.0.0` |
+| `options.compare_implied_realized` | `1.0.0` |
+| `options.get_intraday_snapshot` | `1.0.0` |
+| `options.get_intraday_history` | `1.0.0` |
 | `research.point_in_time_panel` | `2.1.0` |
 | `data.get_dataset_status` | `1.0.0` |
 | `data.quality_audit` | `2.1.0` |
+| `data.get_research_coverage` | `1.0.0` |
+| `data.get_collection_plan` | `1.0.0` |
 | `research.event_study` | `2.1.0` |
 | `alpha.signal_diagnostics` | `2.1.0` |
 | `research.walk_forward_backtest` | `2.1.0` |
@@ -703,6 +756,8 @@ Older options names in this inventory retain archive or fixture semantics.
 | `news.headline_sentiment` | `1.0.0` |
 | `research.news_event_impact` | `2.0.0` |
 | `research.liquidity_credit_state` | `2.0.0` |
+| `research.get_watchlist_changes` | `1.0.0` |
+| `research.get_event_response_distribution` | `1.0.0` |
 | `portfolio.get_etf_allocator_snapshot` | `2.0.0` |
 | `price_realtime` | `1.0.0` |
 | `company.get_research_inputs` | `1.0.0` |
@@ -713,6 +768,8 @@ Older options names in this inventory retain archive or fixture semantics.
 | `company.get_forward_pe_analysis` | `1.0.0` |
 | `company.get_transcript_history` | `1.0.0` |
 | `company.search_transcript_evidence` | `1.0.0` |
+| `company.compare_transcripts` | `1.0.0` |
+| `company.screen_fundamentals` | `1.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one

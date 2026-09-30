@@ -627,3 +627,14 @@ Custom sharing was preserved. Only the nested Site source was committed/pushed;
 no parent commit/push, provider call, canonical write, service/WSL restart or
 schedule change occurred. Evidence: .local/options-monitor-history-visual/
 (completion.json, browser-review.json, screenshots and options-monitor.tar.gz).
+
+
+## Local agent readers — September 29, 2026
+
+The existing saved monitor observations are now exposed through
+`options.get_intraday_snapshot@1.0.0` and
+`options.get_intraday_history@1.0.0` in the shared local launcher.
+The [agent tool contract](OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md) defines
+bounded immutable reads, capture cutoffs, observation hashes, age, quality and
+retention limits. This addition does not change collectors, saved observations,
+watchlists, schedules, Site behavior or publication.

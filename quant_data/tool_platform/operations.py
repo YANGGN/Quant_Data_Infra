@@ -111,6 +111,12 @@ def invoke_operation(
             raise LookupError("Selected retained research graph is invalid")
         from .retained_research_access import invoke
         return invoke(name, arguments, context, registry)
+    from .monitor_contracts import TOOLS as MONITOR_TOOLS
+    if name in MONITOR_TOOLS:
+        if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
+            raise LookupError("Selected monitor tool graph is invalid")
+        from .monitor_access import invoke
+        return invoke(name, arguments, context, registry)
     from .theta_contracts import TOOLS as THETA_TOOLS
     if name in THETA_TOOLS:
         if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":

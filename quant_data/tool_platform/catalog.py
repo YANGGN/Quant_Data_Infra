@@ -23,7 +23,8 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.38.0"
+VERSIONED_CATALOG_VERSION = "2.39.0"
+from .monitor_contracts import TOOLS as ADDITIVE_MONITOR_TOOLS
 from .theta_contracts import TOOLS as ADDITIVE_THETA_TOOLS
 from .retained_research_contracts import NEW_TOOLS as ADDITIVE_RETAINED_RESEARCH_TOOLS, SUCCESSORS as RETAINED_RESEARCH_SUCCESSORS
 
@@ -66,6 +67,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
     *ADDITIVE_THETA_TOOLS,
     *ADDITIVE_RETAINED_RESEARCH_TOOLS,
+    *ADDITIVE_MONITOR_TOOLS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -245,7 +247,7 @@ CURRENT_FAMILY_COUNTS = {
     "macro": 13,
     "market": 10,
     "company": 20,
-    "options": 13,
+    "options": 15,
     "research": 28,
 }
 _CURRENT_PUBLIC_NAMES = list(PUBLIC_TOOL_NAMES)
@@ -285,6 +287,7 @@ _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_THETA_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_RETAINED_RESEARCH_TOOLS)
+_CURRENT_PUBLIC_NAMES.extend(ADDITIVE_MONITOR_TOOLS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -645,6 +648,8 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
     additive += tuple(ToolProfile(name=name, family="options", input_kind=THETA_KINDS[name], stores=(), datasets=()) for name in ADDITIVE_THETA_TOOLS)
     from .retained_research_contracts import KINDS as RKINDS, stores_for, datasets_for
     additive += tuple(ToolProfile(name=name, family=_family(name), input_kind=RKINDS[name], stores=stores_for(name), datasets=datasets_for(name)) for name in ADDITIVE_RETAINED_RESEARCH_TOOLS)
+    from .monitor_contracts import KINDS as MONITOR_KINDS
+    additive += tuple(ToolProfile(name=name, family="options", input_kind=MONITOR_KINDS[name], stores=(), datasets=()) for name in ADDITIVE_MONITOR_TOOLS)
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
@@ -1258,6 +1263,7 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         _build_forward_pe_analysis_entry(),
         *_build_theta_entries(),
         *_build_retained_research_entries(),
+        *_build_monitor_entries(),
     )
 
 
@@ -5412,3 +5418,8 @@ def _build_theta_entries():
         entry["output_schema"]["properties"]["records"]["maxItems"] = MAX_RECORDS
         output.append(entry)
     return tuple(output)
+
+
+def _build_monitor_entries():
+    from .monitor_catalog import entries
+    return entries()

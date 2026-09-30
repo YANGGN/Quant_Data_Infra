@@ -40,6 +40,15 @@ This document specifies:
 It does not specify collectors, schema migrations, arbitrary SQL access,
 browser-triggered ingestion, or deployment.
 
+## Intraday monitor additions — 2026-09-29
+
+Registry `2.95.0` / catalog `2.39.0` adds `options.get_intraday_snapshot@1.0.0`
+and `options.get_intraday_history@1.0.0`: 100 logical tools / 196 versioned
+contracts. These expose the existing fixed derived monitor through bounded
+immutable reads, with capture cutoffs, age, quality and observation hashes.
+They do not change collection or prior contracts. See the
+[intraday tool contract](OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md).
+
 ## Retained research additions — 2026-09-28
 
 Registry `2.94.0` / catalog `2.38.0` adds the retained-data research contracts
