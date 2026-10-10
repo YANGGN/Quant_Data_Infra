@@ -1099,9 +1099,140 @@ changes to the shared locking engine. See
 
 The user-authorized September 26, 2026 daily and weekend routines are specified
 in [the focused options contract](THETA_DAILY_COLLECTION_2026-09-26.md).
-Daily 19:15 Eastern collects only the current date; Sunday 03:00 Eastern repairs
+As repaired October 8, daily Tue-Sat 07:15 Eastern collects only the previous
+local date; Sunday 03:00 Eastern repairs
 only missing sessions in the preceding Monday-Friday window. A shared job lock
 and durable per-period admission prevent overlap and automatic repeat. The
 existing resolved-physical-store lock guards immutable audits and atomic
 missing-only publication; provider work occurs outside that lock.
 The operating envelope owns dated activation evidence.
+
+## September 30, 2026 fetch failure repairs
+
+A shared FMP reservation that exhausts its original deadline before entering
+the HTTP callback now retains its charge and a durable not-dispatched receipt,
+then clears only its pending reservation. It does not latch an account-wide
+stop. Ambiguous dispatch, authentication, quota and server responses keep
+the existing blocking behavior. The host wrapper distinguishes proven
+admission rejection from a callback failure and never retries a dispatched
+callback. A selected queue records a terminal failed unit for proven admission
+rejection, preserving its charge while allowing independent units to progress.
+
+The legacy not_dispatched stop has an explicit, lock-protected reconciliation
+method requiring the exact attempt and SHA-256 of the original ledger.
+It verifies the original reservation, policy, timestamps and charged count,
+retains the original ledger bytes in an immutable receipt, and changes only
+stopped to null. It refunds no charge and dispatches no request. This method
+requires separately authorized use; it is not automatic startup recovery.
+Unknown pending requests and HTTP-triggered stops are ineligible.
+
+News and macro wrappers report fmp_not_dispatched for this admission failure.
+Macro resource failures now use bounded categories for page, row, series,
+response byte, total byte and duration limits instead of incorrectly reporting local_io.
+No schedule, provider workload, request cap or resource cap changes.
+
+## September 30, 2026 - isolate failed FMP requests
+
+The user's later explicit decision supersedes the ambiguous-dispatch and
+server-error account-wide stop above. FMP requests with no usable response
+are flagged individually and remain charged, while unrelated requests continue.
+HTTP 5xx responses are request-local failures; HTTP 401, 403 and 429 retain the
+existing account-wide stop. Quota, pacing and original finite request, byte and
+duration limits remain enforced. No automatic retry is introduced.
+
+The shared allowance holds its existing account lock throughout dispatch.
+On an exception or invalid HTTP status, it durably saves an uncertain-attempt
+receipt with original ledger bytes and before/after hashes before clearing
+pending. A subsequent lock owner similarly retires an abandoned pending
+reservation, without resending it, before admitting independent work.
+The companion reservation must match if present; a crash before its creation
+can recover from the authoritative charged ledger. Explicit reconciliation
+requires the exact attempt and ledger hash and makes no provider request.
+Invalid accounting, policy mismatch, explicit provider stops and persistence
+failures still block the affected action.
+
+FMP acquisition queues retain a terminal per-unit failure before clearing
+pending, continue later units, and report complete_with_gaps/acquired_with_gaps.
+Reopening the same queue skips failed units without retry. Existing retained
+responses recover through the original publication path. Missing responses
+after interruption become flagged failures. Unknown response sizes reserve the
+full per-request byte bound separately from measured received bytes. Immutable
+evidence corruption, retention I/O and publication failures remain errors.
+Other providers keep their existing uncertainty and HTTP-stop behavior.
+
+Parallel FMP acquisition applies the same rule to worker-result and constructor
+failures and invalid responses: it retains bounded failure receipts, reserves
+missing bytes, drains active requests and admits later independent units.
+Unknown failures are non-retryable; the selected-company caller retains only
+its already-authorized bounded retry policy for explicitly typed transient
+failures. Abandoned parallel admissions can be retired under the account lock
+with all original reservations retained. Explicit storage-safety holds remain.
+
+
+## October 1, 2026 options monitor shared Theta admission
+
+The user-authorized finite daytime baseline extension coordinates the existing
+singleton live monitor and finite backfill owners through private flock leases.
+A live-intent lock excludes new background admissions; an exclusive session
+lease waits for active background calls and their receipts to drain before
+the live cycle can authenticate. Background requests hold shared session leases,
+plus exclusive daytime/shared off-hours capacity leases. Existing validated
+owner concurrency limits (live three, backfill at most four) keep the combined
+ceiling at four, with one historical call during weekdays 08:55-16:15 ET.
+The separate live run.lock and finite baseline.lock continue to exclude duplicate
+owners. Leases resolve under the physical project root and OS exit releases them;
+lock files are never unlinked as a recovery mechanism.
+
+A non-secret generation marker is atomically replaced under exclusive session
+ownership. Background clients whose generation is stale drain/close before
+renewing their session. Live intent, capacity and generation checks precede any
+durable historical request reservation. Network and waiting remain outside
+SQLite write transactions and physical-store locks. Waiting retains deadline,
+budget and stop checks; it does not consume a request or create an unresolved
+admission. No request is cancelled or repeated solely for priority handoff.
+
+As repaired October 8, daily Tue-Sat 07:10-07:40 and Sunday 02:55-04:05
+background guards remain around
+the separately owned daily/weekly Theta jobs. Unrelated manual sessions are
+outside this coordination scope. The monitor contract owns detailed behavior;
+dated authorization and observed activation belong in the operating envelope.
+
+
+## October 1, 2026 — date-scoped live pause and baseline priority
+
+A user-approved one-day pause is an immutable mode-0600 private marker keyed
+by the Eastern calendar date and exact finite backfill run. Its expiry is the
+next local midnight, including DST transitions. Only the matching run receives
+four-call daytime capacity. Validating the marker never extends it or changes
+the original plan/caps. Conflict or malformed current authority fails closed.
+
+Installation requires the existing live timer stopped and live service inactive
+(MainPID=0), then checks the live-owner lock before atomic marker publication.
+The timer is restored only after publication. Remaining normal ticks return
+paused with zero provider/Site work; tomorrow's date lookup restores ordinary
+collection and capacity without catch-up or a new scheduled job. The additional
+in-code owner-lock recheck only prevents provider admission after a racing
+startup; it cannot undo setup that has already happened. The operational
+installation precondition avoids that race for normal clock execution.
+
+Background priority does not bypass live intent/session leases or daily/weekly
+Theta guard windows. A graceful finite-run replacement preserves existing
+receipts and saved data. The operating envelope owns dated authorization and
+activation; the monitor contract owns detailed behavior and tests.
+
+
+## October 1, 2026 — central baseline authentication recovery
+
+The explicitly amended finite backfill authenticates once in its coordinator
+before launching worker data requests. Each login holds the existing background
+capacity and shared session lease through its immutable completion receipt.
+The store lock/transaction is released before network authentication. An auth
+failure records one global admission and pauses the workers; it does not fan out
+into contract reservations. The persistent twenty-attempt limit and cooldown
+survive owner loss/restart. Actual scope and dated activation are recorded in
+the operating envelope.
+
+Ordinary RPC backoff closes channels while preserving valid authentication.
+Live intent, a changed generation marker or a scheduled Theta guard still
+requires draining and fresh authentication under the same leases. Existing
+owner locks, four/one-call capacity, guard windows and daily pause expiry remain.

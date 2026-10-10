@@ -20,7 +20,7 @@ from .registry import Registry
 
 _PROPERTIES = "Id,LoadState,ActiveState,SubState,TimersCalendar,NextElapseUSecRealtime"
 _CALENDAR = re.compile(r"^\{ OnCalendar=(.+?) ; next_elapse=.* \}$")
-_WEEKDAY = re.compile(r"^Mon\.\.Fri \*-\*-\* (\d{2}:\d{2}):00 America/New_York$")
+_WEEKDAY = re.compile(r"^(?:Mon\.\.Fri|Tue\.\.Sat) \*-\*-\* (\d{2}:\d{2}):00 America/New_York$")
 
 
 def _timer_properties(output: str) -> dict[str, dict[str, list[str]]]:
@@ -52,7 +52,7 @@ def _cadence(properties: Mapping[str, list[str]]) -> str:
         calendar = match[1]
         weekday = _WEEKDAY.fullmatch(calendar)
         if weekday:
-            label = f"Weekdays at {weekday[1]} New York"
+            label = f"{'Tue–Sat' if calendar.startswith('Tue..Sat') else 'Weekdays'} at {weekday[1]} New York"
         elif calendar == "Mon..Fri *-*-* 23:30:00 America/Toronto":
             label = "Weekdays at 23:30 Toronto"
         elif calendar == "*-*-* 06:30:00 America/Toronto":

@@ -36,14 +36,15 @@ class FmpSharedAllowanceTests(unittest.TestCase):
         self.assertEqual(self.state()["usage"]["2026-09-09"],5)
         self.assertEqual(len(self.calls),4)
         self.assertTrue(all((b[0]-a[0]).total_seconds()>=1 for a,b in zip(self.calls,self.calls[1:])))
-    def test_unknown_attempt_blocks_every_client_without_refund_or_retry(self):
+    def test_unknown_attempt_is_flagged_without_blocking_other_clients(self):
         gate=self.gate()
         def crash(remaining):self.calls.append("failed");raise RuntimeError("interrupted")
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(policy.FmpRequestFailed):
             gate.invoke(crash,request_identity="2"*64,priority="maintenance",deadline=60)
-        with self.assertRaises(ConflictError):self.invoke("maintenance")
-        self.assertEqual(self.calls,["failed"]);self.assertEqual(self.state()["usage"]["2026-09-09"],2)
-        self.assertIsNotNone(self.state()["pending"])
+        self.invoke("maintenance")
+        self.assertEqual(len(self.calls),2);self.assertEqual(self.state()["usage"]["2026-09-09"],3)
+        self.assertIsNone(self.state()["pending"])
+        self.assertTrue((self.root/"uncertain/2026-09-09-2.json").exists())
     def test_systemic_response_stops_account_and_policy_cannot_reset_usage(self):
         self.invoke("maintenance",429)
         with self.assertRaises(ConflictError):self.invoke("maintenance")
@@ -68,7 +69,8 @@ class FmpSharedAllowanceTests(unittest.TestCase):
         with patch.object(policy,"atomic",side_effect=delayed):
             with self.assertRaises(ResourceLimitError):self.invoke("maintenance")
         self.assertEqual(self.calls,[])
-        self.assertEqual(self.state()["stopped"]["status"],"not_dispatched")
+        self.assertIsNone(self.state()["stopped"])
+        self.assertTrue((self.root/"not-dispatched/2026-09-09-2.json").is_file())
         self.assertEqual(self.state()["usage"]["2026-09-09"],2)
     def test_prepared_and_legacy_configuration_have_no_account_ledger(self):
         base=Path(self.temp.name)/"project";(base/"config").mkdir(parents=True)
@@ -140,5 +142,5 @@ class HostAccountSlotWaitTests(unittest.TestCase):
         from quant_data.errors import ConflictError,ResourceLimitError
         gate=Mock();gate.invoke.side_effect=ConflictError('Equibles backfill is already running');operation=Mock()
         with patch('quant_data.operations.collection_provider_policy.host_allowance',return_value=gate),patch('quant_data.operations.collection_provider_policy.time.monotonic',side_effect=[0,6]):
-            with self.assertRaises(ResourceLimitError):invoke_host_fmp(operation,request_material={'symbol':'AAPL'},priority='backfill',timeout_seconds=5)
+            with self.assertRaises(policy.FmpRequestNotDispatched):invoke_host_fmp(operation,request_material={'symbol':'AAPL'},priority='backfill',timeout_seconds=5)
         operation.assert_not_called();self.assertEqual(gate.invoke.call_count,1)

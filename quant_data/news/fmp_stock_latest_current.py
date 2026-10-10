@@ -625,6 +625,7 @@ class FmpStockLatestCurrentImporter:
         if not isinstance(transport, FmpStockLatestCurrentTransport):
             raise ValidationError("FMP current stock-latest transport is invalid")
         state = self._consume_attempt_before_transport(attempt)
+        from ..operations.collection_provider_policy import FmpRequestNotDispatched
         request_failed = False
         try:
             response = transport.get(
@@ -634,6 +635,8 @@ class FmpStockLatestCurrentImporter:
                 timeout_seconds=FMP_STOCK_LATEST_CURRENT_TIMEOUT_SECONDS,
                 max_bytes=FMP_STOCK_LATEST_CURRENT_MAX_BYTES,
             )
+        except FmpRequestNotDispatched:
+            raise
         except Exception:
             request_failed = True
         if request_failed:
@@ -948,6 +951,7 @@ class FmpStockLatestCurrentImporter:
             raise ValidationError("FMP current stock-latest credential is missing or invalid")
         if not isinstance(transport, FmpStockLatestCurrentTransport):
             raise ValidationError("FMP current stock-latest transport is invalid")
+        from ..operations.collection_provider_policy import FmpRequestNotDispatched
         attempt = self.reserve_attempt(request)
         try:
             prepared = self.capture_attempt(attempt, api_key=api_key, transport=transport)
@@ -959,6 +963,9 @@ class FmpStockLatestCurrentImporter:
                 parsed=exc.parsed,
             )
             raise ValidationError("FMP current stock-latest response was rejected") from None
+        except FmpRequestNotDispatched:
+            self.record_terminal_failure(attempt, outcome_kind="request_failed")
+            raise
         except ConflictError:
             raise
         except Exception:

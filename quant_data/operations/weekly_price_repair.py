@@ -110,6 +110,11 @@ def queue_usage(root):
             sum(b["received_bytes"] for b in state["usage"].values()))
 
 
+def uncertain_usage(root):
+    state = _read(root / "ledger.json")
+    return sum(b.get("uncertain_bytes", 0) for b in state["usage"].values()) if state else 0
+
+
 class WeeklyPricePublisher(SelectedPriceHistoryPublisher):
     """Preserve original responses; skip existing prices in the write transaction."""
     def __init__(self, *, audit, **kwargs):
@@ -145,6 +150,7 @@ def repair_week(*, root, stores, selection, collector, fetch_factory, cutoff, st
     if type(max_new_requests) is not int or not 0 <= max_new_requests <= MAX_REQUESTS:
         raise ValidationError("Weekly repair request cap is invalid")
     initial_requests, initial_bytes = queue_usage(queue_root)
+    initial_uncertain = uncertain_usage(queue_root)
     deadline = monotonic() + MAX_SECONDS
     clock = BoundedForwardClock(utcnow, deadline=deadline, monotonic=monotonic)
     rows = selected_market_rows(stores, selection, cutoff=cutoff)
@@ -156,7 +162,7 @@ def repair_week(*, root, stores, selection, collector, fetch_factory, cutoff, st
     requests = history_price_units(stores, selection, windows=windows, cutoff=cutoff)[:MAX_REQUESTS]
     publisher = WeeklyPricePublisher(stores=stores, selection=selection, cutoff=cutoff,
         collector=collector, requests=requests, audit=before) if requests else None
-    totals = dict(requests=0, received_bytes=0, published=0, reused=0)
+    totals = dict(requests=0, received_bytes=0, uncertain_bytes=0, published=0, reused=0)
     reports, failure, transport = [], None, None
     symbol_outcomes = []
 
@@ -174,16 +180,17 @@ def repair_week(*, root, stores, selection, collector, fetch_factory, cutoff, st
     for original, _ in requests:
         used, received = queue_usage(queue_root)
         totals["requests"], totals["received_bytes"] = used - initial_requests, received - initial_bytes
+        totals["uncertain_bytes"] = uncertain_usage(queue_root) - initial_uncertain
         remaining = int(deadline - monotonic())
         cached = (queue_root / "responses" / (original.unit_id + ".json")).exists()
-        if (remaining < 45 or MAX_BYTES - totals["received_bytes"] < 65536
+        if (remaining < 45 or MAX_BYTES - totals["received_bytes"] - totals["uncertain_bytes"] < 65536
                 or (not cached and totals["requests"] >= max_new_requests)):
             failure = "invocation_budget"
             break
         from dataclasses import replace
         unit = replace(original, max_response_bytes=65536, max_rows=5)
         plan = build_plan(selections=(selection,), units=(unit,),
-            budgets=(ProviderBudget("fmp", 1, MAX_BYTES - totals["received_bytes"],
+            budgets=(ProviderBudget("fmp", 1, MAX_BYTES - totals["received_bytes"] - totals["uncertain_bytes"],
                                     remaining, 250),), created_at=cutoff)
 
         def publish(**kwargs):
@@ -216,6 +223,7 @@ def repair_week(*, root, stores, selection, collector, fetch_factory, cutoff, st
             totals[key] += report.get(key, 0)
         used, received = queue_usage(queue_root)
         totals["requests"], totals["received_bytes"] = used - initial_requests, received - initial_bytes
+        totals["uncertain_bytes"] = uncertain_usage(queue_root) - initial_uncertain
         atomic(root / "progress.json", dict(totals, batches=reports, symbol_outcomes=symbol_outcomes), replace=True)
         if report["outcome"] not in ("complete", "complete_with_gaps"):
             failure = report["outcome"]
@@ -239,6 +247,7 @@ def repair_week(*, root, stores, selection, collector, fetch_factory, cutoff, st
     }
     used, received = queue_usage(queue_root)
     result["requests"], result["received_bytes"] = used - initial_requests, received - initial_bytes
+    result["uncertain_bytes"] = uncertain_usage(queue_root) - initial_uncertain
     return result
 
 def live_context(activation, cutoff):

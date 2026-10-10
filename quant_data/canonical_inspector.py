@@ -2621,6 +2621,7 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
             raise ValidationError("Canonical inspector store binding is invalid")
     from .inspector_status import read_inspector_status
     from .inspector_fetch_status import read_fetch_status
+    from .inspector_intraday_status import attach_intraday_options
 
     from .derived_refresh_status import read_status, ticker_snapshot_presentation
 
@@ -2634,11 +2635,11 @@ def build_canonical_inspector(project_root: str | Path) -> CanonicalInspectorApp
             operations_root=root / "data" / ".operations" / "refresh-status",
             equibles_root=root / "data" / ".operations" / "equibles-transcripts"
         ),
-        fetch_status_reader=lambda selection: read_fetch_status(
+        fetch_status_reader=lambda selection: attach_intraday_options(read_fetch_status(
             selection, history_root=root / "data" / ".operations" / "fetch-run-history",
             equibles_root=root / "data" / ".operations" / "equibles-transcripts",
             derived_root=root / "exports" / "forward-pe"
-        ),
+        ), root),
     )
 
 

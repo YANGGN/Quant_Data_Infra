@@ -25,11 +25,11 @@ from .universe import TIER1_ETFS
 NY = ZoneInfo("America/New_York")
 STATE = Path("data/.operations/theta-options")
 POLICY = {
-    "contract": "theta_daily_and_weekly_v1",
+    "contract": "theta_daily_and_weekly_v2",
     "symbols": list(TIER1_ETFS),
     "store": "data/options.sqlite",
     "history_floor": "2026-09-21",
-    "daily": {"calendar": "Mon..Fri *-*-* 19:15:00 America/New_York",
+    "daily": {"calendar": "Tue..Sat *-*-* 07:15:00 America/New_York",
               "max_requests": 32, "max_bytes": 2 * 1024**3, "max_seconds": 1200,
               "persistent": False},
     "weekly": {"calendar": "Sun *-*-* 03:00:00 America/New_York",
@@ -47,15 +47,16 @@ RECOVERABLE = {
 
 
 def due_window(mode, now):
-    """Daily is same-day only; persistent weekly catches only the latest due week."""
+    """Daily fetches the prior date; persistent weekly catches the latest due week."""
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("aware_clock_required")
     local = now.astimezone(NY)
     if mode == "daily":
-        slot = datetime.combine(local.date(), time(19, 15), NY)
-        if local.weekday() >= 5 or local < slot:
+        slot = datetime.combine(local.date(), time(7, 15), NY)
+        if local.weekday() not in range(1, 6) or local < slot:
             return None
-        return slot, local.date(), local.date()
+        session = local.date() - timedelta(days=1)
+        return slot, session, session
     if mode != "weekly":
         raise ValueError("unknown_options_mode")
     sunday = local.date() - timedelta(days=(local.weekday() - 6) % 7)
@@ -109,7 +110,7 @@ class ScheduledOptionsRun(SpyHistoryJob):
     STORE_LIMIT_BYTES = POLICY["max_store_bytes"]
 
     def __init__(self, root, mode, end, *, transport_factory=ThetaTransport):
-        self.WORK_DIRECTORY = str(STATE / mode / end.isoformat())
+        self.WORK_DIRECTORY = str(STATE / ("daily-next-day" if mode == "daily" else mode) / end.isoformat())
         super().__init__(root, transport_factory=transport_factory)
         self.mode = mode
         self.status = {
@@ -137,8 +138,11 @@ class ScheduledOptionsRun(SpyHistoryJob):
         present = read_coverage(self.store, {d for d, _ in pairs})
         return [(s, d, p) for d, p in pairs for s in TIER1_ETFS if (s, d) not in present]
 
+    def request_bounds(self):
+        return POLICY[self.mode]
+
     def execute(self, start, end):
-        bounds = POLICY[self.mode]
+        bounds = self.request_bounds()
         self._budget = Budget(max_requests=bounds["max_requests"],
                               max_bytes=bounds["max_bytes"],
                               max_seconds=bounds["max_seconds"])
@@ -243,6 +247,8 @@ class ScheduledOptionsRun(SpyHistoryJob):
                                unresolved=unresolved)
         except Exception as exc:
             self.status.update(state="stopped", error=_safe_error(exc))
+            if isinstance(exc, ProviderFailure) and exc.receipt.get("provider_detail"):
+                self.status["provider_detail"] = exc.receipt["provider_detail"]
         finally:
             if transport:
                 transport.close()
@@ -285,7 +291,7 @@ def run_scheduled(root, mode, *, now=None, transport_factory=ThetaTransport):
     base = root / STATE
     if not base.resolve().is_relative_to(root):
         raise ValueError("options_state_path")
-    activation = json.loads((base / "activation.json").read_text())
+    activation = json.loads((base / "activation-next-day.json").read_text())
     if activation.get("policy_sha256") != POLICY_SHA256:
         raise ValueError("options_activation_policy")
     first = datetime.fromisoformat(activation[mode + "_first_slot"])
@@ -301,7 +307,7 @@ def run_scheduled(root, mode, *, now=None, transport_factory=ThetaTransport):
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise RuntimeError("options_scheduled_run_active") from None
-        work = base / mode / end.isoformat()
+        work = base / ("daily-next-day" if mode == "daily" else mode) / end.isoformat()
         if (work / "result.json").exists():
             return json.loads((work / "result.json").read_text())
         if (work / "started.json").exists():

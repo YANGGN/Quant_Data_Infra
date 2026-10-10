@@ -609,6 +609,11 @@ def _select_context(candidates: Sequence[SecAaplCoreFact]) -> SecAaplCoreFact:
     return min(finalists, key=lambda item: item.frame or "")
 
 
+class SecCoreFactsUnavailable(ValidationError):
+    """The retained issuer response contains no supported core facts."""
+    code = "unsupported_core_facts"
+
+
 def _companyfacts_candidates(
     payload: Mapping[str, Any],
     *,
@@ -663,7 +668,7 @@ def _companyfacts_candidates(
                         )
                     )
     if not candidates:
-        raise _fail("CompanyFacts contains no unsegmented sec-core-v2 facts")
+        raise SecCoreFactsUnavailable("CompanyFacts contains no unsegmented sec-core-v2 facts")
     return candidates, source_core_rows, excluded_unsupported_rows
 
 

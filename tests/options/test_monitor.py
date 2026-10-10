@@ -282,7 +282,7 @@ class MonitorTests(unittest.TestCase):
                 self.assertIsNone(value["call_volume"])
                 self.assertIn("future_row",value["quality_flags"])
 
-    def test_prior_session_duplicates_and_population_removal_remain_guarded(self):
+    def test_prior_session_duplicates_rejected_but_inactive_removal_is_informational(self):
         old={**rows()[0],"strike":"690","timestamp":"2026-09-24T15:00:00-04:00"}
         first=aggregate("SPY",SESSION,FRIDAY.isoformat(),rows()+[old,dict(old)])
         self.assertEqual(first["_contracts"],3)
@@ -291,7 +291,9 @@ class MonitorTests(unittest.TestCase):
         second=aggregate("SPY",SESSION,(FRIDAY+timedelta(minutes=5)).isoformat(),rows(120))
         result=derive(second,derive(first,None,[],None,cadence=5),[],None,cadence=5)
         self.assertIn("contract_universe_changed",result["quality_flags"])
-        self.assertIsNone(result["interval_volume"])
+        self.assertIn("contract_count_decreased",result["quality_flags"])
+        self.assertEqual(result["interval_volume"],30)
+        self.assertNotIn("contract_coverage_lost",result["quality_flags"])
 
     def test_job_uses_one_cycle_factory_for_control_and_workers(self):
         created=[];factory_calls=[];cycle_calls=[]

@@ -110,7 +110,7 @@ def _slots(calendars: list[str], start: date, days: int = 7) -> tuple[list[datet
                 continue
             for offset in range(days):
                 day = start + timedelta(days=offset)
-                if day.weekday() < 5:
+                if day.weekday() in (range(1, 6) if calendar.startswith("Tue..Sat") else range(5)):
                     result.add(datetime.combine(day, time(hour, minute), EASTERN).astimezone(timezone.utc))
         elif calendar in ("Mon..Fri *-*-* 23:30:00 America/Toronto", "*-*-* 06:30:00 America/Toronto"):
             for offset in range(days):

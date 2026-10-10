@@ -23,6 +23,16 @@ If only one daily slot is desired, choose **06:30 Toronto time**. The second
 slot gives useful same-evening results. Existing WSL host-wake coverage must
 include these slots when implementation is activated.
 
+## Calculation memory
+
+The derived refresh runs as a finite `Type=oneshot` process. Its process memory
+is released on exit; Linux may retain filesystem pages in reclaimable cache.
+The Sharadar observation-key scan streams rows and retains keys only for the
+selected tickers, avoiding a second full in-memory copy of the key table.
+The original one-million-row scan limit still includes unselected tickers and
+fails instead of returning a truncated lookup. Source locks, immutable readers,
+identity matching, cutoffs and calculation results are unchanged.
+
 ## Input labels — September 23, 2026
 
 Status and Forward P/E distinguish input freshness from calculation completion.

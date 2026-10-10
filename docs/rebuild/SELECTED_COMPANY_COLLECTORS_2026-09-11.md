@@ -540,3 +540,23 @@ capture times, source references and canonical snapshots through the approved
 immutable procedure. This check issued zero GETs and no canonical writes.
 Evidence: best-effort-postlaunch-verified.json in the private preparation root.
 The backfill remains in progress; final audit and timer activation remain pending.
+
+## September 30, 2026 retained-source parser repairs
+
+The standalone generic submissions parser now uses the existing generic
+50,000-filing and 48 MiB semantic-serialization bounds, matching the
+CompanyFacts bundle parser. Five large-bank
+responses observed on September 30 contained 11,629 to 26,408 filings and were
+incorrectly rejected by the standalone parser's 10,000-row limit. All rows
+remain subject to validation; there is no truncation. The standalone AAPL path uses that same generic bound; the separate frozen
+AAPL bundle's 2,000-filing bound remains unchanged.
+
+A CompanyFacts payload with no supported unsegmented sec-core-v2 facts now
+reports unsupported_core_facts; it remains a coverage failure. Immutable
+filing metadata conflicts still retain their existing holds. Neither change
+overwrites canonical evidence or automatically replays failed populations.
+
+SEC fetch summaries subtract skipped_existing_cik_count from the inclusive
+succeeded_cik_count before displaying successful work. Successful, skipped,
+failed, partial and unattempted issuer counts are now disjoint. Retained
+historical run receipts are not rewritten.

@@ -384,6 +384,24 @@ class FmpStockLatestCurrentTests(unittest.TestCase):
             self._importer().run_once(api_key="offline-key", transport=transport)
         self.assertEqual(transport.calls, 1)
 
+    def test_proven_admission_failure_keeps_type_and_terminal_outcome(self) -> None:
+        from quant_data.operations.collection_provider_policy import FmpRequestNotDispatched
+        class Blocked:
+            calls = 0
+            def get(inner, **kwargs):
+                inner.calls += 1
+                raise FmpRequestNotDispatched("FMP account gate blocked dispatch")
+        transport = Blocked()
+        with self.assertRaises(FmpRequestNotDispatched):
+            self._importer().run_once(api_key="offline-key", transport=transport)
+        with read_connection(self.stores, StoreRole.NEWS) as connection:
+            self.assertEqual(connection.execute(
+                "SELECT outcome_kind FROM fmp_stock_latest_current_outcomes"
+            ).fetchone()[0], "request_failed")
+        with self.assertRaises(ConflictError):
+            self._importer().run_once(api_key="offline-key", transport=transport)
+        self.assertEqual(transport.calls, 1)
+
     def test_invalid_credential_creates_no_intent_or_request(self) -> None:
         transport = _Transport([_body(_row())], self.stores.news)
         with self.assertRaises(ValidationError):

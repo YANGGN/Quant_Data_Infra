@@ -199,7 +199,9 @@ def publish_sec_pairs(*,root,stores,registry,selection,units,cutoff,deadline=Non
                     submissions_body=pair[0][1],companyfacts_body=pair[1][1],
                     captured_at=datetime.fromisoformat(max(times).replace("Z","+00:00")))
             except (ConflictError,ResourceLimitError,ValidationError) as error:
-                raise SecSourceRejected(type(error).__name__) from None
+                from ..company.sec_companyfacts import SecCoreFactsUnavailable
+                reason = "unsupported_core_facts" if isinstance(error, SecCoreFactsUnavailable) else type(error).__name__
+                raise SecSourceRejected(reason) from None
             if deadline is not None and monotonic()>=deadline:
                 outcomes.append({"cik":cik,"outcome":"publication_deadline"});break
             held = read_metadata_hold(hold_root=hold_root, stores=stores, parsed=parsed)

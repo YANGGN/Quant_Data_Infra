@@ -156,15 +156,25 @@ class SelectedProviderFetch:
         def request_with_timeout(remaining):
             context=multiprocessing.get_context("fork")
             receiver,sender=context.Pipe(duplex=False)
-            child=context.Process(target=_http_once,args=(sender,route,self._credential,remaining,max_bytes))
+            child=context.Process(target=_http_once,args=(sender,route,self._credential,remaining,max_bytes,self.provider in ("fmp","sec")))
             deadline=time.monotonic()+remaining
             child.start();sender.close()
             try:
                 result=_receive_until(receiver,deadline,max_bytes)
+                if self.provider in ("fmp","sec") and isinstance(result,dict) and result.get("contract")=="quant_data.provider_failure.v1":
+                    if set(result)!={"contract","category","http_status","retryable"}:
+                        raise ValidationError("Invalid provider diagnostic")
+                    raise ProviderRequestFailure(result["category"],result["http_status"],retryable=False)
                 if not isinstance(result,tuple) or len(result)!=4:raise StoreUnavailableError("Selected provider request failed")
                 status,body,captured,headers=result
                 return QueueResponse(status,body,captured,headers)
+            except ResourceLimitError:
+                if self.provider=="sec":
+                    raise ProviderRequestFailure("timeout",retryable=False) from None
+                raise
             except (EOFError,OSError):
+                if self.provider=="sec":
+                    raise ProviderRequestFailure("worker_lost",retryable=False) from None
                 raise StoreUnavailableError("Selected provider request failed") from None
             finally:
                 receiver.close()

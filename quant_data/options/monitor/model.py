@@ -183,7 +183,7 @@ def baseline_eligible(observation,cadence):
             minutes is not None and abs(minutes-cadence)<=1 and
             not BASELINE_BLOCKING.intersection(observation.get("quality_flags",())))
 
-def derive(current,previous,baselines,anchor,*,cadence):
+def _derive_interval(current,previous,baselines,anchor,*,cadence):
     """Full-chain cumulative deltas; only matched intervals feed alert baselines."""
     out={k:v for k,v in current.items() if not k.startswith("_")}
     out["quality_flags"]=list(dict.fromkeys(current["quality_flags"]))
@@ -194,6 +194,7 @@ def derive(current,previous,baselines,anchor,*,cadence):
     out.update(interval_volume=None,interval_minutes=None,interval_start=None,
                interval_call_volume=None,interval_put_volume=None,
                relative_volume=None,acceleration=None,baseline_sessions=0,
+               baseline_available_sessions=sum(baseline_eligible(b,cadence) for b in baselines),
                put_call_ratio=None,iv_change=None)
     call,put=current["call_volume"],current["put_volume"]
     if call is not None and put is not None and call>0:out["put_call_ratio"]=put/call
@@ -212,14 +213,17 @@ def derive(current,previous,baselines,anchor,*,cadence):
     changed=current["_fingerprint"]!=previous["_fingerprint"]
     if changed and "contract_universe_changed" not in out["quality_flags"]:
         out["quality_flags"].append("contract_universe_changed")
-    # Compact coverage counts catch net row loss without retaining raw contracts.
-    # A successful full-chain response remains the provider completeness premise;
-    # counts cannot prove the absence of simultaneous additions and omissions.
-    counts=[(current.get(k),previous.get(k)) for k in ("contract_count","active_contract_count")]
-    if any(a is not None and b is not None and a<b for a,b in counts):
-        out["quality_flags"].append("contract_coverage_lost");return out
-    if changed and any(a is None or b is None for a,b in counts):
-        out["quality_flags"].append("coverage_comparison_unavailable");return out
+    # Counts describe returned series, including inactive/prior-session rows.
+    # Their changes are diagnostic; interval validity follows per-side volume
+    # and time checks. A successful full-chain response remains the provider
+    # completeness premise, and increasing totals cannot prove no rows were lost.
+    counts=[(k,current.get(k),previous.get(k))
+            for k in ("contract_count","active_contract_count")]
+    for key,a,b in counts:
+        if a is not None and b is not None and a<b:
+            out["quality_flags"].append(key+"_decreased")
+    if any(a is None or b is None for _,a,b in counts):
+        out["quality_flags"].append("coverage_counts_unavailable")
     prior_call,prior_put=previous["call_volume"],previous["put_volume"]
     if any(nonnegative(v) is None for v in (call,put,prior_call,prior_put)):
         out["quality_flags"].append("incomplete_volume");return out
@@ -230,7 +234,9 @@ def derive(current,previous,baselines,anchor,*,cadence):
                interval_start=start.isoformat(),interval_minutes=minutes)
     if abs(minutes-cadence)>1:out["quality_flags"].append("interval_gap")
     if not baseline_eligible(out,cadence):return out
-    eligible=[b["interval_volume"] for b in baselines if baseline_eligible(b,cadence)]
+    from .baseline import seed_aligned
+    eligible=[b["interval_volume"] for b in baselines if baseline_eligible(b,cadence)
+              and ("_seed_end_minute" not in b or seed_aligned(start,end,cadence,b["_seed_end_minute"]))]
     out["baseline_sessions"]=len(eligible)
     if len(eligible)>=20:
         typical=median(eligible[-60:])
@@ -256,3 +262,85 @@ def alert_for(observation,last_alert_at,*,enabled):
     return {"id":sha256(raw.encode()).hexdigest()[:24],"symbol":observation["symbol"],
             "detected_at":observation["captured_at"],"severity":"high","title":"Unusual options activity",
             "reason":f'{observation["relative_volume"]:.1f}x matched interval baseline; '+", ".join(triggers)}
+
+
+# Cumulative comparisons use complete same-time snapshots, not interval deltas.
+# Missing scans/cadence changes cannot remove the volume already accumulated.
+CUMULATIVE_BLOCKING=frozenset(("incomplete_volume","future_row","volume_correction",
+    "contract_coverage_lost","coverage_comparison_unavailable",
+    "interval_time_invalid","interval_session_changed"))
+
+def cumulative_snapshot_eligible(observation):
+    stamp=timestamp(observation.get("captured_at"))
+    values=[nonnegative(observation.get(k)) for k in ("call_volume","put_volume")]
+    return (observation.get("coverage")=="complete" and
+            all(v is not None and v==int(v) for v in values) and
+            stamp is not None and
+            stamp.astimezone(NY).date().isoformat()==observation.get("session") and
+            not CUMULATIVE_BLOCKING.intersection(observation.get("quality_flags",())))
+
+def eastern_minute(stamp):
+    local=stamp.astimezone(NY)
+    return local.hour*60+local.minute+local.second/60+local.microsecond/60000000
+
+def derive(current,previous,baselines,anchor,*,cadence,
+           cumulative_baselines=(),cumulative_minute=None):
+    out=_derive_interval(current,previous,baselines,anchor,cadence=cadence)
+    stamp=timestamp(out.get("captured_at"))
+    if cumulative_minute is None and stamp is not None:
+        cumulative_minute=int(eastern_minute(stamp)//5)*5
+    flags=[f for f in out["quality_flags"] if f in CUMULATIVE_BLOCKING]
+    out.update(cumulative_volume=None,cumulative_relative_volume=None,
+               cumulative_expected_volume=None,cumulative_baseline_sessions=0,
+               cumulative_baseline_minute=cumulative_minute,
+               cumulative_quality_flags=flags)
+    if not cumulative_snapshot_eligible(out):
+        if not flags:flags.append("cumulative_snapshot_invalid")
+        return out
+    out["cumulative_volume"]=out["call_volume"]+out["put_volume"]
+    if (type(cumulative_minute) is not int or cumulative_minute%5 or
+        not 570<cumulative_minute<=975 or
+        abs(eastern_minute(stamp)-cumulative_minute)>1):
+        flags.append("cumulative_time_unmatched")
+        return out
+    found={}
+    for b in cumulative_baselines:
+        day=b.get("session")
+        try:date.fromisoformat(day)
+        except (TypeError,ValueError):continue
+        value=nonnegative(b.get("cumulative_volume"))
+        if (b.get("symbol")==out["symbol"] and day<out["session"] and
+            b.get("_cumulative_end_minute")==cumulative_minute and
+            b.get("coverage")=="complete" and
+            not CUMULATIVE_BLOCKING.intersection(b.get("quality_flags",())) and
+            value is not None and value==int(value)):
+            found.setdefault(day,value)
+    values=[found[d] for d in sorted(found,reverse=True)[:60]]
+    out["cumulative_baseline_sessions"]=len(values)
+    if len(values)>=20:
+        typical=median(values)
+        out["cumulative_expected_volume"]=typical
+        if typical>0:out["cumulative_relative_volume"]=out["cumulative_volume"]/typical
+    return out
+
+def cumulative_alert_for(observation,last_alert_at,*,enabled):
+    if (not enabled or not cumulative_snapshot_eligible(observation) or
+        observation.get("cumulative_quality_flags") or
+        "underlying_inconsistent" in observation.get("quality_flags",()) or
+        observation.get("cumulative_baseline_sessions",0)<20):
+        return None
+    ratio=nonnegative(observation.get("cumulative_relative_volume"))
+    volume=nonnegative(observation.get("cumulative_volume"))
+    expected=nonnegative(observation.get("cumulative_expected_volume"))
+    if ratio is None or ratio<3 or volume is None or volume<500 or not expected:return None
+    now=timestamp(observation.get("captured_at"))
+    if now is None:return None
+    last=timestamp(last_alert_at)
+    if last and (now-last).total_seconds()<1800:return None
+    minute=observation.get("cumulative_baseline_minute")
+    if type(minute) is not int or abs(eastern_minute(now)-minute)>1:return None
+    raw="cumulative|"+observation["symbol"]+"|"+observation["session"]+"|"+observation["captured_at"]
+    return {"id":sha256(raw.encode()).hexdigest()[:24],"symbol":observation["symbol"],
+        "detected_at":observation["captured_at"],"kind":"cumulative",
+        "severity":"high","title":"Unusual cumulative options volume",
+        "reason":f'{ratio:.1f}x same-time cumulative baseline; {volume:,.0f} contracts since the open vs {expected:,.0f} median by {minute//60:02d}:{minute%60:02d} ET across {observation["cumulative_baseline_sessions"]} prior sessions'}

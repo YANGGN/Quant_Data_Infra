@@ -39,7 +39,7 @@ availability.
 
 | Unit | Clock in America/New_York | Window | Data-request cap | Received-byte cap | Run deadline |
 | --- | --- | --- | --- | --- | --- |
-| `quant-data-theta-options-daily.timer` | Weekdays 19:15 | Same local date only, calendar gated | 32 | 2 GiB | 20 minutes |
+| `quant-data-theta-options-daily.timer` | Tuesday-Saturday 07:15 | Previous local date only, calendar gated | 32 | 2 GiB | 20 minutes |
 | `quant-data-theta-options-weekly.timer` | Sunday 03:00 | Monday-Friday preceding the latest due Sunday | 152 | 8 GiB | 60 minutes |
 
 The caps include up to two annual calendar requests across a year boundary.
@@ -207,3 +207,60 @@ timed out after 30 seconds; the subsequent bounded check completed in 9.91
 seconds. The collector request policy, installed units and canonical data were
 unchanged. The optional-store status table itself remains outside this update;
 Theta run details route readers to the already available agent tools.
+
+## September 30, 2026 failure diagnostics
+
+The direct transport now retains bounded, sanitized gRPC failure details in
+its private request receipt and terminal daily/weekly status. API credentials,
+tokens, URLs, email addresses and opaque values are redacted; oversized details
+are withheld. Receipt accounting and the no-retry behavior are unchanged.
+
+The September 28-30 first-SPY INVALID_ARGUMENT failures did not retain the
+provider's explanation. This diagnostic change does not establish their cause
+or change the request parameters, schedule or workload. Any additional manual
+probe requires its own exact finite approval; ordinary authorized clock runs
+use the improved diagnostics.
+
+
+## October 8, 2026 next-day repair
+
+The user requested investigation and backfill of missing daily options, then
+explicitly authorized restarting WSL and fixing the failure. October 6-8
+receipts show INVALID_ARGUMENT: the provider rejects expiration=* for the
+current date. October 5 failed authentication before data requests; the original
+generic error does not establish whether that was a credential or connection
+failure. Historical all-expiry requests succeeded in the October 4 weekly repair.
+
+The daily policy is now theta_daily_and_weekly_v2: Tuesday-Saturday at 07:15
+America/New_York, requesting the previous calendar date. The calendar still
+gates holidays and preserves previous-session OI interpretation. This covers
+Friday on Saturday and never substitutes an expiry subset or intraday snapshot.
+The 15 symbols, 32-request/2-GiB/20-minute daily caps, one worker, zero automatic
+retries, model version, canonical store and missing-only publisher are unchanged.
+Weekly Sunday 03:00 scope and bounds are unchanged.
+
+New daily admission/results use daily-next-day/<session>; original daily/<session>
+receipts remain immutable. activation-next-day.json pins the new policy and first
+eligible slot; activation.json remains retained historical evidence. Old v1 and
+new v2 status reports are both readable. Inspector supports the exact Tue..Sat
+calendar across DST. Intraday historical workers yield Tue-Sat 07:10-07:40 and
+Sunday 02:55-04:05 for scheduled Theta jobs.
+
+The separately authorized one-shot repair covers October 5-8 only, 60 ETF-days.
+It uses existing ScheduledOptionsRun acquisition/model/publication methods with
+tighter finite bounds, the existing credentials and scheduled/provider locks.
+October 5-7 run first (92 requests, 2 GiB, 20 minutes); October 8 waits until
+October 9 00:15 Eastern (32 requests, 2 GiB, 20 minutes). Total bounds are 124
+data admissions, two authentication attempts, 4 GiB, and absolute expiry
+October 9 04:00 Eastern. No automatic retries or completed-population repeat.
+An interrupted admission is not restarted automatically. Successfully committed
+captures are verified before their matching temporary source files are removed.
+Morning history synchronization remains the existing monitor's normal clock job.
+
+The next-morning policy was activated October 8, 2026 at 22:00 Eastern, after
+100 focused tests and independent scheduler/replay/deadline review. The first
+normal slot is October 9 07:15 Eastern. Activation and the separately bounded
+October 5-8 missing-only repair are evidenced in
+.local/theta-daily-repair-20261009T014558Z/; prior activation and failed receipts
+remain intact. Actual finite collection totals are recorded in its status/result
+files, not inferred from timer enablement.

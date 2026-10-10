@@ -88,7 +88,7 @@ def run_selected_plan(*,root,stores,registry,selections,plan,provider,fetch,
                 units=units,cutoff=plan.created_at,resolve_retained=resolve_retained)
     def publish(**kw):
         return publishers[kw["unit"].collection](**kw,deadline=deadline,monotonic=monotonic)
-    initial_requests=initial_bytes=0
+    initial_requests=initial_bytes=initial_uncertain=0
     if current:
         sentinel=next(u for u in plan.units if u.subject=="AAPL")
         budget=next(b for b in plan.budgets if b.provider=="fmp")
@@ -100,6 +100,7 @@ def run_selected_plan(*,root,stores,registry,selections,plan,provider,fetch,
             return QueueResponse(200,resolve_retained(item),item.captured_at)
         checked=dispatch(sentinel_plan,publish=None,acquire_only=True,resolve_retained=original)
         initial_requests=checked.get("requests",0);initial_bytes=checked.get("received_bytes",0)
+        initial_uncertain=checked.get("uncertain_bytes",0)
         if sentinel_plan.blocked_units:
             return {**checked,"outcome":"price_session_not_established","sentinel":"AAPL","coverage":"blocked"}
         cached=_response(root,sentinel.unit_id,sentinel)
@@ -117,7 +118,7 @@ def run_selected_plan(*,root,stores,registry,selections,plan,provider,fetch,
             return {"outcome":"price_session_not_established","sentinel":"AAPL","coverage":"incomplete",
                 "requests":initial_requests,"received_bytes":initial_bytes}
         remaining_requests=budget.max_requests-initial_requests
-        remaining_bytes=budget.max_total_bytes-initial_bytes
+        remaining_bytes=budget.max_total_bytes-initial_bytes-initial_uncertain
         remaining_seconds=int(budget.max_run_seconds-(monotonic()-started))
         if remaining_requests<1 or remaining_bytes<max(u.max_response_bytes for u in plan.units) or remaining_seconds<1:
             return {"outcome":"invocation_budget","requests":initial_requests,"received_bytes":initial_bytes,"sentinel":"available"}
@@ -125,4 +126,5 @@ def run_selected_plan(*,root,stores,registry,selections,plan,provider,fetch,
             max_run_seconds=remaining_seconds),))
     report=dispatch(plan,publish=publish)
     return {**report,"requests":report.get("requests",0)+initial_requests,
-        "received_bytes":report.get("received_bytes",0)+initial_bytes}
+        "received_bytes":report.get("received_bytes",0)+initial_bytes,
+        "uncertain_bytes":report.get("uncertain_bytes",0)+initial_uncertain}

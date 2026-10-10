@@ -161,7 +161,19 @@ def main(argv=None):
         return 75 if any(report.get(key, 0) for key in (
             "failed_cik_count", "partial_cik_count", "unattempted_cik_count")) else 0
     except (ConflictError, ResourceLimitError, ValidationError) as error:
-        print(dumps_strict({"outcome": "blocked", "error": type(error).__name__}))
+        # Only fixed source-controlled explanations reach logs, never exception payloads.
+        reasons = {
+            "Collection acquisition failed; charged reservation retained without retry": "acquisition_failed_no_retry",
+            "A pending provider request has no retained response; no retry": "unclassified_pending_request_no_retry",
+            "Collection immutable artifact differs": "retained_evidence_conflict",
+            "Collection provider ledger differs": "provider_ledger_conflict",
+            "SEC facts decision differs from retained evidence": "facts_decision_conflict",
+            "SEC submissions hold lacks its canonical failure audit": "metadata_hold_audit_missing",
+            "SEC submissions metadata hold differs from its evidence": "metadata_hold_evidence_conflict",
+            "Timed out acquiring the physical store lock": "store_lock_timeout",
+        }
+        print(dumps_strict({"outcome": "blocked", "error": type(error).__name__,
+            "reason": reasons.get(str(error), "unclassified_safety_failure")}))
         return 75
 
 

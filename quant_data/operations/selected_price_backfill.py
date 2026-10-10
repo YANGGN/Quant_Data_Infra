@@ -105,6 +105,7 @@ def run_history(*,root,stores,selection,collector,fetch,targets,end,cutoff,
         utcnow=BoundedForwardClock(utcnow,deadline=deadline,monotonic=monotonic,last=ledger['last_request_at'] if ledger else None)
         requests=previous['requests'] if continuation else 0
         received=previous['received_bytes'] if continuation else 0
+        uncertain_bytes=previous.get('uncertain_bytes',0) if continuation else 0
         reports=[];outcome='complete';failure=None;batch=0
         attempted={k for k,s in states.items() if s['completed_windows']}
         def tracked_fetch(**kwargs):
@@ -114,7 +115,7 @@ def run_history(*,root,stores,selection,collector,fetch,targets,end,cutoff,
             pending=[s for s in states.values() if s['status']=='pending']
             # Progress newest history across the universe before older rounds.
             pending.sort(key=lambda s:(s['completed_windows'],s['target']['symbol']))
-            remaining=int(deadline-monotonic());available=MAX_REQUESTS-requests;bytes_left=MAX_BYTES-received
+            remaining=int(deadline-monotonic());available=MAX_REQUESTS-requests;bytes_left=MAX_BYTES-received-uncertain_bytes
             if remaining<45 or available<1 or bytes_left<16*1024*1024:outcome='invocation_budget';break
             windows=tuple(next_window(s) for s in pending[:min(50,available)])
             work=history_price_units(stores,selection,windows=windows,cutoff=cutoff)
@@ -133,28 +134,33 @@ def run_history(*,root,stores,selection,collector,fetch,targets,end,cutoff,
             ledger=_read(root/'queue/ledger.json') or {'usage':{}}
             requests=sum(b['charged_attempts'] for b in ledger['usage'].values())
             received=sum(b['received_bytes'] for b in ledger['usage'].values())
+            uncertain_bytes=sum(b.get('uncertain_bytes',0) for b in ledger['usage'].values())
             for u,w in work:
                 publication=_read(root/'queue/publications'/(u.unit_id+'.json'))
                 if publication is not None:
                     if publication['request_id']!=u.request_id:raise ConflictError('Historical checkpoint differs from its exact request')
                     result=publication['result'];advance(states[u.subject],w,empty=result.get('coverage')=='empty',written=result.get('written_versions',0))
-            progress={'at':utcnow().isoformat(),'outcome':'running' if outcome=='complete' else outcome,'requests':requests,'received_bytes':received,
+                elif ledger.get('units',{}).get(u.unit_id,{}).get('status')=='failed':
+                    states[u.subject].update(status='provider_gap',gap={'unit_id':u.unit_id,
+                        'error':ledger['units'][u.unit_id].get('error','provider_response'),
+                        'automatic_retry':False})
+            progress={'at':utcnow().isoformat(),'outcome':'running' if outcome=='complete' else outcome,'requests':requests,'received_bytes':received,'uncertain_bytes':uncertain_bytes,
                 'completed_symbols':sum(s['status']=='complete' for s in states.values()),
                 'total_symbols':len(states),'completed_windows':sum(s['completed_windows'] for s in states.values()),
                 'written_prices':sum(s['written_prices'] for s in states.values()),'states':states}
             atomic(root/'progress.json',progress,replace=True)
             print({k:v for k,v in progress.items() if k!='states'},flush=True)
             batch+=1
-            if failure or report['outcome']!='complete':
+            if failure or report['outcome'] not in ('complete','complete_with_gaps'):
                 if not failure:outcome=report['outcome']
                 break
         incomplete=[s for s in states.values() if s['status']!='complete']
-        if incomplete and outcome=='complete':outcome='incomplete'
+        if incomplete and outcome=='complete':outcome='incomplete' if any(s['status']=='pending' for s in incomplete) else 'complete_with_gaps'
         result={'contract':'quant_data.selected_price_history_result.v1','scope_sha256':selection.scope_sha256,
             'at':utcnow().isoformat(),'outcome':outcome,'completed_symbols':len(states)-len(incomplete),
             'unattempted_symbols':sum(s['target']['symbol'] not in attempted for s in incomplete),
             'failed_symbols':sum(s['target']['symbol'] in attempted for s in incomplete),
-            'requests':requests,'received_bytes':received,'completed_windows':sum(s['completed_windows'] for s in states.values()),
+            'requests':requests,'received_bytes':received,'uncertain_bytes':uncertain_bytes,'completed_windows':sum(s['completed_windows'] for s in states.values()),
             'written_prices':sum(s['written_prices'] for s in states.values()),'failure':failure,'states':states,
             'canonical_audit_verified':False,'whole_exchange_session_completeness':'not_asserted'}
         atomic(root/'result.json',result,replace=continuation)

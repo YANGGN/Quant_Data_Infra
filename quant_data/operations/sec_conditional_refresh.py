@@ -129,25 +129,32 @@ def run_conditional_refresh(*, root, stores, registry, selection, fetch, secret_
             if previous.get("contract") != CONTRACT or previous.get("selection_sha256") != selection.scope_sha256:
                 raise ConflictError("SEC completed observation differs")
             return {**previous, "outcome": "already_recorded", "requests_this_run": 0}
-        requests = received = facts_requests = 0
+        requests = received = facts_requests = uncertain_bytes = 0
+        request_failures = {}
         outcomes, decisions = {}, {}
         stop = None
         issuer_deadline = started + second_limit
         def acquire(unit):
-            nonlocal requests, received, facts_requests
+            nonlocal requests, received, facts_requests, uncertain_bytes
             # Retained evidence remains publishable even after the GET budget was spent.
             if _response(queue, unit.unit_id, unit) is not None:
                 return True
             seconds = int(min(started + second_limit, issuer_deadline) - monotonic())
-            if requests >= request_limit or seconds <= 120 or byte_limit - received < unit.max_response_bytes:
+            if requests >= request_limit or seconds <= 120 or byte_limit - received - uncertain_bytes < unit.max_response_bytes:
                 return False
-            budget = ProviderBudget("sec", 1, min(1024 * 1024 * 1024, byte_limit - received),
+            budget = ProviderBudget("sec", 1, min(1024 * 1024 * 1024, byte_limit - received - uncertain_bytes),
                 min(7200, seconds), 1000)
             plan = build_plan(selections=(selection,), units=(unit,), budgets=(budget,), created_at=_clock(utcnow))
             report = run_queue(root=queue, plan=plan, provider="sec", fetch=fetch, publish=None,
-                acquire_only=True, secret_values=secret_values, utcnow=utcnow, monotonic=monotonic, sleeper=sleeper)
+                acquire_only=True, isolate_sec_transport_failures=True, secret_values=secret_values,
+                utcnow=utcnow, monotonic=monotonic, sleeper=sleeper)
             requests += report.get("requests", 0)
             received += report.get("received_bytes", 0)
+            uncertain_bytes += report.get("uncertain_bytes", 0)
+            for failure in report.get("failed_units", ()):
+                if failure.get("unit_id") == unit.unit_id and failure.get("error") == "sec_request_failed":
+                    request_failures[unit.unit_id] = {"cik": unit.subject, "endpoint": unit.endpoint,
+                        "unit_id": unit.unit_id, **failure["provider_failure"]}
             if unit.endpoint == "companyfacts":
                 facts_requests += report.get("requests", 0)
             return report["outcome"] in ("acquired", "acquired_with_gaps")
@@ -214,6 +221,9 @@ def run_conditional_refresh(*, root, stores, registry, selection, fetch, secret_
                     continue
                 stop = "invocation_budget"
                 break
+            if facts.unit_id in request_failures:
+                outcomes[cik] = "facts_unavailable"
+                continue
             try:
                 receipts = publish_sec_pairs(root=queue, stores=stores, registry=registry,
                     selection=selection, units=pair, cutoff=_clock(utcnow),
@@ -244,7 +254,9 @@ def run_conditional_refresh(*, root, stores, registry, selection, fetch, secret_
             "skipped_existing_cik_count": sum(v == "metadata_current_facts_unchanged" for v in outcomes.values()),
             "facts_triggered_cik_count": sum(bool(d["new_financial_accessions"]) or d["targeted_check"] for d in decisions.values()),
             "facts_requests": facts_requests, "identity_gap_count": len(selection.gaps),
-            "requests": requests, "response_bytes": received, "retries": 0}
+            "requests": requests, "response_bytes": received,
+            "uncertain_response_bytes": uncertain_bytes,
+            "request_failures": [request_failures[k] for k in sorted(request_failures)], "retries": 0}
         # Targeted checks are one finite invocation, including partial budget stops.
         # Only normal scheduled dates may continue untouched work under a new invocation budget.
         if check_ciks or stop not in ("invocation_budget", "publication_deadline"):

@@ -36,13 +36,14 @@ def parse_submissions(*, cik, body, captured_at):
         raise ResourceLimitError("SEC submissions body exceeds its bound")
     value = loads_strict(body, max_bytes=64 * 1024 * 1024)
     name, entity_type, filings = sec._submissions_filings(
-        sec._mapping(value, "submissions"), cik=cik, maximum_filings=10000)
+        sec._mapping(value, "submissions"), cik=cik,
+        maximum_filings=sec.MAX_GENERIC_SUBMISSION_FILINGS)
     scope = {"cik": cik, "filing_scope": "submissions_recent_only",
         "completeness": "complete_for_submissions_recent", "facts_fetched": False}
     semantic = hashlib.sha256(dumps_strict({"normalization": NORMALIZATION,
         "cik": cik, "issuer_name": name, "entity_type": entity_type, "scope": scope,
         "filings": [f.semantic_mapping() for f in sorted(filings, key=lambda f: f.accession_number)]
-        }).encode()).hexdigest()
+        }, max_bytes=sec._MAX_SEMANTIC_BYTES).encode()).hexdigest()
     return ParsedSecSubmissions(cik, name, entity_type, filings, sec._capture_time(captured_at),
         hashlib.sha256(body).hexdigest(), len(body), semantic, scope)
 

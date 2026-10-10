@@ -24,7 +24,7 @@ from quant_data.options.monitor.history import read_batch
 from quant_data.stores import StoreWriteLock
 from tests.options.test_theta_compact import temporary_store, fixtures, SESSION
 
-DAILY = datetime(2026, 9, 23, 23, 16, tzinfo=timezone.utc)
+DAILY = datetime(2026, 9, 24, 11, 16, tzinfo=timezone.utc)
 WEEKLY = datetime(2026, 9, 27, 7, 1, tzinfo=timezone.utc)
 
 
@@ -58,9 +58,9 @@ class ScheduledTests(unittest.TestCase):
         self.store.initialize()
         self.base = self.store.root / STATE
         self.base.mkdir(parents=True)
-        (self.base / "activation.json").write_text(json.dumps({
+        (self.base / "activation-next-day.json").write_text(json.dumps({
             "policy_sha256": POLICY_SHA256,
-            "daily_first_slot": "2026-09-21T19:15:00-04:00",
+            "daily_first_slot": "2026-09-22T07:15:00-04:00",
             "weekly_first_slot": "2026-09-27T03:00:00-04:00",
         }))
         self.calls = []
@@ -145,9 +145,22 @@ class ScheduledTests(unittest.TestCase):
             self.assertEqual(c.execute("PRAGMA foreign_key_check").fetchall(), [])
             self.assertEqual(c.execute("SELECT DISTINCT predecessor_id FROM option_captures").fetchall()[0][0], None)
         self.assertEqual(len(read_batch(self.store.root, 0, WEEKLY)[0]), 15)
-        stage = self.base / "daily/2026-09-23/stage"
+        stage = self.base / "daily-next-day/2026-09-23/stage"
         self.assertEqual(len(list(stage.glob("*.json.gz"))), 1)  # retained calendar evidence
         self.assertFalse((stage.parent / "pending-cleanup.json").exists())
+
+    def test_legacy_same_day_receipts_are_preserved_outside_new_daily_namespace(self):
+        legacy = self.base / "daily/2026-09-23"
+        legacy.mkdir(parents=True)
+        original = '{"state":"stopped","error":"INVALID_ARGUMENT"}'
+        (legacy / "result.json").write_text(original)
+        result = self.run_job()
+        self.assertEqual(result["published"], 15)
+        self.assertEqual((legacy / "result.json").read_text(), original)
+        self.assertTrue((self.base / "daily-next-day/2026-09-23/result.json").exists())
+        calls = len(self.calls)
+        self.run_job()
+        self.assertEqual(len(self.calls), calls)
 
     def test_completed_period_cannot_refetch_and_preserves_database_bytes(self):
         self.run_job()
@@ -197,7 +210,7 @@ class ScheduledTests(unittest.TestCase):
         self.assertEqual(result["published"], 14)
         self.assertEqual(result["gaps"][0]["reason"], "open_interest_no_data")
         self.assertNotIn(("SPY", "2026-09-23"), read_coverage(self.store, {"2026-09-23"}))
-        self.assertEqual(len(list((self.base / "daily/2026-09-23/stage").glob("*.json.gz"))), 3)
+        self.assertEqual(len(list((self.base / "daily-next-day/2026-09-23/stage").glob("*.json.gz"))), 3)
 
     def test_weekend_is_the_only_automatic_recovery_of_failed_daily(self):
         self.empty = lambda m, p: m == "option_history_greeks_eod" and p["symbol"] == "SPY"
@@ -221,7 +234,7 @@ class ScheduledTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 2)
 
     def test_interrupted_period_cannot_reset_allowance(self):
-        work = self.base / "daily/2026-09-23"
+        work = self.base / "daily-next-day/2026-09-23"
         work.mkdir(parents=True)
         (work / "started.json").write_text("{}")
         with self.assertRaisesRegex(RuntimeError, "reconciliation"):
@@ -230,7 +243,7 @@ class ScheduledTests(unittest.TestCase):
 
     def test_durable_admission_precedes_authentication_failure(self):
         def broken(*a, **k):
-            self.assertTrue((self.base / "daily/2026-09-23/started.json").exists())
+            self.assertTrue((self.base / "daily-next-day/2026-09-23/started.json").exists())
             raise RuntimeError("authentication_failed")
         result = run_scheduled(self.store.root, "daily", now=DAILY, transport_factory=broken)
         self.assertEqual(result["state"], "stopped")
@@ -244,7 +257,7 @@ class ScheduledTests(unittest.TestCase):
             if stat.S_ISDIR(os.fstat(fd).st_mode):
                 synced.append(Path(os.readlink(f"/proc/self/fd/{fd}")))
             actual(fd)
-        work = self.base / "daily/2026-09-23"
+        work = self.base / "daily-next-day/2026-09-23"
         expected = []
         directory = work
         while True:
@@ -272,7 +285,7 @@ class ScheduledTests(unittest.TestCase):
                 self.run_job()
         self.assertEqual(self.authorizations, 0)
         self.assertEqual(self.calls, [])
-        self.assertTrue((self.base / "daily/2026-09-23/started.json").exists())
+        self.assertTrue((self.base / "daily-next-day/2026-09-23/started.json").exists())
         with self.assertRaisesRegex(RuntimeError, "reconciliation"):
             self.run_job()
 
@@ -320,11 +333,11 @@ class ScheduledTests(unittest.TestCase):
     def test_year_boundary_uses_both_calendars_and_previous_session(self):
         result = self.run_job(now=datetime(2027, 1, 4, 0, 30, tzinfo=timezone.utc))
         self.assertEqual(result["state"], "not_due")  # Sunday local evening
-        result = self.run_job(now=datetime(2027, 1, 5, 0, 30, tzinfo=timezone.utc))
+        result = self.run_job(now=datetime(2027, 1, 5, 12, 30, tzinfo=timezone.utc))
         self.assertEqual(result["published"], 15)
         self.assertEqual(result["data_requests"], 32)
         self.assertEqual({p["year"] for m, p in self.calls if m == "calendar_year"}, {"2026", "2027"})
-        plan = json.loads((self.base / "daily/2027-01-04/plan.json").read_text())
+        plan = json.loads((self.base / "daily-next-day/2027-01-04/plan.json").read_text())
         self.assertEqual(plan["sessions"], [["2027-01-04", "2026-12-31"]])
 
     def test_calendar_bad_year_fails_closed(self):
@@ -335,9 +348,9 @@ class ScheduledTests(unittest.TestCase):
         self.assertEqual(result["published"], 0)
 
     def test_activation_and_policy_drift_block_requests(self):
-        path = self.base / "activation.json"
+        path = self.base / "activation-next-day.json"
         activation = json.loads(path.read_text())
-        activation["daily_first_slot"] = "2026-09-24T19:15:00-04:00"
+        activation["daily_first_slot"] = "2026-09-25T07:15:00-04:00"
         path.write_text(json.dumps(activation))
         self.assertEqual(self.run_job()["state"], "not_due")
         activation["policy_sha256"] = "wrong"
@@ -370,11 +383,28 @@ class ScheduledTests(unittest.TestCase):
 
 class ClockAndStoreTests(unittest.TestCase):
     def test_daily_cutoff_weekend_and_timezone(self):
-        self.assertIsNone(due_window("daily", DAILY.replace(hour=23, minute=14)))
+        self.assertIsNone(due_window("daily", DAILY.replace(hour=11, minute=14)))
         self.assertIsNone(due_window("daily", WEEKLY))
         self.assertEqual(due_window("daily", DAILY)[1:], (date(2026, 9, 23),) * 2)
         with self.assertRaisesRegex(ValueError, "aware"):
             due_window("daily", datetime(2026, 9, 23))
+
+    def test_next_day_clock_friday_weekend_and_dst(self):
+        cases = (
+            ("2026-10-09T07:15:00-04:00", "2026-10-08"),
+            ("2026-10-10T07:15:00-04:00", "2026-10-09"),
+            ("2026-11-03T07:15:00-05:00", "2026-11-02"),
+        )
+        for stamp, expected in cases:
+            now = datetime.fromisoformat(stamp)
+            slot, start, end = due_window("daily", now)
+            self.assertEqual(start.isoformat(), expected)
+            self.assertEqual(start, end)
+            self.assertLess(end, now.astimezone(NY).date())
+            self.assertEqual(slot, now)
+            self.assertIsNone(due_window("daily", now - timedelta(seconds=1)))
+        for stamp in ("2026-10-11T09:00:00-04:00", "2026-10-12T09:00:00-04:00"):
+            self.assertIsNone(due_window("daily", datetime.fromisoformat(stamp)))
 
     def test_weekly_latest_due_period_dst_and_before_slot(self):
         self.assertEqual(due_window("weekly", WEEKLY)[1:], (date(2026, 9, 21), date(2026, 9, 25)))

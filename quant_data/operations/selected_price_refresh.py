@@ -130,9 +130,9 @@ def run_current_prices(*,root,stores,selection,collector,fetch,cutoff,session,mo
     publisher=RollingPricePublisher(stores=stores,selection=selection,cutoff=cutoff,collector=collector,requests=requests)
     ordered=(sentinel,)+tuple(p for p in requests if p is not sentinel)
     chunks=(ordered[:1],)+tuple(ordered[i:i+1000] for i in range(1,len(ordered),1000))
-    totals={'requests':0,'received_bytes':0,'published':0,'reused':0};reports=[];outcome='complete'
+    totals={'requests':0,'received_bytes':0,'uncertain_bytes':0,'published':0,'reused':0};reports=[];outcome='complete'
     for index,chunk in enumerate(chunks):
-        remaining=int(deadline-monotonic());byte_remaining=MAX_BYTES-totals['received_bytes']
+        remaining=int(deadline-monotonic());byte_remaining=MAX_BYTES-totals['received_bytes']-totals['uncertain_bytes']
         if remaining<45 or byte_remaining<65536:outcome='invocation_budget';break
         budget=ProviderBudget('fmp',len(chunk),byte_remaining,min(remaining,1755),250)
         plan=build_plan(selections=(selection,),units=tuple(u for u,_ in chunk),budgets=(budget,),created_at=cutoff)

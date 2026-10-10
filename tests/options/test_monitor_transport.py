@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch,MagicMock
 import tempfile
-from quant_data.options.monitor.transport import MonitorThetaTransport
+from quant_data.options.monitor.transport import MonitorThetaTransport,SessionSetupFailure
 from quant_data.options.transport import Budget
 
 class SharedSessionTests(TestCase):
@@ -36,6 +36,26 @@ class SharedSessionTests(TestCase):
             with patch("thetadata.ThetaClient",side_effect=RuntimeError("private detail")) as client,patch("quant_data.options.monitor.transport.read_project_credential",return_value="fixture") as creds:
                 factory=MonitorThetaTransport.session_factory()
                 for _ in range(3):
-                    with self.assertRaisesRegex(RuntimeError,"^authentication_failed$"):
+                    with self.assertRaisesRegex(SessionSetupFailure,"^SESSION_SETUP_FAILED$"):
                         factory(Path(tmp),Budget(),symbols=("SPY",))
                 self.assertEqual(client.call_count,1);self.assertEqual(creds.call_count,1)
+
+
+    def test_setup_failures_are_typed_zero_data_and_latched_without_private_details(self):
+        import httpx
+        from thetadata.errors import AuthenticationError
+        for error,code in ((httpx.ReadTimeout("private token"),"SESSION_TIMEOUT"),
+                           (httpx.ConnectError("private key"),"SESSION_CONNECTION_ERROR"),
+                           (AuthenticationError("private body"),"AUTHENTICATION_REJECTED")):
+            with self.subTest(code=code),tempfile.TemporaryDirectory() as tmp:
+                with patch("thetadata.ThetaClient",side_effect=error) as client,patch("quant_data.options.monitor.transport.read_project_credential",return_value="fixture"):
+                    factory=MonitorThetaTransport.session_factory()
+                    for _ in range(4):
+                        with self.assertRaises(SessionSetupFailure) as failure:
+                            factory(Path(tmp),Budget(),symbols=("SPY",))
+                        self.assertEqual(str(failure.exception),code)
+                        self.assertEqual(failure.exception.receipt["response_bytes"],0)
+                        self.assertIs(failure.exception.receipt["data_dispatched"],False)
+                        self.assertEqual(failure.exception.receipt["stage"],"session_setup")
+                        self.assertNotIn("private",repr(failure.exception.receipt))
+                    self.assertEqual(client.call_count,1)

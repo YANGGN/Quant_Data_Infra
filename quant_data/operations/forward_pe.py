@@ -70,6 +70,24 @@ def subjects(stores, symbols, cutoff, *, strict=True):
 
 
 
+def _sharadar_observation_ids(connection, tickers, *, limit=1000000):
+    """Stream the bounded key scan, retaining only this calculation's tickers."""
+    wanted = frozenset(tickers)
+    ids = {}
+    rows = connection.execute(
+        "SELECT observation_id,source_ticker FROM company_sharadar_sf1_observations "
+        "WHERE dimension='ARQ' LIMIT ?", (limit + 1,))
+    try:
+        for count, row in enumerate(rows, 1):
+            if count > limit:
+                raise ValueError("Source row limit exceeded; nothing was silently truncated")
+            if row["source_ticker"] in wanted:
+                ids.setdefault(row["source_ticker"], []).append(row["observation_id"])
+    finally:
+        rows.close()
+    return ids
+
+
 def attach_sharadar_links(stores, selected, cutoff):
     """Reuse the established same-membership cross-provider association."""
     from ..market.collection_bindings import load_bindings, pin_binding
@@ -96,15 +114,12 @@ def attach_sharadar_links(stores, selected, cutoff):
                         fmp_mapping_id=fmp.mapping_id, sharadar_mapping_id=sf.mapping_id,
                         identity_link_status="same_collection_member_partial_identity")
         result.append(item)
-    # One bounded metadata scan, rather than scanning the source-key table for
-    # every ticker. Values and lineage are still selected inside each read cohort.
+    # One streaming metadata scan avoids a second full copy of the source keys.
+    # Values and lineage are still selected inside each read cohort.
     with acquire_write_session(stores, ("company",), timeout_seconds=5):
         with quiet_immutable_read_connection(stores, "company") as c:
-            lookup = bounded(c, "SELECT observation_id,source_ticker FROM company_sharadar_sf1_observations WHERE dimension='ARQ'",
-                             limit=1000000)
-    ids = {}
-    for row in lookup:
-        ids.setdefault(row["source_ticker"], []).append(row["observation_id"])
+            ids = _sharadar_observation_ids(
+                c, (item.get("sharadar_ticker", item["symbol"]) for item in result))
     for item in result:
         item["sharadar_observation_ids"] = ids.get(item.get("sharadar_ticker", item["symbol"]), [])
     return result

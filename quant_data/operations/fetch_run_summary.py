@@ -34,7 +34,7 @@ def summarize_report(batch_id: str, report: object) -> dict[str, Any]:
     if batch_id in {"quant-data-theta-options-daily.timer", "quant-data-theta-options-weekly.timer"}:
         mode = "daily" if batch_id.endswith("-daily.timer") else "weekly"
         maximum = 15 if mode == "daily" else 75
-        if report.get("contract") != "theta_daily_and_weekly_v1" or report.get("mode") != mode:
+        if report.get("contract") not in {"theta_daily_and_weekly_v1", "theta_daily_and_weekly_v2"} or report.get("mode") != mode:
             raise ValueError("Invalid Theta report identity")
         state = report.get("state")
         expected, missing = report.get("expected_sessions"), report.get("initially_missing")
@@ -84,8 +84,12 @@ def summarize_report(batch_id: str, report: object) -> dict[str, Any]:
     if batch_id in ("quant-data-selected-company-refresh.timer", "quant-data-equibles-refresh.timer"):
         return validate_counts(report.get("counts"))
     if batch_id == "quant-data-sec-company-fundamentals.timer":
-        return _counts("issuers", report["succeeded_cik_count"], report["failed_cik_count"],
-                       skipped=report["skipped_existing_cik_count"],
+        successful, skipped = report["succeeded_cik_count"], report["skipped_existing_cik_count"]
+        if (type(successful) is not int or type(skipped) is not int
+                or not 0 <= skipped <= successful):
+            raise ValueError("Invalid SEC overlapping counts")
+        return _counts("issuers", successful - skipped, report["failed_cik_count"],
+                       skipped=skipped,
                        partial=report.get("partial_cik_count", 0),
                        unattempted=report.get("unattempted_cik_count", 0))
     if batch_id == "quant-data-alpaca-spy-options.timer":

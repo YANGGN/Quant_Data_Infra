@@ -10,6 +10,12 @@ from quant_data.options.transport import Budget,ProviderFailure,decode_stream
 METHODS=frozenset(("calendar_on_date","calendar_year","option_snapshot_ohlc","option_snapshot_open_interest",
                    "option_snapshot_greeks_first_order"))
 
+class SessionSetupFailure(ProviderFailure):
+    """Sanitized failure before any options-data RPC was dispatched."""
+    def __init__(self,code):
+        super().__init__(code,{"outcome":code,"response_bytes":0,"stage":"session_setup",
+                              "data_dispatched":False,"messages":0,"rows":0})
+
 class MonitorThetaTransport:
     @staticmethod
     def preflight():
@@ -21,15 +27,18 @@ class MonitorThetaTransport:
     @classmethod
     def session_factory(cls):
         """One login per cycle; isolated channels/receipts share its auth token."""
-        lock=threading.Lock();authorized=None;failed=False
+        lock=threading.Lock();authorized=None;failure=None
         def create(root,budget,*,symbols):
-            nonlocal authorized,failed
+            nonlocal authorized,failure
             with lock:
-                if failed:raise RuntimeError("authentication_failed")
+                if failure is not None:raise SessionSetupFailure(failure)
                 try:transport=cls(root,budget,symbols=symbols,authorized_client=authorized)
-                except Exception:
-                    failed=True
+                except SessionSetupFailure as exc:
+                    failure=exc.code
                     raise
+                except Exception:
+                    failure="SESSION_SETUP_FAILED"
+                    raise SessionSetupFailure(failure) from None
                 if authorized is None:authorized=transport.client
                 return transport
         return create
@@ -52,7 +61,17 @@ class MonitorThetaTransport:
                 dotenv_path="/dev/null",mdds_type="PROD",
                 auth_url="https://nexus-api.thetadata.us/identity/terminal/auth_user",
                 mdds_host="mdds-01.thetadata.us",mdds_port="443")
-        except Exception:raise RuntimeError("authentication_failed") from None
+        except Exception as exc:
+            # Never retain provider response bodies, keys, tokens or exception text.
+            # The SDK uses httpx for login; a timeout/connectivity failure differs
+            # from rejected credentials, which must not be automatically retried.
+            import httpx
+            from thetadata.errors import AuthenticationError
+            code=("SESSION_TIMEOUT" if isinstance(exc,httpx.TimeoutException) else
+                  "SESSION_CONNECTION_ERROR" if isinstance(exc,httpx.TransportError) else
+                  "AUTHENTICATION_REJECTED" if isinstance(exc,AuthenticationError) else
+                  "SESSION_SETUP_FAILED")
+            raise SessionSetupFailure(code) from None
         finally:del key
         self.channel=grpc.secure_channel("mdds-01.thetadata.us:443",grpc.ssl_channel_credentials(),
             options=(("grpc.enable_retries",0),("grpc.max_receive_message_length",64*1024**2)))
@@ -89,6 +108,11 @@ class MonitorThetaTransport:
         if method=="option_snapshot_greeks_first_order":
             if params.get("expiration")!="*" or params.get("right")!="both" or params.get("max_dte")!=120 or params.get("strike_range")!=10:
                 raise ValueError("monitor_iv_trim")
+        return self._request(method,**params)
+
+    def _request(self,method,**params):
+        import grpc
+        from thetadata.errors import NoDataFoundError
         self.budget.check();started=time.monotonic()
         current={"digest":sha256(),"bytes":0,"messages":0};self._current=current
         receipt={"method":method,"captured_at":datetime.now(timezone.utc).isoformat(),"attempts":1}

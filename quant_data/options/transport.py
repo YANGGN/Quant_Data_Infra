@@ -3,13 +3,37 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-import hashlib, logging, math, os, time, threading
+import hashlib, logging, math, os, time, threading, re
 from types import MethodType
 from zoneinfo import ZoneInfo
 from quant_data.credentials import read_project_credential
 from .universe import TIER1_ETFS
 
 NY = ZoneInfo("America/New_York")
+
+def sanitized_provider_detail(value, *, secrets=()):
+    """Bounded private diagnostic with credentials, URLs and opaque tokens removed."""
+    from urllib.parse import quote
+    if not isinstance(value, str) or len(value) > 8192:
+        return "Provider detail unavailable"
+    for secret in secrets:
+        if isinstance(secret, str) and secret:
+            for spelling in (secret, quote(secret, safe="")):
+                value = value.replace(spelling, "[redacted]")
+    value = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", value)
+    value = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", value)
+    value = re.sub(r"(?i)https?://[^\s]+", "[url redacted]", value)
+    value = re.sub(r"(?i)\b((?:bearer|basic)\s+)[^\s,;]+", r"\1[redacted]", value)
+    value = re.sub(
+        r"""(?i)\bauthorization["']?\s*[:=][\s\S]*""",
+        "authorization=[redacted]", value)
+    value = re.sub(
+        r"""(?i)\b(api[_-]?key|(?:access|refresh|id|auth|session)[_-]?token|token|password|secret|cookie|session[_-]?id)["']?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}]+)""",
+        lambda match: match.group(1)+"=[redacted]", value)
+    value = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[email redacted]", value)
+    value = re.sub(r"[A-Za-z0-9_+/=.-]{24,}", "[opaque value redacted]", value)
+    return " ".join(value.split())[:400] or "Provider detail unavailable"
+
 
 class ProviderFailure(RuntimeError):
     def __init__(self, code, receipt):
@@ -101,6 +125,7 @@ class ThetaTransport:
         for name in tuple(os.environ):
             if name.startswith("THETADATA_"): os.environ.pop(name)
         key=read_project_credential(project_root=root,name="THETA_DATA_API",environment={})
+        self._redaction_values = (key,)
         try:
             self.client=ThetaClient(api_key=key,dotenv_path="/dev/null",mdds_type="PROD",
                 auth_url="https://nexus-api.thetadata.us/identity/terminal/auth_user",
@@ -155,6 +180,14 @@ class ThetaTransport:
             receipt["outcome"]="no_data"
         except grpc.RpcError as exc:
             rows=[];error=exc.code().name;receipt["outcome"]=error
+            try:
+                secrets = tuple(getattr(self, "_redaction_values", ())) + tuple(
+                    value for name, value in vars(self.client).items()
+                    if isinstance(value, str) and any(part in name.lower()
+                        for part in ("token", "secret", "password", "authorization", "api_key")))
+                receipt["provider_detail"] = sanitized_provider_detail(exc.details(), secrets=secrets)
+            except Exception:
+                receipt["provider_detail"] = "Provider detail unavailable"
         except Exception as exc:
             rows=[];error=type(exc).__name__;receipt["outcome"]=error
         receipt.update(rows=len(rows),response_bytes=current["bytes"],

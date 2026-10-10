@@ -55,7 +55,20 @@ def acquire_history(*,root,stores,selection,cutoff,baseline,gate,credential,dead
             charged=len(list((batch/'queue/attempts').glob('*.json')));bytes_here=0;valid=[];held={}
             for u,w in work:
                 retained=_response(batch/'queue',u.unit_id,u)
-                if retained is None:continue
+                if retained is None:
+                    failure=_read(batch/'queue'/(u.unit_id+'.failure.json'))
+                    if failure is not None and failure.get('contract')=='quant_data.provider_failure.v1':
+                        reservation=_read(batch/'queue/attempts'/(u.unit_id+'.json'))
+                        if (failure.get('unit_id')!=u.unit_id or failure.get('request_id')!=u.request_id
+                                or failure.get('attempt')!=reservation
+                                or failure.get('unretained_byte_reserve')!=u.max_response_bytes):
+                            raise ConflictError('Price failure evidence differs from its charged request')
+                        gap={'unit_id':u.unit_id,'symbol':u.subject,'category':failure['category'],
+                             'status':failure.get('http_status'),'automatic_retry':False}
+                        gaps.append(gap);held[u.subject]=gap
+                        states[u.subject].update(status='provider_gap',gap=gap)
+                        byte_reserve+=u.max_response_bytes
+                    continue
                 receipt,body=retained;bytes_here+=len(body)
                 if receipt['status']!=200:
                     gap={'unit_id':u.unit_id,'symbol':u.subject,'status':receipt['status']}
@@ -69,7 +82,7 @@ def acquire_history(*,root,stores,selection,cutoff,baseline,gate,credential,dead
             atomic(batch/'ready.json',{'valid_units':valid,'held_symbols':held,'requests':charged,'bytes':bytes_here,'outcome':report['outcome'] if report else outcome})
             progress={'at':datetime.now(timezone.utc).isoformat(),'outcome':'running',**stats(states),'requests':requests,'received_bytes':received,'unretained_byte_reserve':byte_reserve,'downloaded_rows':downloaded_rows,'batch':index,'peak_inflight':report.get('peak_inflight') if report else None}
             atomic(root/'acquisition-progress.json',progress,replace=True);print(progress,flush=True);index+=1
-            if error or report['outcome'] not in ('complete','batch_boundary','provider_failure'):
+            if error or report['outcome'] not in ('complete','complete_with_gaps','batch_boundary','provider_failure'):
                 if not error:outcome=report['outcome']
                 break
             # Give waiting routine FMP requests an opportunity between batches.

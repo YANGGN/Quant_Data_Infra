@@ -199,7 +199,7 @@ class AccountFailureTests(unittest.TestCase):
         self.assertGreater(result['uncertain_requests'],0)
         self.assertIsNotNone(self.state()['pending']);self.assertEqual(self.state()['stopped']['status'],'uncertain')
     def test_pause_release_preserves_usage_and_rejects_changed_guard(self):
-        result=self.batch(lambda u:501)
+        result=self.batch(lambda u:429)
         self.assertEqual(result['outcome'],'provider_pause');before=self.state()
         wrong={**result['pause_guard'],'attempt':'wrong'}
         with self.assertRaises(ConflictError):module.release_pause(self.gate,wrong,self.root,self.clock)
@@ -213,19 +213,23 @@ class AccountFailureTests(unittest.TestCase):
         self.assertEqual(result['unretained_byte_reserve'],1024*result['requests'])
         failures=[json.loads(p.read_text()) for p in (self.root/'batch').glob('*.failure.json')]
         self.assertTrue(all(f['retryable'] for f in failures))
-    def test_unretained_server_failure_mixed_with_successes_still_pauses(self):
+    def test_unretained_server_failure_is_flagged_and_later_work_continues(self):
         result=self.batch(lambda u:ProviderRequestFailure('invalid_response',503,retryable=True) if u.subject=='T000' else 200)
-        self.assertLess(result['requests'],12);self.assertEqual(result['outcome'],'provider_pause')
-        self.assertEqual(result['pause_guard']['status'],503);self.assertIsNone(self.state()['pending'])
-    def test_unretained_transient_error_preserves_an_earlier_fatal_guard(self):
+        self.assertEqual(result['requests'],12);self.assertEqual(result['outcome'],'complete')
+        self.assertEqual(result['failed_requests'],1)
+        self.assertIsNone(self.state()['stopped']);self.assertIsNone(self.state()['pending'])
+    def test_unknown_worker_error_and_later_transient_errors_remain_request_local(self):
         result=self.batch(lambda u:RuntimeError('fixture storage safety fault') if u.subject=='T000'
             else ProviderRequestFailure('timeout',503,retryable=True))
-        self.assertGreater(result['uncertain_requests'],0)
-        self.assertEqual(self.state()['stopped']['status'],'uncertain')
-        self.assertIsNotNone(self.state()['pending'])
+        self.assertEqual(result['uncertain_requests'],0)
+        self.assertEqual(result['failed_requests'],12)
+        self.assertIsNone(self.state()['stopped'])
+        self.assertIsNone(self.state()['pending'])
     def test_authentication_status_without_retained_body_is_fatal(self):
         result=self.batch(lambda u:ProviderRequestFailure('response_too_large',401))
-        self.assertGreater(result['uncertain_requests'],0);self.assertIsNotNone(self.state()['pending'])
+        self.assertEqual(result['outcome'],'provider_stop')
+        self.assertEqual(self.state()['stopped']['status'],401)
+        self.assertIsNone(self.state()['pending'])
     def test_missing_response_reservations_limit_subsequent_starts(self):
         result=self.batch(lambda u:ProviderRequestFailure('timeout',retryable=True),bytes_cap=2048)
         self.assertEqual(result['requests'],2);self.assertEqual(result['unretained_byte_reserve'],2048)

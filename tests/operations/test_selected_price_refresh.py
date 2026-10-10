@@ -97,3 +97,20 @@ class SelectedDailyRefreshTests(unittest.TestCase):
         self.assertEqual(report["requests"], 4)
         self.assertEqual(report["planned_requests"], 4)
         self.assertEqual({r["symbol"] for r in report["excluded_symbols"]}, {"ATAI", "IRBO"})
+
+    def test_unknown_bytes_from_prior_request_reduce_next_chunk_budget(self):
+        from unittest.mock import patch
+        from quant_data.operations import selected_price_refresh as daily
+        # An orphan from a prior queue call can be retired during the sentinel
+        # call. Its full response reserve must carry across the next chunk.
+        self.state.mkdir(parents=True)
+        report={"outcome":"complete_with_gaps","requests":1,"received_bytes":1,
+                "uncertain_bytes":65536,"published":1,"reused":0,
+                "failed_units":[{"unit_id":"a"*64,"error":"fmp_request_failed"}]}
+        with patch.object(daily,"MAX_BYTES",131072), \
+             patch.object(daily,"run_queue",return_value=report) as run, \
+             patch.object(daily,"_response",return_value=({"status":200},b'[{}]')):
+            result=self.run_refresh()
+        self.assertEqual(run.call_count,1)
+        self.assertEqual(result["outcome"],"invocation_budget")
+        self.assertEqual(result["uncertain_bytes"],65536)

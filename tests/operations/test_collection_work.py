@@ -144,11 +144,11 @@ class CollectionQueueTests(unittest.TestCase):
 
     def test_uncertain_transport_is_charged_and_never_retried(self):
         def fail(**kwargs): self.calls.append("failed");raise RuntimeError("secret-network-error")
-        with self.assertRaisesRegex(ConflictError,"without retry"): self.run_plan(fetch=fail)
+        self.assertEqual(self.run_plan(fetch=fail)["outcome"], "complete_with_gaps")
         state=json.loads((self.root/"ledger.json").read_bytes())
         self.assertEqual(state["usage"]["2026-09-09"]["charged_attempts"],1)
-        self.assertIsNotNone(state["pending"])
-        with self.assertRaisesRegex(ConflictError,"no retry"): self.run_plan()
+        self.assertIsNone(state["pending"])
+        self.assertEqual(self.run_plan()["requests"], 0)
         self.assertEqual(self.calls,["failed"])
 
     def test_pending_response_recovery_and_publication_receipt_recovery(self):
@@ -190,7 +190,7 @@ class CollectionQueueTests(unittest.TestCase):
 
     def test_credentials_and_unsuccessful_responses_are_not_retained(self):
         def echo(**kw): return QueueResponse(200,b'{"token":"test-secret"}',AT)
-        with self.assertRaises(ConflictError): self.run_plan(fetch=echo,secret_values=("test-secret",))
+        with self.assertRaises(OSError): self.run_plan(fetch=echo,secret_values=("test-secret",))
         self.assertEqual(list((self.root/"blobs").iterdir()),[])
         self.assertNotIn("test-secret",(self.root/"ledger.json").read_text())
 

@@ -82,6 +82,8 @@ class MonitorStore:
             c.row_factory=sqlite3.Row;c.execute("PRAGMA query_only=ON")
             if [tuple(x) for x in c.execute("SELECT * FROM metadata")]!=[(1,SCHEMA_SHA)]:
                 raise ValueError("monitor_schema_checksum")
+            from .baseline_store import check_extension
+            check_extension(c)
             yield c
             if self._stamp()!=before:raise ValueError("monitor_store_changed")
         finally:
@@ -166,19 +168,78 @@ class MonitorStore:
         with self.read() as c:
             rows=c.execute("SELECT session,payload,slot FROM observations WHERE symbol=? AND cadence=? AND session<? ORDER BY session DESC,slot DESC LIMIT 3000",
                            (symbol,cadence,session)).fetchall()
+            seeds=[]
+            if c.execute("SELECT 1 FROM sqlite_master WHERE name='baseline_days'").fetchone():
+                cutoff=(date.fromisoformat(session)-timedelta(days=130)).isoformat()
+                seeds=c.execute("SELECT payload FROM baseline_days WHERE symbol=? AND session<? AND session>=? ORDER BY session DESC LIMIT 90",(symbol,session,cutoff)).fetchall()
+        from .baseline import seed_interval,seed_aligned
         found={}
+        for row in seeds:
+            day=json.loads(row[0]);item=seed_interval(day,cadence,minute)
+            if item is not None:found[day["session"]]=item
+        live=set()
         for row in rows:
             item=json.loads(row[1])
             stamp=datetime.fromisoformat(row[2]).astimezone(NY)
-            if stamp.hour*60+stamp.minute==minute and row[0] not in found and baseline_eligible(item,cadence):
-                found[row[0]]=item
-            if len(found)>=60:break
-        return list(found.values())
-    def last_alert(self,symbol):
+            if seeds:
+                try:
+                    start=datetime.fromisoformat(item.get("interval_start") or "")
+                    end=datetime.fromisoformat(item["captured_at"])
+                    if not seed_aligned(start,end,cadence,minute):continue
+                except (ValueError,KeyError,TypeError):continue
+            if stamp.hour*60+stamp.minute==minute and row[0] not in live and baseline_eligible(item,cadence):
+                found[row[0]]=item;live.add(row[0])
+        return [found[day] for day in sorted(found,reverse=True)[:60]]
+    def cumulative_baselines(self,symbol,minute,session):
+        from .baseline import seed_cumulative
+        from .model import cumulative_snapshot_eligible,eastern_minute,timestamp
+        if type(minute) is not int or minute%5 or not 570<minute<=975:return []
+        cutoff=(date.fromisoformat(session)-timedelta(days=130)).isoformat()
         with self.read() as c:
-            row=c.execute("SELECT detected_at FROM alerts WHERE symbol=? ORDER BY detected_at DESC LIMIT 1",(symbol,)).fetchone()
+            # Slots are ISO instants. Eastern and UTC have the same minute part;
+            # narrow payload reads, then validate the full Eastern time in Python.
+            rows=c.execute("""SELECT session,payload FROM observations
+                WHERE symbol=? AND session<? AND session>=?
+                  AND CAST(substr(slot,15,2) AS INTEGER)=?
+                ORDER BY session DESC,slot DESC LIMIT 3000""",
+                (symbol,session,cutoff,minute%60)).fetchall()
+            seeds=[]
+            if c.execute("SELECT 1 FROM sqlite_master WHERE name='baseline_days'").fetchone():
+                seeds=c.execute("SELECT payload FROM baseline_days WHERE symbol=? AND session<? AND session>=? ORDER BY session DESC LIMIT 90",
+                    (symbol,session,cutoff)).fetchall()
+        found={}
+        for row in seeds:
+            day=json.loads(row[0])
+            item=seed_cumulative(day,minute)
+            if item is not None:found[day["session"]]=item
+        live=set()
+        for row in rows:
+            item=json.loads(row[1])
+            if (item.get("symbol")!=symbol or item.get("session")!=row[0] or
+                row[0] in live or not cumulative_snapshot_eligible(item)):
+                continue
+            stamp=timestamp(item.get("captured_at"))
+            if abs(eastern_minute(stamp)-minute)>1:continue
+            found[row[0]]={"symbol":symbol,"session":row[0],"coverage":"complete",
+                "quality_flags":[],"cumulative_volume":item["call_volume"]+item["put_volume"],
+                "_cumulative_end_minute":minute}
+            live.add(row[0])
+        return [found[day] for day in sorted(found,reverse=True)[:60]]
+
+    def last_alert(self,symbol,*,kind=None):
+        with self.read() as c:
+            if kind is None:
+                row=c.execute("SELECT detected_at FROM alerts WHERE symbol=? ORDER BY detected_at DESC LIMIT 1",(symbol,)).fetchone()
+            else:
+                if kind not in ("interval","cumulative"):raise ValueError("monitor_alert_kind")
+                row=c.execute("SELECT detected_at FROM alerts WHERE symbol=? AND COALESCE(json_extract(payload,'$.kind'),'interval')=? ORDER BY detected_at DESC LIMIT 1",
+                    (symbol,kind)).fetchone()
             return row[0] if row else None
-    def publish(self,observation,alert=None):
+    def publish(self,observation,alert=None,*,alerts=None):
+        if alert is not None and alerts is not None:raise ValueError("monitor_alert_arguments")
+        notifications=list(alerts) if alerts is not None else ([alert] if alert else [])
+        if len(notifications)>2 or len({a["id"] for a in notifications})!=len(notifications):
+            raise ValueError("monitor_alert_batch")
         session=observation["session"];symbol=observation["symbol"];slot=observation.get("_slot",observation["captured_at"])
         payload={k:v for k,v in observation.items() if not k.startswith("_")}
         serialized=canonical(payload);digest=sha256(serialized.encode()).hexdigest()
@@ -194,11 +255,11 @@ class MonitorStore:
                     (session,symbol,slot,observation["captured_at"],observation["cadence_minutes"],observation["_fingerprint"],serialized))
                 c.execute("INSERT INTO outbox VALUES (?,?,?,?,0)",
                     (digest,"observation",serialized,None))
-                if alert:
-                    a=canonical(alert)
+                for notification in notifications:
+                    a=canonical(notification)
                     c.execute("INSERT INTO alerts(id,session,symbol,detected_at,payload) VALUES (?,?,?,?,?)",
-                        (alert["id"],session,symbol,alert["detected_at"],a))
-                    c.execute("INSERT INTO outbox VALUES (?,?,?,?,0)",(alert["id"],"alert",a,None))
+                        (notification["id"],session,symbol,notification["detected_at"],a))
+                    c.execute("INSERT INTO outbox VALUES (?,?,?,?,0)",(notification["id"],"alert",a,None))
                 c.commit();return True
             except BaseException:c.rollback();raise
             finally:c.close()
@@ -231,6 +292,8 @@ class MonitorStore:
         sessions="SELECT DISTINCT session FROM attempts UNION SELECT DISTINCT session FROM observations"
         with StoreWriteLock(self.path,timeout_seconds=15):
             with self.read() as reader:
+                has_seeds=reader.execute("SELECT 1 FROM sqlite_master WHERE name='baseline_days'").fetchone() is not None
+                if has_seeds:sessions+=" UNION SELECT DISTINCT session FROM baseline_days"
                 retained=[r[0] for r in reader.execute("SELECT session FROM ("+sessions+") WHERE session<=? ORDER BY session DESC LIMIT ?",(current_session,max(keep,7)))]
             c=sqlite3.connect(self.path,timeout=15)
             try:
@@ -241,6 +304,9 @@ class MonitorStore:
                         c.execute(f"DELETE FROM {table} WHERE session<?",(retained[6],))
                 if len(retained)>=keep:
                     threshold=retained[keep-1]
+                    if has_seeds:
+                        c.execute("DELETE FROM baseline_days WHERE session<?",(threshold,))
+                        c.execute("UPDATE baseline_requests SET payload=NULL WHERE session<?",(threshold,))
                     for table in ("observations","alerts","calendar"):
                         c.execute(f"DELETE FROM {table} WHERE session<?",(threshold,))
                     c.execute("DELETE FROM outbox WHERE kind='observation' AND json_extract(payload,'$.session')<?",(threshold,))

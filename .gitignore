@@ -45,3 +45,6 @@ Thumbs.db
 # Ignore only; retention and recovery evidence must not be deleted implicitly.
 /.local/
 /exports/
+
+# Separate repository, committed and pushed independently.
+/sites/options-monitor/

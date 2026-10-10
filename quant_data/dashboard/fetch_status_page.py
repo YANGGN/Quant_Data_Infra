@@ -147,7 +147,8 @@ def _calendar_marker(marker: Mapping[str, Any], day_date: str, codes: Mapping[st
     )
 
 
-def _calendar_day(day: Mapping[str, Any], codes: Mapping[str, tuple[str, str]]) -> str:
+def _calendar_day(day: Mapping[str, Any], codes: Mapping[str, tuple[str, str]],
+                  intraday: Mapping[str, Any]) -> str:
     day_date = _text(day, "date")
     try:
         number = str(date.fromisoformat(day_date).day)
@@ -159,6 +160,7 @@ def _calendar_day(day: Mapping[str, Any], codes: Mapping[str, tuple[str, str]]) 
     current = ' aria-current="date"' if selected else ""
     today = '<span class="fetch-month-today">Today</span>' if is_today else ""
     markers = "".join(_calendar_marker(marker, day_date, codes) for marker in _records(day.get("markers")))
+    markers += _intraday_calendar_marker(intraday, day_date)
     empty = '<span class="fetch-month-empty" aria-label="No scheduled batches">—</span>' if not markers else ""
     return (
         '<article class="' + classes + '" data-fetch-day="' + _escape(day_date) + '">'
@@ -169,7 +171,8 @@ def _calendar_day(day: Mapping[str, Any], codes: Mapping[str, tuple[str, str]]) 
     )
 
 
-def _month_grid(days: tuple[Mapping[str, Any], ...], month_start: str, codes: Mapping[str, tuple[str, str]]) -> str:
+def _month_grid(days: tuple[Mapping[str, Any], ...], month_start: str, codes: Mapping[str, tuple[str, str]],
+                intraday_days: Mapping[str, Mapping[str, Any]]) -> str:
     if not days:
         return '<p class="fetch-empty">Calendar slots are unavailable.</p>'
     try:
@@ -178,7 +181,9 @@ def _month_grid(days: tuple[Mapping[str, Any], ...], month_start: str, codes: Ma
         offset = 0
     blank = '<span class="fetch-month-blank" data-fetch-blank aria-hidden="true"></span>'
     trailing = (-(offset + len(days))) % 7
-    return blank * offset + "".join(_calendar_day(day, codes) for day in days) + blank * trailing
+    return blank * offset + "".join(
+        _calendar_day(day, codes, intraday_days.get(_text(day, "date"), {})) for day in days
+    ) + blank * trailing
 
 
 
@@ -395,6 +400,195 @@ def _equibles_progress(value: object) -> str:
     )
 
 
+_INTRADAY_STATES = {
+    "current": ("Current", "green"),
+    "stale": ("Behind cadence", "amber"),
+    "failed": ("Collection issue", "red"),
+    "waiting": ("Awaiting observations", "amber"),
+    "closed": ("Market closed", "neutral"),
+    "paused": ("Paused", "neutral"),
+    "unknown": ("Unknown", "neutral"),
+    "recorded": ("Requests recorded", "neutral"),
+    "partial": ("Partial collection", "amber"),
+    "scheduled": ("Scheduled", "neutral"),
+}
+
+
+def _intraday_badge(state: str, *, delivery: bool = False) -> str:
+    states = ({"current": ("Queue clear", "green"),
+               "pending": ("Uploads pending", "amber"),
+               "unknown": ("Unknown", "neutral")}
+              if delivery else _INTRADAY_STATES)
+    state = state if state in states else "unknown"
+    label, color = states[state]
+    icon = {"green": "✓", "red": "!", "amber": "◷", "neutral": "—"}[color]
+    return ('<span class="fetch-badge fetch-' + color + '" data-intraday-state="' + state
+            + '"><span aria-hidden="true">' + icon + '</span> ' + label + '</span>')
+
+
+def _intraday_count(value: object) -> str:
+    return "Unknown" if _count(value) == "—" else _count(value)
+
+
+def _intraday_has_issues(record: Mapping[str, Any]) -> bool:
+    return any(type(record.get(key)) is int and record[key] > 0
+               for key in ("failed_requests", "unresolved_requests"))
+
+
+def _intraday_calendar_marker(record: Mapping[str, Any], day_date: str) -> str:
+    state = _text(record, "state", "unknown")
+    state = state if state in _INTRADAY_STATES else "unknown"
+    label, color = _INTRADAY_STATES[state]
+    icon = {"green": "✓", "red": "!", "amber": "◐", "neutral": "·"}[color]
+    description = "Intraday Options · " + _date_label(day_date) + " · " + label
+    return (
+        '<a class="fetch-marker fetch-intraday-marker fetch-marker-' + color
+        + '" data-fetch-intraday-marker="' + _escape(day_date) + '" data-intraday-state="' + state
+        + '" href="' + _escape(_day_url(day_date)) + '#fetch-intraday-heading" title="'
+        + _escape(description) + '" aria-label="' + _escape(description + '. View this day’s intraday evidence.') + '">'
+        '<span class="fetch-marker-icon" aria-hidden="true">' + icon + '</span>'
+        '<span class="fetch-marker-code" aria-hidden="true">IO</span>'
+        '<span class="fetch-marker-label" aria-hidden="true">Intraday Options</span></a>'
+    )
+
+
+def _intraday_selected_day(status: Mapping[str, Any], selected_date: str) -> str:
+    day = next((row for row in _records(status.get("calendar_days"))
+                if _text(row, "date") == selected_date), {})
+    historical = status.get("selected_session") if isinstance(status.get("selected_session"), Mapping) else {}
+    if _text(historical, "date") != selected_date:
+        historical = {}
+    request_counts = "".join(
+        '<div><dt>' + label + '</dt><dd>' + _intraday_count(day.get(key)) + '</dd></div>'
+        for key, label in (("successful_requests", "Successful requests"),
+                           ("failed_requests", "Failed requests"), ("unresolved_requests", "Unresolved requests"))
+    )
+    state = _text(day, "state", "unknown")
+    has_issues = _intraday_has_issues(day) or state in {"failed", "partial", "stale"}
+    brief = ("Request issues recorded" if has_issues else
+             "Scheduled session" if state == "scheduled" else
+             "Evidence unavailable" if state == "unknown" else "Selected-day intraday activity")
+    return (
+        '<section class="fetch-intraday" aria-labelledby="fetch-intraday-heading" data-intraday-options data-intraday-history>'
+        '<div class="fetch-focus-title fetch-intraday-compact-title">'
+        '<h3 id="fetch-intraday-heading" tabindex="-1">Intraday Options</h3></div>'
+        '<div class="fetch-intraday-statuses" data-intraday-compact-states><div><span>Collection</span>'
+        + _intraday_badge(state) + '</div></div>'
+        '<p class="fetch-description' + (' fetch-intraday-attention' if has_issues else '')
+        + '" data-intraday-brief>' + brief + ' · ' + _escape(_date_label(selected_date)) + '</p>'
+        '<details class="fetch-intraday-disclosure" data-intraday-details><summary>Run details</summary>'
+        '<div class="fetch-intraday-expanded"><p class="fetch-kicker">Selected day · intraday activity</p>'
+        '<p class="fetch-intraday-context">' + _escape(_date_label(selected_date, full=True)) + '</p>'
+        '<p class="fetch-intraday-message">' + _escape(_text(day, "message", "Intraday request evidence is unavailable for this date."))
+        + '</p><dl class="fetch-intraday-request-counts">' + request_counts + '</dl>'
+        '<dl class="fetch-intraday-history-metrics"><div><dt>Observations</dt><dd>'
+        + _intraday_count(historical.get("observations")) + '</dd></div><div><dt>Symbols observed</dt><dd>'
+        + _intraday_count(historical.get("symbols")) + '</dd></div><div><dt>Last observation</dt><dd>'
+        + _instant(historical.get("last_observed_at")) + '</dd></div><div><dt>Last request attempt</dt><dd>'
+        + _instant(day.get("last_attempt_at")) + '</dd></div></dl>'
+        '<p class="fetch-intraday-queue-note">' + _escape(_text(historical, "note", "Coverage detail is unavailable for this selected date."))
+        + '</p><p class="fetch-intraday-footnote">Request totals describe this date and do not prove a complete session. '
+        'Intraday requests are separate from daily batch slots.</p></div></details></section>'
+    )
+
+
+def _intraday_options(value: object, *, selected_date: str) -> str:
+    """Present supplied monitor evidence; health and freshness belong to the reader."""
+    status = value if isinstance(value, Mapping) else {}
+    if selected_date != _text(status, "operating_date"):
+        return _intraday_selected_day(status, selected_date)
+    collection = status.get("collection") if isinstance(status.get("collection"), Mapping) else {}
+    delivery = status.get("delivery") if isinstance(status.get("delivery"), Mapping) else {}
+    scheduler = status.get("scheduler") if isinstance(status.get("scheduler"), Mapping) else {}
+    session = status.get("session") if isinstance(status.get("session"), Mapping) else {}
+    operating_date = _text(status, "operating_date")
+    current_date = _date_label(operating_date) if operating_date else "Date unavailable"
+    collection_state = _text(collection, "state", "unknown")
+    coverage_label, coverage_key = (("Symbols observed / configured", "symbols_observed")
+                                    if collection_state in {"closed", "paused"}
+                                    else ("Fresh symbols / configured", "fresh_symbols"))
+    delivery_state = _text(delivery, "state", "unknown")
+    collection_message = _text(collection, "message", "Collection evidence is unavailable.")
+    delivery_message = _text(delivery, "message", "Upload queue evidence is unavailable.")
+    session_label = {"open": "Market open", "closed": "Market closed", "unknown": "Market session unknown"}.get(
+        _text(session, "state"), "Market session unknown")
+    scheduler_label = {"enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown"}.get(
+        _text(scheduler, "state"), "Unknown")
+    cadence = {record.get("minutes"): record for record in _records(status.get("cadence"))
+               if type(record.get("minutes")) is int and record["minutes"] in {5, 10, 15, 30}}
+    cadence_rows = []
+    for minutes in (5, 10, 15, 30):
+        row = cadence.get(minutes, {})
+        cadence_rows.append(
+            '<div class="fetch-intraday-cadence" data-intraday-cadence="' + str(minutes) + '">'
+            '<div><h5>Every ' + str(minutes) + ' min</h5>'
+            + _intraday_badge(_text(row, "state", "unknown")) + '</div>'
+            '<dl><div><dt>Symbols observed</dt><dd>' + _intraday_count(row.get("symbols_observed"))
+            + '</dd></div><div><dt>Last observation</dt><dd>' + _instant(row.get("last_observed_at"))
+            + '</dd></div></dl></div>'
+        )
+    current_context = ('Current operating state · ' + _escape(current_date) + ' · ' + session_label)
+    has_issues = _intraday_has_issues(collection) or collection_state in {"failed", "partial", "stale"}
+    brief = ("Request issues recorded · review run details." if _intraday_has_issues(collection) else {
+        "current": "Continuous collection · 5–30 min cadence.",
+        "closed": "Outside the trading session · 5–30 min cadence.",
+        "paused": "Collection paused · saved observations retained.",
+        "waiting": "Awaiting observations for the current session.",
+        "stale": "Saved observations are behind the configured cadence.",
+        "failed": "Collection needs attention · review run details.",
+        "partial": "Partial collection · review run details.",
+    }.get(collection_state, "Collection evidence is unavailable."))
+    if status.get("available") is not True:
+        brief = "Monitor evidence is unavailable."
+    unavailable = ('<p class="fetch-intraday-unavailable" data-intraday-unavailable>'
+                   + _escape(_text(status, "reason", "Monitor evidence is unavailable. Unknown values are not zero."))
+                   + '</p>') if status.get("available") is not True else ""
+    return (
+        '<section class="fetch-intraday" aria-labelledby="fetch-intraday-heading" data-intraday-options>'
+        '<div class="fetch-focus-title fetch-intraday-compact-title">'
+        '<h3 id="fetch-intraday-heading" tabindex="-1">Intraday Options</h3></div>'
+        '<div class="fetch-intraday-statuses" data-intraday-compact-states><div><span>Collection</span>'
+        + _intraday_badge(collection_state) + '</div><div><span>Dashboard delivery</span>'
+        + _intraday_badge(delivery_state, delivery=True) + '</div></div>'
+        '<p class="fetch-description' + (' fetch-intraday-attention' if has_issues else '')
+        + '" data-intraday-brief>' + brief + '</p>'
+        '<details class="fetch-intraday-disclosure" data-intraday-details><summary>Run details</summary>'
+        '<div class="fetch-intraday-expanded"><div class="fetch-section-header"><p class="fetch-kicker">Current monitor snapshot</p>'
+        '<p class="fetch-intraday-checked">Checked <span>' + _instant(status.get("checked_at")) + '</span></p></div>'
+        '<p class="fetch-intraday-context">' + current_context + '</p>' + unavailable
+        + '<div class="fetch-intraday-summary"><section aria-labelledby="fetch-intraday-collection-heading">'
+        '<div class="fetch-intraday-title"><h4 id="fetch-intraday-collection-heading">Collection</h4>'
+        + _intraday_badge(collection_state) + '</div><p class="fetch-intraday-message">'
+        + _escape(collection_message) + '</p><dl class="fetch-intraday-metrics">'
+        '<div><dt>Last observation</dt><dd>' + _instant(collection.get("last_observed_at")) + '</dd></div>'
+        '<div><dt>' + coverage_label + '</dt><dd>' + _intraday_count(collection.get(coverage_key))
+        + ' <span>/ ' + _intraday_count(collection.get("symbols_configured")) + '</span></dd></div></dl></section>'
+        '<section aria-labelledby="fetch-intraday-delivery-heading"><div class="fetch-intraday-title">'
+        '<h4 id="fetch-intraday-delivery-heading">Dashboard delivery</h4>' + _intraday_badge(delivery_state, delivery=True)
+        + '</div><p class="fetch-intraday-message">' + _escape(delivery_message)
+        + '</p><dl class="fetch-intraday-metrics"><div><dt>Pending uploads</dt><dd data-intraday-pending>'
+        + _intraday_count(delivery.get("pending_count")) + '</dd></div></dl>'
+        '<p class="fetch-intraday-queue-note">Local upload queue only. A clear queue does not confirm the remote dashboard is current.</p>'
+        '</section></div><div class="fetch-intraday-cadence-heading"><h4>Collection cadence</h4>'
+        '<p>Saved observations by configured interval · Eastern time</p></div>'
+        '<div class="fetch-intraday-cadences">' + ''.join(cadence_rows) + '</div>'
+        '<div class="fetch-intraday-details">'
+        '<dl><div><dt>Last collection attempt</dt><dd>' + _instant(collection.get("last_attempt_at"))
+        + '</dd></div><div><dt>Last completed cycle</dt><dd>' + _instant(collection.get("last_completed_at"))
+        + '</dd></div><div><dt>Symbols observed</dt><dd>' + _intraday_count(collection.get("symbols_observed"))
+        + '</dd></div><div><dt>Symbols pending</dt><dd>' + _intraday_count(collection.get("pending_symbols"))
+        + '</dd></div><div><dt>Failed requests</dt><dd>' + _intraday_count(collection.get("failed_requests"))
+        + '</dd></div><div><dt>Unresolved requests</dt><dd>' + _intraday_count(collection.get("unresolved_requests"))
+        + '</dd></div><div><dt>Scheduler</dt><dd>' + scheduler_label
+        + '</dd></div><div><dt>Next cycle</dt><dd>' + _instant(scheduler.get("next_run_at"))
+        + '</dd></div><div><dt>Last upload attempt</dt><dd>' + _instant(delivery.get("last_upload_attempt_at"))
+        + '</dd></div><div><dt>Pending alerts</dt><dd>' + _intraday_count(delivery.get("pending_alerts"))
+        + '</dd></div></dl></div>'
+        + '<p class="fetch-intraday-footnote">Intraday observations are separate from daily batch slots and their totals. '
+        'Refresh the page to update this snapshot.</p></div></details></section>'
+    )
+
+
 def render_fetch_status_content(snapshot: Mapping[str, Any], *, linked_data: bool = False) -> str:
     """Render supplied schedules and outcomes without executing or inferring jobs."""
     selected = _text(snapshot, "selected_date")
@@ -406,11 +600,14 @@ def render_fetch_status_content(snapshot: Mapping[str, Any], *, linked_data: boo
     month_start = _text(snapshot, "month_start")
     month = _escape(_month_label(month_start))
     codes = _batch_codes(days)
-    calendar = _month_grid(days, month_start, codes)
+    intraday = snapshot.get("intraday_options") if isinstance(snapshot.get("intraday_options"), Mapping) else {}
+    intraday_days = {_text(row, "date"): row for row in _records(intraday.get("calendar_days"))}
+    calendar = _month_grid(days, month_start, codes, intraday_days)
     batch_key = "".join(
         '<li><span class="fetch-code-key">' + _escape(code) + '</span>' + _escape(label) + '</li>'
         for code, label in codes.values()
     )
+    batch_key += '<li><span class="fetch-code-key">IO</span>Intraday Options · continuous monitor</li>'
     timeline = _focus_timeline(focus, linked_data=linked_data)
     notices = "".join('<li>' + _escape(note) + '</li>' for note in _items(snapshot.get("notices")) if isinstance(note, str))
     unavailable = "".join(
@@ -447,18 +644,20 @@ def render_fetch_status_content(snapshot: Mapping[str, Any], *, linked_data: boo
 <span><i class="fetch-legend-failed" aria-hidden="true">!</i> Recorded failure</span>
 </div>
 <p class="fetch-calendar-note">One marker per batch each day. Partial Success means some work completed; failed runs keep their failure marker. Select a marker for exact slots and recorded outcomes.</p>
+<p class="fetch-calendar-note fetch-intraday-calendar-note">IO shows intraday activity for each date. Recorded requests do not prove a complete session; closed, scheduled and unknown states remain separate. Intraday pulls are not counted as daily batch slots.</p>
 <div class="fetch-weekdays" aria-hidden="true"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
 <div class="fetch-month-grid" data-fetch-month aria-label="{month} calendar">{calendar}</div>
 <ul class="fetch-batch-key" aria-label="Batch abbreviations">{batch_key}</ul>
 {calendar_end}
 <section class="fetch-focus" data-fetch-focus tabindex="0" aria-labelledby="fetch-focus-heading">
 <div class="fetch-section-header"><div><p class="fetch-kicker">{_escape(_date_label(selected, full=True))}</p><h2 id="fetch-focus-heading">{focus_title}</h2></div>
-<div class="fetch-summary" aria-label="Selected day outcomes"><span><strong>{_count(summary.get('total'))}</strong> slots</span>
+<div class="fetch-summary" aria-label="Selected day batch outcomes"><span><strong>{_count(summary.get('total'))}</strong> slots · daily batches</span>
 <span class="fetch-count-green"><strong>{_count(summary.get('green'))}</strong> completed</span>
 <span class="fetch-count-amber"><strong>{_count(summary.get('partial', 0))}</strong> partial success</span>
 {warning_summary}
 <span class="fetch-count-amber"><strong>{_count(summary.get('pending', summary.get('amber')))}</strong> pending / unconfirmed</span>
 <span class="fetch-count-red"><strong>{_count(summary.get('red'))}</strong> failed</span></div></div>
+{_intraday_options(snapshot.get('intraday_options'), selected_date=selected)}
 <ol class="fetch-timeline">{timeline}</ol></section>
 {_equibles_progress(snapshot.get('equibles'))}
 {unavailable_markup}

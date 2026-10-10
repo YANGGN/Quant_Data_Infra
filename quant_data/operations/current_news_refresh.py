@@ -147,6 +147,9 @@ def _utc_text(value: datetime, *, hour: bool = False) -> str:
 
 
 def _failure_details(error: Exception) -> tuple[int, str]:
+    from .collection_provider_policy import FmpRequestNotDispatched
+    if isinstance(error, FmpRequestNotDispatched):
+        return 75, "fmp_not_dispatched"
     if isinstance(error, ValidationError):
         return 64, "invalid_request"
     if isinstance(error, StoreUnavailableError):

@@ -31,8 +31,9 @@ class SiteClient:
         if config["site_url"]!=ORIGIN:raise ValueError("monitor_site_origin")
         self.config=config
         self.opener=opener or build_opener(HTTPSHandler(),NoRedirect())
-    def request(self,path,payload=None):
-        if path not in ("/api/collector/config","/api/collector/publish","/api/collector/daily"):
+    def request(self,path,payload=None,*,timeout=15):
+        if not 0<timeout<=15:raise ValueError("monitor_site_timeout")
+        if path not in ("/api/collector/config","/api/collector/publish","/api/collector/daily","/api/collector/baselines"):
             raise ValueError("monitor_site_route")
         url=ORIGIN+path
         parsed=urlsplit(url)
@@ -45,7 +46,7 @@ class SiteClient:
         if body is not None:headers["Content-Type"]="application/json"
         req=Request(url,data=body,headers=headers,method="GET" if body is None else "POST")
         try:
-            with self.opener.open(req,timeout=15) as response:
+            with self.opener.open(req,timeout=timeout) as response:
                 if response.status!=200 or response.url!=url:raise ValueError("monitor_site_response")
                 raw=response.read(1048577)
                 if len(raw)>1048576:raise ValueError("monitor_site_response_cap")

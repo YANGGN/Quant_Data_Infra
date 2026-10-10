@@ -76,6 +76,26 @@ class DedicatedHistoryTests(unittest.TestCase):
         self.assertEqual((root/'started.json').read_bytes(),start)
         self.assertEqual(json.loads((root/'continuation.json').read_bytes())['remaining_requests'],13871)
 
+    def test_failed_symbol_is_terminal_while_other_history_windows_continue(self):
+        f=fixtures.SelectedPriceTests('runTest');f.setUp();self.addCleanup(f.doCleanups)
+        temp=tempfile.TemporaryDirectory(dir='/tmp');self.addCleanup(temp.cleanup);root=Path(temp.name)/'history'
+        calls=[];row=json.loads(f.body)[0]
+        def fetch(*,unit,timeout_seconds,max_bytes):
+            calls.append(unit.subject)
+            if unit.subject=='AAPL':raise TimeoutError('fixture failure')
+            params=dict(unit.parameters)
+            body=json.dumps([{**row,'symbol':unit.subject}]).encode() if params['to']=='2026-09-08' else b'[]'
+            return QueueResponse(200,body,fixtures.CUT)
+        result=run_history(root=root,stores=f.f.stores,selection=f.scope,collector=f.collector,fetch=fetch,
+            targets=tuple(HistoryTarget(s.provider_symbol,'2026-01-01') for s in f.scope.eligible),
+            end='2026-09-08',cutoff=fixtures.CUT,
+            utcnow=lambda:datetime.fromisoformat(fixtures.CUT.replace('Z','+00:00')))
+        self.assertEqual(calls.count('AAPL'),1)
+        self.assertEqual(calls.count('BRK-B'),2)
+        self.assertEqual(result['outcome'],'complete_with_gaps')
+        self.assertEqual(result['completed_symbols'],1)
+        self.assertGreater(result['uncertain_bytes'],0)
+
 class ForwardClockTests(unittest.TestCase):
     def test_wait_returns_real_forward_clock_without_fabricating_timestamp(self):
         from quant_data.operations.collection_queue import BoundedForwardClock

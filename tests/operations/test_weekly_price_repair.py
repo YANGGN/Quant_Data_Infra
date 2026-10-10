@@ -276,10 +276,12 @@ class WeeklyPublicationTests(unittest.TestCase):
 
     def test_uncertain_acquisition_is_charged_and_not_retried(self):
         result=self.run_week(explode=True)
-        self.assertEqual(len(self.calls),1)
-        self.assertEqual(result["requests"],1)
-        self.assertEqual(result["failure"],"ConflictError")
-        self.assertIsNotNone(weekly._read(self.root/"queue/ledger.json")["pending"])
+        self.assertEqual(len(self.calls),4)
+        self.assertEqual(result["requests"],4)
+        self.assertIsNone(result["failure"])
+        self.assertIsNone(weekly._read(self.root/"queue/ledger.json")["pending"])
+        self.assertEqual(result["uncertain_bytes"],4*65536)
+        self.assertEqual(len({u.unit_id for u in self.calls}),4)
 
     def test_incomplete_response_is_retained_and_reported(self):
         result=self.run_week(partial=True)
@@ -356,6 +358,12 @@ class WeeklyPublicationTests(unittest.TestCase):
         self.root = project / weekly.STATE / END
         private_directory(self.root.parent)
         prior = self.run_week(explode=True)
+        # Recreate an interrupted admission, distinct from a settled failure.
+        state=weekly._read(self.root/"queue/ledger.json")
+        attempt=max((json.loads(p.read_bytes()) for p in (self.root/"queue/attempts").glob("*.json")),
+                    key=lambda value:value["attempt"])
+        state["pending"]=attempt;state["units"].pop(attempt["unit_id"])
+        atomic(self.root/"queue/ledger.json",state,replace=True)
         atomic(self.root/"started.json", {"at":CUT, "scope":self.f.scope.scope_sha256})
         atomic(self.root/"result.json", prior)
         with patch.object(weekly, "ROOT", project), patch.object(weekly, "host_fetch") as fetch:

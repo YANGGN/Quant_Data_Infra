@@ -366,7 +366,26 @@ def _failure_details(error: Exception) -> tuple[int, str]:
     if isinstance(error, StoreUnavailableError):
         return 69, "store_unavailable"
     if isinstance(error, ResourceLimitError):
-        return 74, "local_io"
+        # Closed code-owned phrases only: no provider text or credentials.
+        messages = {
+            "CFTC COT provider response exceeds its byte bound": "response_byte_limit",
+            "CFTC COT response exceeds its byte bound": "response_byte_limit",
+            "CFTC COT response exceeds its row bound": "row_limit",
+            "CFTC COT normalized result exceeds its row bound": "row_limit",
+            "NY Fed primary-dealer catalog exceeds its row bound": "row_limit",
+            "NY Fed primary-dealer history exceeds its row bound": "row_limit",
+            "NY Fed primary-dealer selected catalog exceeds its key bound": "series_limit",
+            "NY Fed primary-dealer responses exceed their total byte bound": "total_response_byte_limit",
+            "CFTC COT provider pagination exceeds its page bound": "pagination_limit",
+            "NY Fed provider response exceeds its byte bound": "response_byte_limit",
+            "NY Fed primary-dealer request exceeds its page bound": "pagination_limit",
+            "NY Fed primary-dealer request exceeds its time bound": "duration_limit",
+            "NY Fed primary-dealer responses exceed total byte bound": "total_response_byte_limit",
+        }
+        return 74, messages.get(str(error), "resource_limit")
+    from .collection_provider_policy import FmpRequestNotDispatched
+    if isinstance(error, FmpRequestNotDispatched):
+        return 75, "fmp_not_dispatched"
     if isinstance(error, (RegistryError, ConflictError)):
         return 75, "temporary_conflict"
     return 70, "internal_failure"

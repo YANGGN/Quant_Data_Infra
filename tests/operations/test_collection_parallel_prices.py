@@ -54,12 +54,16 @@ class ParallelPriceTests(unittest.TestCase):
         self.assertLess(result['requests'],20);self.assertEqual(result['retained_responses'],result['requests'])
         self.assertEqual(self.state()['stopped']['status'],429);self.assertIsNone(self.state()['pending'])
         with self.assertRaises(ConflictError):self.gate.invoke(lambda _:self.fail('No HTTP'),request_identity='f'*64,priority='maintenance',deadline=100)
-    def test_unknown_request_keeps_charge_and_blocks_legacy_without_retry(self):
+    def test_unknown_requests_keep_charges_and_allow_independent_legacy_work(self):
         result=acquire_batch(root=self.root/'batch',gate=self.gate,units=self.units(),credential='synthetic',deadline=100,
             max_total_bytes=100000,ticket_factory=self.factory(crash=True),clock=self.clock,monotonic=lambda:self.elapsed,sleeper=self.sleep)
-        self.assertEqual(result['requests'],1);self.assertEqual(self.state()['usage']['2026-09-10'],6)
-        self.assertIsNotNone(self.state()['pending'])
-        with self.assertRaises(ConflictError):self.gate.invoke(lambda _:self.fail('No HTTP'),request_identity='f'*64,priority='maintenance',deadline=100)
+        self.assertEqual(result['requests'],20);self.assertEqual(self.state()['usage']['2026-09-10'],25)
+        self.assertEqual(result['outcome'],'complete_with_gaps')
+        self.assertEqual(result['failed_requests'],20)
+        self.assertIsNone(self.state()['pending']);self.assertIsNone(self.state()['stopped'])
+        self.gate.invoke(lambda _:SimpleNamespace(status=200),request_identity='f'*64,priority='maintenance',deadline=100)
+        self.assertEqual(self.state()['usage']['2026-09-10'],26)
+        with self.assertRaises(ConflictError):self.run_batch()
     def test_maintenance_reserve_and_byte_reservations_limit_parallel_starts(self):
         s=self.state();s['usage']['2026-09-10']=89;atomic(self.gate.root/'allowance.json',s,replace=True)
         result=self.run_batch();self.assertEqual(result['requests'],1);self.assertEqual(result['outcome'],'daily_budget')

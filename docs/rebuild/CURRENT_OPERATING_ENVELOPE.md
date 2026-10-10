@@ -6838,6 +6838,1469 @@ existing chart-adapter checks, 14 grouped local browser scenarios, TypeScript,
 build and visual review passed. See the monitor contract and
 .local/options-monitor-history-visual/completion.json.
 
+September 30 historical baseline decision: the user approved implementation of
+a one-time last-30-completed-session intraday volume bootstrap for all configured
+2,266 symbols, after the proposal to retain compact aggregates and discard raw
+contracts. This is distinct from the completed canonical daily ETF populations.
+The monitor contract's September 30 section owns semantics and executable entrypoints.
+
+Site version 9 was published successfully at 2026-09-30T18:42:02.328221Z,
+source c5bc2f70a60c89ebd956a7b6a12fa61049bcb3fb, deployment
+appgdep_6abd57f06d288191a6f16df2a2627e87. Existing custom audience is preserved.
+It adds a schema-only baseline_days migration, authenticated baseline publication,
+combined seeded/live retention and historical references for the volume charts.
+Publication does not prove that historical provider data has been acquired.
+
+The local additive monitor extension was initialized using the established store
+lock and preserves v1 schema bytes. A cached-calendar read initially refused an
+active writer; no provider request occurred. New checkpoint reads now coordinate
+with that physical lock, and publication checks its deadline again after waiting.
+
+First finite pilot manifest:75fd87930918cdb646302ac1, SPY and AAPL for 2026-09-29,
+max 50 data requests,536870912 received bytes, one worker, no retries, frozen
+deadline 2026-09-30T18:57:56.649705+00:00. Existing THETA_DATA_API credential resolver
+and monitor.sqlite path apply. Manifest creation is not proof of execution.
+Bulk target is 67,980 ticker-days,2026-08-18 through2026-09-29; bulk caps and actual
+execution evidence are recorded after the pilot. No recurring-unit change,
+canonical write, WSL restart, new credential mechanism or parent commit/push.
+
+
+Bulk activation evidence: manifest 3945de19fd57d7962b641384 freezes 2,266 symbols,
+30 completed sessions 2026-08-18..2026-09-29,599,997 new data requests,
+68,719,260,515 received bytes and deadline 2026-10-14T18:50:29.754535+00:00.
+A finite detached Linux process (PID 794587 at activation) is confirmed alive,
+sleeping until 17:00 ET, with zero bulk requests admitted at the post-check.
+This is a single finite process, not a new recurring unit. It terminates on a
+provider failure or frozen cap/deadline, and has no implicit retry or restart.
+Current PID evidence is dated, not a future live-state guarantee.
+
+The pilot used 3 data requests/216,221 bytes; catalog and one expiry succeeded,
+then UNAUTHENTICATED stopped the next expiry. Zero complete baseline days were
+saved or published. Successful expiry bins and sanitized receipts remain as
+checkpoints. A one-request after-hours retry was requested from the user;
+without that explicit decision the rejected admission stays skipped.
+Normal collection was not restarted or manually triggered.
+See .local/options-monitor-baseline-20260930/{pilot-plan.json,pilot-result.json,
+bulk-plan.json,bulk-activation.json,validation.json,browser-review.json}.
+
+
+September 30 ten-worker backfill activation: the user requested improved
+throughput and ten concurrent workers. The finite run remains
+3945de19fd57d7962b641384 with its original2,266 symbols,30 sessions,
+599,997-request /68,719,260,515-byte caps and
+2026-10-14T18:50:29.754535+00:00 deadline. The runner uses10 work slots and at
+most4 active Theta requests, one shared login and isolated worker channels;
+no per-worker budget reset, retry or recurring-unit change. It publishes pending
+days on startup and after each ticker. The monitor contract owns the new drain
+windows and graceful-stop behavior. Multi-day ranges and vectorization were
+investigated but are not activated.
+
+Guarded handover at2026-09-30T22:17:01.136715+00:00 stopped only the exact old
+PID794587 while holding the established physical store lock, after proving zero
+started admissions,67 pending days below the old publication threshold, and an
+unvisited final ticker-day excluding the old final flush. All1,870 successful
+request receipts and67 complete days remained. The first55-second idle search
+made no change; the second found the boundary. No in-flight call was cancelled.
+
+The same plan resumed as finite PID855551 at2026-09-30T22:17:40.610248+00:00,
+with startup usage1,870 requests/86,586,014 received bytes,10 workers and4 API
+slots. At22:18:26.929150+00:00, there were1,907 successful requests,4 started,
+92,133,214 bytes in completed receipts, and all67 days acknowledged by the Site
+(DIA30,IWM30,QQQ7). These are dated observations, not a completion claim.
+Failed pilot SPY admission remains excluded. Existing recurring units and
+canonical stores were not changed or manually triggered; WSL was not restarted.
+
+Validation:97 focused monitor checks passed initially;29 baseline checks passed
+on the final behavioral changes (98 distinct monitor checks across these runs).
+Independent parallel/shared-auth review reran10 checks successfully after the
+morning drain margin, final-publication handover guard and deterministic fixture
+corrections. No full-suite trigger. Evidence:
+.local/options-monitor-baseline-20260930/{worker-handover.json,
+workers-activation.json,workers-postcheck.json,workers-validation.json}.
+
+
+September30 multi-day/vectorization test: the user explicitly requested checking
+all-expiry coverage and testing multi-day retrieval plus vectorization. The
+bounded experiment announced before execution was XLB2026-08-14 and2026-08-17,
+all traded expiries, at most40data requests/128MiB/600seconds, with four planned
+single-day controls, no retry and no production rollout. This is a separate
+initial comparison workload outside the active bulk date window, not a rerun
+of an already completed intraday population. Existing THETA_DATA_API resolution,
+transport bounds and baseline execution lock were reused; no canonical writes,
+raw retention, recurring-unit change or external-hosting change occurred.
+
+Finite backfill PID855551 drained onSIGTERM and exited at
+2026-09-30T22:35:45.584833+00:00 with2,691success/zero started admissions.
+The experiment used19unique request identities, all19finished receipts and
+182,869received bytes; no failures or unresolved admissions. It covered13expiries
+and every catalog contract on both dates; all four daily controls and all
+scalar/NumPy reductions matched. Correctness is confirmed for this sample;
+performance does not justify enabling batching/vectorization across the universe.
+The source gate passed12independent offline checks;43distinct focused checks
+passed across the initial40-check run and final12-probe-check run.
+
+The original finite manifest3945de19fd57d7962b641384 resumed at
+2026-09-30T22:37:44.729242+00:00 asPID866424,10workers/4API slots, with startup
+usage2,691requests/178,083,694bytes and unchanged frozen caps/deadline. At
+22:38:49.956752+00:00, it had2,743success/4started admissions and30days each for
+DIA,IWM,QQQ saved and Site-acknowledged. No experimental dates were inserted
+into monitor.sqlite. These are dated observations; the full universe remains
+in progress. The fixed experiment must not be rerun without a newly named
+finite repeat scope. Evidence lives under
+.local/options-monitor-batch-probe-20260930/{summary.json,live-admissions.jsonl,
+live-result.json,bulk-pause.json,bulk-resume.json,bulk-postcheck.json}.
+
+## September 30, 2026 live-fetch failure repair
+
+The user requested investigation of September 30 fetch failures and then
+explicitly approved fixing the proposed issues. After focused checks and fresh
+independent verification, the known-unsent FMP stop for attempt
+2026-09-30-8204 was reconciled at 2026-10-01T00:39:04.706792Z
+(September 30, 20:39 Eastern). The exact pre-state SHA-256 was
+cc7ca1fd87d408664909143493b882b0653b7520ed4af738b6a4dc689700dc97;
+the resulting SHA-256 was
+9676ea5bc388f563c255fbea7dd5d597ff4276af1ecf1cb0915dfbd4b407b11b.
+Only stopped changed to null. Pending remained null; all usage and policy
+were preserved, including the September 30 charged count of 8,204.
+The original ledger bytes and reservation hash were retained before the change
+in data/.operations/provider-allowances/fmp/reconciliations/2026-09-30-8204.json.
+
+The repair made zero provider requests, refunded zero charges, changed no
+canonical data and changed no recurring unit. It does not authorize catch-up,
+a repeat of any failed population, or a new manual diagnostic request.
+Future authorized clock executions retain their existing finite scopes.
+
+Source changes prevent the same proven-unsent expiry from stopping the entire
+FMP account again, preserve terminal queue/news auditing, align standalone
+SEC row and semantic-serialization bounds with the generic bundle parser,
+fix overlapping SEC summary counts, and improve safe macro/Theta diagnostics.
+The five exact retained large-bank responses all parsed end-to-end with
+11,629-26,408 filings, without publication or new requests.
+
+A bounded immutable company read under the physical store lock compared the
+ten September 30 filing-metadata holds. Each first conflict involved an
+acceptance/availability timestamp four or five hours later in incoming
+evidence; other shared filing fields matched. The holds remain unchanged.
+An evidence-preserving timestamp correction requires separate semantic review;
+simply relaxing the conflict guard would affect historical availability.
+
+Validation: the initial 241-test component/adjacent run had no failures and
+two SDK-only skips; both passed separately in the pinned Theta runtime.
+Final corrections passed their affected checks, including an 18-test repair
+suite, a 43-test SEC run, a 53-test SEC/Theta run (one previously covered SDK
+skip), and a 14-test macro/diagnostic run. The new news terminal-audit case
+passed. Independent review passed 81 unique checks with zero skips, including
+the corrected standalone AAPL bounds and credential-redaction cases.
+Five tests in the older stock-news wrapper module fail during fixture setup
+because migration news:0010 references a missing predecessor table. The same
+failure was reproduced with the unchanged HEAD importer loaded in memory;
+it is separate from these repairs.
+
+Evidence: .local/fetch-fixes-20260930/{fmp-reconciliation.json,
+retained-sec-parsers.json,sec-conflict-differences.json,validation.json}.
+No manual Theta probe was authorized or performed at this checkpoint.
+The new diagnostic code does not establish the cause of its INVALID_ARGUMENT
+responses or of the two macro resource-limit failures.
+
+
+## September 30, 2026 options baseline local-first recovery
+
+The user requested fixing and resuming the stopped backfill, with downloading,
+aggregation and local saving completed before one final Site upload phase.
+This supersedes per-ticker publication for run 3945de19fd57d7962b641384 only.
+The same 2,266 symbols and 30 sessions (August 18 through September 29, 2026),
+599,997-request / 68,719,260,515-byte caps and October 14, 2026
+18:50:29.754535 UTC deadline remain frozen. Ten workers share at most four
+active provider requests. Existing pause windows and failed-attempt exclusions
+remain; the failed SPY pilot is not retried. No recurring unit is changed.
+
+The prior process stopped on an SSL read timeout in Site publication after
+17,147 successful requests / 661,509,877 received bytes, with zero unresolved
+admissions. It retained 937 ticker-days, including 30 ABBV days awaiting local
+publication acknowledgment; 907 other days were acknowledged. A missing
+acknowledgment does not prove the Site rejected the timed-out request.
+
+The repaired runner defers all Site configuration and requests until the
+collection pass is resolved, then publishes compact aggregates in bounded
+25-day chunks. Completed days and explicit terminal gaps are reported
+separately; unresolved or unfinished collection blocks publication.
+An explicit upload-only command can recover unacknowledged chunks without any
+Theta requests, under the same deadline. There is no automatic upload retry.
+Activation evidence follows after focused and independent verification.
+
+
+Activation: resumed at 2026-10-01T01:52:59.569641Z (September 30, 21:52 ET)
+as PID 1093007, with --workers 10 --api-concurrency 4 --wait. Preflight verified
+the frozen manifest, absent prior process, available baseline mutex and zero
+unresolved admissions. Remaining allowances were 582,850 requests and
+68,057,750,638 bytes. All 937 saved days and 907 publication acknowledgments
+were preserved. The completion census also identified 53 explicit gaps:
+AAMI 9, AAPG 30 and AAT 13 empty catalogs, plus the prior failed SPY pilot day.
+Those gaps are not reported as saved data or retried.
+
+Primary and fresh independent verification each passed the same 37 focused
+baseline/monitor-transport tests without skips. Scoped whitespace checks passed.
+The source hashes, checkpoint, launch and subsequent postcheck evidence are in
+.local/options-monitor-local-first-20260930/. No provider probe, recurring-unit
+change or Site upload was performed as a preflight check.
+
+
+Bounded postcheck at 2026-10-01T01:54:03.209130Z confirmed PID 1093007 running,
+17,484 successful requests and four active admissions, with 1,003 saved days
+(66 added since resume). Completed receipts totaled 662,855,748 bytes.
+Publication acknowledgments remained 907 and the log had no upload phase;
+the latest admitted symbol was ABM. This proves initial resumed progress,
+not completion of the 67,980 planned ticker-days.
+
+## September 30, 2026 - request-local FMP failures
+
+Following the earlier authorized failed-job recovery, the user explicitly
+rejected an account-wide block for CMP's missing/unusable response and directed
+that it be flagged while other jobs continue. This supersedes the earlier
+ambiguous-dispatch and server-error global hold; it grants no extra provider
+requests, retries, dates or duration beyond each authorized workload.
+[SCHEDULING_AND_LOCKING.md](SCHEDULING_AND_LOCKING.md#september-30-2026---isolate-failed-fmp-requests)
+owns the revised execution mechanics.
+
+The preceding recovery published 199 of 2,357 price symbols (506 price versions).
+CMP was its 200th request and had no retained response; 2,157 symbols were not
+attempted. Its uncertain dispatch is not claimed to be an HTTP error, a provider
+account block, or a proven-unsent request.
+
+At 2026-10-01T01:57:14.563162+00:00, account attempt 2026-10-01-202 was flagged as unknown
+and its pending reservation retired under the existing account lock, using
+exact before SHA-256 5f2b411916328503df50fd063dc1ea7624e344626f64c550b6ce8c9adbea9f74. The resulting account SHA-256 was 419e087c3cbc900ab63ad5c5fedada269590d546f604daad73e81cd790654502.
+The CMP queue unit was similarly recorded as a terminal failed request using
+its original saved plan with an already-expired execution deadline. Both
+pending flags were verified null and the account stopped flag was null.
+All charges remained: account October 1 usage 202 and recovery queue 200.
+The queue reserved 65,536 unknown response bytes. All 199 retained response
+hashes and 199 publication receipts were verified and preserved.
+
+This policy repair and reconciliation made zero provider requests, zero
+canonical writes and zero refunds. It did not retry CMP, restart an ended
+recovery pass, change recurring units, or rerun completed work. Authorized normal
+clock invocations can use the revised gate. The earlier recovery outcomes remain
+historical evidence rather than being overwritten.
+
+Serial and parallel FMP acquisition now isolate ordinary no-response/invalid-
+response and HTTP 5xx failures with durable terminal evidence. Abandoned
+admissions recover under the account lock. Known HTTP 401/403/429, credential
+exposure, accounting corruption and evidence/storage failures retain their
+blocking behavior. Original finite request, byte, pacing and deadline limits
+remain; unknown response bytes count against those limits across batches.
+The pre-existing selected-company typed-transient retry policy is unchanged;
+unknown failures acquire no automatic retry.
+
+Final focused checks: 20 failure-isolation tests and 48 price-consumer tests
+passed. Independent verification passed 140 tests plus four targeted probes,
+with zero failures/errors/skips, network calls denied, and SQLite limited to
+temporary roots. The reviewer confirmed 22 source/test hashes unchanged and
+a clean scoped diff check. Earlier fixture failures were corrected and rechecked;
+no full-suite escalation was required for this provider-policy component.
+No commit or push was requested or performed.
+
+Evidence: .local/fmp-isolated-failures-20260930/{reconciliation.json,validation.json,
+cmp-queue-before.json,preimages/}; the immutable account receipt is
+data/.operations/provider-allowances/fmp/uncertain/2026-10-01-202.json.
+
+
+## September 30, 2026 options baseline continuous-queue activation
+
+The user requested further throughput optimization of the same finite backfill.
+The scheduler now reuses its worker pool/channels across tickers and keeps at
+most ten unfinished ticker-days queued. A slow ticker-day no longer stalls the
+entire next ticker. Ten workers / four active API calls, frozen roster/dates,
+599,997 requests, 68,719,260,515 bytes and the October 14 deadline are unchanged.
+All local-first collection and final Site publication behavior is preserved.
+
+Forty focused tests passed in the primary and fresh independent review, with
+no skips. The identical offline workload used 80 channel creations before and
+10 after; runtime was 6.2417 versus 5.9749 seconds. This does not establish a
+production speedup or a shorter completion ETA.
+
+Only finite PID 1093007 received graceful SIGTERM at
+2026-10-01T02:06:33.832500Z. Its four admitted calls finished; pre-resume checks
+found zero started admissions, 22,204 successful requests / 697,966,019 bytes,
+1,527 saved days and 907 publication acknowledgments. Its process exited and
+the baseline mutex was available. No failed request was repeated.
+
+Finite PID 1111827 resumed at 2026-10-01T02:07:19.774221Z (September 30,
+22:07 ET), with remaining allowances 577,793 requests / 68,021,294,496 bytes.
+No recurring unit or WSL restart. Evidence and source hashes:
+.local/options-monitor-throughput-20260930/{validation.json,benchmark.json,
+handover-stop.json,handover-checkpoint.json,resume.json,run.log}.
+
+
+Postcheck at 2026-10-01T02:08:38.628592Z confirmed optimized PID 1111827 running:
+370 new successful requests and 42 new saved ticker-days in 78.85 seconds,
+bringing saved days to 1,569. Four calls were active; Site acknowledgments
+remained 907 and no upload phase was logged. Summed completed RPC duration was
+291.38 seconds. The different ticker mix and short window do not establish
+an end-to-end speedup or a revised ETA. See postcheck.json alongside the
+activation evidence.
+
+
+## September 30, 2026 - explicit price recovery continuation
+
+After confirming that failed tickers are skipped within the same job, the user
+explicitly requested resuming the ended price recovery. This authorizes one
+continuation of its 2,157 unattempted FMP price units for September 24-30, 2026.
+The same 2,357-target selection is frozen at scope
+7a7e0238b10f735e6af71f39ba3c8ffc0c2d4bfec73f0e87595ea724b53a9ad4.
+The 199 completed units and terminal CMP failure are excluded from new requests.
+
+The continuation admits at most 2,157 new requests, zero retries, 167,482,985
+additional accounted bytes and 1,649 seconds. These deduct the previous
+200 charges, 223,639 measured bytes, 65,536 unknown bytes and conservatively
+rounded elapsed execution from the original bounds. The user's new resume
+decision permits restarting the finite execution clock with only that unused
+duration; it does not add requests, dates, or completed populations.
+The existing host_fetch/read_project_credential FMP_API_KEY resolver, account
+allowance and pacing, queue locks and replay-safe market publisher are reused
+against data/market.sqlite. No recurring unit is changed or manually invoked.
+
+The zero-request preflight verified the pinned scope, original plan units,
+all 199 retained response hashes, the 199 publication receipts, CMP's failure
+receipt, empty pending state and clear account hold. The helper restricts every
+new fetch to a unique previously unattempted unit; previous receipts are
+fingerprinted for the postcheck. The existing source policy was independently
+verified with 148 focused tests and four temporary-fixture probes in the
+preceding turn; no application source or tests change for this continuation.
+
+Continuation admitted at 2026-10-01T02:12:24.396727+00:00, PID 1115202.
+Evidence is under data/.operations/manual-recovery/2026-09-30/pass-1/prices/continuation-1/; original report/result receipts remain unchanged.
+
+Continuation completion at 2026-10-01T02:29:03.433911+00:00 (September 30,
+22:29 Toronto): all 2,157 newly authorized requests settled, adding 2,150
+successful price publications. The combined pass completed with 2,349 successful
+tickers, eight flagged failures, zero skipped and zero unattempted. CMP retained
+its original unknown-response failure and was not retried. Seven indexes
+(^AXJO, ^FCHI, ^GDAXI, ^GSPTSE, ^KS11, ^NDX, ^TWII) returned HTTP 402 with retained
+messages stating that these symbols are unavailable under the current FMP
+subscription. Each was isolated and later requests continued. The result is
+complete_with_gaps (recorded exit 75), not an unresolved execution or account hold.
+
+Combined accounting: 2,357 charged attempts, 2,640,266 measured response bytes
+and the unchanged 65,536-byte CMP uncertainty reserve. All 399 original response,
+publication and CMP-failure receipts were unchanged; all 2,356 retained response
+hashes verified. Original recovery report/result files also remained byte-exact.
+No CMP retry, request refund, recurring-unit operation, or extra provider job
+occurred. Account pending and stopped flags were both null at completion.
+
+The bounded postcheck used quiet_immutable_read_connection under the existing
+physical market-store lock. All 2,349 canonical captures matched their retained
+provider responses, artifact hashes and successful ingestion-run records:
+11,742 evidence rows and 6,683 written price versions across the combined pass.
+This check made zero provider requests and zero canonical writes. Final evidence
+is in continuation-1/{result.json,report.json,failed-tickers.json,
+canonical-postcheck.json}, with exact admission limits and original receipt
+fingerprints in preflight.json.
+
+
+## October 1, 2026 options baseline transient recovery authorization
+
+After the September 30 22:24 ET AFL UNAVAILABLE failure, the user explicitly
+requested fixing error handling and resuming. The scoped implementation choice
+permits two retries (three total attempts) for known-byte UNAVAILABLE or
+DEADLINE_EXCEEDED responses belonging to bulk run 3945de19fd57d7962b641384.
+The previously recorded no-retry policy is superseded only for those failures
+within this run. It does not authorize replay of successful requests/days,
+other runs, or the older SPY pilot authentication failure.
+
+Scope remains 2,266 symbols, all traded expiries, 30 sessions August 18 through
+September 29, 2026. All attempts share the frozen 599,997-request /
+68,719,260,515-byte caps and October 14, 2026 18:50:29.754535 UTC deadline.
+The existing THETA_DATA_API resolver and private
+data/.operations/options-monitor/monitor.sqlite remain the provider/store
+binding. No recurring unit or daytime provider window is changed.
+
+A fixed policy amendment and append-only attempt identities retain original
+manifest/receipt evidence and request accounting. Delays of 5/30 seconds begin
+after failure completion; repeated transient failures trigger cooldown up to
+300 seconds. Exhaustion records a gap and collection continues with other days.
+Fatal authentication, storage, unknown-transfer or allowance failures still
+stop. A local status heartbeat distinguishes waiting/retrying/stopped states.
+The monitor contract owns implementation and failure semantics.
+
+Immutable preflight at 2026-10-01T13:27:41Z verified the prior PID absent,
+exclusive backfill lock free, zero started admissions, 2,190 saved days,
+907 Site acknowledgments and 28,205 charged calls / 746,109,797 received bytes.
+Remaining allowances were 571,792 requests / 67,973,150,718 bytes. Original
+manifest, saved-day identities and all existing receipt rows were hashed before
+activation. The original AFL receipt remains a known zero-byte UNAVAILABLE.
+Evidence is under .local/options-monitor-recovery-20261001/.
+Activation follows the corrected independent verification.
+
+
+Activation at 2026-10-01T13:34:28.140960Z (09:34 ET) started finite PID 1331279
+with --recover-transient --wait --workers 10 --api-concurrency 4 under the same
+frozen run. The corrected primary and independent suites each passed 53 tests,
+no skips, and independent review cleared all blockers. No recurring unit
+was installed/restarted or otherwise changed.
+
+Postcheck at 2026-10-01T13:35:12.677270Z verified the exact process command,
+persisted recovery amendment and a current waiting/market_hours heartbeat
+updated at 13:34:58Z. Automatic continuation is 2026-10-01T21:00:00Z (17:00 ET).
+The first 30-second heartbeat refresh occurred while waiting.
+
+The original manifest, all existing receipt rows, and saved-day
+identity/digest/publication tuples matched their preflight hashes exactly.
+Provider usage stayed 28,205 requests / 746,109,797 bytes; activation made zero
+provider requests. The 2,190 saved days and 907 prior Site acknowledgments
+remain. Coverage is now 100 terminal gaps, 65,690 pending days, zero unresolved
+admissions, and one retry-eligible AFL day. The change from 101 gaps is the
+queued authorized recovery, not a newly downloaded day.
+
+Evidence: .local/options-monitor-recovery-20261001/{validation.json,
+preflight.json,resume.json,postcheck.json,run.log}. This verifies activation
+and market-hours waiting; the live retry will occur in the next allowed
+collection window and was not manually probed during market hours.
+
+
+## October 1, 2026 daytime options baseline activation
+
+The user explicitly approved one daytime historical request at a time, live
+collection priority through shared admission, and full permitted backfill
+concurrency outside market hours. This supersedes only the bulk run's earlier
+08:55-17:00 weekday stop. It retains the original 2,266-symbol, 30-session
+August 18-September 29, 2026 scope, all traded expiries, 599,997-request /
+68,719,260,515-byte allowances and October 14 18:50:29.754535 UTC deadline.
+Existing THETA_DATA_API resolution, private monitor.sqlite ownership,
+durable retry amendment and local-first/final-only Site upload are unchanged.
+
+An immutable daytime:3945de19fd57d7962b641384 policy opts that run into one
+historical call during weekdays 08:55-16:15 ET and up to four off-hours.
+Live cycles keep their existing three-worker bound and get exclusive provider
+access after in-flight background work drains, preventing login overlap.
+Coordination semantics and the retained daily/weekly provider guard windows
+are in SCHEDULING_AND_LOCKING.md and OPTIONS_MONITOR_2026-09-26.md.
+
+Primary and fresh independent validation each passed 100 focused offline tests
+with zero skips. Independent source review cleared blockers with the reviewed
+five source/test hashes unchanged. The existing 09:50 and 09:55 normal live
+cycles loaded the gate and completed with no errors (379/374 observations and
+758/748 requests respectively). No recurring unit was restarted, manually
+triggered, installed or otherwise changed.
+
+At 2026-10-01T13:56:58.855676Z (09:56 ET), finite PID 1344791 replaced waiting
+PID 1331279 using --daytime-backfill --recover-transient --wait --workers 10
+--api-concurrency 4. SIGTERM allowed the old waiting process to exit; its owner
+lock was verified free and all request receipts resolved before replacement.
+The original plan, 2,190 saved-day identity/digest/publication tuples and 28,208
+retained request rows (including separate pilot evidence) matched preflight
+hashes. Initial bulk usage remained 28,205 requests / 746,109,797 bytes.
+An initial launcher invocation rejected its module syntax before executing
+any script; the direct invocation then performed the single replacement.
+
+The first postcheck at 13:58:03Z verified actual daytime collection at the
+one-request limit: 84 new successful requests, one active admission, and six
+new saved days (2,196 total). AFL/2026-09-10/expiry2026-10-23#retry2 succeeded.
+Every original saved day, receipt and manifest hash remained unchanged.
+Published days stayed 907; no baseline Site upload was triggered.
+
+Evidence: .local/options-monitor-daytime-20261001/{validation.json,
+preflight.json,saved-days-before.json,resume.json,postcheck-first.json,run.log}.
+No WSL restart, canonical-store operation, new provider allocation, deadline
+extension, Site deployment, commit or push occurred.
+
+Post-handoff verification at 2026-10-01T14:01:55.180483+00:00 observed the normal 10:00 ET
+live cycle take priority: background entered waiting/live_collection at
+14:00:00.739274Z, resumed collection at 14:00:30.745868Z, and advanced from
+28,480 to 28,523 requests by 14:01:00Z. No manual live trigger or provider probe
+was used. The source heartbeat showed one-request daytime capacity throughout.
+The next immutable check found 2,216 saved ticker-days
+(26 more than activation), preserved every original day,
+receipt and manifest, and still 907 baseline Site acknowledgments.
+Additional evidence: handoff-observation.json and postcheck-final.json in the
+same private evidence directory. The completed handoff verifies daytime
+collection resumes after a real scheduled live cycle; it is not a completion
+claim or ETA for the remaining backfill.
+
+
+## October 1, 2026 — pause live monitoring today and prioritize baseline collection
+
+The user explicitly requested pausing today's live options monitoring and
+focusing on historical backfill. The current decision supersedes the one-call
+daytime limit only for October 1, 2026 and existing finite run
+3945de19fd57d7962b641384. Scope remains 2,266 symbols / 30 sessions August 18-
+September 29, all traded expiries; all requests retain the original 599,997-call /
+68,719,260,515-byte limits and October 14 18:50:29.754535 UTC deadline. No new
+provider allocation, retry class, credential mechanism, schema or Site deployment.
+
+The live-monitor timer was stopped while the service was confirmed inactive
+(MainPID=0). Existing enabled state was preserved. Before installing the pause,
+the guarded activation again required both timer and service inactive; no live
+cycle was interrupted or manually triggered. This operational precondition
+prevents a marker from arriving during normal startup. The second in-code pause
+check protects provider admission only, not setup that a pre-existing cycle
+already performed.
+
+Primary and fresh independent suites passed 109 offline tests each, zero skips;
+independent source/testing review cleared blockers under that installation
+precondition. The validated source/test hashes remained stable. Normal cycles
+starting with the marker present return paused/requests=0 before store
+initialization, credential/Site access or provider work.
+
+At 2026-10-01T14:37:09.529096+00:00, finite PID 1360180 replaced PID
+1344791 after graceful SIGTERM and complete receipt drainage.
+The original manifest, all 2,697 saved days and
+31,915 retained request rows were preserved.
+Bulk usage before replacement was 31,912 requests /
+766,280,473 bytes; zero admissions were unresolved.
+
+The private immutable live-pause-2026-10-01.json marker is mode 0600 and expires
+at 2026-10-02T00:00:00-04:00. Only the matching finite run gets four-call daytime
+capacity today. The original timer was then started (still enabled, unchanged
+unit definitions); its ordinary remaining ticks today skip collection. Tomorrow
+the date-indexed marker no longer applies, so normal clock behavior and one-call
+daytime backfill return without a new timer, manual resume or catch-up. Scheduled
+daily/weekly Theta guard windows remain unchanged.
+
+Postcheck at 2026-10-01T14:38:17.066984+00:00 found four active historical admissions,
+390 new successful requests,
+58 new saved ticker-days (2,755 total),
+and an active collection heartbeat reporting capacity four. Every original
+saved-day tuple, receipt and manifest remained unchanged. Today's live counts
+remained 7,263 attempts / 7,263 receipts / 4,829 observations, latest capture
+14:25:14.193942 UTC. Baseline Site acknowledgments remained 907; results stay
+local until final publication.
+
+Evidence: .local/options-monitor-pause-20261001/{validation.json,live-before.json,
+preflight.json,saved-days-before.json,resume.json,postcheck.json,run.log}.
+The source/fixture gate verifies expiry logic; future host execution is not an
+already-observed event. No WSL restart, canonical-store operation, unit-file
+edit, commit or push occurred.
+
+Timer restoration immediately activated a zero-request paused cycle at
+10:37:09 ET. Its actual result was status=paused, reason=backfill_priority,
+requests=0, resume_at=2026-10-02T00:00:00-04:00, with a successful service
+exit. This was observed after restoring the timer; no provider fetch or
+manual service start was issued. Additional evidence: paused-cycle.json.
+
+
+## October 1, 2026 evening — options backfill session-recovery repair authorization
+
+Following the reported 17:10 ET stop, the user explicitly requested: "Pls fix and
+restart". This authorizes the bounded setup-recovery correction and one restart
+of existing run 3945de19fd57d7962b641384. The later decision supersedes terminal
+treatment only for known transient pre-data-dispatch login timeout/connectivity
+failures and the four reviewed admissions from this incident. Rejected
+credentials, unclassified setup failures and unknown dispatched transfers remain
+terminal. The monitor contract specifies the exact policy and failure behavior.
+
+Scope stays 2,266 symbols / 30 completed sessions August 18-September 29, 2026,
+all traded expiries, existing THETA_DATA_API resolver and private monitor.sqlite.
+The original 599,997 request / 68,719,260,515 byte caps and October 14
+18:50:29.754535 UTC deadline remain fixed. Setup retries use the same three-total-
+attempt ceiling and existing request allocation, with 30/120-second waits.
+No WSL restart, recurring-unit change or Site deployment is included.
+
+Preflight at 2026-10-01T22:05:30.260307Z verified PID 1360180 absent, owner lock
+available, zero unresolved admissions, 16,007 saved ticker-days and 907 existing
+Site acknowledgments. The four DD admissions ended at 21:10:22Z after session
+construction failed. The terminal traceback, missing RPC receipt fields, and
+four-reservation difference between durable and transport counters corroborate
+that no data RPC was sent. Their full-allowance fallback charges total
+274,877,042,060 bytes, while all other known received bytes total 1,748,914,876.
+The correction must preserve all four original rows and all 139,098 bulk
+reservations; it is not a quota increase or a claim of actual 276 GB transfer.
+
+Evidence and before-source copies:
+.local/options-monitor-session-recovery-20261001/.
+Original manifest SHA-256 remains
+3945de19fd57d7962b6413845090bd0656263094152e5f4f63940eb401aed2b4.
+All existing receipt fingerprints and saved-day tuples were captured before
+editing. Activation requires focused tests, fresh independent review and
+verification that reviewed source hashes remain unchanged.
+
+
+Session-recovery activation outcome (October 1 evening):
+
+- Primary coverage comprises 122 unique focused cases. The initial full run
+  included duplicate imports; after correction one existing two-second process-
+  scheduling assertion passed its isolated recheck. An stdin-launched runner's
+  two multiprocessing import failures were retained, then corrected by using the
+  normal module launcher. The final affected 63-case suite passed.
+- Fresh independent review first passed 120 tests and found a persisted setup-
+  exhaustion gap. After correction it passed 66 recovery/transport and 19
+  admission/pause tests, zero skips, and reproduced blocked restart/direct upload
+  with zero extra logins/data calls. No actionable findings remained.
+- At 2026-10-01T22:22:13.445224Z, PID 1548674 started exactly the reviewed finite
+  command after the four-row amendment was committed. All original 139,101
+  request rows (including separate pilot evidence), 16,007 saved days and the
+  manifest were unchanged. Bulk usage reconciled from 139,098 reservations /
+  276,625,956,936 charged bytes to the same reservation count / 1,748,914,876
+  actual known data bytes. No original receipt was edited or refunded.
+- The single restart failed at 22:22:28Z with SESSION_TIMEOUT during shared
+  login. Four admitted workers recorded known-zero setup receipts; data bytes
+  and saved days did not increase. One DD part used its inherited third attempt,
+  so the finite retry policy stopped the process. Final bulk reservations are
+  139,102; the heartbeat and SQLite agree. The owner is no longer running.
+- Immutable postcheck at 22:22:34Z preserved every original receipt/day/manifest.
+  Coverage is 16,007 saved, 1,889 explicit data gaps, 50,084 pending,
+  eight retry-pending days, one setup-blocked day and zero unresolved admissions.
+  Site acknowledgments remain 907. Direct upload and further collection remain
+  blocked by the exhausted setup part; there is no automatic restart.
+- Bounded credential-free diagnostics made two WSL TCP/TLS connection attempts
+  to the existing Theta hosts, one WSL control TCP connection to Microsoft,
+  and one Windows TCP connection to Theta authentication. DNS returned the same
+  131.226.212.246 on both hosts; no WSL hosts override was present. Both WSL
+  Theta TCP connects timed out after five seconds. WSL general connectivity and
+  the Windows Theta TCP connection succeeded. The actual firewall/routing/server
+  cause is not established. No HTTP/auth/data request was sent by diagnostics;
+  no network, WSL, firewall, credential or recurring-unit setting was changed.
+
+The code/accounting repair is verified, but the requested restart did not
+restore downloading. WSL-to-Theta connectivity and a newly scoped recovery of
+the exhausted setup part remain required. Do not report this process as running
+or silently bypass its persisted retry ceiling. Today's live pause remains
+governed by its existing date-limited marker.
+
+Evidence: validation.json, launch-intent.json, reconciliation-evidence.json,
+resume.json, run.log, postcheck.json, connectivity.json and network-diagnosis.json
+under .local/options-monitor-session-recovery-20261001/.
+
+
+## October 1, 2026 — explicit one-attempt retry after connectivity recovered
+
+The user explicitly asked "Can you try again?" after the previous stopped
+SESSION_TIMEOUT outcome. At 22:31:18Z, exactly one credential-free TCP/TLS check
+to each existing Theta authentication/data hostname succeeded from WSL (TLS1.3).
+No network settings or recurring units were changed.
+
+This decision authorizes one extra attempt only for existing bulk run
+3945de19fd57d7962b641384, DD/2026-09-16/expiry2026-11-20. Its exact third-attempt
+row has SHA-256 031a35cc33493fb98fc21443666a4fa2b56e1bedaa70fbe3d3224013c79f8f4c
+and proves SESSION_TIMEOUT before dispatch, zero data bytes. An append-only
+one-use grant permits #retry4, preserving previous attempts. The rest of the
+unfinished frozen 2,266-symbol / 30-session run continues under existing rules;
+no successful population is repeated and no unrelated failure gains a retry.
+Original limits remain 599,997 reservations / 68,719,260,515 bytes and October 14
+18:50:29.754535 UTC. The existing THETA_DATA_API resolver and private monitor.sqlite
+remain the only provider/store binding; final Site publication stays deferred.
+
+Preflight at 22:32:52Z verified zero unresolved admissions, 16,007 saved days,
+139,105 retained request rows (139,102 bulk reservations), and 1,748,914,876 known
+bytes. All retained receipt/day fingerprints and original manifest were saved
+under .local/options-monitor-retry-20261001/. Activation requires focused
+invariant tests, independent verification and exact preflight/hash checks.
+
+
+One-use retry activation and observed recovery:
+
+Primary validation passed 87 unique focused tests (85 cases in 12.393s and the
+two added cap/scope cases in 0.186s). A fresh independent verifier passed all
+87 in 12.076s, zero skips, and found no actionable issues. The two source files,
+test file and activation-script hashes matched immediately before launch.
+An additional credential-free TLS guard succeeded before consuming the grant.
+
+At 2026-10-01T22:41:49.909718Z (18:41 ET), PID 1556560 launched the same finite
+10-worker/four-call backfill command. The exact one-use grant was appended under
+the backfill owner lock. Original bulk usage stayed 139,102 reservations /
+1,748,914,876 bytes; all 16,007 saved days and 139,105 prior receipt rows were
+preserved. No recurring unit, network setting or WSL instance was restarted.
+
+The immutable postcheck at 22:42:17Z confirmed a running collection process,
+97 new successful request receipts, four active admissions and nine newly saved
+ticker-days (16,016 in the first read). The subsequent status read within that
+same check observed one more saved day (16,017), as collection continued.
+DD/2026-09-16/expiry2026-11-20#retry4 succeeded. Retry-pending and setup-blocked
+days were both zero. All original receipt/day/manifest fingerprints remained
+unchanged; Site baseline acknowledgments remained 907. The finite collector is
+downloading/aggregating/saving locally; final publication remains deferred.
+
+Evidence: .local/options-monitor-retry-20261001/{validation.json,
+connectivity.json,launch-connectivity.json,preflight.json,launch-intent.json,
+resume.json,postcheck.json,run.log}. This is verified resumption, not completion
+of the 67,980 ticker-day target or a revised ETA.
+
+
+## October 1, 2026 — bounded INTERNAL recovery for the existing baseline run
+
+After the 18:43 ET stop and the user's explicit "can you fix and resume?",
+immutable preflight at 2026-10-02T00:49:49Z found the previous process stopped,
+zero unresolved admissions, 16,040 saved ticker-days, 907 published days,
+139,614 retained request rows (139,611 bulk admissions) and 1,755,896,639 known
+received bytes. The stopped request was DDOG / 2026-09-09 / expiry 2027-01-15:
+option_history_ohlc returned INTERNAL after 30.05 seconds with zero messages,
+rows and response bytes. Its original receipt remains immutable.
+
+This newer scoped decision permits an append-only internal-recovery:<run_id>
+amendment for run 3945de19fd57d7962b641384. Only known-byte INTERNAL RPC failures
+join the existing three-total-attempt policy, using the existing 5/30-second
+delays, drain/renew and circuit behavior. Existing attempts remain charged and
+count toward the same ceiling; no unknown transfer or other run gains recovery.
+Data-request exhaustion remains an explicit unsaved gap and permits other days
+to continue. Authentication/setup failures retain their existing stop rules.
+The previous exact DD fourth-attempt grant and reconciliation records are
+unchanged; there is no new fourth-attempt authorization.
+
+The same frozen 2,266-symbol, August 18–September 29, 2026 workload continues
+with all traded expiries, ten worker slots and at most four active calls.
+Original global caps remain 599,997 admissions / 68,719,260,515 bytes and
+2026-10-14T18:50:29.754535+00:00. Existing THETA_DATA_API credentials and private
+monitor.sqlite binding are reused. Successful days/partials are not refetched.
+Local aggregation precedes final Site publication; no recurring unit, network
+configuration, WSL instance, canonical options store or deployment is changed.
+The existing date-limited October 1 live pause retains its original expiry.
+
+Primary validation passed 100 focused offline tests in 16.272 seconds.
+Fresh independent verification passed the same 100 in 23.187 seconds, zero
+skips, no blocking findings, and matched all seven source/helper hashes.
+One credential-free TLS connection to each existing Theta host succeeded;
+diagnostics made no authentication or data request. Guarded single activation
+requires exact frozen manifest/caps, original receipt/day/policy preservation,
+zero unresolved admissions, stopped old owner, current deadline and verified
+source hashes. Post-activation evidence must prove actual new saved data.
+
+Evidence is under .local/options-monitor-internal-recovery-20261001/, including
+preflight.json, before copies, change.diff, primary-tests.log, validation.json,
+connectivity.json, source-sha256.json and the reviewed activation/postcheck
+helpers. Live activation/outcome is recorded separately below when obtained.
+
+
+INTERNAL recovery activation and first observed result:
+
+At 2026-10-02T00:59:37.612852+00:00 (20:59 ET October 1), the guarded helper appended
+the scoped amendment and launched PID 9104, using the same finite
+ten-worker/four-call CLI. Exact preflight manifest/caps, stopped-owner status,
+all prior receipt/day/policy rows and source/helper hashes matched. Usage before
+the launch was unchanged at 139,611 admissions / 1,755,896,639 bytes.
+
+The immutable postcheck at 2026-10-02T01:00:05.827469+00:00 confirmed the process alive,
+109 new successful receipts and
+4 newly saved ticker-days (16044 total).
+DDOG / 2026-09-09 / expiry 2027-01-15#retry2 succeeded: 2,291 rows, 17,833
+response bytes. All 16,040 original saved days, 139,614 retained receipt rows,
+original manifest and prior policy records were preserved. No retry-pending or
+setup-blocked day remained; active admissions are expected while collection runs.
+Site acknowledgments stayed at 907. No new Site publication occurred.
+
+Actual launch/postcheck evidence is resume.json, launch-intent.json,
+postcheck-010005.json, postcheck.json and run.log. A later timestamped postcheck may
+supersede the first observed counts; this is resumption, not collection completion.
+
+Continued-run verification at 2026-10-02T01:02:11Z (21:02 ET) confirmed
+PID 9104 still collecting, 987 new successful requests and 78 newly saved
+ticker-days since launch: 16,118 saved total. The failure recovered on its
+second attempt; retry-pending and setup-blocked counts remained zero.
+Original receipts/days/policies and all seven reviewed file hashes remained
+unchanged; Site acknowledgments remained 907. Active admissions were normal
+in-flight work. See postcheck-010211.json and the running finite-run log.
+
+
+## October 1, 2026 - requested local Inspector launch
+
+The user explicitly requested launching the dashboard. The existing loopback
+Inspector was not listening. Its startup rejected the current validated 2.95.0
+registry because canonical_inspector.py still pinned 2.94.0. The one-line
+Inspector pin was updated to 2.95.0; schema, registry declarations and public
+tool contracts remain unchanged.
+
+At 2026-10-02T01:26:30.741721+00:00, the manual Inspector was running as PID 26318 on
+127.0.0.1:8766. Health and /status returned HTTP 200; Status rendered 535,989
+bytes. The Codex browser-open request was queued for the task side panel.
+This is a local process launch, not a recurring-unit activation or external
+deployment. No provider requests or canonical writes occurred.
+
+Six focused Inspector checks passed, including immutable fixed views, fetch
+status, health, bounded startup failures, four-store binding and local HTTP
+security headers. One broader pre-existing manifest test retains obsolete
+2.93.0/90-tool expectations; the current manifest has 2.95.0/100 tools. Its
+temporary expectation edit was reverted, and no tests or goldens changed.
+The source diff and whitespace check passed. The first short Status probes
+timed out while the page initialized; the eventual Status check succeeded.
+Evidence: .local/inspector-launch-20261001.{json,log}.
+
+
+## October 1, 2026 — explicit twenty-attempt and central connection recovery
+
+The user explicitly instructed: "fix it, and increase the retry allowance to 20".
+This supersedes the three-attempt ceiling for the same unfinished finite run,
+3945de19fd57d7962b641384. It permits twenty total attempts per transient data
+request (including prior admissions), and twenty consecutive central connection
+attempts per outage. It grants no new global request/byte budget, session/ticker
+scope, deadline, recurring execution, network configuration change or WSL restart.
+
+Preflight at 2026-10-02T02:52:17Z verified the old PID 9104 stopped with
+SESSION_TIMEOUT; zero unresolved data admissions; 18,273 saved ticker-days,
+158,086 retained request rows, 158,083 bulk admissions and 1,892,656,053 received
+bytes. EFOR / 2026-08-26 / expiry 2027-03-19 exhausted its previous third attempt
+during login, with no options-data dispatch. Seven other days awaited recovery.
+The saved run remains 2,266 symbols / thirty completed sessions August 18 through
+September 29, all traded expiries, with 599,997 total admissions,
+68,719,260,515 options-data bytes and deadline 2026-10-14T18:50:29.754535+00:00.
+Existing THETA_DATA_API credentials and private monitor.sqlite binding are reused.
+
+An append-only resilient-recovery:<run_id> amendment raises the attempt limit
+to twenty and enables coordinator-only authentication before any contract
+reservation or worker starts. Immutable connection-start / connection-finish
+records in the existing baseline_runs table track each login separately.
+Every login admission consumes one unit of the original global request budget;
+authentication carries zero options-data bytes. Previous admissions/receipts
+are not rewritten or refunded. A process lost before login completion leaves
+a charged interrupted attempt; it waits through the stored cooldown on restart.
+Successful authentication resets the consecutive connection failure streak.
+The twentieth consecutive failed login blocks further work and publication;
+restart cannot replenish its allowance. Permanent authentication rejection
+and unclassified setup errors remain terminal.
+
+Transient connection failure pauses all workers with 30/60/120/300-second
+backoff. Ordinary data-RPC retry reuses the existing authorized session while
+channels are recreated. Live-priority handoff, a changed session generation, or
+the daily/weekly guard invalidates it and forces coordinated reauthentication.
+Login holds the same shared provider admission lease, with no SQLite transaction
+or physical-store lock held during network work. Ten worker slots, at most four
+active calls, and existing daytime one-call priority remain unchanged.
+Today's live pause retains its original local-midnight expiry.
+Successful aggregates/partials are reused; final Site publication stays deferred.
+
+The primary passed 122 focused tests in 16.111 seconds after correcting a
+completion-path budget regression caught by the first test run. Fresh independent
+verification passed the same 122 tests in 24.587 seconds, zero skips, no blocking
+source findings, with all seven source/helper hashes stable. One credential-free
+TLS connection to each existing Theta endpoint succeeded; no auth/data probe ran.
+Activation requires frozen preflight/caps, preserved old receipts/days/policies,
+no unresolved admissions, stopped old owner and verified hashes. The postcheck
+is an evidence snapshot; a separate required assertion gate must prove current
+collection, EFOR retry4 success, new saved days, preserved originals and unchanged
+publication count before claiming live resumption.
+
+Evidence: .local/options-monitor-resilient20-20261001/ contains preflight.json,
+before copies, receipts-before.json, saved-days-before.json, policies-before.json,
+change.diff, primary-tests.log (initial failures), primary-tests-final.log,
+validation.json, source-sha256.json, connectivity.json and reviewed helpers.
+Actual launch and live outcomes are recorded below when obtained.
+
+
+Twenty-attempt activation and required live acceptance:
+
+At 2026-10-02T03:08:16.575535+00:00 (23:08 ET October 1), PID 136774 launched the
+same finite command after exact preflight and hash checks. The immutable
+resilient amendment was added without changing the prior 158,083 admissions,
+1,892,656,053 received bytes, 18,273 saved days or 158,086 retained request rows.
+Legacy setup blocking cleared under the explicitly increased twenty-attempt cap.
+
+At 2026-10-02T03:09:09.478986+00:00, the postcheck captured 340 successful new
+data requests and 69 newly saved ticker-days (18342 total).
+EFOR / 2026-08-26 / expiry 2027-03-19#retry4 succeeded, with 237 rows / 1,645 bytes.
+Central authentication succeeded once; zero consecutive connection failures or
+setup-blocked/retry-pending days remained. Original rows, saved days, manifest
+and prior policies were preserved. Site acknowledgments stayed at 907.
+
+The separate required assertion gate passed at 2026-10-02T03:10:04.683204+00:00:
+current collection heartbeat/process, new saved days, exact EFOR fourth-attempt
+success, unchanged original lineage/publication count and all seven reviewed
+source/helper hashes. Evidence: resume.json, launch-intent.json, postcheck.json,
+timestamped postchecks, live-acceptance.json and run.log in the evidence directory.
+This proves resumed collection, not completion of the remaining workload.
+
+Continued verification at 2026-10-02T03:11:16Z (23:11 ET October 1) confirmed
+the process still collecting: 1,450 successful new data requests and 242 newly
+saved ticker-days, 18,515 total. It retained the same single successful central
+authentication; zero connection failures, pending retries or setup blockers.
+Original saved days/receipt rows/manifest/policies remained preserved and Site
+acknowledgments remained 907. The continued assertion gate passed; evidence is
+continued-acceptance.json and the timestamped postcheck in the same directory.
+
+
+## 2026-10-02: hourly Codex supervision of the finite intraday backfill
+
+The user explicitly requested an hourly scheduled Codex job to check that the
+intraday options backfill is live, fix errors, and resume it when necessary.
+The active thread heartbeat is keep-intraday-options-backfill-running, named
+"Keep intraday options backfill running". The Codex automation tool confirmed
+creation with status ACTIVE; it runs hourly in this existing local chat.
+This is authorization for bounded diagnosis, necessary reversible repair, and
+safe continuation of run 3945de19fd57d7962b641384, not a new population.
+
+The saved prompt requires durable progress checks in addition to process and
+heartbeat checks, distinguishes legitimate guard/backoff/live-priority waiting
+from failure, preserves the owner lock and immutable accounting, and verifies
+actual collection after recovery. Necessary code repairs retain focused tests
+and applicable independent verification before activation. Healthy owners are
+left running. Old one-shot activation scripts are not replayed.
+
+The twenty-attempt data policy and twenty-consecutive-attempt connection policy
+remain persisted across restarts. The original 599,997-admission and
+68,719,260,515-byte caps and 2026-10-14T18:50:29.754535+00:00 deadline remain
+unchanged. No counter resets, added provider probes, scope expansion, duplicate
+owners, WSL restarts, credential/network changes, unrelated recurring-unit
+changes, or extension of the October 1 live pause are authorized here.
+
+Local download/aggregation/storage precedes the existing final Site upload.
+The heartbeat reports meaningful recovery, new failure/blocker, required user
+action, or completion, and stays quiet during ordinary progress. It pauses
+itself after the finite run and final publication complete, reporting skipped,
+no-data, or exhausted gaps separately from successfully saved work.
+Hard limits and unresolved evidence remain blockers, not permission to bypass
+them. Local execution requires the host and Codex app to remain running with
+the WSL project available.
+
+No provider request or collector restart was performed to create this schedule.
+The last observed heartbeat at creation was current collection at
+2026-10-02T04:01:13.888895+00:00 under PID 136774; this observation is dated
+evidence, not a claim about later host state.
+
+
+## October 2: bounded lock-contention repair for the hourly backfill check
+
+The authorized hourly supervisor found the finite run stopped at
+2026-10-02T13:14:01Z after a physical-store lock acquisition timed out while
+saving the successful SKHY / 2026-09-28 / expiry 2028-06-16 response. This
+coincided with the prior supervisor's full receipt/status audit holding the
+same lock. The complete 9,316-byte response receipt was retained as ConflictError;
+no in-flight admission remains. Its reduced payload was not saved. The three
+older ValueError outcomes inspected here are provider no-data responses.
+
+The same-run repair replaces live full audits with short immutable observations
+and batches historical receipt fingerprinting in groups of 500, hashing outside
+the lock. Empty successful catalogs no longer trigger thousands of repeated
+attempt/policy queries during status collection; failed/retried catalogs still
+receive full state validation. Local finish_part persistence retries the exact
+lock-acquisition timeout up to three times with its original reduced result and
+receipt, without any provider call. Other persistence errors remain failures.
+
+The user's authorized error repair/resume is scoped to an append-only,
+hash-pinned storage-retry grant for that exact failed SKHY request's next attempt.
+The original receipt remains unchanged. Known successful-response bytes, checksum,
+row count, original ownership, the existing attempt ceiling, and evidence digest
+are mandatory. Unknown transfers, no-data, foreign runs, altered parents, and
+exhausted attempts cannot receive the grant. Replaying it cannot grant a later
+attempt or replenish any budget. Schema and original policies remain unchanged.
+
+Run 3945de19fd57d7962b641384 retains its 2,266 symbols / 30 sessions, all traded
+expiries, 599,997-admission and 68,719,260,515-byte caps, and
+2026-10-14T18:50:29.754535+00:00 deadline. Existing credentials, owner/provider/store
+locks, daytime one-call priority, four-call off-hours limit, and final-only Site
+publication remain unchanged. No WSL restart or unrelated unit change is involved.
+
+Primary validation passed 132 focused offline tests in 25.034 seconds. At
+2026-10-02T14:33:22Z, preflight found 395,627 used admissions, 3,880,332,921 bytes,
+49,045 saved days and zero unfinished requests. It hashed all 395,629 receipt rows
+(including prior pilot evidence) and 49,045 saved-day digests in short locked
+batches: maximum observed lock durations 0.0023 and 0.0109 seconds respectively.
+Independent review and actual activation/results must be recorded when obtained.
+
+Evidence: .local/options-monitor-lock-recovery-20261002/ contains the source
+before-copy, focused diff/tests, reviewed helpers, preflight.json and source hashes.
+The old .local/options-monitor-resilient20-20261001/postcheck.py remains immutable
+historical evidence and must not be run while collection is active.
+
+
+### Verified activation and live recovery, 2026-10-02T14:55:25.924668+00:00
+
+Fresh independent review found no unresolved blockers: 132 initial focused tests
+passed, then both primary and independent review passed the 49 final affected
+storage/baseline tests after the final corrections. The reviewer also checked
+11 isolated health-state scenarios and four notification alignments. Exact source
+hashes, durations and evidence scope are recorded in validation.json.
+
+The reviewed same-run activation started PID 607085 at
+2026-10-02T14:45:55.958641+00:00. Current command identity and fresh heartbeat were
+verified, with 19 newly saved ticker-days and
+329 new successful data-request receipts since preflight.
+SKHY / 2026-09-28 / 2028-06-16#retry2 succeeded with the original response checksum
+and 9,316 bytes, and its complete day is now saved. Both attempts remain charged.
+At acceptance: 49,064 saved of 67,980 target days,
+6,214 skipped and 12,702 pending. Skipped days
+are not counted as downloaded. Published days remain 907; new publication is
+deferred until local collection completes. A normal live-collection priority wait
+was observed and the same owner resumed afterwards.
+
+The bounded post-activation comparison preserved all 395,629 old receipt-metadata
+rows, 49,045 old saved-day digests/publication flags, the original manifest and all
+existing policy values. Maximum comparison lock times were 0.0019 seconds for
+receipts and 0.0016 seconds for days. An initial WSL read invocation timed out;
+a subsequent native check succeeded without a WSL restart. This was not treated
+as proof that the running collector had failed.
+
+The existing hourly Codex automation remains active with the same schedule and
+scope. Its prompt now points to the short health reader and explicitly excludes
+the old full postcheck while collection is active. Evidence: resume.json,
+integrity-after-resume.json and live-acceptance.json in
+.local/options-monitor-lock-recovery-20261002/.
+
+
+## October 2, 21:21 UTC: abrupt owner loss with four unknown transfers
+
+Hourly diagnosis found PID 607085 absent and no replacement backfill owner.
+Ubuntu PID 1 reports a new start at 2026-10-02T21:21:09+00:00; kernel logs also
+record WSL relay/init errors. These coincide with the collector's abrupt loss,
+but the initiating cause is not established. No WSL or unrelated service was
+restarted by this check. The collector log has no clean stop or Python traceback.
+
+Durable state for run 3945de19fd57d7962b641384: 54,670 saved ticker-days,
+6,813 skipped (not successfully downloaded), 6,497 pending, and 907 published.
+Four UAA admissions remain started with null completion receipts:
+2026-09-10 / 2027-03-19; 2026-09-09 / 2027-01-15;
+2026-09-04 / 2026-12-18; 2026-09-01 / 2027-01-15.
+These are not known-zero setup failures or measured transient responses.
+
+Existing usage accounting reserves the entire 68,719,260,515-byte run allowance
+for each unknown transfer. The four unknown reservations alone imply an
+accounting lower bound of 274,877,042,060 bytes, not a claim of actual bytes
+downloaded. They are ineligible for the existing 20-attempt transient recovery.
+Automatic resume is therefore blocked under the current unchanged contract.
+No original request was rewritten, attempt reset, new provider call made, or
+budget/deadline extended. Any further recovery needs evidence sufficient to
+reconcile these exact unknown outcomes under the existing rules, or a new
+explicit decision changing their accounting/recovery treatment.
+
+Evidence: .local/options-monitor-incident-20261002T212743Z/incident.json and unfinished-requests.json.
+
+
+## October 2, 21:28 ET: user-authorized Ubuntu restart
+
+The user explicitly requested: 'can you restart wsl and continue?' This authorizes
+restarting Ubuntu despite the earlier no-restart instruction. wsl.exe --terminate
+Ubuntu completed successfully and the following native-runtime invocation started
+Ubuntu. PID 1 reports 2026-10-03T01:28:37+00:00 (October 2, 21:28:37 ET).
+The project Python 3.12.3 runtime is responding. Other WSL distributions were not
+targeted; no recurring unit configuration was changed.
+
+Post-restart immutable reads confirmed 54,670 saved ticker-days, 6,813 skipped,
+6,497 pending and the same four unfinished UAA admissions. The original manifest
+and all four incident request fingerprints are unchanged. The backfill has not
+been launched because its separate unknown-transfer accounting blocker remains.
+A concrete question was presented to the user: permit an exception only for those
+four original unknown byte amounts in the byte-limit calculation, preserving their
+unknown status/records and existing attempt/request ceilings, then retry them.
+No exception has been activated and no provider requests were made by this check.
+
+Restart verification: .local/options-monitor-wsl-restart-20261003T013232Z/restart-verification.json.
+
+## October 2 evening: accepted exception for four interrupted UAA requests
+
+After the exact four-request accounting/recovery proposal, the user requested
+'resume it'. This supersedes the preceding unknown-transfer reservation rule
+only for the four original admissions pinned in the October 2 incident.
+Their unknown byte amounts may be excluded from the byte-limit calculation;
+original rows and receipts remain unchanged, unknown bytes remain unknown,
+and all original admissions and attempt charges remain counted. No future
+interruption is covered. The same finite population, 599,997 admissions,
+68,719,260,515 accounted bytes, October 14 deadline, 20-attempt limits,
+10 workers / maximum 4 requests, live priority and guard windows remain.
+
+The bounded amendment and runner changes passed 145 focused offline tests.
+Independent verification and activation evidence will be recorded separately.
+New evidence directory: .local/options-monitor-interrupted4-20261003T030453Z/.
+No new provider request is authorized outside the existing finite run.
+
+### Four-request exception activated and collection verified
+
+The fresh verifier /root/interrupted4_verify passed 25 focused tests plus an
+isolated helper probe with networking blocked and a fake launcher. The primary
+145-test suite passed. Exact code/helper/incident fingerprints are recorded in
+.local/options-monitor-interrupted4-20261003T030453Z/validation.json.
+
+At 2026-10-03T03:20:00.246024+00:00 (October 2, 23:20 ET), the reviewed one-time
+activation appended the exact four-request exception under the existing owner
+and physical-store locks, then launched PID 21213 with the established command,
+10 workers and maximum 4 simultaneous requests. Pre-launch accounting retained
+440,194 admissions and 4,356,541,486 accounted bytes, excluding only the four
+original unknown amounts. Original manifest, policies, schema metadata, four
+unknown request rows, saved counts and publication counts were unchanged.
+
+At 2026-10-03T03:22:00.669740+00:00, verified process identity and fresh heartbeat
+accompanied 398 new successful requests and 27 new saved ticker-days.
+All four UAA replacement requests completed successfully as attempt 2; all four
+affected days were saved. Totals were 54,697 saved, 6,470 pending and 6,813 skipped.
+The four unresolved latest requests in this observation were current in-flight
+requests; the approved original unknowns were separately reported as four
+excluded requests. Existing publication remained 907 days, with further upload
+deferred until local collection completes. No original unknown receipt was
+rewritten or falsely recorded as zero bytes.
+
+The same hourly automation was reactivated and its active-log location and
+exact exception instructions updated. Original hourly schedule and target
+thread remain unchanged. The bounded health helper remains in
+.local/options-monitor-lock-recovery-20261002/health.py.
+Activation and progress evidence: resume.json, amendment-verification.json and
+progress-20261003T032200Z.json in the new evidence directory.
+
+## October 3: intraday options baseline collection and final upload completed
+
+Run 3945de19fd57d7962b641384 reached phase complete with acknowledged final
+publication at 2026-10-03T06:16:39.732723+00:00 (02:16:39 ET). The bounded final
+immutable verification confirmed 60,544 saved and published ticker-days out of
+67,980 targets for the frozen 2,266-symbol, 30-session August 18–September 29
+population. Of these, 907 were already acknowledged and the final phase uploaded
+59,637. No publication remains pending. PID 21213 has exited and the finite-run
+owner lock is available; this is expected completion, not a stalled collector.
+
+The other 7,436 ticker-days were skipped, not successfully downloaded:
+- 7,431 returned empty contract catalogs.
+- 4 had an expiry response with no intraday data: CAI August 18; PEN September 10
+  and September 17; UNF September 8.
+- 1 remained failed: SPY September 29, expiry September 30, with the original
+  UNAUTHENTICATED provider result at attempt 1. No credential change or
+  unauthorized retry of this non-transient outcome was performed.
+There are zero retry-exhausted gaps and zero pending/unresolved logical requests.
+
+Final accounting is 486,343 admissions against 599,997 and 4,691,231,780 accounted
+response bytes against 68,719,260,515. The four approved original UAA unknown byte
+amounts remain excluded, not falsely measured as zero; their fingerprints are
+unchanged and each logical replacement succeeded at attempt 2. Original manifest,
+attempt ceilings, and deadline remain unchanged.
+
+This finite population is complete with the above explicit gaps. Do not repeat
+saved populations or extend its retry scope without a new explicitly scoped
+user decision. The hourly Codex automation keep-intraday-options-backfill-running
+was paused after final acknowledgment, as requested. No unrelated recurring
+unit, canonical options.sqlite, credentials, or Site UI deployment was changed.
+
+Evidence: .local/options-monitor-completion-20261003/completion.json and gaps.csv;
+final collector log in .local/options-monitor-interrupted4-20261003T030453Z/run.log;
+bounded health observation in
+.local/options-monitor-watchdog-3945de19fd57d7962b641384/20261003T062507Z.json.
+
+## October 3: one requested SPY September 29 repair
+
+The user selected the reported SPY September 29 authentication gap and requested
+'Can you try this one more time?' This authorizes one retry of the original
+September 30-expiry UNAUTHENTICATED failure plus completion of that day's
+previously unrequested expiries. The original failure is owned by pilot
+75fd87930918cdb646302ac1, fingerprint
+ffb77655e2763bed3f9f8f219677cda2d3041fa782f887dfac46b72be1360c88.
+Its original run, record and receipt remain unchanged. New admissions are charged
+to existing run 3945de19fd57d7962b641384 using an exact append-only retry grant.
+
+Preflight found 33 catalogued expiries: one successful saved expiry, one failed
+expiry, and 31 never requested. Execution is limited to SPY/2026-09-29, at most
+32 data calls plus one login, 512 MiB additional received bytes and 30 minutes,
+all within the receiving run's original hard caps/deadline. Existing credentials,
+physical-store/owner locks, live priority, provider guards, and full-chain
+five-minute aggregation are retained. Any failure exits without another attempt.
+The one-day aggregate may be uploaded through the existing acknowledged path.
+The completed population and paused hourly monitor are otherwise unchanged.
+Offline checks and fresh independent review are required before activation.
+
+### SPY repair completed and acknowledged
+
+The one-use auth retry passed 101 primary focused tests and 23 independent
+grant/recovery checks. Independent isolated helper fixtures confirmed success,
+login failure, data failure, duplicate-execution exclusion and expiry before
+publication. The helper's 30-minute cap was applied to its in-memory plan
+deadline as well as its provider budget; durable plans remain unchanged.
+
+At 2026-10-03T21:48:17.655270+00:00 (17:48 ET), the repair finished with exactly
+one login and 32 successful data requests, using 3,892,759 additional response
+bytes. The original pilot catalog and successful expiry were reused; the complete
+SPY September 29 aggregate includes all 33 traded expiries and 78 regular-session
+five-minute bins. The Site acknowledged the one-day upload. The original
+UNAUTHENTICATED receipt and source-run fingerprint remain unchanged.
+
+Updated totals: 60,545 ticker-days saved and acknowledged, 7,435 provider-no-data
+gaps (7,431 empty catalogs and 4 missing expiry responses), no authentication
+gaps, no retry-exhausted gaps and no pending publication. Accounted admissions
+are 486,376 and accounted bytes are 4,695,124,539; original caps, deadline and
+four explicitly excluded unknown amounts remain unchanged. The hourly backfill
+automation remains paused; no further collection was started.
+
+Evidence: .local/options-monitor-spy-retry-20261003T213019Z/
+(preflight.json, validation.json, execution-intent.json, grant.json, run.log,
+result.json and postcheck.json). Earlier completion reports remain immutable
+historical snapshots; this entry and postcheck.json record the resolved SPY gap.
+
+## October 3: authorized intraday continuation through Friday October 2
+
+The user requested: 'backfill up to Friday for all the tickers, resume the same
+backfiller we have'. This adds exactly September 30, October 1 and October 2,
+2026 for the original frozen 2,266 symbols: 6,798 ticker-days. The earlier
+completed manifest is preserved; the existing collector receives an additive
+three-session plan using the same private monitor.sqlite, credentials,
+five-minute regular-session aggregation, all traded expiries/strikes/both rights,
+checkpoint readers/writers and acknowledged final uploader. There is no new
+provider or collector implementation and no historical repeat.
+
+Preflight found zero baseline days or prior historical requests for these
+sessions. Live snapshots exist for all symbols but have variable cadence and
+coverage; they are not substituted for complete five-minute historical days.
+The original 60,545 saved/published baseline days remain outside the new scope.
+
+The continuation is capped at the original unused allowances: 113,621 additional
+admissions (including login and retries), 64,024,135,976 additional accounted
+bytes, and the unchanged October 14 18:50:29.754535 UTC deadline. Combined with
+the completed run's 486,376 admissions and 4,695,124,539 accounted bytes, those
+remain within 599,997 admissions and 68,719,260,515 accounted bytes. Ten worker
+slots, maximum four requests, twenty total attempts per eligible transient data
+request, twenty consecutive central connection attempts, daytime live priority,
+and existing provider guards are retained. Unknown outcomes remain fail-closed;
+no UAA exclusion or SPY one-use exception transfers to this new date scope.
+
+The existing hourly backfill monitor may follow this requested continuation
+until collection and final publication finish, then pause again. No unrelated
+recurring unit, credentials, canonical options.sqlite, or Site UI is changed.
+Exact preflight, plan identity, activation and progress evidence are recorded in
+the new .local/options-monitor-through-20261002-* directory.
+
+
+Activation evidence: continuation run 28278f01f5480244bb096bb3 started on
+October 4 at 01:45:34 UTC (October 3 at 21:45:34 Eastern) as PID 185798 with the
+existing ten-worker/four-request CLI. At 01:47:37 UTC the exact process command
+and current heartbeat were verified, with 186 successful requests and 2 newly
+saved ticker-days out of 6,798. There were no pending retries or connection
+failures; publication was correctly deferred. Both immutable manifests were
+unchanged. This is an in-progress activation, not a completion claim.
+
+Evidence is .local/options-monitor-through-20261002-20261004T014244Z/
+(preflight.json, policy-verification.json, launch-intent.json, resume.json,
+run.log and activation.json). Its bounded health.py records continuation-scoped
+observations in .local/options-monitor-watchdog-28278f01f5480244bb096bb3/.
+The existing hourly automation keep-intraday-options-backfill-running was
+reactivated for this exact continuation and its new health helper. No production
+collector changes were needed; helper syntax checks, preflight/policy checks,
+current process/heartbeat checks, actual request/save progress, and documentation
+diff checks passed.
+
+
+## October 4: intraday continuation through October 2 completed
+
+Continuation 28278f01f5480244bb096bb3 completed collection and acknowledged final
+publication at 2026-10-04 04:32:03 UTC (00:32:03 Eastern). The original owner
+exited after recording phase=complete. At 04:49-04:51 UTC, the bounded immutable
+reader verified 6,030 saved and 6,030 published ticker-days out of 6,798 targets:
+1,988 for September 30, 2,017 for October 1, and 2,025 for October 2.
+
+The other 768 ticker-days have successful empty contract catalogs from the
+provider. They are explicitly no-data gaps, not downloaded days. There are zero
+pending days, unresolved admissions, retry-pending days, setup-blocked days, or
+remaining authentication/retry-exhaustion gaps. All seven recorded provider
+failures were superseded by successful logical outcomes. Usage was 48,853
+admissions including one connection admission and 460,653,551 accounted bytes,
+with zero unknown-byte admissions in this continuation. Combined parent plus
+continuation usage is 535,229 admissions and 5,155,778,090 accounted bytes; all
+original limits and immutable parent exceptions remain unchanged.
+
+The existing hourly automation keep-intraday-options-backfill-running was
+paused through the Codex automation tool after completion verification.
+No provider retry, new collection, or Site UI deployment was performed by the
+closing check. No production code changed and no test suite was needed.
+The completion evidence is .local/options-monitor-through-20261002-20261004T014244Z/
+(completion.json, gaps.csv, monitor-closed.json, and run.log), with the final
+bounded health observation in
+.local/options-monitor-watchdog-28278f01f5480244bb096bb3/20261004T044935Z.json.
+
+
+## October 8: authorized daily Theta repair and missing-session backfill
+
+The user asked to investigate daily failures and start backfill of the missing
+options, then explicitly said 'restart the wsl and fix'. Ubuntu termination alone
+did not restore stable access; a full WSL shutdown/start restored the native
+runtime and running user scheduler. Other recurring units were not changed.
+
+The October 6-8 daily jobs rejected same-day all-expiry EOD requests; October 5
+failed authentication before data acquisition. An immutable pre-repair read found
+all 15 ETFs current through October 2, with no October 5-8 captures (60 ETF-days).
+The existing daily timer is being corrected to Tue-Sat 07:15 Eastern for the
+previous calendar date, preserving all expiries/strikes/rights and existing daily
+caps. Versioned daily admission and a separate activation record preserve the
+original failed periods. The weekly repair retains its schedule and scope.
+Independent verification of changed scheduler/replay guarantees precedes activation.
+
+The finite repair is exactly the existing 15 ETFs for October 5-8, using existing
+Theta credentials, native runtime, options.sqlite, physical locks, provider
+ownership, model and missing-only publisher. Two phases cap total work at 124
+data requests, two authentication attempts, 4 GiB and October 9 04:00 Eastern.
+October 8 waits until October 9 00:15 Eastern to avoid another same-day rejection.
+No retries, credential changes, hidden provider probes, canonical rewrites,
+Site deployment or intraday baseline re-collection are authorized by this entry.
+Evidence is .local/theta-daily-repair-20261009T014558Z/. Activation and observed
+progress will be recorded only after verification and actual execution.
+
+
+### October 8 repair activation evidence
+
+At 2026-10-09 02:00:25 UTC, after 100 focused offline tests, the 60 ETF-day
+missing-only fixture, four deadline regressions and fresh independent verification,
+the corrected daily timer was reloaded and remained enabled/active. Its next slot
+is October 9 07:15 Eastern. No collector service was manually triggered and the
+weekly schedule was unchanged. The new activation is
+data/.operations/theta-options/activation-next-day.json; the original activation
+and all October 5-8 failed-period receipts retain their pinned hashes.
+
+At 02:00:51 UTC the finite repair helper started as PID 99429. Provider login and
+the calendar request subsequently succeeded; canonical publication is verified
+separately in the retained repair observations. October 8 remains gated until
+October 9 00:15 Eastern. The helper refreshes time after lock/provider admission
+and enforces a phase cutoff across authentication, data requests and publication;
+an interrupted admission is retained and never silently retried.
+
+Evidence: .local/theta-daily-repair-20261009T014558Z/activation-applied.json,
+independent-review.json, repair-launch.json, final-tests.log,
+repair-tests.json, and deadline-tests.json. The new schedule has not yet
+executed a normal clock-driven run; finite repair success alone does not prove
+that future timer execution has occurred.
+
+At 2026-10-09 02:03:26 UTC, the October 5-7 repair completed all 45 ETF-days
+with zero gaps using 91 data requests and 141,153,121 response bytes. A bounded
+immutable postcheck confirmed 15 ETFs on each date, all 37,968 pre-existing
+current capture mappings unchanged, all original failed receipts unchanged,
+and all reviewed source hashes unchanged. The same finite process remains
+waiting for October 9 00:15 Eastern before its 15 ETF-day October 8 phase.
+See collection-postcheck.json and repair-status.json in the evidence directory.
+
+
+### October 8, 22:15 Eastern: explicit current-day EOD diagnostic
+
+The user explicitly requested trying today's daily data again. One SPY
+option_history_greeks_eod request for October 8, expiration=* / strike=* / both
+rights, version 1 and underlying NBBO, ran at 22:15:55 Eastern with the existing
+credential resolver, scheduled-owner lock and exclusive Theta provider lease.
+The separate finite diagnostic allowed one authentication, one data call,
+64 MiB and 90 seconds, with zero retries and no canonical-store access.
+Theta returned INVALID_ARGUMENT and 'Cannot fetch current-day data without
+specifying an expiration': zero rows and zero response-data bytes.
+Only sanitized metadata was retained at
+.local/theta-current-day-probe-20261009T021553Z/. It changed no recurring unit,
+repair allowance, saved market data or ongoing repair schedule.
+
+## October 9: options-monitor count-gate implementation; rollout pending
+
+The user approved the proposed volume-based eligibility change and requested
+implementation. The tested candidate makes decreases in total/active returned
+contract counts and unavailable counts informational; per-side volume corrections,
+incomplete data, temporal exclusions, baseline requirements and existing alert
+thresholds remain. Historical rejected observations are preserved. See the
+October 9 section of [the monitor contract](OPTIONS_MONITOR_2026-09-26.md).
+
+The compatible Site source is pushed and saved as version 10, commit
+43a0d0c4ec51f0c09eb02ce2e9a1d82da3eb66b0. Its existing custom audience (owner and
+existing invited viewers) was read and preserved. Production deployment was
+rejected by automatic approval review for lack of explicit production-release
+authorization. Explicit approval has been requested; no deployment or collector
+activation occurred. The reviewed backend module and test patch remain staged
+in .local/options-count-gate-20261009/. Existing active collector behavior,
+recurring-unit configuration and saved observations are unchanged.
+
+Evidence includes 96 scoped backend tests (with the explicit superseded-expectation
+correction/recheck), 166 UI assertions, 14 local API assertions, successful
+TypeScript/build, actual desktop/mobile browser and visual checks, and fresh
+independent review. No provider request or historical recollection was performed.
+release.json in the evidence directory records exact saved version/source/archive
+identity and the deployment rejection; it is not activation evidence.
+
+
+### October 9: explicit release approval and count-gate activation
+
+The user explicitly approved the pending deploy-and-activate request with
+"Yea deploy". Site version 10 deployed successfully at 2026-10-09 16:49:40 UTC:
+deployment appgdep_6ac91b1be1fc81919b8a18b5a827c722, saved source
+43a0d0c4ec51f0c09eb02ce2e9a1d82da3eb66b0, at
+https://quant-options-monitor.yanggainan.chatgpt.site. The existing custom
+audience was retained; no access-policy change was requested.
+
+At 16:51:10 UTC the reviewed collector model and its two test files were
+installed after verifying their active preimages and candidate fingerprints.
+The installed model SHA-256 is
+dbbaa42cff86e7c8161680932c8038cce239cd99bb3586d8afd8d17625a93b99.
+Future normal scheduled processes use the relaxed count gates. No provider
+request, manual collector execution, recurring-unit change, or historical
+rewrite was performed, and no post-activation scheduled scan is claimed.
+
+Evidence: .local/options-count-gate-20261009/activation.json contains the actual
+deployment response, installed hashes and activation time. Earlier release.json
+and the approval rejection remain historical evidence. Its archive_sha256 field
+records the Sites-reported stored archive content hash; activation.json separately
+records the local gzip and uncompressed-tar fingerprints. The installed files
+are byte-identical to the previously tested and independently reviewed candidates;
+compilation checks passed at activation.
+
+## October 9: cumulative options alert implementation; release pending
+
+The user requested an additional intraday cumulative-volume alert alongside the
+interval rule. The implementation compares today's call + put volume with the
+same Eastern cutoff across at least 20 prior sessions, up to 60, using a 3x
+threshold, at least 500 contracts and a separate 30-minute cooldown. Existing
+saved five-minute/live history supplies the comparison; there are no new
+provider calls, historical rewrites or recurring-unit changes. The focused
+policy and compatibility behavior are recorded in OPTIONS_MONITOR_2026-09-26.md.
+
+117 backend tests, 235 UI assertions, 22 local API assertions, TypeScript,
+production build, actual desktop/mobile browser checks, visual review and fresh
+independent verification passed after a documented temporal-gate correction.
+Four reviewed backend files and one new test remain staged under
+.local/options-cumulative-20261009/. Active backend preimages are unchanged.
+
+The compatible Site source 89643713a7cc1c5bed46c7618e7e564635cfba29 is pushed and
+saved as version 11. Automatic approval review rejected production deployment
+for lack of explicit approval for this new cumulative-alert release. Approval
+to deploy and activate has been requested. Existing custom sharing was read
+and retained; no deployment or collector activation has occurred.
+Evidence: release.json, reviewed-inputs.json, independent-review.json,
+validation.json and the retained test/build logs in that evidence directory.
+
+
+### October 9: version 11 deployed and cumulative alerts activated
+
+The user explicitly authorized deploying version 11 and activating cumulative
+alerts. The saved version deployed successfully at 2026-10-09 20:49:56 EDT,
+deployment appgdep_6ac98babe1c0819182043bce04449240, source
+89643713a7cc1c5bed46c7618e7e564635cfba29, at
+https://quant-options-monitor.yanggainan.chatgpt.site. A post-deployment read
+confirmed the existing custom sharing policy remained identical (revision 4).
+
+At 2026-10-09 20:50:34 UTC-04:00, the four reviewed collector modules and new
+cumulative test were installed with exact preimage and candidate hashes checked.
+Dependencies were installed before their consumer. All installed files match
+the independently reviewed bytes; the 21 cumulative tests also passed against
+the installed code using temporary offline fixtures. Prior broader validation
+remains applicable to these unchanged bytes.
+
+Cumulative alerts now apply alongside interval alerts in future normal scheduled
+processes. No manual collector run, provider request, recurring-unit change or
+historical rewrite was performed. No post-activation live scan is claimed.
+The actual native deployment response, activation timestamps, installed hashes,
+sharing check and test result are in .local/options-cumulative-20261009/activation.json.
+The earlier release.json and approval rejection remain historical evidence.
+
+## October 9: grouped options Inbox and Activity implemented; visual gate pending
+
+The user accepted the grouped ticker/session Inbox and simplified Activity view.
+Site source 577cab29ce2b8cbe1f8f2f46b96195cc0e95d1f1 is pushed and saved with its
+built archive as version 12. This is an implementation/save receipt, not a
+production deployment or change to sharing, providers, collectors or timers.
+The focused behavior contract is in OPTIONS_MONITOR_2026-09-26.md.
+
+Validation passed: four Eastern-date bounds, 26 exact-SQL assertions, 37 grouped
+HTTP assertions, 22 cumulative API regressions, 156 UI assertions, TypeScript
+and production build. Fresh independent source/offline review passed the same
+applicable checks and seven additional boundary assertions, with no findings.
+The required browser/visual gate remains outstanding: local preview navigation
+failed to connect, then the browser tool blocked its error-page URL protocol.
+No workaround browser automation was used and no visual pass is claimed.
+
+User input about a working allowed HTTP preview is pending. Version 12 has not
+been deployed. Release identity, scope and validation are retained in
+.local/options-grouped-inbox-20261009/release.json; initial failures remain in
+separate logs alongside successful rechecks.
+
+### October 9: version 12 browser gate passed and deployed
+
+After the user confirmed the preview loaded, the same committed source passed
+actual desktop and 390-by-844 mobile CUA checks. Group/session/event paging,
+independent cumulative readiness, older-session exclusion, review failure,
+loading/empty/reviewed states and explicit-ID review during a new arrival were
+verified. The configured design owner reviewed ten screenshots and passed the
+changed surfaces without source edits. Prior offline and independent checks
+remain applicable to source 577cab29ce2b8cbe1f8f2f46b96195cc0e95d1f1.
+
+Saved version 12 deployed successfully at 2026-10-09 22:35:51 EDT, deployment
+appgdep_6ac9a480262c8191b16f1ff0c5b78a26, to the existing Options Monitor URL.
+The complete custom sharing policy remained identical at revision 4. A read-only
+published-page check loaded both new views and showed the October 9 Inbox with
+356 ticker groups / 540 unreviewed alerts, paged 20 groups at a time. Browser
+console checks reported no errors or warnings. No production alerts were marked
+reviewed, and no provider call, collector change or recurring-unit change was
+performed. Local mutation checks used synthetic fixtures only.
+
+The native deployment response, sharing comparison, browser/visual checks and
+screenshot references are recorded in
+.local/options-grouped-inbox-20261009/activation.json. The earlier pending-gate
+release.json is retained as historical evidence.
+
 
 ## October 9, 2026 — saved-FMP classification authority
 

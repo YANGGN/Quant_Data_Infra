@@ -24,6 +24,10 @@ from .equibles_transcript_backfill import private_directory, job_lock, read_file
 STATE_BOUND=64*1024*1024
 SAFE_HEADERS=frozenset(("content-type","date","etag","last-modified","x-ratelimit-limit","x-ratelimit-remaining","x-ratelimit-reset","retry-after"))
 
+class CredentialExposureError(ValidationError):
+    """A response contains credential material and cannot be treated as a gap."""
+
+
 @dataclass(frozen=True)
 class QueueResponse:
     status: int
@@ -49,8 +53,8 @@ def atomic(path,body,*,replace=False):
     finally:
         if temporary.exists(): temporary.unlink()
 
-def provider_stop(status):
-    return status in (401,403,429) or status>=500
+def provider_stop(status, provider=None):
+    return status in (401,403,429) or (provider != "fmp" and status>=500)
 
 def _retry_at(receipt):
     from email.utils import parsedate_to_datetime
@@ -145,14 +149,14 @@ def _retain(root,unit,response,secrets):
         if not isinstance(value,str) or not value:
             raise ValidationError("Collection credential redaction input is invalid")
         if value.encode() in response.body or quote(value,safe="").encode() in response.body:
-            raise ValidationError("Collection response echoed a credential")
+            raise CredentialExposureError("Collection response echoed a credential")
     headers={}
     for k,v in response.headers:
         if not isinstance(k,str) or not isinstance(v,str) or len(v)>4096 or any(ord(c)<32 for c in v):
             raise ValidationError("Collection response header is invalid")
         if k.lower() in SAFE_HEADERS:
             if any(secret in v or quote(secret,safe="") in v for secret in secrets):
-                raise ValidationError("Collection response header echoed a credential")
+                raise CredentialExposureError("Collection response header echoed a credential")
             headers[k.lower()]=v
     sha=hashlib.sha256(response.body).hexdigest()
     receipt={"contract":"quant_data.collection_response.v1","unit_id":unit.unit_id,
@@ -162,8 +166,22 @@ def _retain(root,unit,response,secrets):
     atomic(root/"responses"/(unit.unit_id+".json"),receipt)
     return receipt,response.body
 
+def _isolatable_sec_failure(diagnostic):
+    # A closed transport diagnostic, never arbitrary exception text or store errors.
+    return (isinstance(diagnostic, dict)
+        and set(diagnostic) == {"contract", "category", "http_status", "retryable"}
+        and diagnostic["contract"] == "quant_data.provider_failure.v1"
+        and diagnostic["category"] in {"network_error", "timeout", "response_too_large",
+            "invalid_response", "unexpected_redirect", "unexpected_content_type"}
+        and diagnostic["retryable"] is False
+        and (diagnostic["http_status"] is None or
+            (type(diagnostic["http_status"]) is int and 100 <= diagnostic["http_status"] <= 599
+             and not provider_stop(diagnostic["http_status"], "sec"))))
+
+
 def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.monotonic,
-              sleeper=time.sleep,secret_values=(),acquire_only=False,resolve_retained=None,deadline=None):
+              sleeper=time.sleep,secret_values=(),acquire_only=False,resolve_retained=None,deadline=None,
+              isolate_sec_transport_failures=False):
     """Reserve before GET, retain before publication, never retry uncertain GETs.
 
     The root is a private host path shared by this provider's expanded queues.
@@ -174,6 +192,9 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
         raise ValidationError("Collection absolute deadline is invalid")
     if type(acquire_only) is not bool or (acquire_only and publish is not None):
         raise ValidationError("Acquisition-only queues must not claim canonical publication")
+    if (type(isolate_sec_transport_failures) is not bool or
+            (isolate_sec_transport_failures and (provider != "sec" or not acquire_only))):
+        raise ValidationError("SEC request isolation requires a SEC acquisition-only queue")
     if not isinstance(plan,CollectionPlan):
         raise ValidationError("Collection queue needs a frozen plan")
     if provider=="equibles":
@@ -191,7 +212,7 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
         return {"outcome":"complete","requests":0,"published":0,"reused":0}
     plan_id=plan.plan_id
     effective_deadline=min(started+budget.max_run_seconds,deadline) if deadline is not None else started+budget.max_run_seconds
-    last_request=None;requests=received=published=reused=0;acquired=0;failed=[]
+    last_request=None;requests=received=published=reused=0;acquired=0;failed=[];uncertain_bytes=0
     reused_units=dict(plan.reuse)
     blocked_units=dict(plan.blocked_units)
     with job_lock(root):
@@ -212,12 +233,47 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
                 state["provider_backoff"]={"unit_id":receipt["unit_id"],"http_status":429,"not_before":_retry_at(receipt)}
             state["pending"]=None
             _save(root,state)
+        def fail_pending(unit, http_status=None, diagnostic=None):
+            nonlocal uncertain_bytes
+            reservation = state["pending"]
+            if (not isinstance(reservation, dict)
+                    or reservation.get("unit_id") != unit.unit_id
+                    or reservation.get("request_id") != unit.request_id
+                    or digest(reservation.get("unit")) != digest(asdict(unit))):
+                raise ConflictError("Collection uncertain reservation differs")
+            day = reservation.get("day")
+            bucket = state["usage"].get(day)
+            if (not isinstance(bucket, dict) or type(reservation.get("attempt")) is not int
+                    or reservation["attempt"] < 1
+                    or bucket.get("charged_attempts") != reservation["attempt"]
+                    or _utc_value(reservation.get("charged_at"))[:10] != day
+                    or state["last_request_at"] != reservation["charged_at"]):
+                raise ConflictError("Collection uncertain accounting differs")
+            companion = root/"attempts"/(day+"-"+str(reservation["attempt"])+".json")
+            if companion.exists() and digest(_read(companion)) != digest(reservation):
+                raise ConflictError("Collection uncertain attempt evidence differs")
+            private_directory(root/"failures")
+            code = "sec_request_failed" if diagnostic is not None else "fmp_request_failed"
+            detail = {"provider_failure": diagnostic} if diagnostic is not None else {}
+            receipt = {"contract":"quant_data.collection_failed_request.v1",
+                       **reservation, "error":code, "http_status":http_status,
+                       "automatic_retry":False, "reserved_bytes":unit.max_response_bytes, **detail}
+            atomic(root/"failures"/(unit.unit_id+".json"), receipt)
+            # Unknown response bytes consume the full request bound, separately
+            # from measured bytes. Never gain budget by failing a request.
+            bucket["uncertain_bytes"] = bucket.get("uncertain_bytes", 0) + unit.max_response_bytes
+            state["units"][unit.unit_id] = {"status":"failed", "request_id":unit.request_id,
+                                           "error":code, "http_status":http_status, **detail}
+            state["pending"] = None
+            _save(root, state)
+            uncertain_bytes += unit.max_response_bytes
+
         def exhausted(required=0):
             return monotonic()+required>=effective_deadline
         def bounded():
             return {"outcome":"invocation_budget","requests":requests,"received_bytes":received,
-                "published":published,"reused":reused,"failed_units":list(failed)}
-        # Even another plan cannot proceed past an uncertain reserved attempt.
+                "published":published,"reused":reused,"uncertain_bytes":uncertain_bytes,"failed_units":list(failed)}
+        # Recover retained responses first; isolate abandoned FMP requests without retry.
         pending=state["pending"]
         if pending is not None:
             matching=next((u for u in units if u.unit_id==pending["unit_id"]),None)
@@ -230,9 +286,22 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
                     raise ConflictError("Pending collection request identity differs")
             retained=_response(root,matching.unit_id,matching)
             if retained is None:
-                raise ConflictError("A pending provider request has no retained response; no retry")
-            settle(retained[0])
-            if provider_stop(retained[0]["status"]):
+                if provider == "sec" and isolate_sec_transport_failures:
+                    receipt = _read(root/"failures"/(matching.unit_id+".json"))
+                    diagnostic = receipt.get("provider_failure") if isinstance(receipt, dict) else None
+                    if not _isolatable_sec_failure(diagnostic):
+                        raise ConflictError("A pending provider request has no retained response; no retry")
+                    # The immutable receipt must exactly match the pending reservation.
+                    fail_pending(matching, diagnostic["http_status"], diagnostic)
+                elif provider == "fmp":
+                    fail_pending(matching)
+                else:
+                    raise ConflictError("A pending provider request has no retained response; no retry")
+                if not any(u.unit_id == matching.unit_id for u in units):
+                    failed.append({"unit_id":matching.unit_id, **state["units"][matching.unit_id]})
+            else:
+                settle(retained[0])
+            if retained is not None and provider_stop(retained[0]["status"], provider):
                 return {"outcome":"provider_http_failure","requests":requests,"received_bytes":received,
                     "published":published,"reused":reused,"failed_units":[{"unit_id":matching.unit_id,"http_status":retained[0]["status"]}]}
         backoff=state["provider_backoff"]
@@ -260,8 +329,10 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
             if existing and existing["status"]=="published" and not acquire_only:
                 raise ConflictError("Collection publication receipt is missing")
             if existing and existing["status"]=="failed":
-                failed.append({"unit_id":unit.unit_id,"http_status":existing.get("http_status")})
-                if existing.get("http_status") is not None and provider_stop(existing["http_status"]):
+                failed.append({"unit_id":unit.unit_id,"http_status":existing.get("http_status"),
+                               **({"error":existing["error"]} if "error" in existing else {}),
+                               **({"provider_failure":existing["provider_failure"]} if "provider_failure" in existing else {})})
+                if existing.get("http_status") is not None and provider_stop(existing["http_status"], provider):
                     return {"outcome":"provider_http_failure","requests":requests,"received_bytes":received,
                         "published":published,"reused":reused,"failed_units":failed}
                 continue
@@ -311,9 +382,9 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
                     if elapsed<0: raise ConflictError("Collection request clock moved backwards")
                     delay=max(delay,budget.min_interval_milliseconds/1000-elapsed)
                 remaining=effective_deadline-monotonic()
-                if (requests>=budget.max_requests or received+unit.max_response_bytes>budget.max_total_bytes
+                if (requests>=budget.max_requests or received+uncertain_bytes+unit.max_response_bytes>budget.max_total_bytes
                     or remaining<delay+unit.timeout_seconds):
-                    return {"outcome":"invocation_budget","requests":requests,"received_bytes":received,"published":published,"reused":reused}
+                    return bounded()
                 if delay: sleeper(delay)
                 if exhausted(unit.timeout_seconds): return bounded()
                 at=_clock(utcnow);day=at[:10]
@@ -328,18 +399,64 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
                 state["pending"]=reservation;state["last_request_at"]=at;_save(root,state)
                 atomic(root/"attempts"/(day+"-"+str(reservation["attempt"])+".json"),reservation)
                 requests+=1;last_request=monotonic()
+                from .collection_provider_policy import FmpRequestNotDispatched, FmpGateFailure
                 try:
                     response=fetch(unit=unit,timeout_seconds=unit.timeout_seconds,max_bytes=unit.max_response_bytes)
-                    retained=_retain(root,unit,response,tuple(secret_values))
-                except Exception:
+                except FmpRequestNotDispatched:
+                    if provider != "fmp":
+                        raise
+                    # Preserve the charge and terminal unit; never retry it.
+                    private_directory(root/"not-dispatched")
+                    atomic(root/"not-dispatched"/(unit.unit_id+".json"),
+                        {"contract":"quant_data.collection_not_dispatched.v1",
+                         **reservation,"reason":"fmp_admission_blocked"})
+                    state["units"][unit.unit_id]={"status":"failed","request_id":unit.request_id,
+                                                "error":"fmp_not_dispatched"}
+                    state["pending"]=None
+                    _save(root,state)
+                    return {"outcome":"provider_admission_blocked","requests":requests,
+                            "received_bytes":received,"published":published,"reused":reused,
+                            "failed_units":[*failed,{"unit_id":unit.unit_id,
+                                                    "error":"fmp_not_dispatched"}]}
+                except FmpGateFailure:
+                    raise
+                except Exception as error:
+                    from .collection_transport import ProviderRequestFailure
+                    if (isolate_sec_transport_failures and type(error) is ProviderRequestFailure
+                            and _isolatable_sec_failure(error.diagnostic())):
+                        diagnostic = error.diagnostic()
+                        fail_pending(unit, error.http_status, diagnostic)
+                        failed.append({"unit_id":unit.unit_id, "error":"sec_request_failed",
+                            "http_status":error.http_status, "provider_failure":diagnostic})
+                        continue
+                    if provider == "fmp":
+                        status=getattr(error,"http_status",None)
+                        status=status if type(status) is int and 100<=status<=599 else None
+                        fail_pending(unit, status)
+                        failed.append({"unit_id":unit.unit_id,"error":"fmp_request_failed","http_status":status})
+                        if status in (401,403,429):
+                            return {**bounded(),"outcome":"provider_http_failure"}
+                        continue
                     state["units"][unit.unit_id]={"status":"failed","request_id":unit.request_id}
                     _save(root,state)
                     raise ConflictError("Collection acquisition failed; charged reservation retained without retry") from None
+                try:
+                    retained=_retain(root,unit,response,tuple(secret_values))
+                except (ValidationError, ResourceLimitError) as error:
+                    if provider == "fmp" and isinstance(error, CredentialExposureError):
+                        raise FmpGateFailure("Collection response failed credential safety") from None
+                    if provider != "fmp":
+                        state["units"][unit.unit_id]={"status":"failed","request_id":unit.request_id}
+                        _save(root,state)
+                        raise ConflictError("Collection acquisition failed; charged reservation retained without retry") from None
+                    fail_pending(unit)
+                    failed.append({"unit_id":unit.unit_id,"error":"fmp_request_failed"})
+                    continue
                 received+=len(retained[1])
                 settle(retained[0])
             if retained[0]["status"]!=200:
                 failed.append({"unit_id":unit.unit_id,"http_status":retained[0]["status"]})
-                if provider_stop(retained[0]["status"]):
+                if provider_stop(retained[0]["status"], provider):
                     return {"outcome":"provider_http_failure","requests":requests,"received_bytes":received,
                         "published":published,"reused":reused,"failed_units":failed}
                 continue
@@ -359,7 +476,7 @@ def run_queue(*,root,plan,provider,fetch,publish,utcnow=_utcnow,monotonic=time.m
                 {"unit_id":unit.unit_id,"request_id":unit.request_id,"result":result})
             state["units"][unit.unit_id]={"status":"published","request_id":unit.request_id}
             _save(root,state);published+=1
-    result={"outcome":"complete_with_gaps" if failed else "complete","requests":requests,"received_bytes":received,"published":published,"reused":reused,"failed_units":failed}
+    result={"outcome":"complete_with_gaps" if failed else "complete","requests":requests,"received_bytes":received,"published":published,"reused":reused,"uncertain_bytes":uncertain_bytes,"failed_units":failed}
     if acquire_only:
         result.update(outcome="acquired_with_gaps" if failed else "acquired",acquired=acquired)
     return result

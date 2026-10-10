@@ -91,6 +91,18 @@ class ThetaFetchStatusTests(unittest.TestCase):
         self.assertEqual([t.isoformat() for t in slots],
                          ["2026-10-30T23:15:00+00:00", "2026-11-03T00:15:00+00:00"])
 
+    def test_next_morning_schedule_and_new_report_keep_old_receipts_compatible(self):
+        rules = ["{ OnCalendar=Tue..Sat *-*-* 07:15:00 America/New_York ; next_elapse=n/a }"]
+        slots, supported = _slots(rules, date(2026, 10, 30), 5)
+        self.assertTrue(supported)
+        self.assertEqual([value.isoformat() for value in slots], [
+            "2026-10-30T11:15:00+00:00", "2026-10-31T11:15:00+00:00",
+            "2026-11-03T12:15:00+00:00"])
+        self.assertEqual(_cadence({"TimersCalendar": rules}), "Tue–Sat at 07:15 New York")
+        old = report()
+        new = {**old, "contract": "theta_daily_and_weekly_v2"}
+        self.assertEqual(summarize_report(WEEKLY, old), summarize_report(WEEKLY, new))
+
     def test_completed_receipt_flows_through_calendar_and_existing_markup(self):
         self.assertEqual(self.record(report()), 0)
         snapshot = self.snapshot()

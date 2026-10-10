@@ -1443,6 +1443,26 @@ Validation occurs in phases:
 
 Errors include a stable code and a JSON-pointer-like location. Validation reports all independent static errors in deterministic location order; runtime startup refuses write service if any fatal error remains.
 
+### Loader implementation and historical compatibility
+
+The current loader and declarations live in `quant_data/registry.py`. Frozen
+projection bodies live in `quant_data/registry_compat.py`; their existing imports
+from `quant_data.registry` remain available through lazy re-exports. Loading the
+current registry alone does not import historical projections. Historical source
+hashes, serialization, ordering, and projection checks remain unchanged.
+
+The loader retains at most four validated schema catalogs in a process-local
+least-recently-used cache. Keys include the actual content SHA-256 and every
+catalog validation expectation. Each request still validates the declaration,
+resolves and checks resource containment, rereads the bytes, and verifies the
+declared checksum before cache lookup. Returned schemas are deep copies of
+private cache entries; failures are never cached. Registry objects, migration
+validation, and historical projection results are not cached.
+
+Offline regressions are in `tests.test_registry_loading`. Changes to this shared
+validation path require the full offline suite and independent compatibility
+verification under the [test strategy](TEST_STRATEGY.md#4-test-layers).
+
 ## Consumers
 
 | Consumer | Registry inputs | Required behavior |

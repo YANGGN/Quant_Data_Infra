@@ -5,8 +5,9 @@ from datetime import datetime,timezone,date,time as daytime,timedelta
 from pathlib import Path
 import fcntl,os,threading,time
 from quant_data.options.transport import Budget,ProviderFailure
+from .admission import ThetaAdmission
 from .policy import NY,load_policy,load_universe,validate_watchlist,market_window,previous_session,slot_for,radar_offset
-from .model import aggregate,derive,alert_for
+from .model import aggregate,derive,alert_for,cumulative_alert_for
 from .store import MonitorStore
 from .site import SiteClient,connection
 from .transport import MonitorThetaTransport
@@ -100,12 +101,20 @@ class MonitorJob:
                 except Exception:
                     self.store.finish_push(alert["id"],identity,"failed")
         return sent
+    def _pause_status(self, now):
+        pause=ThetaAdmission(self.root).pause_status(now)
+        if pause is None:return None
+        return {"status":"paused","session":pause["session"],"requests":0,
+                "reason":pause["reason"],"resume_at":pause["until"]}
+
     def run(self):
         os.umask(0o077)
         cycle_started=time.monotonic()
-        self.store.initialize()
         now=self.clock()
         if now.tzinfo is None:raise ValueError("monitor_clock")
+        paused=self._pause_status(now)
+        if paused is not None:return paused
+        self.store.initialize()
         local=now.astimezone(NY);day=local.date();session=day.isoformat()
         site=self.site_factory(connection(self.root/"data/.operations/options-monitor/connection.json"))
         if day.weekday()>=5 or local.time()<daytime(9,30) or local.time()>daytime(16,15):
@@ -121,9 +130,15 @@ class MonitorJob:
             try:fcntl.flock(handle.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
             except BlockingIOError:raise RuntimeError("monitor_cycle_running") from None
             try:
+                # Close the race with a pause installed after the first check.
+                paused=self._pause_status(self.clock())
+                if paused is not None:return paused
                 preflight=getattr(self.transport_factory,"preflight",None)
                 if preflight is not None:preflight()
-                return self._run_locked(site,now,session,day,cycle_started)
+                # Announce live intent before waiting for in-flight historical
+                # work. No background login can overlap this complete cycle.
+                with ThetaAdmission(self.root).live(deadline=cycle_started+self.policy["max_seconds_per_cycle"]):
+                    return self._run_locked(site,now,session,day,cycle_started)
             except Exception:
                 # Report failure without exposing exception text or attempting a
                 # provider retry. Preserve the original exception if Site is down.
@@ -223,13 +238,17 @@ class MonitorJob:
             old=self.store.prior(symbol,session)
             first=self.store.first(symbol,session)
             local_slot=datetime.fromisoformat(observation_slot).astimezone(NY)
-            baselines=self.store.baselines(symbol,cadence,local_slot.hour*60+local_slot.minute,session)
+            minute=local_slot.hour*60+local_slot.minute
+            baselines=self.store.baselines(symbol,cadence,minute,session)
+            cumulative_baselines=self.store.cumulative_baselines(symbol,minute,session)
+            alert_times={kind:self.store.last_alert(symbol,kind=kind) for kind in ("interval","cumulative")}
             flagged=bool(old and (old.get("relative_volume") or 0)>=2)
             iv_needed=member["group"]!="equity" or symbol in watch or flagged
             quota=min(available,1+int(old is None)+int(iv_needed))
             available-=quota
-            plans.append((symbol,cadence,slot,old,first,baselines,last_alert,iv_needed,
-                          bool(watch.get(symbol,{}).get("alerts_enabled",True)),quota,observation_slot))
+            plans.append((symbol,cadence,slot,old,first,baselines,alert_times,iv_needed,
+                          bool(watch.get(symbol,{}).get("alerts_enabled",True)),quota,observation_slot,
+                          cumulative_baselines,minute))
         permit=threading.BoundedSemaphore(max(0,budget.max_requests-budget.requests))
         locals_by_thread=threading.local();transports=[];transport_lock=threading.Lock()
         job=self
@@ -243,7 +262,7 @@ class MonitorJob:
                 return transport.request(method,**params)
         lazy=Lazy()
         def acquire(plan):
-            symbol,cadence,slot,old,first,baselines,last_alert,iv_needed,enabled,quota,observation_slot=plan
+            symbol,cadence,slot,old,first,baselines,alert_times,iv_needed,enabled,quota,observation_slot,cumulative_baselines,minute=plan
             if time.monotonic()>=deadline-70:return plan,None,"deadline"
             args={"symbol":symbol,"expiration":"*","strike":"*","right":"both"}
             try:
@@ -273,18 +292,21 @@ class MonitorJob:
         for plan,current,error in acquired:
             if current is None:
                 errors+=1;error_types[error]=error_types.get(error,0)+1;continue
-            symbol,cadence,slot,old,first,baselines,last_alert,iv_needed,enabled,quota,observation_slot=plan
+            symbol,cadence,slot,old,first,baselines,alert_times,iv_needed,enabled,quota,observation_slot,cumulative_baselines,minute=plan
             if old and current["_fingerprint"]==old["_fingerprint"]:
                 current["open_interest"]=old.get("open_interest")
                 current["oi_effective_date"]=old.get("oi_effective_date")
                 total=(current["call_volume"] or 0)+(current["put_volume"] or 0)
                 current["volume_oi"]=total/current["open_interest"] if current["open_interest"] and current["oi_effective_date"] and current["call_volume"] is not None and current["put_volume"] is not None else None
-            observation=derive(current,old,baselines,first,cadence=cadence)
+            observation=derive(current,old,baselines,first,cadence=cadence,
+                cumulative_baselines=cumulative_baselines,cumulative_minute=minute)
             observation["_slot"]=observation_slot
             for leader in observation["leaders"]:
                 leader["right"]="call" if leader["right"]=="C" else "put"
-            alert=alert_for(observation,last_alert,enabled=enabled)
-            self.store.publish(observation,alert);completed+=1
+            alerts=[a for a in (
+                alert_for(observation,alert_times["interval"],enabled=enabled),
+                cumulative_alert_for(observation,alert_times["cumulative"],enabled=enabled)) if a]
+            self.store.publish(observation,alerts=alerts);completed+=1
         cycle_status="complete" if not errors and completed==len(plans)==len(candidates) else "partial"
         batches=self._publish_outbox(site,session,deadline,cycle_status)
         if time.monotonic()<deadline-10:

@@ -123,3 +123,39 @@ Private receipts, test logs, scoped preimages and changed-file hashes are under
 this follows the explicit-version/component-policy lane, with unchanged core
 schema, identity, time, locking and access semantics and exact predecessor
 compatibility evidence. Unrelated preexisting workspace changes were preserved.
+
+## October 5, 2026 — isolated SEC transport failures
+
+The user requested investigation and repair of the October 5 SEC failure. The
+retained observation shows 2,128 charged attempts and 2,127 saved responses
+(2,024 submissions and 103 CompanyFacts). SGHC, CIK 0001878057, was the final
+pending submissions request. The process stopped 120 seconds after reservation,
+consistent with its request timeout; the old handler discarded the original
+exception, so the specific transport cause cannot be proven from the receipt.
+
+The conditional worker now opts into isolation of exact, closed SEC transport
+diagnostics for timeout, network error, invalid/oversized response, redirect and
+unexpected content type. Each such request remains charged, receives an immutable
+failure receipt, consumes its entire response allowance when byte usage is
+unknown, and is never retried in that observation. Later issuers can proceed;
+CompanyFacts transport failures count as failed issuers. Reports retain CIK,
+endpoint, reason, request counts and unknown-byte reservations.
+
+Credential exposure, authentication/rate-limit responses, unclassified errors,
+and store/evidence/publication failures still stop. Generic queue callers retain
+their existing behavior. A crash after a classified failure receipt can finish
+its ledger settlement without a GET; old pending requests without a classified
+receipt remain blocked. Fixed reason codes improve blocked CLI logs without
+printing provider exception text or credentials.
+
+This repair makes no provider requests, canonical writes or scheduler changes.
+It does not retroactively complete October 5 or clear its unclassified pending
+request. The next normal clock execution uses the repaired worker.
+
+Validation: 123 focused offline tests passed in 94.893 seconds, with zero skips,
+covering SEC conditional/legacy workers, transport diagnostics, queue replay and
+accounting, acquisition-only reuse, publication deadlines, SEC pairs, and FMP
+failure-isolation regressions. Syntax and scoped diff checks passed. The full
+suite was not required: registry, schema, canonical identity/time and physical
+locking contracts are unchanged. Private diagnosis, preimages and the scoped
+diff are retained under `.local/sec-repair-20261005/`.

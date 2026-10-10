@@ -12,7 +12,7 @@ from ..json_codec import loads_strict,dumps_strict
 from ..market.collection_universe import _utc
 from .collection_plan import validate_unit
 from .collection_provider_policy import MAX_LEDGER_BYTES
-from .collection_queue import atomic,_retain,_read,QueueResponse,provider_stop,BoundedForwardClock
+from .collection_queue import atomic,_retain,_read,QueueResponse,provider_stop,BoundedForwardClock,CredentialExposureError
 from .collection_transport import request_route,_http_once,_receive_until,ProviderRequestFailure
 from .equibles_transcript_backfill import private_directory,job_lock,read_file
 
@@ -21,7 +21,7 @@ MAX_WORKERS=24
 ADMISSION_SECONDS=10
 
 class HttpTicket:
-    def __init__(self,unit,credential,deadline,*,diagnostics=False):
+    def __init__(self,unit,credential,deadline,*,diagnostics=True):
         self.diagnostics=diagnostics
         self.deadline=min(deadline,time.monotonic()+unit.timeout_seconds)
         remaining=math.floor(self.deadline-time.monotonic())
@@ -61,8 +61,10 @@ def load_account(gate,*,observed_pause=None):
     pause_matches=(observed_pause is not None and state['stopped']==observed_pause
         and type(observed_pause.get('status')) is int
         and (observed_pause['status']==429 or 500<=observed_pause['status']<=599))
-    if state['pending'] is not None or (state['stopped'] is not None and not pause_matches):
+    if state['stopped'] is not None and not pause_matches:
         raise ConflictError('FMP shared allowance requires prior-attempt reconciliation')
+    if state['pending'] is not None:
+        gate._abandon_pending(state, read_file(gate.root/'allowance.json', MAX_LEDGER_BYTES))
     return state
 
 def acquire_batch(*,root,gate,units,credential,deadline,max_total_bytes,workers=MAX_WORKERS,
@@ -134,6 +136,19 @@ def _acquire_batch(*,root,gate,units,credential,deadline,max_total_bytes,workers
             atomic(root/'started.json',{'at':utcnow().isoformat(),'policy_sha256':gate.policy.identity})
             def save():atomic(gate.root/'allowance.json',dumps_strict(state,max_bytes=MAX_LEDGER_BYTES).encode(),replace=True)
             requests=received=unretained=0;next_index=0;pending={};uncertain={};failed={};last_dispatch=None;outcome='complete';peak=0
+            def failed_request(u, reservation, error):
+                nonlocal unretained, outcome
+                failure={**error.diagnostic(),'unit_id':u.unit_id,'request_id':u.request_id,
+                         'attempt':reservation,'source_response_available':False,
+                         'retryable':best_effort and (error.retryable or error.http_status==429),
+                         'unretained_byte_reserve':u.max_response_bytes}
+                atomic(root/(u.unit_id+'.failure.json'),failure)
+                failed[u.unit_id]=failure;unretained+=u.max_response_bytes
+                if error.http_status in (401,403,429):
+                    if state['stopped'] is None or state['stopped'].get('status') not in (401,403,'uncertain'):
+                        state['stopped']={'attempt':reservation['attempt'],'status':error.http_status,
+                                          'observed_at':_utc(clock().isoformat())}
+                        outcome='provider_pause' if best_effort and error.http_status==429 else 'provider_stop'
             try:
                 while next_index<len(units) or pending:
                     # Settle completed work before considering another dispatch,
@@ -141,35 +156,36 @@ def _acquire_batch(*,root,gate,units,credential,deadline,max_total_bytes,workers
                     for key,(u,ticket,reservation) in tuple(pending.items()):
                         if not ticket.ready():continue
                         try:
-                            try:response=ticket.result()
+                            try:
+                                try:response=ticket.result()
+                                except ProviderRequestFailure:
+                                    raise
+                                except Exception:
+                                    raise ProviderRequestFailure('worker_lost',retryable=False) from None
+                                try:receipt,body=_retain(root,u,response,(credential,))
+                                except (ValidationError,ResourceLimitError) as error:
+                                    if isinstance(error,CredentialExposureError):
+                                        raise ProviderRequestFailure('credential_exposure') from None
+                                    status=getattr(response,'status',None)
+                                    status=status if type(status) is int and 100<=status<=599 else None
+                                    raise ProviderRequestFailure('invalid_response',status,retryable=False) from None
                             except ProviderRequestFailure as error:
-                                if not best_effort or error.category=='credential_exposure' or error.http_status in (401,403):raise
+                                if error.category=='credential_exposure':
+                                    raise
                                 ticket.close()
-                                temporary_http=(error.http_status==429 or
-                                    (error.http_status is not None and error.http_status>=500))
-                                failure={**error.diagnostic(),'unit_id':key,'request_id':u.request_id,
-                                    'attempt':reservation,'source_response_available':False,
-                                    'retryable':error.retryable or temporary_http,
-                                    'unretained_byte_reserve':u.max_response_bytes}
-                                atomic(root/(key+'.failure.json'),failure)
-                                if temporary_http and (state['stopped'] is None or
-                                        (type(state['stopped']['status']) is int and state['stopped']['status'] not in (401,403))):
-                                    state['stopped']={'attempt':reservation['attempt'],'status':error.http_status,
-                                        'observed_at':_utc(clock().isoformat())}
-                                    outcome='provider_pause'
-                                failed[key]=failure;unretained+=u.max_response_bytes
+                                failed_request(u,reservation,error)
                                 del pending[key]
                                 state['pending']={'contract':'quant_data.fmp_parallel_pending.v1','attempts':{**uncertain,**{k:v[2] for k,v in pending.items()}}} if pending or uncertain else None
                                 save()
                                 continue
-                            receipt,body=_retain(root,u,response,(credential,))
                             received+=len(body)
-                            if provider_stop(response.status):
+                            if provider_stop(response.status, "fmp"):
                                 # A later transient error must not clear an authentication stop.
                                 if not (best_effort and state['stopped'] and (type(state['stopped']['status']) is not int or state['stopped']['status'] in (401,403))):
                                     state['stopped']={'attempt':reservation['attempt'],'status':response.status,'observed_at':_utc(clock().isoformat())}
                                     outcome='provider_pause' if best_effort and (response.status==429 or response.status>=500) else 'provider_stop'
-                            elif response.status!=200 and not best_effort:outcome='provider_failure'
+                            elif response.status!=200:
+                                failed[key]={'http_status':response.status,'unit_id':key}
                         except Exception as e:
                             uncertain[key]=reservation;outcome='uncertain_request'
                             state['stopped']={'attempt':reservation['attempt'],'status':'uncertain','observed_at':_utc(clock().isoformat())}
@@ -216,7 +232,9 @@ def _acquire_batch(*,root,gate,units,credential,deadline,max_total_bytes,workers
                                 # own timeout; its hard cap remains the original job.
                                 try:ticket=ticket_factory(u,credential,workload_deadline)
                                 except Exception:
-                                    uncertain[u.unit_id]=reservation;outcome='uncertain_request';continue
+                                    failed_request(u,reservation,ProviderRequestFailure('worker_lost',retryable=False))
+                                    state['pending']={'contract':'quant_data.fmp_parallel_pending.v1','attempts':{**uncertain,**{k:v[2] for k,v in pending.items()}}} if pending or uncertain else None
+                                    save();continue
                                 pending[u.unit_id]=(u,ticket,reservation);peak=max(peak,len(pending))
                                 continue
                     if outcome!='complete' and not pending:break
@@ -226,8 +244,10 @@ def _acquire_batch(*,root,gate,units,credential,deadline,max_total_bytes,workers
                 # If the parent fails unexpectedly, outstanding charges remain
                 # ambiguous. Killing children never refunds or retries them.
                 for u,ticket,reservation in pending.values():ticket.close()
+            if outcome=='complete' and failed and not best_effort:outcome='complete_with_gaps'
             result={'outcome':outcome,'requests':requests,'received_bytes':received,'retained_responses':len(list((root/'responses').glob('*.json'))),
-                'unattempted':len(units)-requests,'uncertain_requests':len(uncertain),'peak_inflight':peak}
+                'unattempted':len(units)-requests,'uncertain_requests':len(uncertain),'peak_inflight':peak,
+                'failed_requests':len(failed),'unretained_byte_reserve':unretained}
             if best_effort:
                 result.update(failed_requests=len(failed),unretained_byte_reserve=unretained,
                     pause_guard=state['stopped'] if outcome=='provider_pause' else None)

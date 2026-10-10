@@ -1,0 +1,23 @@
+{
+  "request": {
+    "provider": "fmp",
+    "endpoint": "historical-price-eod/full",
+    "subject": "DX-Y.NYB",
+    "parameters": {
+      "from": "2025-10-04",
+      "symbol": "DX-Y.NYB",
+      "to": "2026-10-04"
+    }
+  },
+  "request_cap": 1,
+  "retry_cap": 0,
+  "http_status": 402,
+  "captured_at": "2026-10-04T14:04:50.638953+00:00",
+  "headers": {
+    "date": "Sun, 04 Oct 2026 14:04:50 GMT",
+    "content-type": "application/json; charset=utf-8",
+    "etag": "W/\"d7-YAQhSNrpwJEDPL5qgU0RzPlwsKs\""
+  },
+  "response_sha256": "38e6a6ea2ed189c5d4cab610c93eefc962b31fffdae06dd65390b90d7c0cff7c",
+  "canonical_store_writes": 0
+}
