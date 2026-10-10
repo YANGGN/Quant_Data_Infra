@@ -6862,3 +6862,51 @@ committed migration, one successful publication, complete source lineage and
 the new table's foreign-key integrity. No population was repeated. Earlier
 schema/ledger entries were preserved; no recurring unit was manually triggered
 or reconfigured. See the contract's completion section and its local receipts.
+
+## October 10, 2026 — options radar market-cap heatmap
+
+The user requested market-cap-sized tiles colored by intraday cumulative RVOL
+in the existing hosted Options Monitor. One bounded locked immutable audit
+projected the 2,248 selected saved FMP profiles and their canonical classifications
+to a dated Site metadata asset. Maximum and actual provider requests: zero.
+This request does not establish recurring profile refresh, canonical publication,
+collector, scheduler or broader export authority. Caps were captured September
+10–22; 2,247 USD equities are mapped, three caps are missing, IVA is non-USD,
+and 15 ETFs are excluded. Existing cumulative-readiness semantics govern color.
+
+Version 13 deployed successfully at `2026-10-10T15:03:43.803886Z`, source
+`4e5ff07ae7a7d1df7fd22b11d4aecf93bffd6f49`, deployment
+`appgdep_6aca53c7a2688191bf28ce3a4eab8bf3`, to the existing Options Monitor URL.
+Complete custom sharing remained identical at revision 4. Focused metadata,
+API, cumulative regressions, heatmap/radar UI checks, TypeScript and final build
+passed. Fresh independent offline/data/geometry verification reported no blockers;
+desktop/mobile browser checks and configured design-owner visual review passed.
+Published-page verification showed 2,247 mapped equities, zero usable cumulative
+comparisons in the then-saved observations, and appropriately gray tiles. Browser
+logs had no warnings or errors. No canonical write, provider request, recurring
+unit change, collector change or production alert-review mutation occurred.
+
+The behavior contract is in OPTIONS_MONITOR_2026-09-26.md. Native publication,
+archive and source identities, sharing comparison, validation limitations and
+screenshots are recorded in `.local/options-heatmap-20261010/activation.json`.
+
+
+### October 10: options heatmap narrowed to cumulative-alert tickers
+
+At the user's request, Site version 14 now displays only tickers with saved
+cumulative alerts for the current radar session, including reviewed alerts.
+Membership uses the full saved alert set rather than the latest-200 feed; it
+excludes interval-only and older-session alerts before cap layout and counts.
+This is a read-only presentation/query change using the existing published
+cap snapshot; it adds no canonical access, provider requests, collector change,
+recurring operation, authentication change or production review mutation.
+
+Version 14 deployed successfully at `2026-10-10T19:38:27.344240Z`, source
+`a641206c5724d2cfdb4a714e72fd7d7a2851078d`, deployment
+`appgdep_6aca942bc1d0819193613beaf4cc1ef4`. Complete custom sharing remained
+unchanged at revision 4. Focused SQL/API/UI checks, TypeScript, final build,
+browser smoke and configured visual review passed. The current saved October
+9 session has no cumulative alerts and displays the dated empty state.
+See OPTIONS_MONITOR_2026-09-26.md and
+`.local/options-heatmap-alerts-20261010/activation.json` for precise evidence and
+minor visual limitations.

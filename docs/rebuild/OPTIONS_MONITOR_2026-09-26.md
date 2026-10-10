@@ -638,3 +638,80 @@ The [agent tool contract](OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md) defines
 bounded immutable reads, capture cutoffs, observation hashes, age, quality and
 retention limits. This addition does not change collectors, saved observations,
 watchlists, schedules, Site behavior or publication.
+
+## Market-cap heatmap — October 10 follow-up
+
+The user requested a Universe radar heatmap with company market cap controlling
+box area and intraday cumulative relative volume controlling color. This adds
+a Heatmap view alongside Inbox and Activity; existing collection and alert
+policies retain their meaning.
+
+A bounded locked immutable audit of the 2,248 selected retained FMP profiles
+found positive `marketCap` values for every company, with capture dates from
+September 10 through September 22. These are dated saved profile values, not
+live market caps or historical point-in-time reconstructions. Sector/industry
+labels come from the canonical FMP classification mapping and retain that
+source's meaning. Exact stored provider symbols map the nine share-class aliases
+to the frozen monitor roster; no punctuation-based identity guess is used.
+
+The dated Site metadata contains 2,248 mapped companies. Of the 2,251 radar
+equities, 2,247 have positive USD caps usable for proportional sizing. AVB, EA
+and EQR have no matching retained profile; IVA's profile reports EUR. Those
+four names and the 15 ETFs are explicitly excluded from market-cap sizing;
+no FX conversion, ETF AUM substitution, inferred cap, or minimum tile size is
+applied. Values are provider-reported per ticker; multiple share classes are
+not asserted to represent disjoint issuer capitalization.
+
+The existing authenticated dashboard response supplies the compact reproducible
+metadata asset. It preserves per-ticker source timestamps and a hash of the
+validated source manifest. This release exports one saved snapshot only; it
+adds no recurring canonical-store read, provider fetch, schedule, live refresh,
+canonical migration or database write. A later market-cap refresh is separate
+work. The offline export helper is `sites/options-monitor/scripts/build-heatmap-metadata.py`;
+audit inputs, counts and release evidence are in
+`.local/options-heatmap-20261010/`.
+
+Heatmap colors reuse current Activity cumulative-readiness/freshness semantics.
+An unavailable interval comparison does not suppress an otherwise usable
+cumulative comparison. Older, overdue or ineligible cumulative comparisons
+remain neutral; missing RVOL is not zero. Sector navigation and ticker search
+provide access to boxes too small to label. Color changes do not change the
+cap-based layout or imply buying, selling, or price direction.
+
+Version 13 deployed successfully at `2026-10-10T15:03:43.803886Z`, source
+`4e5ff07ae7a7d1df7fd22b11d4aecf93bffd6f49`, deployment
+`appgdep_6aca53c7a2688191bf28ce3a4eab8bf3`. The complete custom sharing policy
+remained identical at revision 4. Focused checks passed: seven metadata tests,
+12 heatmap API assertions, 22 cumulative API regressions, 6,884 heatmap UI
+assertions, 50 radar assertions, TypeScript and the final production build.
+Fresh independent offline/data/geometry review found no blockers; actual desktop
+and mobile browser checks and the configured design owner's visual review passed.
+The published view was read-only verified with 2,247 mapped equities and zero
+usable cumulative comparisons in the then-saved observations; all tiles correctly
+remained gray. Browser logs contained no warnings or errors. Full release identity,
+scope, validation limitations and screenshot references are in
+`.local/options-heatmap-20261010/activation.json`.
+
+
+### October 10: cumulative-alert-only heatmap
+
+The user narrowed heatmap membership to tickers with a saved cumulative alert.
+Version 14 filters the complete distinct cumulative-alert symbol set for the
+current radar session, including reviewed alerts. The existing collector/latest
+session rule is reused; older-session and interval-only alerts do not qualify.
+Membership is independent of the legacy latest-200 feed and current RVOL levels.
+The filter applies before cap sizing, sector options, search and coverage counts.
+Missing membership fails closed; no alerts produces a dated empty state.
+Market-cap snapshot, proportional sizes, exclusions and current-RVOL freshness
+rules are unchanged. Existing safety, authentication and mutation contracts are
+unchanged; no canonical reads/writes, providers or recurring-unit changes occur.
+
+Version 14 deployed at `2026-10-10T19:38:27.344240Z`, source
+`a641206c5724d2cfdb4a714e72fd7d7a2851078d`, deployment
+`appgdep_6aca942bc1d0819193613beaf4cc1ef4`. Complete sharing remained unchanged
+at revision 4. Focused SQL, actual temporary API, UI, TypeScript, build and
+browser checks passed. The configured design owner passed three screenshots,
+noting a minor nonblocking badge overlap in one mobile synthetic tile.
+Published verification showed the correct no-cumulative-alerts state for October
+9. Receipt, precise check counts and limitations:
+`.local/options-heatmap-alerts-20261010/activation.json`.
