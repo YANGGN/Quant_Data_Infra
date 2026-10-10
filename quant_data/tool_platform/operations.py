@@ -112,6 +112,12 @@ def invoke_operation(
         from .retained_research_access import invoke
         return invoke(name, arguments, context, registry)
     from .monitor_contracts import TOOLS as MONITOR_TOOLS
+    from .classification_contracts import TOOL as CLASSIFICATION_TOOL
+    if name == CLASSIFICATION_TOOL:
+        if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
+            raise LookupError("Selected classification tool graph is invalid")
+        from .classification_access import invoke
+        return invoke(arguments, context, registry)
     if name in MONITOR_TOOLS:
         if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
             raise LookupError("Selected monitor tool graph is invalid")

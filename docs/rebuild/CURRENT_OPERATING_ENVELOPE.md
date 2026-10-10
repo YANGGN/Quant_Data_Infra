@@ -6837,3 +6837,28 @@ API/schema, storage or restart authority was added or exercised. Thirteen
 existing chart-adapter checks, 14 grouped local browser scenarios, TypeScript,
 build and visual review passed. See the monitor contract and
 .local/options-monitor-history-visual/completion.json.
+
+
+## October 9, 2026 — saved-FMP classification authority
+
+The user explicitly requested sector/industry mappings for all 2,248 selected
+names using only saved FMP profiles, persisted in the database as the sole
+classification source. This authorizes one additive market migration and one
+complete local classification publication from the pinned retained profiles;
+maximum provider requests: zero. No new acquisition, scheduler change, hosting,
+export, store promotion or original-evidence rewrite is included. The existing
+Q/XOM issuer correction remains authoritative; classification lineage preserves
+the original profile CIK and mapping alongside current stable instrument identity.
+The contract and completion evidence are recorded in
+[FMP classifications](FMP_CLASSIFICATIONS_2026-10-09.md). This is not recurring
+population authority; later refreshes require their own finite request.
+
+Completed at `2026-10-10T03:25:13.811527Z` (October 9 in America/Toronto):
+exactly 2,248 FMP classifications, covering 11 sectors and 140 industries, were
+published to the canonical market store with zero provider requests. The user
+subsequently approved a WSL restart to recover an unresponsive environment.
+Locked immutable reconciliation at `2026-10-10T03:29:33.576376Z` confirmed the
+committed migration, one successful publication, complete source lineage and
+the new table's foreign-key integrity. No population was repeated. Earlier
+schema/ledger entries were preserved; no recurring unit was manually triggered
+or reconfigured. See the contract's completion section and its local receipts.

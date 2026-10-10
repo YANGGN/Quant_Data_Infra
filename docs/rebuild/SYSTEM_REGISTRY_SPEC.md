@@ -1708,3 +1708,25 @@ config/options_registry.json. The legacy SPY collector declaration and all
 shared four-store registry/public contracts remain unchanged. The migration
 ledger is checked against a contiguous declared prefix; writes require the
 current complete chain. See [expansion evidence](THETA_ETF_EXPANSION_2026-09-24.md).
+
+
+## FMP-only production classifications — October 9, 2026
+
+Registry `2.96.0` adds `market.instrument_classifications` and market migration
+`0013_fmp_classifications` (SHA-256 `658c3a409b0350aa0b8ce38c74411484edd2499703ff87784f71fd8b9aa66810`).
+The canonical table `market_classification_versions` and current view
+`market_instrument_classifications` bind the selected names to saved FMP profile
+evidence, with source identity/capture and local publication timing. This is the
+sole production classification authority for the 2,248-name selected universe.
+The CSV remains immutable evidence. Company evidence ownership and all public
+tool contracts remain unchanged. The exact 2.95 predecessor remains available.
+See [the classification contract](FMP_CLASSIFICATIONS_2026-10-09.md).
+
+## FMP classification agent tool — October 10, 2026
+
+Registry `2.97.0` adds `market.get_classifications@1.0.0` and binds it only to
+`market.instrument_classifications` in the market store. Catalog `2.40.0` adds
+its input/output schemas. Exact predecessor registry `2.96.0` and prior contract
+bytes/defaults remain preserved; no migration, dataset identity, collector or
+schedule changes. The bounded lookup and its semantics are documented in
+[the classification contract](FMP_CLASSIFICATIONS_2026-10-09.md#local-agent-reader--october-10-2026).

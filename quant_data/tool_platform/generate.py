@@ -49,6 +49,8 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.97.0"): "24c27b5189319eab448204ada3db1755214afc153a805f01ed8a275895f5eb4f",
+    ("1.9.0", "2.96.0"): "77ae8d98df1c90a08697655669eca68c1d28e1788370a1a587d81e07cc27be20",
     ("1.9.0", "2.95.0"): "61e06644d980ebf993ab44196c3794c457bba8cf6fe2b8fa582cc925081dc9ea",
     ("1.9.0", "2.94.0"): "dabb4d90d9644a837af214435d315b73ce457742d909e2c58bf90cbbb49beb6c",
     ("1.9.0", "2.93.0"): "6ee19b30575fc4b2613c0583fd38c36aa1780fdb25bf51e1233a0b61b097316c",
@@ -797,7 +799,7 @@ def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
 def _render(value: Any) -> bytes:
     # Registry 2.72 uses less whitespace to remain within the unchanged
     # local JSON byte bound as explicit versioned contracts accumulate.
-    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0"} else 2
+    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0", "2.96.0", "2.97.0"} else 2
     return (json.dumps(value, ensure_ascii=True, indent=indent, sort_keys=True) + "\n").encode(
         "utf-8"
     )
@@ -893,6 +895,11 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
+    if source_version < ("1.9.0", "2.96.0"):
+        from .classification_contracts import TOOL as CLASSIFICATION_TOOL
+        entries = tuple(t for t in entries if t["id"] != CLASSIFICATION_TOOL)
+        additive_entries = tuple(t for t in additive_entries if t["id"] != CLASSIFICATION_TOOL)
+        catalog_version = "2.39.0"
     if source_version < ("1.9.0", "2.94.0"):
         from .monitor_contracts import TOOLS as MONITOR_TOOLS
         entries = tuple(t for t in entries if t["id"] not in MONITOR_TOOLS)
@@ -1265,6 +1272,8 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.93.0"),
         ("1.9.0", "2.94.0"),
         ("1.9.0", "2.95.0"),
+        ("1.9.0", "2.96.0"),
+        ("1.9.0", "2.97.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1368,6 +1377,8 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.93.0"): "2.94.0",
         ("1.9.0", "2.94.0"): "2.95.0",
         ("1.9.0", "2.95.0"): "2.95.0",
+        ("1.9.0", "2.96.0"): "2.97.0",
+        ("1.9.0", "2.97.0"): "2.97.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {

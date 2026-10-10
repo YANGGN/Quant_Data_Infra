@@ -752,3 +752,20 @@ tables with exact row copies, unchanged child tables/IDs and restored immutable
 triggers/indexes. Ordinal 0001 is unchanged. The companion registry 1.1.0 owns
 the migration chain; validated older prefixes support the existing SPY backup.
 Applied-state evidence belongs in the [expansion receipt](THETA_ETF_EXPANSION_2026-09-24.md).
+
+
+## FMP-only instrument classifications — October 9, 2026
+
+The user authorized a complete classification mapping from saved FMP profiles
+for all 2,248 selected names. This allocates market ordinal 13 after ordinal 12:
+`market:0013_fmp_classifications`, resource
+`quant_data/migrations/market/0013_fmp_classifications.sql`,
+SHA-256 `658c3a409b0350aa0b8ce38c74411484edd2499703ff87784f71fd8b9aa66810`, registry `2.96.0`,
+reconstruction state `fixture_validated`; applied October 9, 2026
+(America/Toronto), with committed state verified at `2026-10-10T03:29:33.576376Z`.
+The market-owned canonical dataset `market.instrument_classifications` owns
+`market_classification_versions` and the `market_instrument_classifications`
+current view. This preserves the old Stage 3 fixture classification contract,
+earlier SQL bytes and all company profile evidence. No ownership transfer or
+new shared identity/time convention occurs. Completion evidence and the
+finite operation are in [the classification contract](FMP_CLASSIFICATIONS_2026-10-09.md).

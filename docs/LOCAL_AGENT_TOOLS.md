@@ -21,6 +21,85 @@ The command derives this project's root itself. Do not copy its database paths,
 set database-related environment variables, or invoke it with a registry,
 project-root, store, SQL, provider, or credential option; none are supported.
 
+## FMP sector and industry classifications — October 10, 2026
+
+Use **`market.get_classifications@1.0.0`** for the canonical sector and industry
+mapping. Registry **2.97.0** / catalog **2.40.0** exposes the saved FMP mapping
+for all **2,248** selected names, covering **11 sectors and 140 industries** at
+the initial publication. FMP is the sole classification authority. Do not combine
+these labels with CSV, SIC, Sharadar or inferred classifications, or label them
+as official GICS.
+
+Discover the contract through the normal launcher:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe market.get_classifications --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call <<'JSON'
+{"api_version":"1.0","tool":"market.get_classifications","tool_version":"1.0.0","arguments":{}}
+JSON
+```
+
+The empty argument object returns the complete saved classification population
+for `major_index_liquid`, sorted by ticker. It does not require price coverage
+and does not reconstruct historical index membership. Omit `tickers` for this
+full-universe selection; an empty ticker array is invalid. There is no pagination
+or silent truncation: at most 2,248 names are returned in one call.
+
+Send these envelopes individually to the same `call` command:
+
+```json
+{"api_version":"1.0","tool":"market.get_classifications","tool_version":"1.0.0","arguments":{"tickers":["AAPL","NVDA","BRK.B"]}}
+```
+
+```json
+{"api_version":"1.0","tool":"market.get_classifications","tool_version":"1.0.0","arguments":{"sectors":["Technology"],"industries":["Semiconductors"]}}
+```
+
+```json
+{"api_version":"1.0","tool":"market.get_classifications","tool_version":"1.0.0","arguments":{"tickers":["AAPL","NVDA","JPM"],"sectors":["Technology","Financial Services"],"as_of":"2026-10-10T03:30:00Z"}}
+```
+
+| Optional argument | Meaning and bound |
+| --- | --- |
+| `tickers` | 1–2,248 unique exact uppercase selected-universe spellings; use `BRK.B`, with `BRK-B` returned separately as `provider_symbol` |
+| `sectors` | 1–50 unique exact FMP sector labels |
+| `industries` | 1–200 unique exact FMP industry labels |
+| `as_of` | Offset-aware timestamp, no later than the host clock; omission uses the current time |
+
+Label matching is case-sensitive and literal. Values within one filter are OR;
+sector and industry filters combine with AND. Ticker batches can use both
+filters. The reader first selects the latest eligible classification version,
+then applies filters: an older label cannot reappear because the current label
+does not match. Discover label spellings from a full-universe response.
+
+Read the standard `records` / `record_type` / name-value `fields` representation:
+
+| Record type | Meaning |
+| --- | --- |
+| `classification_source` | FMP authority, dataset, selection, cutoff, available/matched/missing/filtered counts, filters and zero provider requests |
+| `instrument_classification` | Ticker, provider spelling, instrument ID, exact sector/industry, classification version, source evidence/hash, mapping IDs, source capture time and publication time |
+| `classification_missing` | Requested ticker has no saved classification at the cutoff; labels are null and `missing_reason` is explicit |
+
+Unknown ticker spellings are not guessed or normalized to another security.
+Missing requested tickers remain in the response even when filters are present;
+known classifications rejected by a filter are omitted and counted in
+`filtered_out_count`. An empty/no-match result has status `not_established`.
+Decode fields ending in `_json` once. Preserve the complete response receipt,
+warnings, per-record version/evidence IDs and aggregate lineage reference.
+
+`source_captured_at` is the original saved profile capture. `available_at` is
+the local classification publication time, which controls `as_of`. The first
+publication is `2026-10-10T03:25:13.811527Z`; earlier cutoffs do not expose it,
+even when the original profile was captured earlier. Historical economic
+effective dates and historical public availability remain unestablished.
+
+This tool reads only the host-selected canonical market store through locked
+immutable access. Original evidence references point to retained company
+profiles; the tool does not reopen profiles, fetch providers, refresh data or
+accept paths, SQL, credentials or a source choice. An unavailable or incompatible
+store fails explicitly. The [classification contract](rebuild/FMP_CLASSIFICATIONS_2026-10-09.md)
+documents storage and provenance.
+
 ## Intraday Options Monitor tools — September 29, 2026
 
 Registry **2.95.0** / catalog **2.39.0** adds two read-only tools at explicit
@@ -212,6 +291,10 @@ They must not be used for current Theta research. Older fixture tools retain
 their existing semantics. Consumers must not open databases directly.
 
 ## Cross-project quick start
+
+For sector/industry lookup, use `market.get_classifications@1.0.0`. An empty
+argument object selects the full saved universe; `tickers`, `sectors` and
+`industries` narrow it. See the [classification workflow](#fmp-sector-and-industry-classifications--october-10-2026).
 
 For intraday options, use `options.get_intraday_snapshot@1.0.0` for the
 latest saved observations and `options.get_intraday_history@1.0.0` for
@@ -544,6 +627,7 @@ and confirm them with the runtime manifest. The current composition is:
 
 | Task | Explicit contract |
 | --- | --- |
+| Retrieve canonical FMP sector/industry labels | `market.get_classifications@1.0.0` |
 | Retrieve typed OHLC | `market.get_price_series@2.0.0` |
 | Compute trailing / forward price returns | `market.get_returns@2.1.0` / `market.get_forward_returns@2.1.0` |
 | Compute technical indicators | `market.technical_indicators@2.8.0` |

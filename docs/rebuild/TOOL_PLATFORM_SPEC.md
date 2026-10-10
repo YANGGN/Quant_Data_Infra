@@ -40,6 +40,16 @@ This document specifies:
 It does not specify collectors, schema migrations, arbitrary SQL access,
 browser-triggered ingestion, or deployment.
 
+## FMP classification lookup — 2026-10-10
+
+Registry `2.97.0` / catalog `2.40.0` adds the local read-only
+`market.get_classifications@1.0.0`. It returns canonical FMP labels for explicit
+ticker batches or the complete retained classification universe, with exact
+sector/industry filters and a local publication cutoff. Earlier public contracts
+and defaults remain unchanged. No migration, ingestion, fallback provider or
+network exposure is added. See the [classification contract](FMP_CLASSIFICATIONS_2026-10-09.md#local-agent-reader--october-10-2026)
+and [agent guide](../LOCAL_AGENT_TOOLS.md#fmp-sector-and-industry-classifications--october-10-2026).
+
 ## Intraday monitor additions — 2026-09-29
 
 Registry `2.95.0` / catalog `2.39.0` adds `options.get_intraday_snapshot@1.0.0`

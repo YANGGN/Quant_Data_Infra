@@ -2729,6 +2729,9 @@ def input_schema(input_kind: str, series_schema: Mapping[str, Any]) -> dict[str,
     if input_kind in RKINDS.values():
         return rschema(input_kind)
     from .monitor_contracts import KINDS as MKINDS, schema as mschema
+    if input_kind == "market_classifications_v1":
+        from .classification_contracts import schema
+        return schema()
     if input_kind in MKINDS.values():
         return mschema(input_kind)
     from .theta_contracts import KINDS as THETA_KINDS, schema as theta_schema
@@ -5358,6 +5361,9 @@ def parse_arguments(
     if input_kind in RKINDS.values():
         return rparse(input_kind, public)
     from .monitor_contracts import KINDS as MKINDS, parse as mparse
+    if input_kind == "market_classifications_v1":
+        from .classification_contracts import parse
+        return parse(public)
     if input_kind in MKINDS.values():
         return mparse(input_kind, public)
     from .theta_contracts import KINDS as THETA_KINDS, parse as theta_parse
@@ -5933,6 +5939,10 @@ def preflight_dimensions(
         rparse(input_kind, public)
         return {"rows": 10000, "series": 20, "operations": 5000000}
     from .monitor_contracts import KINDS as MKINDS, parse as mparse, MAX_RECORDS as MONITOR_MAX
+    if input_kind == "market_classifications_v1":
+        from .classification_contracts import parse, MAX_RECORDS as CLASSIFICATION_MAX
+        parse(public)
+        return {"rows": CLASSIFICATION_MAX, "series": 0, "operations": 5000000}
     if input_kind in MKINDS.values():
         mparse(input_kind, public)
         return {"rows": MONITOR_MAX, "series": 0, "operations": 5000000}
