@@ -1301,6 +1301,12 @@ for directories and 0600 for JSON. Collector outputs, provider errors, URLs and
 credentials are excluded. Logging errors emit only a fixed warning and do not
 replace the collector result or retry its work. Imports, help, rejected
 arguments and historical/backfill CLI forms do not create run history.
+Within a recorded run, a rejected numeric summary emits the fixed stderr warning
+`[fetch-status] Unable to validate run summary; counts were not recorded.`
+The warning includes no report values, batch argument, or exception text.
+Failure to write the warning cannot change the collector's return value or
+exception. The original exit receipt remains usable without invented counts;
+summary and public response schemas are unchanged.
 
 The read-only scan follows opened directory descriptors without following
 symlinks; only fixed-schema, known-batch records are accepted. A selected month

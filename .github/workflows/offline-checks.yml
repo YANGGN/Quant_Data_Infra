@@ -33,6 +33,11 @@ jobs:
               tests.test_inspector_schedules
               tests.test_inspector_fetch_status
               tests.operations.test_fetch_run_history
+              tests.operations.test_fetch_partial_status
+              tests.tool_platform.test_local_agent_cli
+              tests.tool_platform.test_classification_tools
+              tests.tool_platform.test_monitor_tools.MonitorToolsTests
+              tests.tool_platform.test_price_basis_metadata
               tests.operations.test_theta_fetch_status
               tests.dashboard.test_unified_status_page
               tests.test_macro_database_expansion_registry

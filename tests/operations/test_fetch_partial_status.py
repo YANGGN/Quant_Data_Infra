@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -9,6 +11,7 @@ import tempfile
 import unittest
 
 from quant_data.operations import fetch_run_history as history
+from quant_data.operations import fetch_run_summary as summary
 from quant_data.operations.fetch_run_summary import record_report, summarize_report
 from quant_data.inspector_fetch_status import _Run, _event, _merge_saved_run, _day_markers
 from quant_data.inspector_schedules import TIMER_BINDINGS
@@ -153,6 +156,49 @@ class PartialFetchStatusTests(unittest.TestCase):
         before = self.receipt().with_name("summary.json").read_bytes()
         record_report(BATCH, {"steps": [{"outcome": "succeeded"}]})
         self.assertEqual(before, self.receipt().with_name("summary.json").read_bytes())
+
+    def test_invalid_summary_warns_without_payload_or_result_changes(self):
+        output, error = StringIO(), StringIO()
+        report = {"steps": [{"outcome": "private secret https://provider.invalid"}]}
+        with redirect_stdout(output), redirect_stderr(error):
+            self.assertEqual(self.invoke(report=report, code=74), 74)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(error.getvalue(),
+                         "[fetch-status] Unable to validate run summary; counts were not recorded.\n")
+        row = self.read()["records"][0]
+        self.assertEqual((row["outcome"], row["exit_code"]), ("failed", 74))
+        self.assertNotIn("counts", row)
+        self.assertFalse(self.receipt().with_name("summary.json").exists())
+
+    def test_unwritable_summary_warning_never_changes_collector_success(self):
+        with patch.object(summary.sys.stderr, "write", side_effect=OSError("private details")) as write:
+            self.assertEqual(self.invoke(report=None, code=0), 0)
+        write.assert_called_once()
+        row = self.read()["records"][0]
+        self.assertEqual((row["outcome"], row["exit_code"]), ("succeeded", 0))
+        self.assertNotIn("counts", row)
+
+    def test_invalid_summary_warning_preserves_original_collector_exception(self):
+        failure, error = RuntimeError("private collector details"), StringIO()
+        with redirect_stderr(error), self.assertRaises(RuntimeError) as caught:
+            self.invoke(report=None, failure=failure)
+        self.assertIs(caught.exception, failure)
+        self.assertEqual(error.getvalue(),
+                         "[fetch-status] Unable to validate run summary; counts were not recorded.\n")
+        self.assertEqual(self.read()["records"][0]["exit_code"], 1)
+
+    def test_invalid_summary_outside_matching_recorded_run_stays_silent(self):
+        error, captured = StringIO(), []
+        with redirect_stderr(error):
+            record_report(BATCH, None)
+            token = summary._CAPTURE.set((BATCH, captured))
+            try:
+                record_report("quant-data-current-news-refresh.timer", None)
+            finally:
+                summary._CAPTURE.reset(token)
+        self.assertEqual(error.getvalue(), "")
+        self.assertEqual(captured, [])
+        self.assertFalse(self.root.exists())
 
     def test_summary_write_failure_never_changes_success_or_failure(self):
         with patch.object(history, "save_run_summary", side_effect=OSError("private")):

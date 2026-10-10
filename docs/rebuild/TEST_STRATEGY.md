@@ -331,9 +331,18 @@ independent jobs on pushes and pull requests:
 
 | Job | Environment | Selected boundaries |
 | --- | --- | --- |
-| Core | Python 3.11, standard library | Environment checker, current documentation links, queue policy and saved plan consumers, breadth calculations, collector/unit/status consistency, historical/current registry compatibility, saved company valuation tools |
+| Core | Python 3.11, standard library | Environment checker, current documentation links, queue policy and saved plan consumers, breadth calculations, collector/unit/status consistency, historical/current registry compatibility, saved company valuation tools, cross-project CLI, classification/intraday contracts, and price-basis compatibility |
 | Calendar | Python 3.11, `requirements/calendar.txt` | Weekly price repair, price windows, daily refresh, and public composed research calls including cutoffs and read-only fingerprints |
 | Theta | Python 3.12, `requirements/theta.txt` | Mocked SDK session sharing, options publication/replay, daily/weekend collection fixtures, and public Theta tools |
+
+Core also runs the existing partial-run summary checks, including sanitized
+warnings when summary validation fails and preservation of collector outcomes.
+The CLI and domain contract modules cover discovery, explicit versions,
+read-only fixtures, cutoffs, and preserved predecessor contracts; the price-basis
+module checks unchanged values and metadata-aware composition. The monitor
+selection runs the current public-contract class, including its exact immediate
+predecessor. Deep Stage 5 reconstruction remains in the separate historical
+test class and full discovery.
 
 The workflow owns the exact test selections. Each hosted job receives a separate
 checkout and environment; database/publication tests run serially inside that

@@ -253,14 +253,29 @@ class MonitorToolsTests(unittest.TestCase):
             self.assertEqual(found["version"],"1.0.0")
 
     def test_exact_predecessor_contracts_and_generation(self):
-        old=predecessor_profile(self.registry)
+        from quant_data.market.classification_registry import predecessor_profile as monitor_release_profile
+        monitor_release=monitor_release_profile(self.registry)
+        self.assertEqual(monitor_release.registry_version,"2.95.0")
+        old=predecessor_profile(monitor_release)
         self.assertEqual(old.source_sha256,PREDECESSOR_SHA256)
         self.assertEqual(old.tool_version_policies,self.registry.tool_version_policies)
-        self.assertEqual(old.datasets,self.registry.datasets)
+        self.assertEqual(old.datasets,monitor_release.datasets)
+        # Later additive datasets do not rewrite the monitor release inventory.
+        current_datasets={item.id:item for item in self.registry.datasets}
+        for dataset in old.datasets:self.assertEqual(dataset,current_datasets[dataset.id])
+        for name in TOOLS:self.assertEqual(monitor_release.tool(name),self.registry.tool(name))
         for entry in old.tools:self.assertEqual(entry,self.registry.tool(entry["id"]))
-        self.assertEqual(stage5_registry_profile(self.registry).registry_version,"2.3.0")
         generate(ROOT,check=True)
         tampered=copy.deepcopy(dict(self.registry.raw))
         tampered["tools"][-1]["description"]="tampered"
         with self.assertRaises(RegistryError):
             predecessor_profile(replace(self.registry,raw=tampered))
+
+
+
+class HistoricalMonitorRegistryTests(unittest.TestCase):
+    """Deep historical reconstruction remains separate from current-tool CI."""
+
+    def test_stage5_registry_projection(self):
+        registry=load_registry("config/system_registry.json",project_root=ROOT,environment={})
+        self.assertEqual(stage5_registry_profile(registry).registry_version,"2.3.0")

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 from contextvars import ContextVar
+import sys
 from typing import Any
 
 _COUNT_KEYS = {"unit", "successful", "failed", "partial", "skipped", "unattempted"}
@@ -138,5 +139,10 @@ def record_report(batch_id: str, report: object) -> None:
     try:
         summary = summarize_report(batch_id, report)
     except Exception:
+        # Fixed text only: reports and exception messages may contain secrets.
+        try:
+            sys.stderr.write("[fetch-status] Unable to validate run summary; counts were not recorded.\n")
+        except Exception:
+            pass  # Telemetry must never replace the collector outcome.
         return
     capture[1][:] = [summary]

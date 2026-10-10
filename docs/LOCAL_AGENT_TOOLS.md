@@ -1897,6 +1897,29 @@ identifiers without exposing local paths or source payloads.
   `as_of`, pass a declared cutoff and retain its point-in-time metadata. Never
   infer that an ex-post result is point-in-time safe.
 
+### Retained-data freshness
+
+In each `retained_dataset_status` record from `data.get_dataset_status@1.0.0`,
+`status: "current"` means the saved successful capture is within the dataset's
+declared stale threshold. The result envelope's `status: "ok"` means the tool
+completed; inspect the individual records for data status. The
+Inspector calls this **Within threshold**. It does not establish that the latest
+trading session is present, every requested ticker is complete, or a scheduled
+collector recently succeeded.
+
+As of October 10, 2026, `market.stage10.daily_prices` retains a `P30D`
+(30-day) threshold measured from successful capture, with registry cadence
+`manual`, while the separate market-close timer is configured for weekdays.
+A 29-day-old capture can therefore be `current`; at 30 days it is `stale`.
+The registry freshness policy and configured collection schedule describe
+different things. Neither proves current host health.
+
+For price readiness, inspect returned observation dates and missingness against
+the sessions and tickers your analysis requires. Read `freshness`,
+`stale_at`, `status_reason`, and retained outcomes together; use recorded run
+history for collection outcomes. Existing public labels, thresholds, and response
+fields are unchanged.
+
 ## Typical composition
 
 Use tools as a sequence of validated typed results:
