@@ -83,6 +83,9 @@ def _capture_metadata(row: sqlite3.Row | None, *, target: Any, now: datetime,
 
 
 def _generic_capture(connection: sqlite3.Connection, dataset_id: str) -> sqlite3.Row | None:
+    # Split direct and linked captures so the direct branch uses the existing
+    # dataset index. Keep output filtering before shared primary-key lookups:
+    # an unrestricted join otherwise scans runs before checking output links.
     return connection.execute("""
         SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
                snapshot.row_count, snapshot.completeness,
@@ -90,13 +93,19 @@ def _generic_capture(connection: sqlite3.Connection, dataset_id: str) -> sqlite3
                run.dataset_id AS anchor_dataset_id
         FROM ingestion_snapshots snapshot
         JOIN ingestion_runs run ON run.run_id=snapshot.run_id
-        WHERE run.status='succeeded' AND (
-            snapshot.dataset_id=? OR (
-                run.snapshot_id=snapshot.snapshot_id AND snapshot.dataset_id=run.dataset_id
-                AND EXISTS (SELECT 1 FROM ingestion_run_outputs output
-                            WHERE output.run_id=run.run_id AND output.dataset_id=?)
-            )
-        )
+        WHERE snapshot.dataset_id=? AND run.status='succeeded'
+        UNION ALL
+        SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
+               snapshot.row_count, snapshot.completeness,
+               snapshot.dataset_id AS snapshot_dataset_id,
+               run.dataset_id AS anchor_dataset_id
+        FROM ingestion_run_outputs output
+        CROSS JOIN ingestion_runs run ON run.run_id=output.run_id
+        CROSS JOIN ingestion_snapshots snapshot ON snapshot.snapshot_id=run.snapshot_id
+                                               AND snapshot.run_id=run.run_id
+        WHERE output.dataset_id=? AND run.status='succeeded'
+          AND snapshot.dataset_id=run.dataset_id
+          AND output.dataset_id<>run.dataset_id
         ORDER BY snapshot.captured_at DESC, snapshot.snapshot_id COLLATE BINARY DESC
         LIMIT 1
         """, (dataset_id, dataset_id)).fetchone()

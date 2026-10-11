@@ -7,7 +7,7 @@ import sqlite3
 import tempfile
 import unittest
 
-from quant_data.inspector_retention import read_inspector_retention, lifecycle_annotations
+from quant_data.inspector_retention import read_inspector_retention, lifecycle_annotations, _generic_capture
 from quant_data.registry import load_registry, CANONICAL_REGISTRY_PATH
 from quant_data.stores import StoreMap
 
@@ -118,6 +118,97 @@ class InspectorRetentionTests(unittest.TestCase):
             c.execute("UPDATE ingestion_snapshots SET captured_at='2026-09-01',captured_precision='date' WHERE snapshot_id='s'")
         self.assertEqual(self.read()['fixture.company.filings']['retention_state'], 'unknown')
         self.assertEqual(self.read(datetime(2026, 1, 1, tzinfo=timezone.utc))['macro.official_vintages']['retention_state'], 'unknown')
+
+
+class InspectorCaptureQueryTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(dir="/tmp")
+        self.connection = sqlite3.connect(Path(self.temp.name) / "captures.sqlite")
+        self.connection.row_factory = sqlite3.Row
+        # Match the existing ledger keys, including the dataset-first snapshot
+        # index and the run-first output key. No new production index is needed.
+        self.connection.executescript("""
+            CREATE TABLE ingestion_runs(
+                run_id TEXT PRIMARY KEY, dataset_id TEXT, status TEXT, snapshot_id TEXT);
+            CREATE TABLE ingestion_snapshots(
+                snapshot_id TEXT PRIMARY KEY, run_id TEXT UNIQUE, dataset_id TEXT,
+                captured_at TEXT, captured_precision TEXT, row_count INTEGER,
+                completeness TEXT, semantic_identity TEXT,
+                UNIQUE(dataset_id, semantic_identity));
+            CREATE TABLE ingestion_run_outputs(
+                run_id TEXT, dataset_id TEXT, PRIMARY KEY(run_id, dataset_id));
+        """)
+
+    def tearDown(self):
+        self.connection.close()
+        self.temp.cleanup()
+
+    def capture(self, identity, dataset, at, *, status="succeeded", anchor=None,
+                primary=None, outputs=()):
+        run = "run-" + identity
+        self.connection.execute("INSERT INTO ingestion_runs VALUES(?,?,?,?)",
+            (run, dataset if anchor is None else anchor, status,
+             identity if primary is None else primary))
+        self.connection.execute("INSERT INTO ingestion_snapshots VALUES(?,?,?,?,?,?,?,?)",
+            (identity, run, dataset, at, "datetime", 1, "complete", identity))
+        self.connection.executemany("INSERT INTO ingestion_run_outputs VALUES(?,?)",
+            ((run, output) for output in outputs))
+
+    def test_direct_and_shared_candidates_keep_binary_ties_and_full_metadata(self):
+        at = "2026-09-04T12:00:00Z"
+        self.capture("Z-direct", "target", at, outputs=("target",))
+        self.capture("a-shared", "anchor", at, outputs=("target",))
+        self.capture("older", "target", "2026-09-03T12:00:00Z")
+        row = _generic_capture(self.connection, "target")
+        self.assertEqual(dict(row), {
+            "snapshot_id": "a-shared", "captured_at": at,
+            "captured_precision": "datetime", "row_count": 1,
+            "completeness": "complete", "snapshot_dataset_id": "anchor",
+            "anchor_dataset_id": "anchor",
+        })
+        self.capture("newest-direct", "target", "2026-09-05T12:00:00Z", primary="other")
+        # Direct attribution never required the run primary-snapshot pointer.
+        self.assertEqual(_generic_capture(self.connection, "target")["snapshot_id"], "newest-direct")
+
+    def test_shared_attribution_requires_success_link_and_matching_primary(self):
+        self.capture("valid", "target", "2026-09-01T12:00:00Z")
+        at = "2026-09-05T12:00:00Z"
+        self.capture("failed-direct", "target", at, status="failed")
+        self.capture("failed-shared", "anchor", at, status="failed", outputs=("target",))
+        self.capture("unlinked", "anchor", at)
+        self.capture("not-primary", "anchor", at, primary="missing", outputs=("target",))
+        self.capture("wrong-anchor", "anchor", at, anchor="different", outputs=("target",))
+        self.capture("foreign-run", "anchor", at, primary="unlinked", outputs=("target",))
+        self.assertEqual(_generic_capture(self.connection, "target")["snapshot_id"], "valid")
+        self.assertIsNone(_generic_capture(self.connection, "missing"))
+        self.assertIsNone(_generic_capture(self.connection, "target OR 1=1"))
+
+    def test_unrelated_history_has_a_bounded_query_work_budget(self):
+        count = 20_000
+        self.connection.executemany("INSERT INTO ingestion_runs VALUES(?,?,?,?)",
+            ((f"r{i}", "unrelated", "succeeded", f"s{i}") for i in range(count)))
+        self.connection.executemany("INSERT INTO ingestion_snapshots VALUES(?,?,?,?,?,?,?,?)",
+            ((f"s{i}", f"r{i}", "unrelated", "2026-09-01T00:00:00Z", "datetime",
+              1, "complete", str(i)) for i in range(count)))
+        self.connection.executemany("INSERT INTO ingestion_run_outputs VALUES(?,?)",
+            ((f"r{i}", "unrelated") for i in range(count)))
+        self.capture("direct", "target", "2026-09-02T00:00:00Z")
+        self.capture("shared", "anchor", "2026-09-03T00:00:00Z", outputs=("target",))
+        calls = 0
+
+        def budget():
+            nonlocal calls
+            calls += 1
+            return int(calls > 1500)
+
+        # A VM-work bound is stable across host load. The former OR query
+        # exceeds this budget by joining every unrelated snapshot to its run.
+        self.connection.set_progress_handler(budget, 100)
+        try:
+            self.assertEqual(_generic_capture(self.connection, "target")["snapshot_id"], "shared")
+        finally:
+            self.connection.set_progress_handler(None, 0)
+        self.assertLessEqual(calls, 1500)
 
 
 if __name__ == '__main__':

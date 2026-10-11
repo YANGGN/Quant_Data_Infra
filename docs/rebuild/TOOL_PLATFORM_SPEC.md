@@ -1229,6 +1229,14 @@ quiet immutable store procedure, fixed registry targets, and a three-second SQL
 budget per store. Busy, changed, invalid, or unavailable evidence stays unknown;
 a missing capture record alone does not prove that data tables are empty.
 
+The private capture lookup keeps direct dataset snapshots and explicitly linked
+primary snapshots in separate query branches. Direct reads use the existing
+dataset index; shared reads filter output membership before primary-key lookups.
+A direct primary snapshot is not scanned again as a shared candidate. Both
+branches retain the same latest-capture ordering, including binary snapshot-ID
+tie-breaking. No cache, schema/index migration, public status payload, or reader
+budget change is introduced.
+
 Explicit reviewed lifecycle annotations distinguish active, fixture-only,
 historical/candidate, superseded, and planned datasets. Names alone, including
 the `fixture.` prefix, never determine lifecycle. Sector/industry classifications
