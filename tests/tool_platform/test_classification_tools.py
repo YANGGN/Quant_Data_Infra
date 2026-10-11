@@ -185,18 +185,22 @@ class ClassificationToolTests(unittest.TestCase):
             self.call(example)
 
     def test_exact_predecessor_frozen_contracts_and_generated_parity(self):
-        old = predecessor_profile(self.registry)
+        from quant_data.tool_platform.research_extensions_registry import predecessor_profile as before_extensions
+        classification_release = before_extensions(self.registry)
+        old = predecessor_profile(classification_release)
         self.assertEqual(old.registry_version, "2.96.0")
         self.assertEqual(old.source_sha256, PREDECESSOR_SHA256)
-        self.assertEqual(old.tool_version_policies, self.registry.tool_version_policies)
+        self.assertEqual(old.tool_version_policies, classification_release.tool_version_policies)
         self.assertEqual(old.migrations, self.registry.migrations)
         self.assertEqual(old.raw["tool_schema_catalog"], self.registry.raw["tool_schema_catalog"])
         for entry in old.tools: self.assertEqual(entry, self.registry.tool(entry["id"]))
-        for before, after in zip(old.datasets, self.registry.datasets):
+        for before, after in zip(old.datasets, classification_release.datasets):
             self.assertEqual(before, replace(after, tool_ids=tuple(t for t in after.tool_ids if t != TOOL)))
         catalog = json.loads((ROOT/old.raw["tool_version_schema_catalog"]["resource"]).read_text())
         catalog["schema_version"] = "2.39.0"
-        catalog["contracts"] = [c for c in catalog["contracts"] if c["tool"] != TOOL]
+        from quant_data.tool_platform.research_extensions_contracts import PEERS
+        new_ids = {f"urn:quant-data:tool:{n}:{d}:2.0.0" for n in ("company.get_guidance_history", "options.get_intraday_snapshot", "options.get_intraday_history") for d in ("input","output")}
+        catalog["contracts"] = [c for c in catalog["contracts"] if c["tool"] not in (TOOL, PEERS) and c["id"] not in new_ids]
         rendered = (json.dumps(catalog, ensure_ascii=False, indent=2, sort_keys=True)+"\n").encode()
         self.assertEqual(hashlib.sha256(rendered).hexdigest(), old.raw["tool_version_schema_catalog"]["sha256"])
         generate(ROOT, check=True)

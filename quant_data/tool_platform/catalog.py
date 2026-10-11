@@ -23,8 +23,9 @@ SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 CATALOG_ID = "quant_data.tool_contract_catalog"
 CATALOG_VERSION = "1.0.0"
 VERSIONED_CATALOG_ID = "quant_data.tool_contract_catalog.v2"
-VERSIONED_CATALOG_VERSION = "2.40.0"
+VERSIONED_CATALOG_VERSION = "2.41.0"
 from .classification_contracts import TOOL as CLASSIFICATION_TOOL, KIND as CLASSIFICATION_KIND
+from .research_extensions_contracts import PEERS, KINDS as EXTENSION_KINDS
 from .monitor_contracts import TOOLS as ADDITIVE_MONITOR_TOOLS
 from .theta_contracts import TOOLS as ADDITIVE_THETA_TOOLS
 from .retained_research_contracts import NEW_TOOLS as ADDITIVE_RETAINED_RESEARCH_TOOLS, SUCCESSORS as RETAINED_RESEARCH_SUCCESSORS
@@ -70,6 +71,7 @@ ADDITIVE_PUBLIC_TOOL_NAMES = (
     *ADDITIVE_RETAINED_RESEARCH_TOOLS,
     *ADDITIVE_MONITOR_TOOLS,
     CLASSIFICATION_TOOL,
+    PEERS,
 )
 
 VERSIONED_CANONICAL_MACRO_TOOLS = (
@@ -169,6 +171,8 @@ VERSIONED_TOOL_NAMES = (
     "company.get_transcript",
     *NEW_PRICE_BASIS_POLICIES,
     *RETAINED_RESEARCH_SUCCESSORS,
+    "company.get_guidance_history",
+    *ADDITIVE_MONITOR_TOOLS,
 )
 
 PUBLIC_TOOL_NAMES = (
@@ -248,7 +252,7 @@ CURRENT_FAMILY_COUNTS = {
     **FAMILY_COUNTS,
     "macro": 13,
     "market": 11,
-    "company": 20,
+    "company": 21,
     "options": 15,
     "research": 28,
 }
@@ -291,6 +295,7 @@ _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_THETA_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_RETAINED_RESEARCH_TOOLS)
 _CURRENT_PUBLIC_NAMES.extend(ADDITIVE_MONITOR_TOOLS)
 _CURRENT_PUBLIC_NAMES.append(CLASSIFICATION_TOOL)
+_CURRENT_PUBLIC_NAMES.append(PEERS)
 CURRENT_PUBLIC_TOOL_NAMES = tuple(_CURRENT_PUBLIC_NAMES)
 
 _SEARCH_TOOLS = frozenset(
@@ -656,6 +661,8 @@ def current_tool_profiles() -> tuple[ToolProfile, ...]:
     declarations = {item.name: item for item in (*tool_profiles(), *additive)}
     declarations[CLASSIFICATION_TOOL] = ToolProfile(name=CLASSIFICATION_TOOL, family="market", input_kind=CLASSIFICATION_KIND,
         stores=("market",), datasets=("market.instrument_classifications",))
+    declarations[PEERS] = ToolProfile(name=PEERS, family="company", input_kind=EXTENSION_KINDS[PEERS],
+        stores=("market", "company"), datasets=(*datasets_for("company.screen_fundamentals"), "market.instrument_classifications"))
     result = tuple(declarations[name] for name in CURRENT_PUBLIC_TOOL_NAMES)
     if tuple(item.name for item in result) != CURRENT_PUBLIC_TOOL_NAMES:
         raise AssertionError("The active public-tool inventory drifted")
@@ -1270,6 +1277,7 @@ def build_additive_tool_entries() -> tuple[dict[str, Any], ...]:
         *_build_retained_research_entries(),
         *_build_monitor_entries(),
         _build_classification_entry(),
+        _build_research_extension_entry(),
     )
 
 
@@ -3455,7 +3463,8 @@ def build_tool_version_policies() -> tuple[dict[str, Any], ...]:
     from .sharadar_company_contracts import add_policies
     result.append(_build_transcript_turns_policy())
     from .retained_research_catalog import policies as retained_policies
-    return (*add_policies(add_price_basis_policies(result, build_additive_tool_entries())), *retained_policies())
+    from .research_extensions_catalog import policies as extension_policies
+    return (*add_policies(add_price_basis_policies(result, build_additive_tool_entries())), *retained_policies(), *extension_policies())
 
 
 def _build_quality_transform_policies(
@@ -5434,3 +5443,8 @@ def _build_monitor_entries():
 def _build_classification_entry():
     from .classification_catalog import entry
     return entry()
+
+
+def _build_research_extension_entry():
+    from .research_extensions_catalog import entry
+    return entry(PEERS)

@@ -258,11 +258,11 @@ class MonitorToolsTests(unittest.TestCase):
         self.assertEqual(monitor_release.registry_version,"2.95.0")
         old=predecessor_profile(monitor_release)
         self.assertEqual(old.source_sha256,PREDECESSOR_SHA256)
-        self.assertEqual(old.tool_version_policies,self.registry.tool_version_policies)
+        self.assertEqual(old.tool_version_policies,monitor_release.tool_version_policies)
         self.assertEqual(old.datasets,monitor_release.datasets)
         # Later additive datasets do not rewrite the monitor release inventory.
         current_datasets={item.id:item for item in self.registry.datasets}
-        for dataset in old.datasets:self.assertEqual(dataset,current_datasets[dataset.id])
+        for dataset in old.datasets:self.assertEqual(dataset,replace(current_datasets[dataset.id],tool_ids=dataset.tool_ids))
         for name in TOOLS:self.assertEqual(monitor_release.tool(name),self.registry.tool(name))
         for entry in old.tools:self.assertEqual(entry,self.registry.tool(entry["id"]))
         generate(ROOT,check=True)

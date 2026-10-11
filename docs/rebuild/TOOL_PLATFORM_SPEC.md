@@ -50,6 +50,23 @@ and defaults remain unchanged. No migration, ingestion, fallback provider or
 network exposure is added. See the [classification contract](FMP_CLASSIFICATIONS_2026-10-09.md#local-agent-reader--october-10-2026)
 and [agent guide](../LOCAL_AGENT_TOOLS.md#fmp-sector-and-industry-classifications--october-10-2026).
 
+## Research extensions and access fixes — 2026-10-10
+
+Registry `2.98.0` / catalog `2.41.0` adds `company.compare_peers@1.0.0`,
+`company.get_guidance_history@2.0.0`, `options.get_intraday_snapshot@2.0.0`
+and `options.get_intraday_history@2.0.0`: 102 names / 201 versions.
+The [agent guide](../LOCAL_AGENT_TOOLS.md#peer-comparison-cumulative-options-and-guidance-timeline--october-10-2026)
+provides explicit-version discovery, request examples and result interpretation.
+Detailed behavior is owned by the [peer comparison](RETAINED_RESEARCH_TOOLS_2026-09-28.md#peer-comparison),
+[guidance timeline](RETAINED_RESEARCH_TOOLS_2026-09-28.md#management-guidance-timeline)
+and [cumulative options](OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md#cumulative-activity-v2--october-10-2026)
+contracts. Older defaults and schemas remain frozen; their standard version
+advisory has no scheduled removal. The exact predecessor projection restores
+registry `2.97.0` and its catalog hash. No migration, store declaration, provider call, collection
+change or external exposure is introduced. Monitor leader labels normalize at
+the read boundary; macro catalog selection avoids unrelated statistics for
+narrow searches and descriptions without changing counts or receipt semantics.
+
 ## Intraday monitor additions — 2026-09-29
 
 Registry `2.95.0` / catalog `2.39.0` adds `options.get_intraday_snapshot@1.0.0`

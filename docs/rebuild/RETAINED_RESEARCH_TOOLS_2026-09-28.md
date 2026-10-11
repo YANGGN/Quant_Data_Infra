@@ -5,6 +5,10 @@ Implemented as additive, local read-only contracts at user request on
 successor versions, for 98 logical names and 194 contracts. The exact 2.93.0
 predecessor, earlier versions and frozen Stage 5 contract remain intact.
 
+The [October 10 extensions](#peer-comparison-and-guidance-timeline--october-10-2026)
+add peer comparison and a guidance timeline; current calls and version discovery
+are in the [local-agent guide](../LOCAL_AGENT_TOOLS.md).
+
 ## Agent examples
 
 Send each envelope separately to `bin/quant-data-tools call` on standard input,
@@ -258,3 +262,101 @@ histories later show a material selection cost, benchmark an opt-in combined
 close/volume read with exact output, cutoff, provenance and missingness parity
 before changing the reader. Preserve the independent domain ownership and
 existing physical-store lock rules.
+
+## Peer comparison and guidance timeline — October 10, 2026
+
+Registry `2.98.0` / catalog `2.41.0` adds
+`company.compare_peers@1.0.0` and `company.get_guidance_history@2.0.0`.
+These bounded, local read-only tools reuse retained classifications, fundamentals
+and transcript evidence. Database structure, existing tool schemas and existing
+defaults are unchanged; guidance v2 is explicit opt-in. The
+[agent guide](../LOCAL_AGENT_TOOLS.md#peer-comparison-cumulative-options-and-guidance-timeline--october-10-2026)
+owns launcher discovery and copyable request envelopes. The original September
+28 inventory and validation record above remain historical evidence.
+
+### Peer comparison
+
+The required `symbol` anchors a saved FMP industry, or sector when
+`group_by: "sector"`. With no `peers`, the complete retained group is selected
+only when it contains at most 20 names including the anchor. Larger groups
+return candidate names and `explicit_peer_selection_required` without sampling.
+Explicit `peers` accepts 1–19 unique names excluding the anchor. Missing anchor
+classification yields `anchor_classification_unavailable`; unknown and off-group
+requested peers produce exclusions. FMP is the classification authority; these
+labels do not establish official GICS or historical effective membership.
+
+The underlying `company.screen_fundamentals@1.0.0` supplies source-native
+Sharadar metrics, optional proxies, criteria and date selectors. Supported
+metrics are `revenue`, `grossmargin`, `netmargin`, `roe`, `roa`, `de`,
+`pe`, `pb`, `ps`, `evsales`, `evebitda`, `revenue_growth_yoy`,
+`forward_pe_proxy`, `forward_eps_proxy` and `price_return_21_sessions`.
+Defaults are `ARQ`, metrics `revenue_growth_yoy/netmargin/de/pe`, ranking by
+`revenue_growth_yoy` descending and no criteria. The ranking metric and any
+criterion metrics are included even if omitted from `metrics`. Criteria have
+at most eight minimum/maximum bounds and label `passes`/exclusions; they do
+not remove failing rows from otherwise comparable rankings.
+
+Classification and fundamentals join only through explicit FMP and Sharadar
+provider mappings from the same cutoff-eligible selected membership, matching
+source symbol and Sharadar subject/symbol. Conflicting known instrument or CIK
+identities are rejected. `identity_link_json` retains mapping IDs, membership,
+provider subject and linkage basis. A Sharadar mapping without complete
+instrument/CIK evidence stays `partial`; no source-native identity is invented.
+The underlying screen's optional proxy/price metrics retain its stricter
+instrument-link requirements and can remain missing.
+
+`peer_comparison_row` preserves source capture/version IDs, metric dates,
+classification evidence, missingness and identity links. Rows rank within
+matching dimension, calendar period and applicable metric date.
+`revenue` and `forward_eps_proxy` additionally require known matching currency.
+Dimensionless ranks set only `ranking_cohort_json.currency` to
+`not_applicable_dimensionless_metric`; original `cohort_json.currency` remains
+unchanged. Separate cohorts can each contain rank 1. Equal values share
+competition rank; singleton percentile is null. Missing sources, identities,
+requested periods and ranking metrics remain explicit and unranked.
+`ranking_status`, `rank_cohort_size` and `ranking_cohort_json` must travel
+with the rank; it is a selected-cohort comparison, not a universe-wide score.
+
+### Management guidance timeline
+
+Required `ticker` selects retained calls. Optional `limit` is 1–20 (default
+8), `start_date`/`end_date` filter actual call dates inclusively, and
+`include_blocked` defaults to false. `mode` defaults to `latest`; a historical
+cutoff requires `mode: "as_of"` and an offset-aware `as_of` together.
+
+Selection uses the latest eligible retained capture for each provider event,
+then the most recent calls, and displays the selected window by actual call date
+ascending. Unknown dates sort last and cannot satisfy date filters; fiscal
+periods do not substitute for dates. Capture/source availability and extraction
+completion must satisfy the cutoff. A newer capture without a saved draft is a
+visible gap; the reader does not fall back to an older analyzed capture.
+
+| Record type | Contents |
+| --- | --- |
+| `guidance_timeline` | Cutoff, selection, eligible/selected call counts, `omitted_older_calls`, and zero provider/model requests |
+| `guidance_call` | Capture, instrument, call-date basis, analysis/schema IDs, availability, automatic quality, latest review and guidance status |
+| `guidance_item` | Original saved guidance object, item index and call/capture/analysis association |
+| `guidance_evidence` | Original cited source turn ID, pointer, hashes, speaker metadata and excerpt |
+| `guidance_unresolved_references` | Invalid or out-of-range source references |
+| `guidance_change` | Adjacent selected-call comparison or an explicit reason it could not be established |
+
+Comparison never bridges an intervening call gap. It requires the same instrument
+and schema, strictly increasing known call dates, automatic
+`accepted`/`accepted_with_flags` assessments, no unresolved citations, and
+either no review or a latest review of `accepted`, `accepted_with_flags`,
+`approved` or `pass`. Other reviews suppress comparison. Exposing blocked
+items with `include_blocked: true` does not qualify them for numeric changes.
+
+Items match unique normalized metric and period labels. Numeric point/range
+changes also require matching numeric kind, unit and qualifier. One-sided items
+are labelled `only_in_before_saved_summary` or
+`only_in_after_saved_summary`; neither means withdrawn or newly issued guidance.
+
+Citations retain exact turn IDs and hashes. Excerpts are capped at 1,200
+characters and carry `excerpt_truncated`; retrieve complete cited turns using
+`company.get_transcript@2.0.0` with the returned `capture_id` and `turn_ids`
+(at most 20 per call), preserving the same cutoff. Reader bounds include 512
+eligible captures, 40 cited turns per selected call, 32 MiB source text, 4 MiB
+saved draft output and 2,000 result records under the normal 8 MiB response cap.
+Exceeding resource bounds fails explicitly. All guidance remains saved model
+draft content with separate quality/review evidence; no fresh extraction runs.

@@ -90,6 +90,7 @@ _STAGE5_INPUT_KINDS = {
 }
 from quant_data.tool_platform.retained_research_contracts import KINDS as RETAINED_KINDS, SUCCESSORS as RETAINED_SUCCESSORS
 _VERSIONED_INPUT_KINDS = {
+    ("company.get_guidance_history", "2.0.0"): "guidance_timeline_v2",
     **{(name, "2.0.0"): RETAINED_KINDS[name] for name in RETAINED_SUCCESSORS},
     ("company.get_transcript", "2.0.0"): "transcript_turns_v2",
     ("news.search", "2.0.0"): "current_news_search_v2",

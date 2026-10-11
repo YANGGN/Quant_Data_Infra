@@ -87,11 +87,15 @@ class Reader:
             if not isinstance(leader, dict):
                 raise ValueError("monitor_leader_shape")
             if (not isinstance(leader.get("expiration"), str)
-                or len(leader["expiration"]) != 10 or leader.get("right") not in ("C", "P")
+                or len(leader["expiration"]) != 10 or leader.get("right") not in ("C", "P", "call", "put")
                 or any(isinstance(leader.get(k), bool) or not isinstance(leader.get(k), (int, Decimal))
                        for k in ("strike", "volume", "share"))):
                 raise ValueError("monitor_leader_fields")
-            safe_leaders.append({k: leader[k] for k in ("expiration", "strike", "right", "volume", "share")})
+            safe = {k: leader[k] for k in ("expiration", "strike", "right", "volume", "share")}
+            # The collector stores native call/put labels; the frozen public
+            # interface uses C/P. Normalize only these known source spellings.
+            safe["right"] = {"call": "C", "put": "P"}.get(safe["right"], safe["right"])
+            safe_leaders.append(safe)
         metrics = {}
         for key in METRICS:
             v = value.get(key)
@@ -103,6 +107,25 @@ class Reader:
             if v is not None and (not isinstance(v, str) or len(v) > 100):
                 raise ValueError("monitor_text_shape")
             metrics[key] = v
+        if self.context.tool_version == "2.0.0":
+            cumulative = ("cumulative_volume", "cumulative_relative_volume", "cumulative_expected_volume",
+                          "cumulative_baseline_sessions", "cumulative_baseline_minute")
+            from .retained_research_common import number
+            for key in cumulative:
+                v = value.get(key)
+                if v is not None and (isinstance(v, bool) or not isinstance(v, (int, float, Decimal)) or number(v) is None or v < 0):
+                    raise ValueError("monitor_cumulative_metric_shape")
+                if key in ("cumulative_baseline_sessions", "cumulative_baseline_minute") and v is not None and type(v) is not int:
+                    raise ValueError("monitor_cumulative_integer_shape")
+                metrics[key] = v
+            cumulative_flags = value.get("cumulative_quality_flags")
+            if cumulative_flags is not None and (not isinstance(cumulative_flags, list) or len(cumulative_flags) > 100
+                or any(not isinstance(f, str) or len(f) > 100 for f in cumulative_flags)):
+                raise ValueError("monitor_cumulative_flags_shape")
+            metrics["cumulative_quality_flags"] = cumulative_flags
+            metrics["cumulative_data_status"] = ("not_saved" if not any(k in value for k in (*cumulative, "cumulative_quality_flags"))
+                else "incomplete_saved_fields" if not all(k in value for k in (*cumulative, "cumulative_quality_flags"))
+                else "quality_flagged" if cumulative_flags else "saved")
         age = (datetime.fromisoformat(now) - datetime.fromisoformat(captured)).total_seconds()
         cutoff_age = (datetime.fromisoformat(at) - datetime.fromisoformat(captured)).total_seconds()
         return dict(metrics, symbol=row["symbol"], session=row["session"],
@@ -186,7 +209,7 @@ def invoke(name, arguments, context, registry):
     except (OSError, ValueError, TypeError, KeyError, OverflowError, ValidationError, ConflictError) as exc:
         raise StoreUnavailableError("The fixed Options Monitor source is missing, busy, or invalid; no fallback is used") from exc
     source = dict(provider="thetadata", source="options_monitor", source_contract="quant_data.options_monitor.v1",
-        source_schema_sha256=SCHEMA_SHA, reader_version="1.0.0", capture_cutoff=at, read_at=now,
+        source_schema_sha256=SCHEMA_SHA, reader_version=context.tool_version, capture_cutoff=at, read_at=now,
         selection="latest_retained_capture_per_symbol" if name == TOOLS[0] else "capture_time_ascending",
         observation_count=len(observations), missing_symbol_count=len(rows)-len(observations),
         source_high_water=max((instant(v["captured_at"]) for v in observations), default=None),
@@ -201,7 +224,7 @@ def invoke(name, arguments, context, registry):
         dict(name="query_json", value=dumps_strict(args)),
         dict(name="source_records_sha256", value=digest([r.to_primitive() for r in rows]))]), (), (),
         unsafe_reasons=("historical_public_availability_not_established", "periodic_derived_options_aggregates"))
-    contract = replace(envelope.contract, model_id="quant_data.options_monitor.reader", model_version="1.0.0",
+    contract = replace(envelope.contract, model_id="quant_data.options_monitor.reader", model_version=context.tool_version,
         temporal=replace(envelope.contract.temporal, availability_basis="local_capture_time_only"),
         availability_policy="local_capture_time_only", vintage_policy="retained_capture_cutoff",
         execution_policy="host_fixed_monitor_immutable_read", sample={"output_record_count": len(rows)})

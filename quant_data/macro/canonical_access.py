@@ -577,23 +577,33 @@ class CanonicalMacroRepository:
             raise ValidationError("Canonical macro datasets are not registered")
 
     @staticmethod
-    def _generic_descriptors(connection: Any) -> list[MacroSeriesDescriptor]:
+    def _generic_descriptors(connection: Any, series_ids=None, *, statistics=True) -> list[MacroSeriesDescriptor]:
+        # Select metadata first for catalog discovery. Hydrate statistics only
+        # for the bounded result, using the same immutable connection.
+        if series_ids is not None and not series_ids:
+            return []
+        selected = "" if series_ids is None else " WHERE series_id IN (" + ",".join("?" for _ in series_ids) + ")"
+        enabled = "" if statistics else " AND 0"
+        current_scope = "" if series_ids is None else " AND current.series_id IN (SELECT series_id FROM selected_series)"
+        stats_scope = "" if series_ids is None else " AND series_id IN (SELECT series_id FROM selected_series)"
         rows = list(
             connection.execute(
-                """
-                WITH current_stats AS (
+                f"""
+                WITH selected_series AS (SELECT * FROM macro_series{selected}),
+                current_stats AS (
                     SELECT current.series_id, COUNT(*) AS observation_count,
                            MIN(current.period_start) AS observed_start,
                            MAX(current.period_end) AS observed_end
                     FROM macro_observations AS current
                     JOIN macro_observation_versions AS version
                       ON version.version_id=current.current_version_id
-                    WHERE version.state='active'
+                    WHERE version.state='active'{enabled}{current_scope}
                     GROUP BY current.series_id
                 ),
                 version_stats AS (
                     SELECT series_id, COUNT(*) AS version_count
                     FROM macro_observation_versions
+                    WHERE 1=1{enabled}{stats_scope}
                     GROUP BY series_id
                 ),
                 release_stats AS (
@@ -603,6 +613,7 @@ class CanonicalMacroRepository:
                                 AND first_release_evidence IS NOT NULL
                                THEN 1 ELSE 0 END) AS first_release_count
                     FROM macro_releases
+                    WHERE 1=1{enabled}{stats_scope}
                     GROUP BY series_id
                 )
                 SELECT series.series_id, series.provider,
@@ -616,7 +627,7 @@ class CanonicalMacroRepository:
                        COALESCE(release.release_count, 0) AS release_count,
                        COALESCE(release.first_release_count, 0) AS first_release_count,
                        current.observed_start, current.observed_end
-                FROM macro_series AS series
+                FROM selected_series AS series
                 LEFT JOIN current_stats AS current
                   ON current.series_id=series.series_id
                 LEFT JOIN version_stats AS version
@@ -624,7 +635,7 @@ class CanonicalMacroRepository:
                 LEFT JOIN release_stats AS release
                   ON release.series_id=series.series_id
                 ORDER BY series.series_id
-                """
+                """, tuple(series_ids or ())
             )
         )
         result: list[MacroSeriesDescriptor] = []
@@ -766,8 +777,8 @@ class CanonicalMacroRepository:
             )
         return result
 
-    def _catalog(self, connection: Any) -> list[MacroSeriesDescriptor]:
-        descriptors = self._generic_descriptors(connection)
+    def _catalog(self, connection: Any, *, statistics=True) -> list[MacroSeriesDescriptor]:
+        descriptors = self._generic_descriptors(connection, statistics=statistics)
         descriptors.extend(self._official_descriptors(connection))
         descriptors.sort(key=lambda item: item.series_id)
         if len({item.series_id for item in descriptors}) != len(descriptors):
@@ -782,35 +793,42 @@ class CanonicalMacroRepository:
             _reconcile_store_contract(
                 connection, self._registry, MACRO_ACCESS_DATASET_IDS
             )
-            descriptors = self._catalog(connection)
+            descriptors = self._catalog(connection, statistics=False)
             migration_ids, migrations = _migration_receipt(connection)
-        needle = query.query.strip().casefold()
-        selected: list[MacroSeriesDescriptor] = []
-        for item in descriptors:
-            if not item.active:
-                continue
-            if query.provider and item.provider.casefold() != query.provider.casefold():
-                continue
-            if query.frequency and item.frequency.casefold() != query.frequency.casefold():
-                continue
-            haystack = " ".join(
-                value
-                for value in (
-                    item.series_id,
-                    item.provider,
-                    item.provider_series_code,
-                    item.title,
-                    item.description or "",
-                    item.category or "",
-                )
-                if value
-            ).casefold()
-            if needle and needle not in haystack:
-                continue
-            selected.append(item)
-        total = len(selected)
-        truncated = total > query.limit
-        selected = selected[: query.limit]
+            needle = query.query.strip().casefold()
+            selected: list[MacroSeriesDescriptor] = []
+            for item in descriptors:
+                if not item.active:
+                    continue
+                if query.provider and item.provider.casefold() != query.provider.casefold():
+                    continue
+                if query.frequency and item.frequency.casefold() != query.frequency.casefold():
+                    continue
+                haystack = " ".join(
+                    value
+                    for value in (
+                        item.series_id,
+                        item.provider,
+                        item.provider_series_code,
+                        item.title,
+                        item.description or "",
+                        item.category or "",
+                    )
+                    if value
+                ).casefold()
+                if needle and needle not in haystack:
+                    continue
+                selected.append(item)
+            total = len(selected)
+            truncated = total > query.limit
+            selected = selected[: query.limit]
+            generic_ids = tuple(item.series_id for item in selected if item.storage_model == "generic_version_core")
+            generic_count = sum(item.storage_model == "generic_version_core" for item in descriptors)
+            # Broad requests retain the sequential aggregate plan; forcing
+            # hundreds of indexed point reads can be slower than that scan.
+            scope = None if len(generic_ids) > 1 and len(generic_ids) * 2 >= generic_count else generic_ids
+            hydrated = {item.series_id: item for item in self._generic_descriptors(connection, scope)}
+            selected = [hydrated.get(item.series_id, item) for item in selected]
         receipt = {
             "filters": {
                 "frequency": query.frequency,
@@ -841,7 +859,9 @@ class CanonicalMacroRepository:
             _reconcile_store_contract(
                 connection, self._registry, MACRO_ACCESS_DATASET_IDS
             )
-            descriptors = {item.series_id: item for item in self._catalog(connection)}
+            descriptors = {item.series_id: item for item in (
+                *self._generic_descriptors(connection, (normalized,)),
+                *self._official_descriptors(connection))}
             migration_ids, migrations = _migration_receipt(connection)
         descriptor = descriptors.get(normalized)
         if descriptor is None:

@@ -662,6 +662,18 @@ Use the versioned [local-agent interface](docs/LOCAL_AGENT_TOOLS.md) and runtime
 manifest for the current inventory. Registry/schema/catalog versions come from
 `config/system_registry.json`, not from a historical stage summary.
 
+Registry `2.98.0` / catalog `2.41.0` exposes 102 logical tools and 201 versioned
+contracts. New research workflows include
+[peer comparison](docs/LOCAL_AGENT_TOOLS.md#peer-comparison) through
+`company.compare_peers@1.0.0`,
+[cumulative intraday options activity](docs/LOCAL_AGENT_TOOLS.md#cumulative-options-activity)
+through `options.get_intraday_snapshot@2.0.0` and
+`options.get_intraday_history@2.0.0`, and a
+[management guidance timeline](docs/LOCAL_AGENT_TOOLS.md#management-guidance-timeline)
+through `company.get_guidance_history@2.0.0`. Follow the linked launcher examples
+and select versions explicitly. Existing data schemas and compatibility defaults
+are unchanged; v2 calls opt in to the additional results.
+
 ### Historical public boundary at registry 2.21
 
 The following records the accepted boundary at revision `2.21.0`, schema `1.8.0`. It preserves the
@@ -744,9 +756,11 @@ projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
 deterministic evidence remains reproducible.
 
 The frozen compatibility inventory remains all 57 reviewed public tool names.
-Registry `2.85.0` exposes 77 read-only logical tools and catalog `2.31.0`
-contains 166 versioned contracts. Explicit successors preserve compatibility
-defaults and do not create additional logical names. For new integrations,
+At the historical registry `2.85.0` checkpoint, 77 read-only logical tools
+and 166 versioned contracts were exposed through catalog `2.31.0`.
+Use the current manifest and latest-contract table for today's inventory.
+Explicit successors preserve compatibility defaults and do not create additional
+logical names. For new integrations,
 select the semantic maximum in the runtime manifest's `versions` array and
 pass it explicitly to both `describe` and `call`; the top-level `version` is
 a compatibility default. The [current price workflow](docs/LOCAL_AGENT_TOOLS.md#current-price-workflow)

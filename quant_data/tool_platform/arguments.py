@@ -2725,6 +2725,8 @@ def input_schema(input_kind: str, series_schema: Mapping[str, Any]) -> dict[str,
     re-declaring (or weakening) its observation bound here.
     """
 
+    from .research_extensions_contracts import KINDS as EKINDS, schema as eschema
+    if input_kind in EKINDS.values(): return eschema(input_kind)
     from .retained_research_contracts import KINDS as RKINDS, schema as rschema
     if input_kind in RKINDS.values():
         return rschema(input_kind)
@@ -5357,6 +5359,8 @@ def parse_arguments(
     before any decoder invocation.
     """
 
+    from .research_extensions_contracts import KINDS as EKINDS, parse as eparse
+    if input_kind in EKINDS.values(): return eparse(input_kind, public)
     from .retained_research_contracts import KINDS as RKINDS, parse as rparse
     if input_kind in RKINDS.values():
         return rparse(input_kind, public)
@@ -5934,6 +5938,10 @@ def preflight_dimensions(
     count, matching the platform's correlation/alignment workload ceiling.
     """
 
+    from .research_extensions_contracts import KINDS as EKINDS, parse as eparse
+    if input_kind in EKINDS.values():
+        eparse(input_kind, public)
+        return {"rows":10000, "series":20, "operations":5000000}
     from .retained_research_contracts import KINDS as RKINDS, parse as rparse
     if input_kind in RKINDS.values():
         rparse(input_kind, public)

@@ -1950,7 +1950,7 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0", "2.96.0", "2.97.0"}
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0", "2.96.0", "2.97.0", "2.98.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
@@ -2772,7 +2772,7 @@ def load_registry(
         declaration_key="tool_version_schema_catalog",
         expected_id=VERSIONED_CATALOG_ID,
         expected_version=VERSIONED_CATALOG_VERSION,
-        expected_count=280,
+        expected_count=288,
         allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
     )
 
@@ -3627,6 +3627,10 @@ def load_registry(
                 "market.stage10.source_evidence",
                 "market.stage10.instruments",
             )
+        elif policy["tool"] == "company.get_guidance_history":
+            from .tool_platform.transcript_contracts import RAW_DATASET, STRUCTURED_DATASET
+            expected_variant_stores = ("company",)
+            expected_variant_datasets = (RAW_DATASET, STRUCTURED_DATASET)
         elif policy["tool"] in VERSIONED_COMPANY_FILING_TOOLS:
             expected_variant_stores = ("company",)
             expected_variant_datasets = ("fixture.company.filings",)

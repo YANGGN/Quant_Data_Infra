@@ -21,6 +21,132 @@ The command derives this project's root itself. Do not copy its database paths,
 set database-related environment variables, or invoke it with a registry,
 project-root, store, SQL, provider, or credential option; none are supported.
 
+
+## Peer comparison, cumulative options and guidance timeline — October 10, 2026
+
+Registry **2.98.0** / catalog **2.41.0** exposes 102 logical tools and 201
+versioned contracts. These additions use the existing local launcher and saved
+data. Database schemas, collectors and existing request/response schemas are
+unchanged. Guidance and options defaults remain `1.0.0`; opt in to `2.0.0`
+explicitly. The v1 deprecation advisory has no scheduled removal.
+
+| Use | Tool and version | Required inputs |
+| --- | --- | --- |
+| Compare a company with its FMP industry or sector peers | `company.compare_peers@1.0.0` | `symbol` |
+| Read the latest saved options activity, including cumulative metrics | `options.get_intraday_snapshot@2.0.0` | `symbols` |
+| Read saved cumulative options activity across intraday observations | `options.get_intraday_history@2.0.0` | `symbol`, `start_date`, `end_date` |
+| Follow management guidance with citations and consecutive-call changes | `company.get_guidance_history@2.0.0` | `ticker` |
+
+Discover each contract before calling it:
+
+```bash
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.compare_peers --tool-version 1.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe options.get_intraday_snapshot --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe options.get_intraday_history --tool-version 2.0.0
+/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools describe company.get_guidance_history --tool-version 2.0.0
+```
+
+Send each JSON envelope below separately on standard input to
+`/home/volatility/Python_Projects/Quant_Data_Infra/bin/quant-data-tools call`.
+From Windows use `wsl.exe -d Ubuntu --` before that same command.
+The dates are examples, not a guarantee of saved coverage. Preserve the complete
+response envelope, receipt, warnings and lineage. Read `result.records` by
+`record_type` and its name/value `fields`; decode `_json` field values once.
+
+### Peer comparison
+
+```json
+{"api_version":"1.0","tool":"company.compare_peers","tool_version":"1.0.0","arguments":{"symbol":"MU","peers":["NVDA","AMD"],"metrics":["revenue_growth_yoy","netmargin","de","pe"],"rank_by":"netmargin"}}
+```
+
+The anchor's saved FMP `industry` defines the group by default; use
+`group_by: "sector"` for sector peers. Omit `peers` to select the complete
+retained group when it has at most 20 names including the anchor. Larger
+groups return `peer_selection.status: "explicit_peer_selection_required"`
+and `candidate_symbols_json`. Choose 1–19 unique peers, excluding the anchor,
+and call again. Unknown or off-group names produce `peer_exclusion` records.
+
+Optional `metrics`, `criteria` (at most eight bounds), `dimension` (default
+`ARQ`), `calendar_date`, `rank_by` (default `revenue_growth_yoy`),
+`ascending` (default `false`) and `as_of` follow the fundamental screen.
+Inspect `peer_comparison_row` records for `passes`, `exclusions_json`,
+`ranking_status`, `rank_cohort_size`, `cohort_json` and
+`ranking_cohort_json`. Criteria label rows; they do not remove failing rows
+from otherwise comparable rankings.
+
+Ranks apply within matching dimension, calendar period and applicable metric
+date, so separate rank cohorts can appear in one response. Monetary metrics
+also require known matching currency; dimensionless ratios may rank without it.
+Missing metrics or identity evidence remain explicit. FMP labels are not official
+GICS or historical effective classifications. The
+[peer contract](rebuild/RETAINED_RESEARCH_TOOLS_2026-09-28.md#peer-comparison)
+details identity joins, source versions, ties and optional metrics.
+
+### Cumulative options activity
+
+```json
+{"api_version":"1.0","tool":"options.get_intraday_snapshot","tool_version":"2.0.0","arguments":{"symbols":["SPY","AAPL"]}}
+```
+
+```json
+{"api_version":"1.0","tool":"options.get_intraday_history","tool_version":"2.0.0","arguments":{"symbol":"SPY","start_date":"2026-10-08","end_date":"2026-10-09","as_of":"2026-10-09T16:30:00-04:00"}}
+```
+
+Snapshot accepts 1–50 unique uppercase symbols and optional `session` and
+`as_of`. History accepts one symbol, at most seven inclusive calendar days
+and at most 1,000 observations. Both read saved monitor observations; inspect
+session, capture age and freshness before treating a snapshot as current.
+
+Version 2 adds `cumulative_volume`, `cumulative_relative_volume`,
+`cumulative_expected_volume`, `cumulative_baseline_sessions`,
+`cumulative_baseline_minute`, `cumulative_quality_flags_json` and
+`cumulative_data_status` to each `monitor_observation`. These are saved
+collector metrics; they do not establish signed positioning, delta or gamma
+exposure. Older observations can have no cumulative fields: null stays null
+and saved zero stays zero. Read cumulative quality separately from interval
+quality. See the [v2 field and status definitions](rebuild/OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md#cumulative-activity-v2--october-10-2026).
+
+### Management guidance timeline
+
+```json
+{"api_version":"1.0","tool":"company.get_guidance_history","tool_version":"2.0.0","arguments":{"ticker":"MU","limit":8}}
+```
+
+For a historical local-availability cutoff, provide `mode` and `as_of`
+together; call-date filters are optional and inclusive:
+
+```json
+{"api_version":"1.0","tool":"company.get_guidance_history","tool_version":"2.0.0","arguments":{"ticker":"MU","mode":"as_of","as_of":"2026-10-09T20:30:00Z","start_date":"2025-10-01","end_date":"2026-10-09","limit":8,"include_blocked":false}}
+```
+
+The timeline selects the latest eligible capture per provider event, then the
+most recent calls (default 8, maximum 20), ordered by actual call date ascending.
+Unknown dates sort last and cannot satisfy a date filter; fiscal labels never
+replace call dates. Read `guidance_timeline`, `guidance_call`, `guidance_item`,
+`guidance_evidence`, `guidance_unresolved_references` and `guidance_change`.
+`omitted_older_calls` reports calls outside the selected window; narrow the date
+range to inspect earlier calls.
+
+Missing drafts/sections and blocked drafts remain visible call gaps.
+`include_blocked: true` exposes blocked saved items but does not enable their
+numeric comparison. Saved model drafts retain separate automatic quality and
+review status. Numeric changes require comparable adjacent calls, valid citations
+and uniquely matching metric/period labels, numeric kind, unit and qualifier.
+Absence from a selective summary does not establish withdrawal of guidance.
+The [timeline contract](rebuild/RETAINED_RESEARCH_TOOLS_2026-09-28.md#management-guidance-timeline)
+defines comparison gates, evidence retrieval and limits. No new provider or
+model request is made.
+
+### Access reliability
+
+Saved monitor leader rights `call`/`put` now normalize to the existing
+`C`/`P` values. Macro search filters metadata before loading statistics for
+narrow results, while broad searches retain the sequential aggregate plan;
+single-series descriptions avoid aggregating the full generic catalog.
+Counts, cutoffs, receipts and immutable-read checks retain their meanings.
+Busy or nonquiet stores still fail explicitly; no hidden retry or deadline
+increase is added.
+
 ## FMP sector and industry classifications — October 10, 2026
 
 Use **`market.get_classifications@1.0.0`** for the canonical sector and industry
@@ -101,6 +227,10 @@ store fails explicitly. The [classification contract](rebuild/FMP_CLASSIFICATION
 documents storage and provenance.
 
 ## Intraday Options Monitor tools — September 29, 2026
+
+This section preserves the original v1 integration. For new integrations, use
+[v2 cumulative options activity](#cumulative-options-activity); the arguments and
+access boundary remain the same.
 
 Registry **2.95.0** / catalog **2.39.0** adds two read-only tools at explicit
 **version 1.0.0**:
@@ -742,12 +872,14 @@ the dated ETF version 1 section below is preserved audit evidence only.
 ## Latest contracts
 
 This latest-only projection is verified through the public launcher for
-registry `2.95.0`, catalog `2.39.0`: 100 logical tools and 196 versioned contracts.
+registry `2.98.0`, catalog `2.41.0`: 102 logical tools and 201 versioned contracts.
 If the registry advances, the semantic maximum advertised by the runtime
 `manifest` overrides this checkpoint.
 
-For saved intraday options, select the two monitor tools in the
-[intraday options workflow](#intraday-options-monitor-tools--september-29-2026).
+For saved intraday options, select the explicit v2 monitor tools in the
+[cumulative options workflow](#cumulative-options-activity).
+The [peer comparison](#peer-comparison) and
+[guidance timeline](#management-guidance-timeline) workflows use the new research contracts.
 For daily ETF options research, use the six Theta tools in the
 [daily options workflow](#current-theta-options-workflow--september-27-2026).
 Older options names retain archive or fixture semantics.
@@ -783,12 +915,13 @@ Older options names retain archive or fixture semantics.
 | `company.get_share_count_history` | `3.0.0` |
 | `company.get_earnings_calendar` | `2.0.0` |
 | `company.get_consensus_history` | `2.0.0` |
-| `company.get_guidance_history` | `1.0.0` |
+| `company.get_guidance_history` | `2.0.0` |
 | `company.get_estimate_revisions` | `2.0.0` |
 | `company.get_earnings_setup` | `2.0.0` |
 | `energy.get_electricity_retail_sales` | `2.1.0` |
 | `energy.get_weekly_fundamentals` | `2.1.0` |
 | `market.search_instruments` | `2.0.0` |
+| `market.get_classifications` | `1.0.0` |
 | `market.get_available_ticker` | `1.0.0` |
 | `market.get_price_series` | `2.0.0` |
 | `market.get_volume_series` | `1.0.0` |
@@ -813,8 +946,8 @@ Older options names retain archive or fixture semantics.
 | `options.screen_contracts` | `1.0.0` |
 | `options.strategy_scenario` | `1.0.0` |
 | `options.compare_implied_realized` | `1.0.0` |
-| `options.get_intraday_snapshot` | `1.0.0` |
-| `options.get_intraday_history` | `1.0.0` |
+| `options.get_intraday_snapshot` | `2.0.0` |
+| `options.get_intraday_history` | `2.0.0` |
 | `research.point_in_time_panel` | `2.1.0` |
 | `data.get_dataset_status` | `1.0.0` |
 | `data.quality_audit` | `2.1.0` |
@@ -854,6 +987,7 @@ Older options names retain archive or fixture semantics.
 | `company.search_transcript_evidence` | `1.0.0` |
 | `company.compare_transcripts` | `1.0.0` |
 | `company.screen_fundamentals` | `1.0.0` |
+| `company.compare_peers` | `1.0.0` |
 
 Start a market workflow with `market.get_available_ticker`. A ticker is
 included only when its FMP/provider-native Stage 10 instrument has at least one

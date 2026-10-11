@@ -105,6 +105,17 @@ def invoke_operation(
 ) -> QueryResult:
     """Invoke one closed read-only graph and return an immutable typed result."""
 
+    from .research_extensions_contracts import PEERS, GUIDANCE, KINDS as EKINDS, VERSIONS as EVERSIONS, ResearchExtensionArguments
+    if name == PEERS or (name == GUIDANCE and context.tool_version == "2.0.0"):
+        if (not isinstance(arguments, ResearchExtensionArguments) or arguments.kind != EKINDS[name]
+            or context.tool_version != EVERSIONS[name]
+            or context.operation_graph_id != f"tool_platform.{name}.v{EVERSIONS[name][0]}"):
+            raise LookupError("Selected research extension graph is invalid")
+        if name == PEERS:
+            from .peer_comparison import invoke
+        else:
+            from .guidance_timeline import invoke
+        return invoke(arguments, context, registry)
     from .retained_research_contracts import TOOLS as RTOOLS, VERSIONS as RVERSIONS
     if name in RTOOLS and context.tool_version == RVERSIONS[name]:
         if context.operation_graph_id != f"tool_platform.{name}.v{RVERSIONS[name][0]}":
@@ -119,7 +130,7 @@ def invoke_operation(
         from .classification_access import invoke
         return invoke(arguments, context, registry)
     if name in MONITOR_TOOLS:
-        if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
+        if context.tool_version not in ("1.0.0", "2.0.0") or context.operation_graph_id != f"tool_platform.{name}.v{context.tool_version[0]}":
             raise LookupError("Selected monitor tool graph is invalid")
         from .monitor_access import invoke
         return invoke(name, arguments, context, registry)

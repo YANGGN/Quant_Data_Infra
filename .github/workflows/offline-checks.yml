@@ -54,6 +54,7 @@ jobs:
               tests.operations.test_collection_price_windows
               tests.operations.test_selected_price_refresh
               tests.tool_platform.test_retained_research_public
+              tests.tool_platform.test_research_extensions
           - profile: theta
             python: '3.12'
             tests: >-

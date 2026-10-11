@@ -4,6 +4,9 @@ Implemented September 29, 2026. Registry **2.95.0**, catalog **2.39.0**:
 100 logical tools / 196 versioned contracts. Both additions use API `1.0`
 and explicit tool version `1.0.0`.
 
+For new integrations, use [explicit v2 cumulative activity](#cumulative-activity-v2--october-10-2026).
+The original v1 examples below remain valid compatibility examples.
+
 These read-only tools expose the existing derived Options Monitor observations
 through the shared local launcher. They do not collect data, change watchlists,
 contact providers, or change the monitor schedule. They are periodic saved
@@ -124,3 +127,45 @@ The [monitor contract](OPTIONS_MONITOR_2026-09-26.md) owns collection and
 metric semantics. [Local Agent Tools](../LOCAL_AGENT_TOOLS.md) owns integration.
 Offline verification uses synthetic temporary stores; it does not establish
 current host collection freshness.
+
+## Cumulative activity v2 — October 10, 2026
+
+Registry `2.98.0` / catalog `2.41.0` adds explicit `2.0.0` versions of both
+tools. Their input schemas, fixed source, selection rules, capture cutoff and
+resource bounds above are unchanged. Version `1.0.0` remains the compatibility
+default with its original output projection; its advisory has no scheduled
+removal. For current calls, select `2.0.0` in both `describe` and
+`tool_version`. Copyable snapshot/history envelopes are in the
+[agent guide](../LOCAL_AGENT_TOOLS.md#cumulative-options-activity).
+
+Each v2 `monitor_observation` additionally exposes:
+
+| Field | Meaning |
+| --- | --- |
+| `cumulative_volume` | Saved cumulative options volume for the observation's session |
+| `cumulative_relative_volume` | Saved cumulative volume relative to its cumulative baseline |
+| `cumulative_expected_volume` | Saved expected cumulative volume at the baseline minute |
+| `cumulative_baseline_sessions` | Saved baseline session count for the cumulative calculation |
+| `cumulative_baseline_minute` | Collector's Eastern minute-of-day used for the baseline |
+| `cumulative_quality_flags_json` | Saved cumulative quality flags, encoded as JSON; separate from interval flags |
+| `cumulative_data_status` | Payload availability classification below |
+
+The reader passes through saved values without reconstructing history. These
+fields describe cumulative activity, not signed positions or delta/gamma
+exposure. A saved zero is a valid value; missing values stay null.
+
+| Status | Interpretation |
+| --- | --- |
+| `not_saved` | None of the cumulative keys were present in the saved payload |
+| `incomplete_saved_fields` | Some, but not all, cumulative keys were present |
+| `quality_flagged` | All cumulative keys were present and saved cumulative flags were nonempty |
+| `saved` | All cumulative keys were present without nonempty saved cumulative flags |
+
+Availability is based on key presence. Even `saved` does not guarantee non-null
+metrics or a sufficiently populated baseline; inspect the actual values, counts
+and flags. Malformed saved fields fail explicitly rather than becoming zero.
+Version 2 source metadata identifies reader/model version 2. Observation identity,
+payload hash, timestamps and the standard response envelope continue to provide
+lineage. Known native leader labels `call` and `put` normalize to the existing
+`C` and `P` values in both versions; this fixes reads of retained payloads
+without changing their stored bytes or the v1 field schema.

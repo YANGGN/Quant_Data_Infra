@@ -14,6 +14,8 @@ PREDECESSOR_CATALOG = {"resource": "quant_data/generated/tool_contract_schemas_v
 
 
 def predecessor_profile(registry):
+    from .research_extensions_registry import predecessor_profile as research_predecessor
+    registry = research_predecessor(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.97.0"):
         return registry
     from .generate import _REVIEWED_REGISTRY_SOURCE_SHA256
