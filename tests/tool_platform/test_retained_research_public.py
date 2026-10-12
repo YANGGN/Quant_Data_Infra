@@ -178,7 +178,12 @@ class RetainedResearchPublicTests(unittest.TestCase):
         self.assertEqual(stage5_registry_profile(previous).source_sha256,stage5_registry_profile(f.registry).source_sha256)
         from quant_data.tool_platform.monitor_registry import predecessor_profile as before_monitor
         self.assertEqual(len(before_monitor(f.registry).tools),98)
-        manifest=app.dispatcher.manifest();self.assertEqual(len(manifest["tools"]),100)
+        # Keep the historical count above fixed; validate current discovery separately.
+        manifest=app.dispatcher.manifest()
+        self.assertCountEqual(
+            [tool["name"] for tool in manifest["tools"]],
+            [tool["id"] for tool in f.registry.tools],
+        )
         for name in TOOLS:
             args=example(name);parse(KINDS[name],args)
             out,err=io.StringIO(),io.StringIO()

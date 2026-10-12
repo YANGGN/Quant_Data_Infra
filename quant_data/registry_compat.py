@@ -398,9 +398,17 @@ _REGISTRY_259_ADDITIVE_VARIANTS = frozenset(
 
 def _pre_website_policies() -> tuple[dict[str, Any], ...]:
     from .tool_platform.retained_research_contracts import SUCCESSORS as RSUCCESSORS
+    from .tool_platform.research_extensions_catalog import SUCCESSORS as ESUCCESSORS
     from .tool_platform.sharadar_company_contracts import remove_policies
-    policies = tuple(copy.deepcopy(policy) for policy in remove_policies(remove_price_basis_policies(build_tool_version_policies()))
-                     if policy["tool"] not in (*VERSIONED_ETF_SNAPSHOT_TOOLS, "company.get_transcript", *RSUCCESSORS))
+    # Later opt-in policies do not belong to the frozen pre-website inventory.
+    policies = tuple(
+        copy.deepcopy(policy)
+        for policy in remove_policies(remove_price_basis_policies(build_tool_version_policies()))
+        if policy["tool"] not in (
+            *VERSIONED_ETF_SNAPSHOT_TOOLS, "company.get_transcript",
+            *RSUCCESSORS, *ESUCCESSORS,
+        )
+    )
     for policy in policies:
         if policy["tool"] == "news.search":
             policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]

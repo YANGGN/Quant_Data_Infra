@@ -67,6 +67,12 @@ change or external exposure is introduced. Monitor leader labels normalize at
 the read boundary; macro catalog selection avoids unrelated statistics for
 narrow searches and descriptions without changing counts or receipt semantics.
 
+Historical compatibility maintenance on 2026-10-11 excludes the later
+classification/peer names and guidance/monitor v2 policies when reconstructing
+older registries. Frozen hashes, release inventories and generated catalog bytes
+remain unchanged. Current manifest checks compare the registered tool names;
+historical assertions retain their original counts.
+
 ## Intraday monitor additions — 2026-09-29
 
 Registry `2.95.0` / catalog `2.39.0` adds `options.get_intraday_snapshot@1.0.0`
