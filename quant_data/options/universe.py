@@ -1,5 +1,7 @@
 """Fixed approved option roots; this declaration is not permission to refetch SPY."""
 TIER1_ETFS=("SPY","QQQ","IWM","DIA","XLB","XLC","XLE","XLF","XLI","XLK","XLP","XLRE","XLU","XLV","XLY")
+CROSS_ASSET_ETFS=("GLD","SLV","TLT","IEF","HYG","LQD","USO","UNG","EFA","EEM","UUP","IBIT")
+OPTIONS_ETFS=TIER1_ETFS+CROSS_ASSET_ETFS
 EXPANSION_ETFS=TIER1_ETFS[1:]
 EXPANSION_START="2016-01-04"
 EXPANSION_END="2026-09-23"

@@ -3959,6 +3959,18 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "EEM",
+      "name": "iShares MSCI Emerging Markets ETF",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
+      "symbol": "EFA",
+      "name": "iShares MSCI EAFE ETF",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "EFC",
       "name": "Ellington Financial Inc.",
       "group": "equity",
@@ -5225,6 +5237,12 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "GLD",
+      "name": "SPDR Gold Shares",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "GLIBA",
       "name": "Liberty Capital Corporation",
       "group": "equity",
@@ -5999,6 +6017,12 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "HYG",
+      "name": "iShares iBoxx $ High Yield Corporate Bond ETF",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "HYMC",
       "name": "Hycroft Mining Holding Corporation",
       "group": "equity",
@@ -6014,6 +6038,12 @@
       "symbol": "IART",
       "name": "Integra LifeSciences Holdings Corporation",
       "group": "equity",
+      "cadence_minutes": 30
+    },
+    {
+      "symbol": "IBIT",
+      "name": "iShares Bitcoin Trust ETF",
+      "group": "market",
       "cadence_minutes": 30
     },
     {
@@ -6110,6 +6140,12 @@
       "symbol": "IE",
       "name": "Ivanhoe Electric Inc.",
       "group": "equity",
+      "cadence_minutes": 30
+    },
+    {
+      "symbol": "IEF",
+      "name": "iShares 7-10 Year Treasury Bond ETF",
+      "group": "market",
       "cadence_minutes": 30
     },
     {
@@ -7334,6 +7370,12 @@
       "symbol": "LPX",
       "name": "Louisiana-Pacific Corporation",
       "group": "equity",
+      "cadence_minutes": 30
+    },
+    {
+      "symbol": "LQD",
+      "name": "iShares iBoxx $ Investment Grade Corporate Bond ETF",
+      "group": "market",
       "cadence_minutes": 30
     },
     {
@@ -11069,6 +11111,12 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "SLV",
+      "name": "iShares Silver Trust",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "SLVM",
       "name": "Sylvamo Corp",
       "group": "equity",
@@ -11837,6 +11885,12 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "TLT",
+      "name": "iShares 20+ Year Treasury Bond ETF",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "TLX",
       "name": "Telix Pharmaceuticals Limited",
       "group": "equity",
@@ -12383,6 +12437,12 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "UNG",
+      "name": "United States Natural Gas Fund",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "UNH",
       "name": "UnitedHealth Group",
       "group": "equity",
@@ -12479,6 +12539,12 @@
       "cadence_minutes": 30
     },
     {
+      "symbol": "USO",
+      "name": "United States Oil Fund",
+      "group": "market",
+      "cadence_minutes": 30
+    },
+    {
       "symbol": "USPH",
       "name": "U.S. Physical Therapy, Inc.",
       "group": "equity",
@@ -12500,6 +12566,12 @@
       "symbol": "UTZ",
       "name": "Utz Brands, Inc.",
       "group": "equity",
+      "cadence_minutes": 30
+    },
+    {
+      "symbol": "UUP",
+      "name": "Invesco DB US Dollar Index Bullish Fund",
+      "group": "market",
       "cadence_minutes": 30
     },
     {
@@ -13599,6 +13671,27 @@
       "name": "Zymeworks Inc.",
       "group": "equity",
       "cadence_minutes": 30
+    }
+  ],
+  "supplemental_sources": [
+    {
+      "source": "user_authorized_cross_asset_expansion",
+      "decision_date": "2026-10-13",
+      "symbols": [
+        "GLD",
+        "SLV",
+        "TLT",
+        "IEF",
+        "HYG",
+        "LQD",
+        "USO",
+        "UNG",
+        "EFA",
+        "EEM",
+        "UUP",
+        "IBIT"
+      ],
+      "coverage_evidence": ".local/cross-asset-options-20261012/coverage-discovery.json"
     }
   ]
 }

@@ -39,7 +39,7 @@ class EtfMigrationTests(unittest.TestCase):
             path.write_text(json.dumps(registry));new=OptionsStore(old.root)
             self.assertTrue(new.initialize())
             self.assertEqual(snapshot(new),before)
-            with new.read() as c:self.assertEqual(c.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0],2)
+            with new.read() as c:self.assertEqual(c.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0],len(registry["migrations"]))
             stable=new.path.read_bytes()
             self.assertFalse(new.initialize());self.assertEqual(stable,new.path.read_bytes())
             spy_id=new.publish(capture())

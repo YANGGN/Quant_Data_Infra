@@ -20,7 +20,7 @@ from .job import SpyHistoryJob, atomic_json, sessions_from_calendars
 from .model import build_capture, canonical_json
 from .store import OptionsStore
 from .transport import Budget, ProviderFailure, ThetaTransport
-from .universe import TIER1_ETFS
+from .universe import OPTIONS_ETFS, TIER1_ETFS
 
 NY = ZoneInfo("America/New_York")
 STATE = Path("data/.operations/theta-options")
@@ -40,6 +40,14 @@ POLICY = {
     "handler": "quant_data.operations.theta_options_refresh",
 }
 POLICY_SHA256 = hashlib.sha256(canonical_json(POLICY).encode()).hexdigest()
+CROSS_ASSET_POLICY = {
+    **POLICY,
+    "contract": "theta_daily_and_weekly_v3",
+    "symbols": list(OPTIONS_ETFS),
+    "daily": {**POLICY["daily"], "max_requests": 56},
+    "weekly": {**POLICY["weekly"], "max_requests": 272},
+}
+CROSS_ASSET_POLICY_SHA256 = hashlib.sha256(canonical_json(CROSS_ASSET_POLICY).encode()).hexdigest()
 RECOVERABLE = {
     "UNAVAILABLE", "DEADLINE_EXCEEDED", "RESOURCE_EXHAUSTED",
     "INTERNAL", "ABORTED", "CANCELLED",
@@ -67,7 +75,7 @@ def due_window(mode, now):
     return slot, end - timedelta(days=4), end
 
 
-def read_coverage(store, sessions):
+def read_coverage(store, sessions, symbols=TIER1_ETFS):
     """The physical lock guards a quiet immutable read; no write connection."""
     if not sessions:
         return set()
@@ -78,7 +86,7 @@ def read_coverage(store, sessions):
                 "SELECT symbol,session_date FROM option_current "
                 "WHERE session_date BETWEEN ? AND ?",
                 (min(sessions), max(sessions)),
-            ) if row[0] in TIER1_ETFS and row[1] in sessions}
+            ) if row[0] in symbols and row[1] in sessions}
 
 
 def validate_calendars(calendars):
@@ -105,17 +113,26 @@ def _safe_error(exc):
     return type(exc).__name__
 
 
+def period_namespace(mode, policy):
+    if policy["contract"] == CROSS_ASSET_POLICY["contract"]:
+        return mode + "-cross-asset"
+    return "daily-next-day" if mode == "daily" else mode
+
+
 class ScheduledOptionsRun(SpyHistoryJob):
     """Reuse only staging, receipts and cleanup; never invoke a backfill run."""
     STORE_LIMIT_BYTES = POLICY["max_store_bytes"]
 
-    def __init__(self, root, mode, end, *, transport_factory=ThetaTransport):
-        self.WORK_DIRECTORY = str(STATE / ("daily-next-day" if mode == "daily" else mode) / end.isoformat())
+    def __init__(self, root, mode, end, *, transport_factory=ThetaTransport, policy=POLICY):
+        self.policy = policy
+        self.policy_sha256 = hashlib.sha256(canonical_json(policy).encode()).hexdigest()
+        self.symbols = tuple(policy["symbols"])
+        self.WORK_DIRECTORY = str(STATE / period_namespace(mode, policy) / end.isoformat())
         super().__init__(root, transport_factory=transport_factory)
         self.mode = mode
         self.status = {
-            "contract": POLICY["contract"], "mode": mode, "state": "starting",
-            "policy_sha256": POLICY_SHA256, "symbols": list(TIER1_ETFS),
+            "contract": policy["contract"], "mode": mode, "state": "starting",
+            "policy_sha256": self.policy_sha256, "symbols": list(self.symbols),
             "automatic_retries": 0, "published": 0, "preserved": 0, "gaps": [],
         }
 
@@ -127,7 +144,7 @@ class ScheduledOptionsRun(SpyHistoryJob):
     def storage_check(self):
         if self.store.path.stat().st_size >= self.STORE_LIMIT_BYTES:
             raise RuntimeError("options_database_cap")
-        if shutil.disk_usage(self.work).free < POLICY["min_free_bytes"]:
+        if shutil.disk_usage(self.work).free < self.policy["min_free_bytes"]:
             raise RuntimeError("disk_reserve")
 
     def deadline_check(self):
@@ -135,11 +152,11 @@ class ScheduledOptionsRun(SpyHistoryJob):
             raise RuntimeError("duration_cap")
 
     def audit(self, pairs):
-        present = read_coverage(self.store, {d for d, _ in pairs})
-        return [(s, d, p) for d, p in pairs for s in TIER1_ETFS if (s, d) not in present]
+        present = read_coverage(self.store, {d for d, _ in pairs}, self.symbols)
+        return [(s, d, p) for d, p in pairs for s in self.symbols if (s, d) not in present]
 
     def request_bounds(self):
-        return POLICY[self.mode]
+        return self.policy[self.mode]
 
     def execute(self, start, end):
         bounds = self.request_bounds()
@@ -158,14 +175,14 @@ class ScheduledOptionsRun(SpyHistoryJob):
                 if day.weekday() < 5:
                     weekdays.add(day.isoformat())
                 day += timedelta(days=1)
-            present = read_coverage(self.store, weekdays)
-            if all((s, d) in present for d in weekdays for s in TIER1_ETFS):
+            present = read_coverage(self.store, weekdays, self.symbols)
+            if all((s, d) in present for d in weekdays for s in self.symbols):
                 self.status.update(state="complete", expected_sessions=None,
                                    reason="all_weekdays_already_present", unresolved=[])
                 return self.status
             # Admission already exists before SDK authentication or any request.
             transport = self.transport_factory(self.root, self._budget,
-                receipt_callback=self.receipt, symbols=TIER1_ETFS)
+                receipt_callback=self.receipt, symbols=self.symbols)
             self.status.update(state="planning", subscription_code=transport.subscription_code)
             calendars = {}
             for year in range((start - timedelta(days=14)).year, end.year + 1):
@@ -175,18 +192,18 @@ class ScheduledOptionsRun(SpyHistoryJob):
             pairs = sessions_from_calendars(calendars, start, end)
             missing = self.audit(pairs)
             atomic_json(self.work / "plan.json", {
-                "policy_sha256": POLICY_SHA256,
+                "policy_sha256": self.policy_sha256,
                 "sessions": pairs, "missing": missing, "window_start": str(start),
                 "window_end": str(end), "calendar_years": sorted(calendars),
             })
-            self.status.update(state="running", expected_sessions=len(pairs) * len(TIER1_ETFS),
+            self.status.update(state="running", expected_sessions=len(pairs) * len(self.symbols),
                                initially_missing=len(missing))
             self.persist()
             for symbol, session, previous in missing:
                 self.deadline_check()
                 self.storage_check()
                 # Another authorized publisher may have filled a gap since the audit.
-                if (symbol, session) in read_coverage(self.store, {session}):
+                if (symbol, session) in read_coverage(self.store, {session}, self.symbols):
                     self.status["preserved"] += 1
                     continue
                 self.status.update(active_symbol=symbol, active_session=session)
@@ -286,20 +303,25 @@ def run_scheduled(root, mode, *, now=None, transport_factory=ThetaTransport):
         return {"state": "not_due", "data_requests": 0}
     slot, start, end = window
     store = OptionsStore(root)
-    if store.registry.get("scheduled_collection") != POLICY:
-        raise ValueError("options_scheduled_policy_drift")
     base = root / STATE
     if not base.resolve().is_relative_to(root):
         raise ValueError("options_state_path")
-    activation = json.loads((base / "activation-next-day.json").read_text())
-    if activation.get("policy_sha256") != POLICY_SHA256:
+    cross_asset = (base / "activation-cross-asset.json").exists()
+    policy = CROSS_ASSET_POLICY if cross_asset else POLICY
+    policy_sha256 = CROSS_ASSET_POLICY_SHA256 if cross_asset else POLICY_SHA256
+    registry_key = "scheduled_collection_cross_asset" if cross_asset else "scheduled_collection"
+    if store.registry.get(registry_key) != policy:
+        raise ValueError("options_scheduled_policy_drift")
+    activation_name = "activation-cross-asset.json" if cross_asset else "activation-next-day.json"
+    activation = json.loads((base / activation_name).read_text())
+    if activation.get("policy_sha256") != policy_sha256:
         raise ValueError("options_activation_policy")
     first = datetime.fromisoformat(activation[mode + "_first_slot"])
     if first.tzinfo is None or due_window(mode, first) is None or due_window(mode, first)[0] != first:
         raise ValueError("options_activation_slot")
     if slot < first:
         return {"state": "not_due", "data_requests": 0}
-    if start < date.fromisoformat(POLICY["history_floor"]):
+    if start < date.fromisoformat(policy["history_floor"]):
         raise ValueError("options_history_floor")
     os.umask(0o077)
     with (base / "scheduled.lock").open("a+b") as lock:
@@ -307,7 +329,8 @@ def run_scheduled(root, mode, *, now=None, transport_factory=ThetaTransport):
             fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise RuntimeError("options_scheduled_run_active") from None
-        work = base / ("daily-next-day" if mode == "daily" else mode) / end.isoformat()
+        namespace = period_namespace(mode, policy)
+        work = base / namespace / end.isoformat()
         if (work / "result.json").exists():
             return json.loads((work / "result.json").read_text())
         if (work / "started.json").exists():
@@ -319,13 +342,13 @@ def run_scheduled(root, mode, *, now=None, transport_factory=ThetaTransport):
         work.mkdir(parents=True, exist_ok=True)
         # No request, authentication, restart or retry may precede this record.
         atomic_json(work / "started.json", {
-            "contract": POLICY["contract"], "policy_sha256": POLICY_SHA256,
+            "contract": policy["contract"], "policy_sha256": policy_sha256,
             "at": now.isoformat(), "slot": slot.isoformat(), "mode": mode,
             "window_start": str(start), "window_end": str(end),
-            "bounds": POLICY[mode], "retries": 0,
+            "bounds": policy[mode], "retries": 0,
         })
         sync_admission_directories(work, root)
-        job = ScheduledOptionsRun(root, mode, end, transport_factory=transport_factory)
+        job = ScheduledOptionsRun(root, mode, end, transport_factory=transport_factory, policy=policy)
         result = job.execute(start, end)
         atomic_json(work / "result.json", result)
         atomic_json(base / (mode + "-latest.json"), result)

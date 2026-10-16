@@ -5,7 +5,7 @@ from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 import hashlib, json, math, statistics
 from zoneinfo import ZoneInfo
-from .universe import TIER1_ETFS
+from .universe import OPTIONS_ETFS
 
 VERSION = "theta_spy_compact_v1"
 TARGET_DTE = (1,2,3,7,14,30,60,90,180,365)
@@ -28,7 +28,7 @@ def integer(value):
     return int(x) if x is not None and x>=0 and x==int(x) else None
 
 def key(row,symbol="SPY"):
-    if symbol not in TIER1_ETFS or row.get("symbol")!=symbol: raise ValueError("unexpected_option_root")
+    if symbol not in OPTIONS_ETFS or row.get("symbol")!=symbol: raise ValueError("unexpected_option_root")
     expiry=date.fromisoformat(row["expiration"]).isoformat()
     strike=decimal(row.get("strike"))
     right={"CALL":"C","PUT":"P","C":"C","P":"P"}.get(row.get("right"))
@@ -181,7 +181,7 @@ def summarize(rows,selected):
     return summaries,leaders
 
 def build_capture(session_text,greeks,oi,receipts,*,previous_session,spot_reference=None,symbol="SPY"):
-    if symbol not in TIER1_ETFS:raise ValueError("unexpected_option_root")
+    if symbol not in OPTIONS_ETFS:raise ValueError("unexpected_option_root")
     session=date.fromisoformat(session_text)
     if date.fromisoformat(previous_session)>=session:raise ValueError("invalid_previous_session")
     cutoff=datetime.combine(session,time(23,59,59,999999),NY)
@@ -247,23 +247,27 @@ def build_capture(session_text,greeks,oi,receipts,*,previous_session,spot_refere
         if spot is None or spot<=0:raise ValueError("invalid_fallback_reference")
         if spot_reference["observation"]["period_start"]!=session_text:
             raise ValueError("fallback_reference_date")
-        # A split-adjusted close is never silently relabelled as an as-traded quote.
-        # Validate near-expiry put/call midpoint compatibility; retain proxy status.
-        paired=defaultdict(dict)
-        for k,row in normalized.items():
-            if 1<=row["dte"]<=14 and abs(Decimal(k[2])/spot-1)<=Decimal(".05") and spread(row) is not None:
-                paired[(k[1],k[2])][k[3]]=row
-        parity=defaultdict(list)
-        for (expiry,strike),rights in paired.items():
-            if set(rights)!={"C","P"}:continue
-            mid=lambda r:(Decimal(r["bid"])+Decimal(r["ask"]))/2
-            parity[expiry].append(Decimal(strike)+mid(rights["C"])-mid(rights["P"]))
-        usable=[expiry for expiry,values in parity.items() if len(values)>=3]
-        if not usable:raise ValueError("fallback_reference_not_crosschecked")
-        expiry=min(usable);estimate=statistics.median(parity[expiry])
-        if abs(estimate/spot-1)>Decimal(".01"):raise ValueError("fallback_reference_basis_mismatch")
-        reference_check={"expiry":expiry,"pairs":len(parity[expiry]),"parity_median":str(estimate),
-            "relative_gap":str(abs(estimate/spot-1)),"status":"compatibility_proxy_not_raw_basis_proof"}
+        if spot_reference.get("contract") is not None:
+            from .raw_reference import validate_raw_reference
+            reference_check=validate_raw_reference(spot_reference,symbol=symbol,session=session_text)
+        else:
+            # A split-adjusted close is never silently relabelled as an as-traded quote.
+            # Validate near-expiry put/call midpoint compatibility; retain proxy status.
+            paired=defaultdict(dict)
+            for k,row in normalized.items():
+                if 1<=row["dte"]<=14 and abs(Decimal(k[2])/spot-1)<=Decimal(".05") and spread(row) is not None:
+                    paired[(k[1],k[2])][k[3]]=row
+            parity=defaultdict(list)
+            for (expiry,strike),rights in paired.items():
+                if set(rights)!={"C","P"}:continue
+                mid=lambda r:(Decimal(r["bid"])+Decimal(r["ask"]))/2
+                parity[expiry].append(Decimal(strike)+mid(rights["C"])-mid(rights["P"]))
+            usable=[expiry for expiry,values in parity.items() if len(values)>=3]
+            if not usable:raise ValueError("fallback_reference_not_crosschecked")
+            expiry=min(usable);estimate=statistics.median(parity[expiry])
+            if abs(estimate/spot-1)>Decimal(".01"):raise ValueError("fallback_reference_basis_mismatch")
+            reference_check={"expiry":expiry,"pairs":len(parity[expiry]),"parity_median":str(estimate),
+                "relative_gap":str(abs(estimate/spot-1)),"status":"compatibility_proxy_not_raw_basis_proof"}
         used_reference=spot_reference
     for k,row in normalized.items():
         row["dte_bucket"]=dte_bucket(row["dte"])
@@ -297,6 +301,8 @@ def build_capture(session_text,greeks,oi,receipts,*,previous_session,spot_refere
             "identity_scope":f"exact_theta_{symbol}_root; deliverables unverified",
             "retention":"selected_extracted_fields_and_summary_only",
             "source_replayable":False,"historical_vintage":"current_provider_history_not_point_in_time_revisions"}
+    if used_reference is not None and used_reference.get("contract") is not None:
+        policy["spot_basis"]="retained_fmp_non_split_adjusted_close"
     semantic=hashlib.sha256(canonical_json({"session":session_text,"previous_session":previous_session,
         "spot":str(spot),"source":source_semantic,"policy":policy,"reference":used_reference}).encode()).hexdigest()
     totals={(s["population"],s["right"]):s["stats"] for s in summaries if s["dimension"]=="overall"}
@@ -309,9 +315,12 @@ def build_capture(session_text,greeks,oi,receipts,*,previous_session,spot_refere
         oi_matched=sum(r["oi"] is not None for r in normalized.values()),
         ignored_expired=ignored_expired,rejected_oi_time=rejected_oi,
         expected_catalogue_count=None,chain_completeness="observed_complete_streams_catalogue_unverified")
+    captured_at=max((r["captured_at"] for r in receipts),default=None)
+    if used_reference is not None and used_reference.get("contract") is not None:
+        captured_at=max(stamp(captured_at),stamp(used_reference["receipt"]["captured_at"])).isoformat() if captured_at else used_reference["receipt"]["captured_at"]
     return {"symbol":symbol,"session":session_text,"semantic_sha256":semantic,"spot":str(spot),
         "policy":policy,"coverage":coverage,"selection":manifest,"details":details,
         "summaries":summaries,"leaders":leaders,"receipts":receipts,
         "source_semantic_sha256":source_semantic,"underlying_reference":used_reference,
         "underlying_reference_check":reference_check,"availability_state":"source_release_time_unverified",
-        "captured_at":max((r["captured_at"] for r in receipts),default=None)}
+        "captured_at":captured_at}

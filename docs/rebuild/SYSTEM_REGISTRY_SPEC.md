@@ -1729,6 +1729,16 @@ shared four-store registry/public contracts remain unchanged. The migration
 ledger is checked against a contiguous declared prefix; writes require the
 current complete chain. See [expansion evidence](THETA_ETF_EXPANSION_2026-09-24.md).
 
+## Options companion registry 1.2.0 — October 13, 2026
+
+The user-requested cross-asset expansion appends options migration 0003 and
+`scheduled_collection_cross_asset`, the 27-root daily/weekly v3 policy.
+The previous collector declarations and v2 schedule remain intact. The new
+activation file selects v3 with pinned future slots; this does not change the
+shared registry, public daily v1 contracts, dataset identities or ownership.
+The monitor roster adds precisely the same 12 roots. See the
+[scope and activation receipt](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md).
+
 
 ## FMP-only production classifications — October 9, 2026
 

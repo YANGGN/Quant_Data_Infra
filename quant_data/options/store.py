@@ -6,7 +6,7 @@ import hashlib, json, os, sqlite3, stat, zlib
 from pathlib import Path
 from quant_data.stores import StoreWriteLock
 from .model import canonical_json
-from .universe import TIER1_ETFS
+from .universe import OPTIONS_ETFS
 
 def packed(value):
     return zlib.compress(canonical_json(value).encode(),9)
@@ -22,7 +22,7 @@ class OptionsStore:
         r=self.registry
         if r["contract"]!="quant_data.optional_options_store" or r["store_role"]!="options" or r["default_path"]!="data/options.sqlite":
             raise ValueError("options_registry_identity")
-        if r["version"] not in ("1.0.0","1.1.0") or r["private"] is not True or r["collector"]["symbol"]!="SPY":
+        if r["version"] not in ("1.0.0","1.1.0","1.2.0") or r["private"] is not True or r["collector"]["symbol"]!="SPY":
             raise ValueError("options_registry_contract")
         if r["journal_mode"]!="DELETE" or r["locking"]!="sha256_canonical_path_uri_v1":
             raise ValueError("options_store_coordination")
@@ -31,8 +31,9 @@ class OptionsStore:
             raise ValueError("options_store_path")
         self.migrations=r.get("migrations",[r["migration"]])
         resources=("quant_data/migrations/options/0001_theta_compact.sql",
-                   "quant_data/migrations/options/0002_tier1_etf_roots.sql")
-        if not 1<=len(self.migrations)<=2 or self.migrations[0]!=r["migration"]:
+                   "quant_data/migrations/options/0002_tier1_etf_roots.sql",
+                   "quant_data/migrations/options/0003_cross_asset_etf_roots.sql")
+        if not 1<=len(self.migrations)<=3 or self.migrations[0]!=r["migration"]:
             raise ValueError("options_migration_checksum_chain")
         self.migration_sql=[]
         for ordinal,migration in enumerate(self.migrations,1):
@@ -151,7 +152,7 @@ class OptionsStore:
             raise ValueError("capture_shape")
         details=capture["details"]; summaries=capture["summaries"]; leaders=capture["leaders"]
         symbol=capture["symbol"]
-        if symbol not in TIER1_ETFS:raise ValueError("unsupported_option_root")
+        if symbol not in OPTIONS_ETFS:raise ValueError("unsupported_option_root")
         for detail in details:
             if detail["contract_id"]!="|".join((symbol,detail["expiration"],detail["strike"],detail["right"])):
                 raise ValueError("cross_symbol_contract")

@@ -5,7 +5,7 @@ from datetime import datetime,timedelta,timezone
 from pathlib import Path
 import time
 from quant_data.options.store import OptionsStore,unpacked
-from quant_data.options.universe import TIER1_ETFS
+from quant_data.options.universe import OPTIONS_ETFS
 from quant_data.stores import StoreWriteLock
 from .history_model import DERIVATION_VERSION,project_daily
 from .policy import NY
@@ -28,7 +28,7 @@ def read_batch(root,after,now,*,through=None):
             rows=c.execute("SELECT c.capture_id,c.symbol,c.session_date,c.semantic_sha256,c.captured_at,c.underlying_price FROM option_current p JOIN option_captures c USING(capture_id) WHERE c.capture_id>? AND c.capture_id<=? ORDER BY c.capture_id LIMIT ?",(after,ceiling,BATCH_SIZE)).fetchall()
             ready=[]
             for row in rows:
-                if row["symbol"] not in TIER1_ETFS:raise ValueError("daily_source_symbol")
+                if row["symbol"] not in OPTIONS_ETFS:raise ValueError("daily_source_symbol")
                 # Do not advance past a not-yet-completed source session.
                 if row["session_date"]>cutoff:break
                 ready.append(dict(row))

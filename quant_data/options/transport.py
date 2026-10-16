@@ -7,7 +7,7 @@ import hashlib, logging, math, os, time, threading, re
 from types import MethodType
 from zoneinfo import ZoneInfo
 from quant_data.credentials import read_project_credential
-from .universe import TIER1_ETFS
+from .universe import OPTIONS_ETFS
 
 NY = ZoneInfo("America/New_York")
 
@@ -111,7 +111,7 @@ def decode_stream(stream, *, max_expanded=512*1024**2, max_rows=200000):
 class ThetaTransport:
     """Only sanitized metadata leaves this object; no full source files."""
     def __init__(self, root, budget, *, receipt_callback=None, symbols=("SPY",)):
-        if not symbols or not set(symbols)<=set(TIER1_ETFS):raise ValueError("unsupported_option_scope")
+        if not symbols or not set(symbols)<=set(OPTIONS_ETFS):raise ValueError("unsupported_option_scope")
         self.symbols=frozenset(symbols)
         import grpc
         from thetadata import ThetaClient

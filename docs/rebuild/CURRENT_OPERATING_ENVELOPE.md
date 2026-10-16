@@ -1,5 +1,30 @@
 # Current Operating Envelope
 
+## October 14 night — cross-asset reference repair and dashboard sync
+
+The current user explicitly requests repairing the 1,096 remaining 2016
+reference-validation gaps, then finishing the existing dashboard sync. The
+157 no-data gaps and completed option populations are excluded. One bounded
+Theta stock request was denied for subscription coverage; that route stopped.
+Eight exact FMP unadjusted reference ranges subsequently succeeded through the
+existing shared account gate (216,663 bytes, no retries). There is no market
+store write, subscription purchase or recurring-unit change. The additive
+options reference binding, exact scope, limits and evidence are documented in
+[the cross-asset contract](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md#october-14-night-reference-repair-and-dashboard-completion).
+Missing-only options publication and a bounded 80-batch existing-Site sync are
+authorized by this request; preparation and actual completion remain distinct.
+
+Completion evidence at October 15 03:03 UTC supersedes the pending state:
+all 1,096 reference gaps were recovered and verified, bringing the original
+population to 30,116 saved ETF-days with exactly 157 provider no-data gaps.
+All 67,105 prior current captures were preserved. The dashboard accepted
+15,123 outstanding points in 31 batches; remote read-back confirmed cursor
+68,201 and `up_to_date`. The 93 focused checks passed independently; the new
+price-only rows retain missing IV. No option-chain re-download, market-store
+write or recurring-unit change occurred. The finite operation is completed;
+no repeat scope is implied. Receipt:
+`.local/cross-asset-options-20261012/reference-repair-20261015/completion.json`.
+
 Status: Current operational routing snapshot; non-authorizing
 Navigation reconciled: 2026-09-29; recorded decisions remain dated evidence,
 not a live host inspection. The original baseline was reconciled 2026-09-05.
@@ -8373,3 +8398,161 @@ browser smoke and configured visual review passed. The current saved October
 See OPTIONS_MONITOR_2026-09-26.md and
 `.local/options-heatmap-alerts-20261010/activation.json` for precise evidence and
 minor visual limitations.
+
+
+## October 13, 2026 — requested cross-asset options expansion
+
+The current user explicitly authorizes coverage discovery, longest available
+historical backfill, daily collection and intraday dashboard inclusion for
+GLD, SLV, TLT, IEF, HYG, LQD, USO, UNG, EFA, EEM, UUP and IBIT.
+The exact scope, finite request/byte/time bounds, retained discovery evidence
+and activation status are in [the cross-asset contract](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md).
+This supersedes the older 15-root scope only for these additions; old no-repeat
+populations and unrelated recurring units remain unchanged. Design/test
+artifacts do not prove activation; completed activation evidence is appended
+to that contract.
+
+October 13 activation: options migration 0003 applied after a verified current
+backup; registry 1.2.0 and daily v3 activated for October 14 07:15 Eastern and
+weekly v3 for October 18 03:00 Eastern. Existing timers were read back enabled
+and active. The 12-root monitor addition has saved intraday observations, and
+Site version 19 is deployed successfully with the existing audience. Twenty
+retained sample captures are published and synchronized to the Site. The
+finite 20-session baseline job is running; the distinct 30,273-session EOD
+history job is queued behind it in a bounded transient service. These are
+in-progress populations, not new no-repeat completion claims. Actual receipts,
+limits, validation and missing-reference gaps remain in the linked contract.
+
+### October 13 evening: cross-asset history concurrency amendment
+
+The user explicitly authorized four after-hours download workers for the
+existing full-history population, retaining all workload limits and avoiding
+duplicate downloads or interference with live collection. Only concurrency
+changes; the original 72-hour deadline, request/byte/authentication caps, dates,
+symbols, store bounds and zero-retry rule remain. Original authorization and
+manifest evidence are preserved and an additive hash-bound amendment records
+the new worker count. The [cross-asset contract](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md)
+owns implementation, validation and subsequent activation evidence. This does
+not authorize replaying completed units, changing timers, or adding requests.
+
+Activation was verified October 13 at 23:18:50 UTC after 43 independent focused
+checks passed. The original owner drained and exited with 3,787 completed
+ETF-days and 7,536 matching, unique request/receipt pairs. The finite replacement
+`quant-data-cross-asset-history-parallel-20261013.service` was active with four
+observed simultaneous requests and 3,920 of 30,273 ETF-days completed. Its
+journals contained no duplicate request identities at that check; original
+authorization/manifest bytes and the October 16 16:42:09 UTC deadline were
+unchanged. Full history remained in progress. Receipt:
+`.local/cross-asset-options-20261012/parallel-activation.json`.
+
+### October 14: cross-asset unavailable-response recovery
+
+The user explicitly authorized exactly one additional attempt of the failed
+TLT `option_history_greeks_eod` request for May 26, 2023, and resumption of the
+same finite history with four workers. Further `UNAVAILABLE` responses are to
+be recorded as unresolved symbol-day gaps while remaining history continues,
+without automatic retries. This supersedes the original no-repeat rule only
+for that exact request once. Its attempt still consumes the original budget;
+all other request/byte/authentication/store limits, the October 16 16:42:09 UTC
+deadline, live-priority locks and protected windows remain unchanged.
+Other failures and unknown outcomes remain stopping conditions. The
+[cross-asset contract](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md) owns the
+implementation and activation evidence. No recurring-unit change is authorized
+or needed for this finite continuation.
+
+After 42 distinct independent checks covered the corrected recovery behavior,
+the finite `quant-data-cross-asset-history-resume-20261014.service` launched
+October 14 at 05:29:54 UTC. Its one approved TLT retry succeeded and canonical
+read-back confirmed the saved May 26, 2023 session. At 05:30:59 UTC the service
+was active with four observed simultaneous requests and 9,834 saved ETF-days.
+Only the approved TLT identity had a second attempt; no other duplicate was
+observed. Prior journal prefixes and original authorization/manifest bytes
+were preserved, with the original deadline and caps unchanged. Full history
+remained in progress. Receipt:
+`.local/cross-asset-options-20261012/recovery-activation.json`.
+
+### October 14: interrupted-request accounting and finite resumption
+
+The user explicitly approved the proposed estimated 4 GiB accounting allowance
+and four-worker resumption with "Yeah go"; approval was recorded at
+2026-10-14 18:53:58 UTC. The allowance charges 1 GiB each for the four interrupted
+requests identified in the cross-asset contract, inside the existing 128 GiB
+budget. It is an agreed estimate, not measured historical usage or a proven
+upper bound. Those four symbol-days become `interrupted_no_receipt` gaps and
+are not retried. Future interrupted requests retain their durable reservations
+and also remain gaps without replay. This supersedes the earlier unknown-outcome
+stop only for the validated interruption policy; unknown unmarked attempts
+remain stopping conditions. All other scopes, limits, the October 16 16:42:09
+UTC deadline and live-collection protections are unchanged.
+
+The reviewed replacement is a finite service with a persistent definition,
+no timer/install target, `Restart=no`, and the existing memory/swap limits.
+Its startup may wait through protected hours; no automatic boot execution is
+enabled. The [cross-asset contract](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md)
+owns validation and actual activation evidence. Approval record:
+`.local/cross-asset-options-20261012/interruption-accounting-approval.json`.
+
+The provider-free preflight passed, and the finite durable service started at
+18:55:05 UTC. Read-back at 18:56:03 UTC confirmed active PID 234980, four workers,
+six recorded gaps and 11,652 saved ETF-days. It correctly awaited the 17:00
+Eastern window, with zero new authentications or data requests during market
+hours. The original authorization, manifest, journal prefixes and reviewed
+source hashes were preserved; the approved TLT retry remained the only repeated
+identity. The estimated allowance is included in 25,697,941,962 accounted bytes
+inside the original 128 GiB cap. Original deadline and all other limits remain
+unchanged. Receipt:
+`.local/cross-asset-options-20261012/durable-activation.json`.
+
+At the user's explicit request, WSL was restarted on October 14 evening.
+Ubuntu and the user service manager were responsive at October 15 01:04:36
+UTC. The finite collector was then reconciled and manually resumed under the
+existing authorization at 01:06:04 UTC, with the original deadline and caps
+unchanged. Three new interrupted requests were charged their existing durable
+reservations (384 MiB total) and recorded as gaps without retries. At 01:07:03
+UTC, active PID 2051 had observed four simultaneous requests, 28,938 saved
+ETF-days, 1,205 gaps and 130 sessions remaining. The prior TLT exception
+remained the only duplicated request identity. Receipt:
+`.local/cross-asset-options-20261012/wsl-restart-activation-20261015.json`.
+
+### October 14 night: finite cross-asset gap retry
+
+The original full-history pass completed at October 15 01:08:14 UTC with
+29,008 saved ETF-days and 1,265 gaps; no original units remain unprocessed.
+Its final dashboard sync failed separately with an SSL error. Do not repeat
+the completed pass or its 29,008 saved sessions.
+
+The user explicitly requested retrying the 1,265 gaps first. Exactly one new
+pass is authorized over that fixed gap population, at most one additional
+request per allowed method/parameters and 3,795 requests total, charged inside
+the original remaining budgets and October 16 16:42:09 UTC deadline. This
+supersedes prior no-repeat restrictions only for those gaps. Four after-hours
+workers, live priority, authentication/byte/store limits, no automatic repeat,
+unchanged quality checks and missing-only publication remain required.
+Original evidence is preserved; new journals live under
+`.local/cross-asset-options-20261012/gap-retry-20261014/`. Dashboard sync is
+deferred until after this pass. The [cross-asset contract](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md)
+owns test and actual activation evidence; this decision record alone does not
+claim the retry has started.
+
+After 66 independent checks and a zero-provider-request preflight passed,
+`quant-data-cross-asset-gap-retry-20261014.service` started at October 15
+02:23:27 UTC. Read-back at 02:24:50 UTC confirmed active PID 37515 with four
+observed concurrent requests, eight canonically recovered gap sessions,
+284 still-unresolved retried sessions and 973 remaining to check. All 720 new
+request identities were unique and inside the approved gap population.
+The original completed-run files and reviewed code were unchanged; the
+original deadline and aggregate caps remain. Dashboard sync is deferred.
+Receipt: `.local/cross-asset-options-20261012/gap-retry-20261014/activation.json`.
+
+The one authorized gap pass completed at October 15 02:31:06 UTC, with a
+successful service exit. It recovered 12 ETF-days, leaving 1,253 gaps
+(1,096 reference-validation failures and 157 no-data responses). Immutable
+canonical read-back confirmed 29,020 saved sessions. The pass used 3,630 new
+requests and 243,841,213 bytes; aggregate totals are 66,648 requests,
+47,064,060,537 accounted bytes and six authentications, within the unchanged
+limits. Every original gap has a final retry outcome and no retry identity was
+duplicated. Original evidence and reviewed source hashes are preserved.
+This retry population is completed: do not repeat it without another explicit
+finite request. Dashboard sync remains deferred and its earlier SSL failure
+is unresolved. Receipt:
+`.local/cross-asset-options-20261012/gap-retry-20261014/completion.json`.

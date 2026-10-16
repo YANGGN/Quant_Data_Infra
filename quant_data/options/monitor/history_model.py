@@ -10,7 +10,7 @@ import json
 import math
 from zoneinfo import ZoneInfo
 
-from quant_data.options.universe import TIER1_ETFS
+from quant_data.options.universe import OPTIONS_ETFS
 
 DERIVATION_VERSION = "options_daily_chart_v1"
 _NY = ZoneInfo("America/New_York")
@@ -57,7 +57,7 @@ def _identity(capture):
     if isinstance(capture_id, bool) or not isinstance(capture_id, int) or capture_id <= 0:
         raise ValueError("invalid_capture_id")
     symbol = capture.get("symbol")
-    if symbol not in TIER1_ETFS:
+    if symbol not in OPTIONS_ETFS:
         raise ValueError("unexpected_option_root")
     session_text = capture.get("session_date")
     session = _day(session_text)

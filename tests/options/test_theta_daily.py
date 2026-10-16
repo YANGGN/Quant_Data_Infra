@@ -13,13 +13,14 @@ import unittest
 from unittest.mock import patch
 
 from quant_data.options.daily import (
-    NY, POLICY, POLICY_SHA256, STATE, ScheduledOptionsRun, due_window,
+    CROSS_ASSET_POLICY, CROSS_ASSET_POLICY_SHA256, NY, POLICY, POLICY_SHA256,
+    STATE, ScheduledOptionsRun, due_window,
     read_coverage, run_scheduled, validate_calendars,
 )
 from quant_data.options.model import build_capture
 from quant_data.options.store import OptionsStore
 from quant_data.options.transport import ProviderFailure
-from quant_data.options.universe import TIER1_ETFS
+from quant_data.options.universe import CROSS_ASSET_ETFS, OPTIONS_ETFS, TIER1_ETFS
 from quant_data.options.monitor.history import read_batch
 from quant_data.stores import StoreWriteLock
 from tests.options.test_theta_compact import temporary_store, fixtures, SESSION
@@ -69,6 +70,7 @@ class ScheduledTests(unittest.TestCase):
         self.empty = None
         self.hook = None
         self.authorizations = 0
+        self.expected_symbols = TIER1_ETFS
         self.addCleanup(patch.stopall)
         patch("socket.create_connection", side_effect=AssertionError("offline test")).start()
         patch.object(socket.socket, "connect", side_effect=AssertionError("offline test")).start()
@@ -78,7 +80,7 @@ class ScheduledTests(unittest.TestCase):
 
     def factory(self, root, budget, *, receipt_callback, symbols):
         self.authorizations += 1
-        self.assertEqual(tuple(symbols), TIER1_ETFS)
+        self.assertEqual(tuple(symbols), self.expected_symbols)
         self.assertTrue(list(self.base.glob("*/*/started.json")))
         owner = self
 
@@ -379,6 +381,122 @@ class ScheduledTests(unittest.TestCase):
         self.assertEqual(result["data_requests"], 2)
         self.assertEqual(result["published"], 0)
         self.assertEqual(self.run_job(), result)
+
+
+class CrossAssetScheduledTests(unittest.TestCase):
+    # Reuse the offline transport and explicit temporary store from v2 tests.
+    factory = ScheduledTests.factory
+    run_job = ScheduledTests.run_job
+    seed = ScheduledTests.seed
+
+    def setUp(self):
+        ScheduledTests.setUp(self)
+        self.expected_symbols = OPTIONS_ETFS
+        (self.base / "activation-cross-asset.json").write_text(json.dumps({
+            "policy_sha256": CROSS_ASSET_POLICY_SHA256,
+            "daily_first_slot": "2026-09-22T07:15:00-04:00",
+            "weekly_first_slot": "2026-09-27T03:00:00-04:00",
+        }))
+
+    def test_policy_keeps_v2_frozen_and_bounds_27_roots(self):
+        self.assertEqual(POLICY["symbols"], list(TIER1_ETFS))
+        self.assertEqual(POLICY["daily"]["max_requests"], 32)
+        self.assertEqual(POLICY["weekly"]["max_requests"], 152)
+        self.assertEqual(tuple(CROSS_ASSET_POLICY["symbols"]), OPTIONS_ETFS)
+        self.assertEqual(tuple(OPTIONS_ETFS[15:]), CROSS_ASSET_ETFS)
+        self.assertEqual(len(OPTIONS_ETFS), 27)
+        self.assertEqual(CROSS_ASSET_POLICY["daily"]["max_requests"], 56)
+        self.assertEqual(CROSS_ASSET_POLICY["weekly"]["max_requests"], 272)
+        for key in ("max_bytes", "max_seconds", "calendar", "persistent"):
+            for mode in ("daily", "weekly"):
+                self.assertEqual(CROSS_ASSET_POLICY[mode][key], POLICY[mode][key])
+        for key in ("workers", "retries", "missing_only", "max_store_bytes", "min_free_bytes"):
+            self.assertEqual(CROSS_ASSET_POLICY[key], POLICY[key])
+
+    def test_activation_is_required_and_first_slot_gates_requests(self):
+        activation = self.base / "activation-cross-asset.json"
+        activation.unlink()
+        self.expected_symbols = TIER1_ETFS
+        result = self.run_job()
+        self.assertEqual(result["contract"], POLICY["contract"])
+        self.assertEqual(result["published"], 15)
+        self.assertEqual(result["policy_sha256"], POLICY_SHA256)
+        self.assertFalse((self.base / "daily-cross-asset").exists())
+        prior = (self.base / "daily-next-day/2026-09-23/result.json").read_bytes()
+        activation.write_text(json.dumps({
+            "policy_sha256": CROSS_ASSET_POLICY_SHA256,
+            "daily_first_slot": "2026-09-25T07:15:00-04:00",
+            "weekly_first_slot": "2026-09-27T03:00:00-04:00",
+        }))
+        self.assertEqual(self.run_job()["state"], "not_due")
+        self.assertEqual((self.base / "daily-next-day/2026-09-23/result.json").read_bytes(), prior)
+        self.assertEqual(self.authorizations, 1)
+
+    def test_daily_27_roots_and_distinct_admission_preserve_old_receipt(self):
+        old = self.base / "daily-next-day/2026-09-23/result.json"
+        old.parent.mkdir(parents=True)
+        old.write_bytes(b'{"state":"complete","contract":"theta_daily_and_weekly_v2"}')
+        result = self.run_job()
+        self.assertEqual(result["contract"], CROSS_ASSET_POLICY["contract"])
+        self.assertEqual(result["policy_sha256"], CROSS_ASSET_POLICY_SHA256)
+        self.assertEqual(result["symbols"], list(OPTIONS_ETFS))
+        self.assertEqual(result["state"], "complete")
+        self.assertEqual(result["published"], 27)
+        self.assertEqual(result["data_requests"], 55)
+        self.assertEqual(result["requests_cap"], 56)
+        self.assertEqual(read_coverage(self.store, {"2026-09-23"}, OPTIONS_ETFS),
+                         {(s, "2026-09-23") for s in OPTIONS_ETFS})
+        self.assertEqual(old.read_bytes(), b'{"state":"complete","contract":"theta_daily_and_weekly_v2"}')
+        period = self.base / "daily-cross-asset/2026-09-23"
+        self.assertTrue((period / "started.json").exists())
+        self.assertTrue((period / "result.json").exists())
+        self.assertEqual(json.loads((self.base / "daily-latest.json").read_text()), result)
+        before = self.store.path.read_bytes()
+        self.assertEqual(self.run_job(), result)
+        self.assertEqual(self.store.path.read_bytes(), before)
+        self.assertEqual(self.authorizations, 1)
+
+    def test_existing_tier1_captures_are_preserved_while_new_roots_fill(self):
+        self.seed([("2026-09-23", "2026-09-22")])
+        with self.store.read() as connection:
+            original = [tuple(row) for row in connection.execute(
+                "SELECT * FROM option_captures ORDER BY capture_id")]
+        result = self.run_job()
+        self.assertEqual(result["published"], 12)
+        self.assertEqual(result["data_requests"], 25)
+        self.assertEqual({p["symbol"] for method, p in self.calls if method != "calendar_year"},
+                         set(CROSS_ASSET_ETFS))
+        with self.store.read() as connection:
+            preserved = [tuple(row) for row in connection.execute(
+                "SELECT * FROM option_captures WHERE capture_id <= 15 ORDER BY capture_id")]
+        self.assertEqual(preserved, original)
+
+    def test_weekly_27_roots_respects_272_request_ceiling(self):
+        result = self.run_job("weekly", WEEKLY)
+        self.assertEqual(result["state"], "complete")
+        self.assertEqual(result["published"], 135)
+        self.assertEqual(result["data_requests"], 271)
+        self.assertEqual(result["requests_cap"], 272)
+        self.assertTrue((self.base / "weekly-cross-asset/2026-09-25/result.json").exists())
+        self.assertFalse((self.base / "weekly/2026-09-25").exists())
+
+    def test_policy_or_activation_drift_fails_before_admission(self):
+        activation = self.base / "activation-cross-asset.json"
+        value = json.loads(activation.read_text())
+        value["policy_sha256"] = "wrong"
+        activation.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, "activation_policy"):
+            self.run_job()
+        value["policy_sha256"] = CROSS_ASSET_POLICY_SHA256
+        activation.write_text(json.dumps(value))
+        registry_path = self.store.root / "config/options_registry.json"
+        registry = json.loads(registry_path.read_text())
+        registry["scheduled_collection_cross_asset"]["weekly"]["max_requests"] = 273
+        registry_path.write_text(json.dumps(registry))
+        with self.assertRaisesRegex(ValueError, "scheduled_policy_drift"):
+            self.run_job()
+        self.assertEqual(self.authorizations, 0)
+        self.assertFalse((self.base / "daily-cross-asset").exists())
 
 
 class ClockAndStoreTests(unittest.TestCase):

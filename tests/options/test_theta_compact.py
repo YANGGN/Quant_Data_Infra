@@ -37,7 +37,7 @@ def capture(rows=None,oi=None):
 def temporary_store():
     temp=tempfile.TemporaryDirectory(prefix="theta-fixture-")
     root=Path(temp.name)
-    for name in ("config/options_registry.json","quant_data/migrations/options/0001_theta_compact.sql","quant_data/migrations/options/0002_tier1_etf_roots.sql"):
+    for name in ("config/options_registry.json","quant_data/migrations/options/0001_theta_compact.sql","quant_data/migrations/options/0002_tier1_etf_roots.sql","quant_data/migrations/options/0003_cross_asset_etf_roots.sql"):
         target=root/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((ROOT/name).read_bytes())
     return temp,OptionsStore(root)
 

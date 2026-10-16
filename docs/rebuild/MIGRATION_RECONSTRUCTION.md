@@ -753,6 +753,18 @@ triggers/indexes. Ordinal 0001 is unchanged. The companion registry 1.1.0 owns
 the migration chain; validated older prefixes support the existing SPY backup.
 Applied-state evidence belongs in the [expansion receipt](THETA_ETF_EXPANSION_2026-09-24.md).
 
+## Options ordinal 0003 — cross-asset roots, October 13, 2026
+
+Resource `quant_data/migrations/options/0003_cross_asset_etf_roots.sql`, SHA-256
+`c82c56f985fb136a22f48c2a1b0701292af18c637405a8b17db561d3ef604776`,
+adds the 12 explicitly requested cross-asset ETFs to the two parent-table root
+constraints. Companion registry 1.2.0 owns the contiguous three-migration chain.
+Earlier migration bytes, all copied parent values, child tables, identifiers,
+indexes and immutable triggers retain their contracts. Applied October 13 at
+14:13 UTC after a verified current backup and independent offline review;
+before/after parent and current-pointer digests matched. See the
+[cross-asset receipt](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md).
+
 
 ## FMP-only instrument classifications — October 9, 2026
 
