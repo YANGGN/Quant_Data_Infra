@@ -247,7 +247,6 @@ def _run_refresh_pass(*, root, stores, registry, selection, fetch, budget=BUDGET
 
 def run_refresh(*, root, stores, registry, selection, fetch, budget=BUDGET,
         secret_values=(), utcnow=_utcnow, monotonic=time.monotonic, sleeper=time.sleep):
-    from .sharadar_recovery import SharadarRecovery
     validate_budget(budget)
     if (budget.provider != "sharadar" or budget.max_requests > BUDGET.max_requests
             or budget.max_total_bytes > BUDGET.max_total_bytes
@@ -258,43 +257,52 @@ def run_refresh(*, root, stores, registry, selection, fetch, budget=BUDGET,
     if not root.is_absolute() or root.resolve() != root:
         raise ValidationError("Sharadar refresh requires a resolved private root")
     deadline = monotonic() + budget.max_run_seconds
-    requests = received = completed = 0
-    result = {"outcome": "invocation_budget"}
     private_directory(root)
     with job_lock(root / "refresh-supervisor"):
-        recovery = SharadarRecovery(root, utcnow=utcnow, monotonic=monotonic,
-            sleeper=sleeper, deadline=deadline)
-        while True:
-            seconds = int(deadline - monotonic())
-            if (seconds <= 30 or requests >= budget.max_requests
-                    or budget.max_total_bytes - received < 16 * 1024 * 1024):
-                result["outcome"] = "invocation_budget"
-                break
-            allowance = replace(budget, max_requests=budget.max_requests - requests,
-                max_total_bytes=budget.max_total_bytes - received, max_run_seconds=seconds)
-            recovery.last_failure = None
-            result = _run_refresh_pass(root=root, stores=stores, registry=registry,
-                selection=selection, fetch=fetch, budget=allowance, secret_values=secret_values,
-                utcnow=utcnow, monotonic=monotonic, sleeper=sleeper, recovery=recovery, deadline=deadline)
-            requests += result.get("requests", 0)
-            received += result.get("received_bytes", 0)
-            completed += result.get("completed_this_run", 0)
-            if recovery.last_failure is None:
-                break
-            if requests >= budget.max_requests or budget.max_total_bytes - received < 16 * 1024 * 1024:
-                result["outcome"] = "invocation_budget"
-                break
-            action = recovery.retry()
-            if action != "retry":
-                if action != "not_retryable":
-                    result["outcome"] = action
-                break
-        result.update(requests=requests, received_bytes=received, completed_this_run=completed)
-        result["details"] = recovery.details(result)
-        if result["outcome"] == "succeeded":
-            private_directory(root / "refresh-completions")
-            atomic(root / "refresh-completions" / (result["window"][:10] + ".json"), result)
-        return result
+        return _run_refresh_locked(root=root, stores=stores, registry=registry,
+            selection=selection, fetch=fetch, budget=budget, secret_values=secret_values,
+            utcnow=utcnow, monotonic=monotonic, sleeper=sleeper, deadline=deadline)
+
+
+def _run_refresh_locked(*, root, stores, registry, selection, fetch, budget,
+        secret_values, utcnow, monotonic, sleeper, deadline):
+    """Run one window while the caller holds the refresh-supervisor lock."""
+    from .sharadar_recovery import SharadarRecovery
+    requests = received = completed = 0
+    result = {"outcome": "invocation_budget"}
+    recovery = SharadarRecovery(root, utcnow=utcnow, monotonic=monotonic,
+        sleeper=sleeper, deadline=deadline)
+    while True:
+        seconds = int(deadline - monotonic())
+        if (seconds <= 30 or requests >= budget.max_requests
+                or budget.max_total_bytes - received < 16 * 1024 * 1024):
+            result["outcome"] = "invocation_budget"
+            break
+        allowance = replace(budget, max_requests=budget.max_requests - requests,
+            max_total_bytes=budget.max_total_bytes - received, max_run_seconds=seconds)
+        recovery.last_failure = None
+        result = _run_refresh_pass(root=root, stores=stores, registry=registry,
+            selection=selection, fetch=fetch, budget=allowance, secret_values=secret_values,
+            utcnow=utcnow, monotonic=monotonic, sleeper=sleeper, recovery=recovery, deadline=deadline)
+        requests += result.get("requests", 0)
+        received += result.get("received_bytes", 0)
+        completed += result.get("completed_this_run", 0)
+        if recovery.last_failure is None:
+            break
+        if requests >= budget.max_requests or budget.max_total_bytes - received < 16 * 1024 * 1024:
+            result["outcome"] = "invocation_budget"
+            break
+        action = recovery.retry()
+        if action != "retry":
+            if action != "not_retryable":
+                result["outcome"] = action
+            break
+    result.update(requests=requests, received_bytes=received, completed_this_run=completed)
+    result["details"] = recovery.details(result)
+    if result["outcome"] == "succeeded":
+        private_directory(root / "refresh-completions")
+        atomic(root / "refresh-completions" / (result["window"][:10] + ".json"), result)
+    return result
 
 
 def main(argv=None):
