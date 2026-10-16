@@ -360,3 +360,71 @@ Evidence: .local/sharadar-retry-20260922/, especially final-review-pins.json,
 integrated-tests.log, review-approved.json, launch-intent.json,
 launch-receipt.json, postcheck.json and completion.json. All reviewed source
 fingerprints still matched after the live run. No commit or push was performed.
+
+## October 16, 2026 — one authorized unknown-outcome recovery
+
+The user approved one manual recovery of the pending October 15 refresh,
+preserving its 33 completed partitions and leaving the timer unchanged. The
+fixed window is `lastupdated=2026-10-07..2026-10-15`, with historical date bounds
+`1900-01-01..2026-10-15`: 417 unfinished partitions of 450. The sole uncertain
+request exception is unit
+`15819d776136c469f619a03f0b58d11e08d0271882f302d9d28ebcf7acf37fe6`, the MRQ
+30-ticker batch beginning APPS and ending ASTH. Its October 15 attempt 35 was
+charged, but no retained response exists; the original transport cause is unknown.
+
+The new operator entry point accepts an explicit approval pinned to exact
+ledger/checkpoint hashes. Under the existing supervisor/controller/queue locks,
+it preserves before-images, consumes a durable one-use claim, records the old
+outcome as unknown, creates a fresh attempt linked to that approval, and only
+then retires the pending reservation. The original attempt and request charge
+are unchanged. Its maximum 16 MiB unknown response is recorded separately from
+measured bytes and reserved inside the new invocation's 256 MiB bound.
+
+Limits: 500 new provider requests, 256 MiB, 3,600 seconds, minimum one-second
+pacing and the existing 1,000-request UTC-day ceiling. The established direct
+provider, credential resolver, company store, publishers and known-5xx policy
+are reused. A new unknown outcome still stops without retry. A crash or second
+manual invocation cannot renew this approval or its budget. Partial recovery
+requires inspecting its durable evidence; no blind rerun is permitted.
+
+The manual runner completes only this fixed window. No timer/service start,
+configuration change, new current-day window, completed population repeat,
+schema change or automatic unknown-outcome retry policy is authorized here.
+Evidence is retained in `.local/sharadar-repair-20261016/` and the queue's
+`operator-recoveries/oct15-unknown-recovery-20261016/` journal. This section
+records authorization and implementation scope, not successful execution.
+
+### October 16 validation and completion
+
+The one-use recovery, selected/direct refresh, known-server-error recovery,
+clock handling and run-details suites passed: 66 unique offline tests in
+82.770 seconds, including nine new operator recovery cases. An audit hook
+denied network access and SQLite paths resolving outside explicit `/tmp`
+fixtures. The first harness run rejected the established immutable
+`/proc/self/fd` reader paths; the corrected harness resolves those paths before
+checking their temporary roots. Its original failure log is preserved.
+Fresh independent review passed with no blocking findings; no source or test
+changed between review and execution.
+
+Read-only live preflight verified the exact pinned ledger/checkpoint, retained
+metadata, 33 completed captures and 110 original artifacts. The manual runner
+finished successfully at 2026-10-16T14:07:02Z: 417 requests, 3,059,779 measured
+bytes, 506.292 seconds and no additional retries. All 417 remaining partitions
+published through the existing publisher; the fixed October 15 checkpoint is
+complete and its pending reservation is clear. Existing three selection identity
+gaps remain outside this recovery; no selection or mapping changed.
+
+The saved `postcheck.json` verifies all 450 successful response/partition
+lineages, 417 new publications, unchanged original 33 capture rows and all 110
+preserved artifacts, exact charged/received accounting, and unchanged installed
+service/timer hashes. Its final console formatter initially rejected a Decimal
+after all assertions passed and the receipt was durably saved; the formatter
+was corrected without rerunning acquisition or publication. Both original
+diagnostic logs and the successful saved receipt remain retained.
+
+Status history records successful manual run
+`437a6bdfd40140058872c5e95d58bc05`, with 450 successful steps and zero failed,
+partial or unattempted steps. The timer remains active/waiting for October 17,
+05:00 EDT. The historical October 15/16 failed service runs remain evidence;
+no recurring unit was started, reset, reconfigured or restarted. The manual
+approval is consumed. No current-day window or additional invocation occurred.

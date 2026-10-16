@@ -8650,3 +8650,30 @@ This retry population is completed: do not repeat it without another explicit
 finite request. Dashboard sync remains deferred and its earlier SSL failure
 is unresolved. Receipt:
 `.local/cross-asset-options-20261012/gap-retry-20261014/completion.json`.
+
+## October 16, 2026 — bounded Sharadar unknown-outcome recovery approved
+
+The user authorized one recovery of the October 15 selected fundamentals
+window, preserving 33 completed partitions and leaving the existing timer
+unchanged. Scope: 417 remaining partitions, `lastupdated=2026-10-07..2026-10-15`,
+at most 500 new requests, 256 MiB and one hour with existing pacing/daily caps.
+One exact unresolved MRQ request may receive a fresh explicitly linked attempt;
+its original charge/evidence and unknown response-byte allowance remain retained.
+
+The [focused recovery contract](SHARADAR_DIRECT_MIGRATION_2026-09-12.md#october-16-2026--one-authorized-unknown-outcome-recovery)
+owns the exact identity, one-use accounting and crash behavior. This exception
+does not authorize another manual invocation, a current-day window, completed
+partition replay or timer/service changes. Evidence:
+`.local/sharadar-repair-20261016/`.
+
+Completed at 2026-10-16T14:07:02Z: 417 new requests, 3,059,779 measured bytes,
+506.292 seconds, zero additional retries, and all 450 October 15 partitions
+complete. The 16 MiB prior unknown allowance remains separately charged.
+Sixty-six focused offline tests and fresh independent review passed. Immutable
+postchecks verified 450 capture lineages, 417 new publications, the original 33
+completed captures and 110 unchanged artifacts. The timer configuration and
+waiting state remain unchanged; next execution is October 17 at 05:00 EDT.
+Successful status-history run: `437a6bdfd40140058872c5e95d58bc05`.
+Receipts: `postcheck.json` and `run-history-receipt.json` in the evidence folder.
+This consumes the one manual recovery approval; it does not advance beyond the
+fixed October 15 window or authorize another manual invocation.
