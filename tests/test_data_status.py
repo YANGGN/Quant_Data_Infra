@@ -453,5 +453,133 @@ class DataStatusTests(unittest.TestCase):
         self.assertEqual(metrics["evaluated_at"], "2026-09-01T12:00:00.000000Z")
 
 
+
+    def _bounded_status_call(self, targets, *, stores=(), dataset_ids=(), statuses=(),
+                             limit=128, max_operations=128):
+        registry = load_registry(
+            PROJECT_ROOT / CANONICAL_REGISTRY_PATH,
+            project_root=PROJECT_ROOT, environment={},
+        )
+        context = ToolExecutionContext(
+            store_map=self.stores, registry_revision=registry.revision,
+            registry_sha256="a" * 64, request_id="bounded-data-status",
+            api_version="1.0", tool_name="data.get_dataset_status",
+            tool_version="1.0.0", operation_graph_id="tool_platform.data.get_dataset_status.v1",
+            operation_version="1.0.0",
+            budget=ExecutionBudget(max_rows=128, max_operations=max_operations),
+            capabilities=CapabilitySet(), deadline=Deadline(),
+            cancellation=CancellationToken(),
+            clock=FixedClock(monotonic_value=Decimal("0"), instant_value="2026-09-01T12:00:00Z"),
+            execution="read_only",
+        )
+        with mock.patch(
+            "quant_data.tool_platform.data_status_access.registry_data_status_targets",
+            return_value=tuple(sorted(targets, key=lambda target: target.id)),
+        ), mock.patch(
+            "quant_data.tool_platform.data_status_access.data_status_snapshot",
+            wraps=data_status_snapshot,
+        ) as snapshot:
+            result = invoke_dataset_status(
+                "data.get_dataset_status",
+                DatasetStatusArgumentsV1(stores=stores, dataset_ids=dataset_ids,
+                                         statuses=statuses, limit=limit),
+                context, registry,
+            )
+        self.assertEqual(snapshot.call_count, 1)
+        return result, snapshot.call_args.kwargs["targets"]
+
+    def test_public_limit_reads_only_returned_targets_with_exact_total(self):
+        targets = tuple(self._target(role, "dataset") for role in StoreRole)
+        for role in StoreRole:
+            self._seed_success(role, "dataset", "2026-09-01T11:00:00Z")
+        before = {role: hashlib.sha256(path.read_bytes()).hexdigest()
+                  for role, path in self.stores.items()}
+        full, _ = self._bounded_status_call(targets)
+        limited, read_targets = self._bounded_status_call(targets, limit=1, max_operations=1)
+        self.assertEqual(limited.records, full.records[:1])
+        self.assertEqual(len(read_targets), 1)
+        self.assertEqual(read_targets[0].id, min(target.id for target in targets))
+        metrics = {field.name: field.value for field in limited.diagnostics[0].metrics}
+        self.assertEqual(metrics["matched_count"], len(targets))
+        self.assertEqual(metrics["returned_count"], 1)
+        self.assertTrue(limited.truncation.applied)
+        self.assertTrue(limited.truncation.has_more)
+        self.assertEqual(limited.truncation.total_known_count, len(targets))
+        self.assertEqual(before, {role: hashlib.sha256(path.read_bytes()).hexdigest()
+                                  for role, path in self.stores.items()})
+
+    def test_public_filters_bound_store_reads_and_preserve_dataset_aliases(self):
+        from dataclasses import replace
+        shared = self._target(StoreRole.MARKET, "shared.dataset")
+        alias = replace(shared, id="market.second-alias")
+        excluded = self._target(StoreRole.MACRO, "shared.dataset")
+        other = self._target(StoreRole.MARKET, "other.dataset")
+        targets = (shared, alias, excluded, other)
+        self._seed_success(StoreRole.MARKET, "shared.dataset", "2026-09-01T11:00:00Z")
+        result, selected = self._bounded_status_call(
+            targets, stores=("market",), dataset_ids=("shared.dataset",), limit=1,
+        )
+        self.assertEqual(selected, (alias,))
+        self.assertEqual(result.truncation.total_known_count, 2)
+        exact, exact_targets = self._bounded_status_call(
+            targets, stores=("market",), dataset_ids=(shared.id,), limit=1,
+        )
+        self.assertEqual(exact_targets, (shared,))
+        self.assertEqual(exact.truncation.total_known_count, 1)
+        self.assertFalse(exact.truncation.has_more)
+        self.assertEqual({f.name: f.value for f in exact.records[0].fields}["id"], shared.id)
+
+    def test_public_status_filter_scans_candidates_before_limit(self):
+        targets = tuple(self._target(StoreRole.MARKET, name) for name in ("a", "b", "c"))
+        self._seed_success(StoreRole.MARKET, "a", "2026-08-29T11:00:00Z")
+        for name in ("b", "c"):
+            self._seed_success(StoreRole.MARKET, name, "2026-09-01T11:00:00Z")
+        full, _ = self._bounded_status_call(targets)
+        result, selected = self._bounded_status_call(targets, statuses=("current",), limit=1)
+        self.assertEqual(selected, targets)
+        self.assertEqual(result.records, full.records[1:2])
+        self.assertEqual(result.truncation.total_known_count, 2)
+        self.assertTrue(result.truncation.has_more)
+        no_match, no_match_targets = self._bounded_status_call(targets, statuses=("unknown",), limit=1)
+        self.assertEqual(no_match_targets, targets)
+        self.assertEqual(no_match.records, ())
+        self.assertEqual(no_match.truncation.total_known_count, 0)
+        self.assertFalse(no_match.truncation.applied)
+
+    def test_public_empty_metadata_match_opens_no_store(self):
+        targets = (self._target(StoreRole.MARKET, "a"),)
+        with mock.patch("quant_data.data_status.quiet_immutable_read_connection",
+                        side_effect=AssertionError("unselected store was accessed")):
+            result, selected = self._bounded_status_call(
+                targets, stores=("news",), dataset_ids=("absent",), limit=1,
+            )
+        self.assertEqual(selected, ())
+        self.assertEqual(result.records, ())
+        self.assertEqual(result.truncation.total_known_count, 0)
+        self.assertFalse(result.truncation.has_more)
+
+    def test_public_status_filter_keeps_operation_budget_closed(self):
+        from quant_data.errors import ResourceLimitError
+        targets = tuple(self._target(StoreRole.MARKET, name) for name in ("a", "b"))
+        with mock.patch("quant_data.data_status.quiet_immutable_read_connection",
+                        side_effect=AssertionError("over-budget store was accessed")):
+            with self.assertRaises(ResourceLimitError):
+                self._bounded_status_call(targets, statuses=("current",),
+                                          limit=1, max_operations=1)
+
+    def test_public_selected_store_filter_still_preserves_status_counts(self):
+        targets = (self._target(StoreRole.MACRO, "a"),
+                   self._target(StoreRole.MARKET, "b"),
+                   self._target(StoreRole.MARKET, "c"))
+        for target in targets:
+            self._seed_success(target.store, target.dataset_id, "2026-09-01T11:00:00Z")
+        result, selected = self._bounded_status_call(
+            targets, stores=("market",), statuses=("current",), limit=1,
+        )
+        self.assertEqual(selected, targets[1:])
+        self.assertEqual(result.truncation.total_known_count, 2)
+        self.assertEqual(len(result.records), 1)
+
+
 if __name__ == "__main__":  # pragma: no cover
     unittest.main()

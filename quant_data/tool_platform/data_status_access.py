@@ -61,8 +61,23 @@ def invoke_dataset_status(
     if not isinstance(registry, Registry):
         raise ValidationError("Dataset-status registry is invalid")
     context.checkpoint()
-    targets = registry_data_status_targets(registry)
-    context.budget.require(rows=arguments.limit, series=0, operations=len(targets))
+    # Store and dataset predicates depend only on immutable registry metadata.
+    # Apply them before opening any retained store. Every selected target yields
+    # exactly one status record, including unknown/unavailable targets.
+    targets = tuple(
+        target for target in registry_data_status_targets(registry)
+        if (not arguments.stores or target.store.value in arguments.stores)
+        and (
+            not arguments.dataset_ids
+            or target.dataset_id in arguments.dataset_ids
+            or target.id in arguments.dataset_ids
+        )
+    )
+    # Without a status predicate the exact match count is already known. Read
+    # only the output prefix; status predicates require all candidate statuses
+    # to preserve the existing exact count and truncation contract.
+    read_targets = targets if arguments.statuses else targets[: arguments.limit]
+    context.budget.require(rows=arguments.limit, series=0, operations=len(read_targets))
     evaluated_at = TemporalValue.parse(
         context.clock.instant(), pointer="/execution_clock"
     )
@@ -73,14 +88,13 @@ def invoke_dataset_status(
         raise ValidationError("Dataset-status execution clock is invalid")
     snapshot = data_status_snapshot(
         context.store_map,
-        targets=targets,
+        targets=read_targets,
         registry=registry,
         now=evaluated_at.value,
     )
     raw_records = snapshot.get("records")
-    if not isinstance(raw_records, list) or any(
-        not isinstance(item, Mapping) for item in raw_records
-    ):
+    if (not isinstance(raw_records, list) or len(raw_records) != len(read_targets)
+            or any(not isinstance(item, Mapping) for item in raw_records)):
         raise ValidationError("Dataset-status snapshot is invalid")
     filtered = [
         item
@@ -93,6 +107,7 @@ def invoke_dataset_status(
         )
         and (not arguments.statuses or item.get("status") in arguments.statuses)
     ]
+    matched_count = len(filtered) if arguments.statuses else len(targets)
     selected = filtered[: arguments.limit]
     if len(selected) > arguments.limit:  # pragma: no cover - defensive invariant
         raise ResourceLimitError("Dataset-status selection exceeded its limit")
@@ -115,7 +130,7 @@ def invoke_dataset_status(
                 metrics=fields_from_mapping(
                     {
                         "evaluated_at": snapshot.get("evaluated_at"),
-                        "matched_count": len(filtered),
+                        "matched_count": matched_count,
                         "returned_count": len(records),
                         "scope": "retained_data_only",
                     }
@@ -132,11 +147,11 @@ def invoke_dataset_status(
             ),
         ),
         truncation=TruncationV1(
-            applied=len(filtered) > arguments.limit,
+            applied=matched_count > arguments.limit,
             limit=arguments.limit,
             returned_count=len(records),
-            total_known_count=len(filtered),
-            has_more=len(filtered) > arguments.limit,
+            total_known_count=matched_count,
+            has_more=matched_count > arguments.limit,
         ),
     )
 

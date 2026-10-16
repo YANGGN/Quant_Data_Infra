@@ -1196,6 +1196,15 @@ Dataset Status reads only the latest outcome and successful capture for current
 news sources; lifetime article/version totals remain exclusive to the full news
 source-status tool. This avoids unnecessary history scans without changing the
 public dataset-status fields or the host's five-second execution deadline.
+The public dataset-status adapter applies store and dataset-ID predicates to
+registry targets before opening stores. When no status predicate is requested,
+the complete match count is known from those targets, so only the returned
+prefix is materialized. The exact total, truncation, ordering, aliases, warnings
+and retained-data meaning are preserved. A status predicate still evaluates all
+metadata-matching targets before limiting output, because its exact count depends
+on retained status. Operation-budget checks cover the targets actually evaluated;
+this optimization changes no registry, schema, provider call or timeout setting.
+
 If the retained-status read fails, the HTML page shows an explicit unavailable
 state and a reload link. It does not display zero dataset counts or run the
 supplemental schedule/retention reads for an absent result.
