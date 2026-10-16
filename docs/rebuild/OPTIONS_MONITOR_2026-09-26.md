@@ -1503,3 +1503,291 @@ noting a minor nonblocking badge overlap in one mobile synthetic tile.
 Published verification showed the correct no-cumulative-alerts state for October
 9. Receipt, precise check counts and limitations:
 `.local/options-heatmap-alerts-20261010/activation.json`.
+
+
+### October 10: compact header and prominent main navigation
+
+At the user's request, version 15 reduces the header copy and makes Market &
+sectors, Watchlist and Universe radar prominent above the view title. The
+selected tab has a filled navy treatment; all three labels and counts remain
+visible at 390px. Existing keyboard navigation, deep links and count meanings
+are preserved. The visible freshness row contains the saved data timestamp in
+Eastern time and Refresh. Per-ticker timing, polling, collector contact, browser
+checks and daily-history explanation are collapsed into Update details.
+Collector waiting/overdue/partial/failure statuses remain visible; partial and
+failed collection use the warning treatment even after recent contact.
+
+Version 15 deployed successfully at `2026-10-11T00:51:43.439047Z` (October 10
+Eastern), source `77457f7af0ba645685fb8bc34f753f44d9bed845`, deployment
+`appgdep_6acadd974b4c8191b1134b52aba7147a`. Complete custom sharing remained
+identical at revision 4. TypeScript, 110 existing UI assertions, scoped CSS/diff
+checks, final build, desktop/mobile browser checks and design-owner visual
+review passed. Published verification showed the new navigation with the
+existing October 9 4:10 PM ET timestamp and 5/808 counts. This is a presentation
+change with no data, alert, collector or scheduling change. Receipt and precise
+validation scope: `.local/options-header-20261010/activation.json`.
+
+
+### October 10: Heatmap first in Universe radar
+
+Version 16 reorders the radar views to Heatmap, Activity, Inbox and opens
+Heatmap by default. The existing view content and alert/data semantics are
+unchanged. It deployed at `2026-10-11T00:57:51.584074Z` (October 10 Eastern),
+source `debabf789f0a97e83d9280abeee7ef6997d3eb42`, deployment
+`appgdep_6acadf077f8081918ca4be2b6a207f21`. TypeScript, scoped diff checks,
+synthetic browser navigation and production build passed. Complete sharing
+remained unchanged at revision 4. Receipt:
+`.local/options-radar-order-20261010/activation.json`.
+
+
+## October 12 — saved-data ranking and ticker context
+
+The user approved recommendations 1, 2 and 4: activity ranking by size as well
+as RVOL, recent activity context, and signal-first ticker details. Existing saved
+observations are the sole input. The collector, provider request limits, clock,
+alert thresholds/cooldowns, store schemas, publication contracts and heatmap
+membership remain unchanged. Sector breadth and inbox prioritization are outside
+this change.
+
+Activity adds the same-time expected cumulative median, signed excess contracts
+(observed cumulative minus expected), baseline session count, excess-volume sort,
+and an optional minimum session-volume filter. Cumulative RVOL remains the
+default sort. Expected/excess values require a fresh usable cumulative comparison;
+missing values sort after real values, including negative excess. A positive
+minimum-volume filter excludes unavailable session totals. No artificial combined
+score or inferred trading direction is introduced.
+
+Ticker context uses the already-fetched saved history, bounded to 288 observations
+for one symbol/session and the selected cutoff. The latest activity classification
+requires a usable current cumulative comparison and three consecutive usable
+interval RVOL observations at the same cadence, without collection gaps. Building
+means two intervals below 3x followed by one at/above 3x; Sustained means all three
+at/above 3x; Cooling means two at/above 3x followed by one below 3x while cumulative
+RVOL remains at/above 3x. Below 3x requires all three intervals and cumulative RVOL
+below 3x; other assessable sequences are Mixed. Missing, overdue, warming or
+incompatible comparisons are Not assessable. These descriptive states create no
+alerts and do not change saved alert evidence.
+
+Saved-session context projects 25-delta put-minus-call skew, 7D-minus-30D IV slope
+in volatility points, 0DTE share, inclusive 0-7D share, and top-five cumulative
+contract concentration. IV remains a provider trade-price proxy. Missing values
+and collection gaps remain gaps; no interpolation or historical fetch is added.
+The UI preserves original alert-session evidence separately from latest-snapshot
+context, and daily historical chart behavior retains its existing semantics.
+
+Validation impact: Site-only calculations, Activity presentation, ticker detail
+and shared history charts. Required checks are focused calculation/rendering
+regressions, existing radar/cumulative/heatmap and interval/history regressions,
+TypeScript, production build, and desktop/mobile browser verification using
+synthetic local data. No changed API/query, migration, collector or cross-domain
+invariant requires an operational read or full repository suite. Final validation
+and release evidence follows below.
+
+Final local validation passed: all nine scoped scripts (7,340 assertions, including
+73 calculation and 38 new component checks), TypeScript, production build and
+whitespace review. Desktop (1280 x 720) and mobile (390 x 844) browser checks used
+a GET-only synthetic fixture with no store/provider access. Verified excess
+sorting, minimum filtering/reset, small baselines, Building/Sustained/Cooling,
+gaps/history errors, session-metric selection, daily ETF history and original
+alert-session separation. Browser review caught and corrected initial cumulative
+chart selection and empty latest-IV expansion; both were rechecked. Browser
+errors: zero. The design owner reviewed desktop/mobile captures. Full repository
+suite was not required by the scoped impact map. Details:
+`.local/options-activity-context-20261012/validation-final.json`.
+
+Published version 17 at `2026-10-13T03:25:15.481359Z` (October 12 Eastern),
+source `23c204c5849b2b1ef265ba303ca499d7473d4475`, deployment
+`appgdep_6acda492651081918ea3845341189f14`, at the existing Options Monitor URL.
+The native deployment returned succeeded. Custom access mode and existing grants
+remain in place. A concurrent sharing update at 03:21:35 UTC added two external
+viewers between checks (revision 4 to 6, one to three external viewers); this
+workflow made no sharing mutations and retained those additions. Zero provider
+requests, canonical reads/writes, collector changes or recurring-unit actions.
+Activation receipt: `.local/options-activity-context-20261012/activation.json`.
+
+## October 12 — sector breadth and prioritized review queue
+
+The user approved recommendations 3 and 5 after the version-17 activity update.
+The inputs remain saved Site observations, alerts, roster classifications and
+the authenticated user's existing watchlist. No provider collection, recurring
+unit, schema, alert-generation rule or review-mutation contract is changed.
+
+Sector breadth supplements the alert-only heatmap without changing its members.
+Every roster equity belongs to its saved sector or Unclassified, regardless of
+alert membership, market-cap availability or currency. Eligibility requires a
+fresh usable cumulative comparison. Each sector shows names at or above 3x over
+eligible names, eligible/full-roster coverage, the unweighted median cumulative
+RVOL, and summed signed excess contracts among eligible names. No eligible
+comparisons is null, not zero breadth. These are latest eligible per-ticker
+snapshots at differing cadences, not a synchronized basket.
+
+The inbox adds personal watchlist-only, Newly active and Sustained filters,
+minimum positive excess and excess sorting. The default remains newest alert
+first in the latest saved session, restricted to tickers needing review. Filters
+and ranking apply to the entire selected-session candidate set before 20-ticker
+pagination. Displayed filtered totals count all matching groups and events;
+selected-session totals and the all-retained-sessions navigation badge are
+separately labeled.
+
+Newly active means a ticker's first saved alert in the selected session falls
+within 30 minutes of the displayed reference time. For a current open session
+that reference is wall time; for a closed or historical session it is the latest
+saved observation/alert time within that session, never a future row. Sustained
+uses the version-17 three-consecutive-interval activity rule. Latest saved session
+context must also be timely at the reference cutoff under the existing two-cadence
+freshness rule. Missing, incompatible, warming or overdue evidence remains Not
+assessable. Excess uses the latest usable selected-session cumulative observation.
+Context has its own timestamp and never replaces the original alert evidence.
+
+Grouped reads use bounded indexed session/symbol queries, at most three context
+observations per candidate, and original evidence for only the selected page.
+A result over 3,000 candidate tickers fails visibly rather than returning a
+silently truncated ranking. The existing explicit-ID alert acknowledgement and
+event timeline paths retain their behavior.
+
+Validation impact: Site breadth calculations, grouped alerts GET/read selection,
+personal-watchlist filtering, inbox rendering and radar integration. Required
+checks: review-queue-model, review-queue-sql, review-queue-api, review-queue-ui,
+existing grouped-inbox/radar/heatmap/activity regressions, TypeScript, production
+build and synthetic desktop/mobile browser checks. SQL/API fixtures use in-memory
+SQLite only.
+
+All nine scoped scripts passed, along with TypeScript, the production build and
+diff review. Desktop and 390 x 844 mobile browser checks used GET-only synthetic
+fixtures: complete-set filters/sorting, page reset, historical alert evidence,
+coverage/null semantics, missing classifications, empty/error recovery and
+responsive layouts were checked. The configured design owner reviewed final
+desktop/mobile captures. Browser checks corrected row-hover contrast and made
+the 3x breadth threshold explicit on mobile. No browser errors were observed.
+The full repository suite was not required by this component scope; no live
+operational diagnostics were run. The temporary preview was stopped and removed.
+
+Published version 18 at `2026-10-13T03:59:24.930650Z` (October 12 Eastern),
+source `61465b82a62790f5e533275c2c305e0e7f87539d`, deployment
+`appgdep_6acdac946ba88191a039f1aa885756af`, at the existing Options Monitor URL.
+The native deployment returned succeeded. Complete custom sharing remained
+unchanged across publication at revision 7. A concurrent pre-publication update
+had added one external viewer (revision 6 to 7, three to four viewers); this
+workflow retained it and made no sharing changes. Zero provider requests,
+canonical reads/writes, collector changes or recurring-unit actions.
+Validation and activation: `.local/options-breadth-queue-20261012/activation.json`.
+
+## October 13 — call and put relative activity
+
+The user approved separate cumulative and interval call/put RVOL, excess
+contracts, a detail chart and activity tilt, using saved data only. This version
+derives them on authenticated read paths from existing Site observations and
+five-minute baseline-day bins. It adds no provider requests, collector work,
+recurring units, schema changes or saved-alert mutations.
+
+For each window, calls and puts share the same eligible prior-session cohort,
+but each side has its own median. RVOL is observed/median and excess is
+observed-minus-median. The cohort uses at least 20 and at most the latest 60
+distinct matched sessions in the prior 130 calendar days. Cumulative comparisons
+match the completed five-minute cutoff from the open; intervals also match the
+5/10/15/30-minute cadence and endpoints. Valid saved live observations override
+seed bins for the same session/window. Future/current-session baseline evidence,
+incomplete coverage, corrections and incompatible windows are excluded.
+
+Activity tilt is `100 * (call_RVOL - put_RVOL) / (call_RVOL + put_RVOL)`.
+Positive means relatively stronger call activity; negative means relatively
+stronger put activity. It is not a buy/sell or bullish/bearish signal. Missing
+RVOL or two zero RVOLs yields no tilt. A zero median yields no RVOL while excess
+remains available. Small medians below 100 contracts receive a display note;
+they do not change eligibility. Both RVOLs remain visible, including when both
+sides are below usual. Existing combined-volume RVOL is unchanged: the sum of
+side medians is not substituted for the median of total volume.
+
+Activity and shared watchlist/market tables offer Show call/put detail within
+the existing total-RVOL cells. Requests load visible fresh rows in batches of
+at most ten and only attach results to the exact saved observation timestamp.
+The ticker's existing volume card adds paired observed/expected/excess summaries,
+relative activity balance, and Contracts/Relative-to-usual chart selection.
+Ordinary ticker entry defaults to cumulative; explicit alert evidence keeps its
+own mode and timestamp. Selected historical sessions and daily chart behavior
+remain separate. Missing comparisons and collection gaps are visible chart gaps.
+
+The read API uses bounded indexed queries and compact projections. Oversized
+saved history fails visibly instead of deriving a silently clipped baseline.
+Selection changes cancel pending client requests and discard mismatched results.
+No new ranking or alert threshold is introduced by the side comparison chart.
+
+Validation impact: new side calculation and authenticated GET API; their table
+and history-chart consumers. Focused fixture checks cover paired cohorts, zeros,
+missing values, cutoffs/cadence, read limits, read-only SQL, request cancellation
+and UI states. Relevant dashboard regressions, TypeScript, production build and
+synthetic desktop/mobile browser checks form the release gate. No operational
+store read or full repository suite is required by this component scope.
+
+Implementation status at 04:33 UTC: source saved locally, not published.
+`side-activity-model.mjs` passed 54 checks and `side-activity-api.mjs` passed 31
+checks using the native Linux runtime and fixture/in-memory data. An intermediate
+UI TypeScript check passed. Final UI/regression scripts, final TypeScript/diff
+review, build and browser QA are pending because later native WSL launches failed
+with `Wsl/Service/0x8007274c`; a basic status check subsequently reported no
+running distributions. No restart or recurring-unit action was taken. The Site
+source remains based on version 18 / `61465b82a62790f5e533275c2c305e0e7f87539d`.
+Resume the remaining release gate when the native runtime is restored; this
+section is not activation evidence.
+
+After the user restored WSL, the release checks completed. Twelve scoped scripts
+passed (524 assertions), together with final TypeScript, whitespace review and
+the production build. The older cumulative UI test was updated to explicitly
+select interval mode and verify the new ordinary cumulative default. A full
+saved-history check exposed repeated timestamp formatting; indexing eligible
+history by comparison window preserved the results and derived 78 chart points
+from 4,680 synthetic observations in 75 ms on the native runtime. This is local
+fixture timing, not a production latency claim.
+
+Synthetic browser checks covered desktop 1280 x 800 and mobile 390 x 844:
+table batches of 10/10/3 were sequential; cumulative/interval and historical
+session selection, paired cards, quiet/zero-baseline states, daily ETF isolation,
+visible error/retry, exact timestamp matching and actual SVG collection gaps
+were verified. No horizontal page overflow or final browser errors occurred.
+The configured design owner approved final chart/cards/balance captures. The
+preview initially used an unnecessary test loader; restarting the owned preview
+without that loader resolved its CSS loading error. No product workaround was
+needed. Full repository and operational-provider checks were deliberately not
+run. Logs: `.local/options-side-activity-20261013/validation-*.json`.
+
+Concurrent Site version 19 (`18ca86c759da89a09a78c71bb49dea5758632067`) was
+opened through the source helper before final integration. Its 27-ETF roster,
+cross-asset groups and navigation changes were retained, with the existing ETF
+expansion regression passing. The local feature was reapplied cleanly from a
+recovery stash; no unrelated parent-repository work was committed.
+
+Published Site version 20 at `2026-10-13T16:22:14.474571Z`, source
+`5bc0e5061e983c117beba8e5dcb9a69fb2e209fc`, deployment
+`appgdep_6ace5aab47f4819191e531fc74ce4139`, at the existing Options Monitor URL.
+The native deployment confirmed succeeded. Complete custom sharing remained
+identical at revision 7. Zero provider requests, canonical reads/writes,
+collector changes or recurring-unit actions occurred in this feature workflow.
+Activation receipt: `.local/options-side-activity-20261013/activation.json`.
+
+## October 13 — compact ETF history layout
+
+The user approved moving the intraday ETF call/put comparison out of the
+middle volume card into a full-width strip beneath the three charts. The
+strip retains both RVOLs, observed/expected/excess contracts, relative activity
+balance, missing/small-baseline qualifications and expandable methodology.
+Volume mode and chart measure share one labeled controls row. On narrow
+screens the comparison follows the volume chart, before the put/call chart.
+The layout is opt-in for the ETF page; ticker drawers and daily history keep
+their existing arrangement. Data derivation, requests and provider collection
+are unchanged. Focused history/side UI regressions, TypeScript, production
+build and synthetic desktop/mobile browser checks are the validation scope.
+
+Published version 21 at `2026-10-13T20:10:13.216302Z`, source
+`069bea8a0a8f84692836f11ed3707b70a6cc67e6`, deployment
+`appgdep_6ace9017b01c8191b46ec7f98f1a16ce`; the native result confirmed success.
+Four existing UI regression scripts passed 245 assertions; TypeScript, diff
+review, production build and design-owner visual review passed. Synthetic
+browser checks covered 1280px desktop, 390px mobile and 320px narrow layouts,
+both chart measures, interval/cumulative controls, selected historical sessions,
+daily/drawer isolation and visible comparison errors. Desktop chart-card height
+fell from 886px to 396px; all three remained aligned, including error states.
+No page overflow or browser runtime errors were observed. The full repository
+suite and live-provider checks were outside this presentation-only scope.
+Custom sharing remains at revision 7 with four external viewers. No provider,
+canonical-store or recurring-unit action occurred. Receipt and validation:
+`.local/options-history-layout-20261013/`.

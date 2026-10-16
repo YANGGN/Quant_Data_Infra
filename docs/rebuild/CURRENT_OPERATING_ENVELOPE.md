@@ -8400,6 +8400,71 @@ See OPTIONS_MONITOR_2026-09-26.md and
 minor visual limitations.
 
 
+### October 10: options header and navigation presentation
+
+The user's header-design request was implemented and published as Site version
+15 at `2026-10-11T00:51:43.439047Z` (October 10 Eastern), source
+`77457f7af0ba645685fb8bc34f753f44d9bed845`, deployment
+`appgdep_6acadd974b4c8191b1134b52aba7147a`. The three primary view tabs are now
+prominent, and expanded timing explanations are in collapsed Update details.
+Custom sharing remained identical at revision 4. The final build, focused UI
+checks, actual desktop/mobile browser checks and configured visual review passed.
+No provider request, canonical access, collector/scheduler change, alert-rule
+change or production review mutation occurred. Contract and evidence:
+OPTIONS_MONITOR_2026-09-26.md and `.local/options-header-20261010/activation.json`.
+
+
+### October 10: options Radar view ordering
+
+The user requested Heatmap, Activity, Inbox ordering. Site version 16 deployed
+at `2026-10-11T00:57:51.584074Z`, source
+`debabf789f0a97e83d9280abeee7ef6997d3eb42`, deployment
+`appgdep_6acadf077f8081918ca4be2b6a207f21`, with Heatmap as the initial Radar
+view. Complete custom sharing remained unchanged at revision 4. This changes
+only navigation order/default; no provider, canonical, collector or recurring
+unit action occurred. See `.local/options-radar-order-20261010/activation.json`.
+
+
+### October 12: saved-data options activity insights
+
+The user approved recommendations 1, 2 and 4 with existing saved data and no
+provider-collection increase. The Site adds expected/excess contract ranking and
+a minimum-volume filter, recent descriptive activity patterns, volume-first radar
+detail and saved-session context charts. Nine scoped scripts, TypeScript, build,
+desktop/mobile browser checks and configured visual review passed.
+
+Published version 17 at `2026-10-13T03:25:15.481359Z` (October 12 Eastern),
+source `23c204c5849b2b1ef265ba303ca499d7473d4475`, deployment
+`appgdep_6acda492651081918ea3845341189f14`, at the existing Options Monitor URL.
+The native deployment returned succeeded. Custom access mode and existing grants
+remain in place. A concurrent sharing update at 03:21:35 UTC added two external
+viewers between checks (revision 4 to 6, one to three external viewers); this
+workflow made no sharing mutations and retained those additions. Zero provider
+requests, canonical reads/writes, collector changes or recurring-unit actions.
+Activation receipt: `.local/options-activity-context-20261012/activation.json`.
+Contract: `OPTIONS_MONITOR_2026-09-26.md`.
+
+### October 12: options sector breadth and prioritized inbox
+
+The user approved recommendations 3 and 5 using existing saved data. Version 18
+adds sector-wide eligibility/breadth, median RVOL and signed excess beside the
+alert-only heatmap, plus selected-session inbox filters for the personal
+watchlist, newly active names, sustained activity and excess contracts. Filters
+and sorting apply before pagination; original alert evidence remains separate.
+
+Published successfully at `2026-10-13T03:59:24.930650Z` (October 12 Eastern),
+source `61465b82a62790f5e533275c2c305e0e7f87539d`, deployment
+`appgdep_6acdac946ba88191a039f1aa885756af`, at the existing Options Monitor URL.
+Nine scoped scripts, TypeScript, production build, final diff review and
+synthetic desktop/mobile browser/design checks passed. Complete custom sharing
+remained identical across publication at revision 7. A concurrent earlier
+sharing update added one external viewer; this workflow retained it and made
+no sharing mutations. No provider request, canonical read/write, collector
+change or recurring-unit action occurred. No live operational diagnostics ran.
+Contract: `OPTIONS_MONITOR_2026-09-26.md`. Activation and validation receipt:
+`.local/options-breadth-queue-20261012/activation.json`.
+
+
 ## October 13, 2026 — requested cross-asset options expansion
 
 The current user explicitly authorizes coverage discovery, longest available
@@ -8422,6 +8487,35 @@ finite 20-session baseline job is running; the distinct 30,273-session EOD
 history job is queued behind it in a bounded transient service. These are
 in-progress populations, not new no-repeat completion claims. Actual receipts,
 limits, validation and missing-reference gaps remain in the linked contract.
+
+### October 13: saved-data call and put activity comparisons
+
+The user approved separate cumulative/interval call and put RVOL, excess,
+detail charts and activity tilt from existing saved data only. Site version 20
+deployed successfully at `2026-10-13T16:22:14.474571Z`, source
+`5bc0e5061e983c117beba8e5dcb9a69fb2e209fc`, deployment
+`appgdep_6ace5aab47f4819191e531fc74ce4139`. Version 19's ETF additions were
+preserved. Twelve focused scripts (524 assertions), final TypeScript/build,
+diff review, synthetic desktop/mobile browser checks and design review passed.
+Complete custom sharing remained identical at revision 7. This feature added
+no provider request, canonical read/write, collector or recurring-unit action;
+the separately authorized cross-asset populations retain their own scope.
+Contract: `OPTIONS_MONITOR_2026-09-26.md`. Receipt:
+`.local/options-side-activity-20261013/activation.json`.
+
+### October 13: compact ETF history presentation
+
+The user-approved compact ETF history layout deployed as Site version 21 at
+`2026-10-13T20:10:13.216302Z`, source
+`069bea8a0a8f84692836f11ed3707b70a6cc67e6`, deployment
+`appgdep_6ace9017b01c8191b46ec7f98f1a16ce`. Native deployment succeeded.
+Four focused UI scripts (245 assertions), TypeScript, final build/diff checks,
+synthetic desktop/mobile browser checks and configured visual review passed.
+The call/put summary now sits below the aligned ETF charts; all saved-data
+calculations remain unchanged. Sharing retains revision 7 and four external
+viewers. No provider, canonical-store or recurring-unit operation occurred.
+Contract: `OPTIONS_MONITOR_2026-09-26.md`. Receipt:
+`.local/options-history-layout-20261013/activation.json`.
 
 ### October 13 evening: cross-asset history concurrency amendment
 
