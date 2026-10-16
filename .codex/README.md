@@ -1,9 +1,12 @@
 # Project agent routing
 
 Accepted: 2026-09-05 — user-approved quality-first routing and UI design ownership.
-Revised: 2026-09-12 — user-approved allowance of ultra reasoning effort.
+Revised: 2026-10-12 — keep xhigh as the default without overriding manual effort choices.
 
-[config.toml](config.toml) sets the primary and generic subagent defaults.
+[config.toml](config.toml) sets the primary model and generic subagent defaults.
+The primary effort defaults to xhigh in the host's user `~/.codex/config.toml`.
+It is deliberately absent from the project config so the app's saved manual
+choice, including ultra, survives config reloads.
 Each standalone role below pins its own model, effort, and sandbox. These are
 selectable presets, not a pipeline that runs every role for every task.
 
@@ -78,13 +81,21 @@ or the number of agents, tests, or review cycles.
 Named role files take precedence for their pinned model and effort. Select
 the appropriate preset; do not assume a spawn override changes a pinned role.
 The paired implementation and analyst roles provide explicit effort choices.
-The primary defaults to xhigh for substantive work; routine follow-ups may use
-an explicitly selected medium setting, except UI design keeps its required route.
-Max is reserved for the bounded mechanical preset or a specifically justified
-hard problem. Ultra is allowed whenever the selected model and runtime support
-it, for both single-agent and delegated work. Honor an explicit user selection
-of ultra; parallel execution is not a prerequisite. Existing defaults remain
-unchanged. Retain all ownership, verification, and concurrency limits.
+The primary defaults to xhigh through the host's user configuration. An explicit
+manual effort choice takes precedence over that default; do not reset it to
+xhigh. On this Windows desktop the setting is in
+`C:\Users\gaina\.codex\config.toml`; WSL CLI sessions use
+`/home/volatility/.codex/config.toml`. Keep primary effort out of the project
+config because project values take precedence over saved user settings. The
+app's selector can update the saved user preference, which may also be reused
+by later chats and other projects without their own effort setting.
+
+Routine follow-ups may use an explicitly selected medium setting, except UI
+design keeps its required route. Without an explicit user selection, max is
+reserved for the bounded mechanical preset or a specifically justified hard
+problem. Ultra is allowed whenever the selected model and runtime support it,
+for both single-agent and delegated work; parallel execution is not a
+prerequisite. Retain all ownership, verification, and concurrency limits.
 
 Start a fresh trusted-project session after configuration edits. The current
 task and existing agents may retain their loaded settings. Check effective

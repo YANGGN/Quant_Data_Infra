@@ -1,8 +1,9 @@
-# Project-scoped defaults. Start a fresh trusted-project session after edits.
-# Explicit runtime or CLI overrides can take precedence; disclose the effective
-# route if it differs. Role TOML files pin their own model and effort.
+# Project model and subagent defaults. Start a fresh trusted-project session
+# after edits. Keep the primary model_reasoning_effort in user config.toml:
+# xhigh is the default there, and the app's manual selector can change it.
+# A project effort value would override that saved choice on config reload.
+# Explicit runtime or CLI overrides take precedence. Roles pin their own effort.
 model = "gpt-6-astra"
-model_reasoning_effort = "xhigh"
 
 [agents]
 enabled = true
