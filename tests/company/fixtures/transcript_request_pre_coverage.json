@@ -1,0 +1,229 @@
+{
+  "source": {
+    "capture_id": "fixture",
+    "input_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "turns": []
+  },
+  "vectors": [
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0f320f42d43a27782ab5983c6184ba69f626665db6580448b4e6507bc54ef2a3",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "590bb561a326e0ee5bde95cf4052ff2ded9fb4045f9a9ea8b7c8c4ed6b015660"
+      },
+      "request_identity": "a3739cca6f635e4653d1fce9a4877e431c551adace862b41bd51f71effdc3179",
+      "request_sha256": "344efcb9621181b1a3a08ad8992a6d0ba1afbcc1550080df9632021a2762e9a1",
+      "review": false,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "246ac2809b530e58453a2f77dcdc855cc5af7b63344c8af981983ced5ee3238c",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c"
+      },
+      "request_identity": "f3d5d4cbae84f3fcb4253791470a284c9c859eb407578c816671239b0a768436",
+      "request_sha256": "730dcf005a94c421127273d83b53db6fa5cb259ade8bd61f006a4a6504a4ee24",
+      "review": true,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0f320f42d43a27782ab5983c6184ba69f626665db6580448b4e6507bc54ef2a3",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "590bb561a326e0ee5bde95cf4052ff2ded9fb4045f9a9ea8b7c8c4ed6b015660",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "d7fbe3657a5b20610a100e7bf2e1501687e8dbe5ef6951969d74eccce662c926",
+      "request_sha256": "344efcb9621181b1a3a08ad8992a6d0ba1afbcc1550080df9632021a2762e9a1",
+      "review": false,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "246ac2809b530e58453a2f77dcdc855cc5af7b63344c8af981983ced5ee3238c",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "c062f727552362733e41fd0fe7c3545446a856b84aa650f79c7031ea3f708bdd",
+      "request_sha256": "730dcf005a94c421127273d83b53db6fa5cb259ade8bd61f006a4a6504a4ee24",
+      "review": true,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0352f5eff65f55bea5066ed2ec972f07015e656a99b9da13829426aa8a642176",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "schema_sha256": "6d506d28995bfb93a9119ac6b3498f26298999f31d1baf54cfd2a497569ca127"
+      },
+      "request_identity": "2b5b93936097b15e07fd4611110f0e28648d80a38c64347013ab0556058a395b",
+      "request_sha256": "822ba07e7c947f25bce4e21fbd8e8af8e325cf095c9098ac4e4efe60d8f88bfc",
+      "review": false,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "715d56f3d9fb4450dda9789268d74638e5493b85cec4e92f8ee4aac185f69213",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c"
+      },
+      "request_identity": "9c95051ca0336ac458f477f6c623d0572f001bca2c7bd4c41a674c2238d3e781",
+      "request_sha256": "29e00dfa4d90ca826221ddc9e3283add624816b12664e039bfca2a6aeeab09a4",
+      "review": true,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0352f5eff65f55bea5066ed2ec972f07015e656a99b9da13829426aa8a642176",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "request_timeout_seconds": 1200,
+        "schema_sha256": "6d506d28995bfb93a9119ac6b3498f26298999f31d1baf54cfd2a497569ca127",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "393223550dfd6d4eaa414463fcaa84fc179769fc9368ca0e1d99a28b9ad86a5c",
+      "request_sha256": "822ba07e7c947f25bce4e21fbd8e8af8e325cf095c9098ac4e4efe60d8f88bfc",
+      "review": false,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "715d56f3d9fb4450dda9789268d74638e5493b85cec4e92f8ee4aac185f69213",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "request_timeout_seconds": 1200,
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "a1422e9794c4fdc63531f7ef77284c17bd0e5ef2a5f0f2d0afeb191b2b77ff4e",
+      "request_sha256": "29e00dfa4d90ca826221ddc9e3283add624816b12664e039bfca2a6aeeab09a4",
+      "review": true,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "8e0a1a309bbf75b43e4748961739a6824105f8a6e9aafa0b058a1e2a20161f3a",
+        "prompt_version": "transcript_analysis_prompt.v3",
+        "reasoning_effort": "high",
+        "schema_sha256": "d5636a079f8373f3a45b5a622fba36354ec2ae8bf68526591c24d4c280538ea9"
+      },
+      "request_identity": "0e84b8bb0f9e9af0e053c9ddac58770552ba7e04adac2cd10a3864cc75af076b",
+      "request_sha256": "4dcf0289f233634bba35f271172e2929a65945b6d90942a51bd9d8782174dcc3",
+      "review": false,
+      "version": "transcript_analysis_prompt.v3"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "364697f2850c0e4f3dc9f286be2cbefcbc26fe0a2bc4b89137a4ed018123342e",
+        "prompt_version": "transcript_analysis_prompt.v3",
+        "reasoning_effort": "high",
+        "schema_sha256": "10a7fa251cadbbbe293b4d2d64d6d8e86fb7ba02bc3171afbedf1d563af0124f"
+      },
+      "request_identity": "70528b0b7def9ba8b0212192f6ca5c9cce05fd1ed7ac9219081d6e19a6af60bc",
+      "request_sha256": "b3d43aa05f262d1a01eb12c8fdbbba1c3f7cc93d53e4c2e6b8ae68da5608aaf7",
+      "review": true,
+      "version": "transcript_analysis_prompt.v3"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "8e0a1a309bbf75b43e4748961739a6824105f8a6e9aafa0b058a1e2a20161f3a",
+        "prompt_version": "transcript_analysis_prompt.v3",
+        "reasoning_effort": "high",
+        "request_timeout_seconds": 1200,
+        "schema_sha256": "d5636a079f8373f3a45b5a622fba36354ec2ae8bf68526591c24d4c280538ea9",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "f75b77384523ec1f6ca0266f491a3fd8b28eb5b52796f1728cac036e5df53901",
+      "request_sha256": "4dcf0289f233634bba35f271172e2929a65945b6d90942a51bd9d8782174dcc3",
+      "review": false,
+      "version": "transcript_analysis_prompt.v3"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "364697f2850c0e4f3dc9f286be2cbefcbc26fe0a2bc4b89137a4ed018123342e",
+        "prompt_version": "transcript_analysis_prompt.v3",
+        "reasoning_effort": "high",
+        "request_timeout_seconds": 1200,
+        "schema_sha256": "10a7fa251cadbbbe293b4d2d64d6d8e86fb7ba02bc3171afbedf1d563af0124f",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "f9755061aafb8a366d6cfdfdae2ed6a779c75fe6400a06b20c4940da3d464748",
+      "request_sha256": "b3d43aa05f262d1a01eb12c8fdbbba1c3f7cc93d53e4c2e6b8ae68da5608aaf7",
+      "review": true,
+      "version": "transcript_analysis_prompt.v3"
+    }
+  ]
+}

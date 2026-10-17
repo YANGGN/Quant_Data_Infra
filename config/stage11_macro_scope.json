@@ -1,0 +1,105 @@
+{
+  "bounds": {
+    "bea_max_bytes_per_response": 8388608,
+    "bea_max_requests": 2,
+    "bea_max_rows_per_series": 1000,
+    "eia_max_bytes_per_response": 16777216,
+    "eia_max_pages": 8,
+    "eia_max_rows_per_page": 5000,
+    "eia_weekly_max_rows": 5000,
+    "minimum_request_interval_milliseconds": 1000
+  },
+  "contract": "quant_data.stage11_macro_scope",
+  "dependency": {
+    "required_market_candidate_contract": "quant_data.stage10_candidate_receipt",
+    "required_market_profile_id": "stage10_fmp_market_history_v1"
+  },
+  "providers": {
+    "bea": {
+      "configuration_env": "BEA_API_KEY",
+      "host": "apps.bea.gov",
+      "requests": [
+        {
+          "dataset_name": "NIPA",
+          "frequency": "Q",
+          "method": "GetData",
+          "path": "/api/data/",
+          "result_format": "JSON",
+          "series": [
+            {
+              "canonical_series_id": "macro.gdp.real_qoq_saar_pct",
+              "provider_series_code": "A191RL"
+            }
+          ],
+          "table_name": "T10101",
+          "year": "ALL"
+        },
+        {
+          "dataset_name": "NIPA",
+          "frequency": "Q",
+          "method": "GetData",
+          "path": "/api/data/",
+          "result_format": "JSON",
+          "series": [
+            {
+              "canonical_series_id": "macro.gdp.nominal_billions",
+              "provider_series_code": "A191RC"
+            }
+          ],
+          "table_name": "T10105",
+          "year": "ALL"
+        }
+      ]
+    },
+    "eia": {
+      "configuration_env": "EIA_API_KEY",
+      "host": "api.eia.gov",
+      "retail": {
+        "data": [
+          {
+            "canonical_series_id": "macro.eia.electricity.retail_sales",
+            "field": "sales"
+          },
+          {
+            "canonical_series_id": "macro.eia.electricity.retail_revenue",
+            "field": "revenue"
+          },
+          {
+            "canonical_series_id": "macro.eia.electricity.retail_price",
+            "field": "price"
+          },
+          {
+            "canonical_series_id": "macro.eia.electricity.retail_customers",
+            "field": "customers"
+          }
+        ],
+        "facets": {
+          "sectorid": [
+            "ALL"
+          ],
+          "stateid": [
+            "US"
+          ]
+        },
+        "frequency": "monthly",
+        "length": 5000,
+        "path": "/v2/electricity/retail-sales/data",
+        "sort": [
+          {
+            "column": "period",
+            "direction": "asc"
+          }
+        ],
+        "tombstone_authoritative": false
+      },
+      "weekly": {
+        "canonical_series_id": "macro.eia.weekly.petroleum_stock",
+        "path": "/v2/seriesid/PET.WCESTUS1.W",
+        "provider_series_id": "PET.WCESTUS1.W"
+      }
+    }
+  },
+  "target_profile_id": "stage11_bea_eia_macro_v1",
+  "target_root": "/home/volatility/quant-data-nonprod/stage10-fmp-market-history-v1",
+  "version": "1.0.0"
+}

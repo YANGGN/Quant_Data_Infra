@@ -16,7 +16,7 @@ from typing import Any, Hashable, Mapping, Sequence
 
 from ..errors import ResourceLimitError, ValidationError
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection
 from ..temporal import DateOnlyPolicy, TemporalValue, availability_at_or_before
 
 
@@ -404,7 +404,7 @@ class NewsStage4Repository:
         return _select_versions(_query_rows(connection, query), query=query)
 
     def get_items(self, query: NewsStage4Query) -> tuple[dict[str, Any], ...]:
-        with read_connection(self._store_map, StoreRole.NEWS) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.NEWS) as connection:
             selected, warnings = self._selection(connection, query)
             return tuple(
                 _render_item(connection, row, warnings=warnings)
@@ -424,7 +424,7 @@ class NewsStage4Repository:
         """
 
         expression = _search_expression(text)
-        with read_connection(self._store_map, StoreRole.NEWS) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.NEWS) as connection:
             selected, warnings = self._selection(connection, query)
             eligible = {
                 str(row["news_item_version_id"]): row for row in selected

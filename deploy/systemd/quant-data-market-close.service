@@ -1,0 +1,18 @@
+[Unit]
+Description=Quant Data Stage 12E market-close collection
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/market.sqlite
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m quant_data.operations.stage12e_market_close
+TimeoutStartSec=30min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/data

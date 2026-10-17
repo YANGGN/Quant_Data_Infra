@@ -1,0 +1,9 @@
+[Unit]
+Description=Collect options monitoring aggregates on a five-minute market clock
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09..16:00/5:00 America/New_York
+AccuracySec=1s
+Persistent=false
+Unit=quant-data-options-monitor.service
+[Install]
+WantedBy=timers.target

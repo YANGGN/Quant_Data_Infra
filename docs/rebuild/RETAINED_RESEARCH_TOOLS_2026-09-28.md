@@ -1,0 +1,362 @@
+# Retained-data research tools
+
+Implemented as additive, local read-only contracts at user request on
+2026-09-28. Registry 2.94.0 / catalog 2.38.0 adds eight names and four explicit
+successor versions, for 98 logical names and 194 contracts. The exact 2.93.0
+predecessor, earlier versions and frozen Stage 5 contract remain intact.
+
+The [October 10 extensions](#peer-comparison-and-guidance-timeline--october-10-2026)
+add peer comparison and a guidance timeline; current calls and version discovery
+are in the [local-agent guide](../LOCAL_AGENT_TOOLS.md).
+
+## Agent examples
+
+Send each envelope separately to `bin/quant-data-tools call` on standard input,
+using the [shared WSL launcher](../LOCAL_AGENT_TOOLS.md). Dates are examples,
+not a promise of current coverage. Replace transcript capture IDs with IDs
+returned by `company.get_transcript_history@1.0.0`.
+
+### company.get_earnings_calendar@2.0.0
+
+```json
+{"api_version":"1.0","tool":"company.get_earnings_calendar","tool_version":"2.0.0","arguments":{"symbols":["AAPL"],"start_date":"2026-09-01","end_date":"2026-09-28"}}
+```
+
+### company.get_earnings_setup@2.0.0
+
+```json
+{"api_version":"1.0","tool":"company.get_earnings_setup","tool_version":"2.0.0","arguments":{"symbol":"AAPL","start_date":"2026-09-01","end_date":"2026-09-28"}}
+```
+
+### company.get_consensus_history@2.0.0
+
+```json
+{"api_version":"1.0","tool":"company.get_consensus_history","tool_version":"2.0.0","arguments":{"symbol":"AAPL","start_date":"2026-01-01","end_date":"2027-12-31","period":"quarter"}}
+```
+
+### company.get_estimate_revisions@2.0.0
+
+```json
+{"api_version":"1.0","tool":"company.get_estimate_revisions","tool_version":"2.0.0","arguments":{"symbol":"AAPL","start_date":"2026-01-01","end_date":"2027-12-31","period":"quarter"}}
+```
+
+### options.compare_implied_realized@1.0.0
+
+```json
+{"api_version":"1.0","tool":"options.compare_implied_realized","tool_version":"1.0.0","arguments":{"symbol":"SPY","start_date":"2026-09-01","end_date":"2026-09-28"}}
+```
+
+### company.compare_transcripts@1.0.0
+
+```json
+{"api_version":"1.0","tool":"company.compare_transcripts","tool_version":"1.0.0","arguments":{"symbol":"AAPL","before_capture_id":"equibles_transcript_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","after_capture_id":"equibles_transcript_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}
+```
+
+### company.screen_fundamentals@1.0.0
+
+```json
+{"api_version":"1.0","tool":"company.screen_fundamentals","tool_version":"1.0.0","arguments":{"symbols":["AAPL"],"criteria":[{"metric":"netmargin","minimum":0}],"rank_by":"netmargin"}}
+```
+
+### research.get_watchlist_changes@1.0.0
+
+```json
+{"api_version":"1.0","tool":"research.get_watchlist_changes","tool_version":"1.0.0","arguments":{"symbols":["AAPL"],"since":"2026-09-21T00:00:00Z","as_of":"2026-09-28T00:00:00Z"}}
+```
+
+### research.get_event_response_distribution@1.0.0
+
+```json
+{"api_version":"1.0","tool":"research.get_event_response_distribution","tool_version":"1.0.0","arguments":{"symbol":"AAPL","start_date":"2026-09-01","end_date":"2026-09-28"}}
+```
+
+### market.get_breadth@1.0.0
+
+```json
+{"api_version":"1.0","tool":"market.get_breadth","tool_version":"1.0.0","arguments":{"symbols":["SPY","QQQ"],"start_date":"2026-09-01","end_date":"2026-09-28"}}
+```
+
+### data.get_research_coverage@1.0.0
+
+```json
+{"api_version":"1.0","tool":"data.get_research_coverage","tool_version":"1.0.0","arguments":{"symbols":["AAPL"],"start_date":"2026-09-01","end_date":"2026-09-28"}}
+```
+
+### data.get_collection_plan@1.0.0
+
+```json
+{"api_version":"1.0","tool":"data.get_collection_plan","tool_version":"1.0.0","arguments":{"limit":100}}
+```
+
+## Shared behavior
+
+- Optional timezone-aware `as_of` uses the host clock when omitted and cannot
+  exceed it. It limits local capture/availability, not historical public release.
+- Dates are inclusive. General spans are at most 366 calendar days; consensus
+  target-period spans at most 3,661 days. Those target dates are separate from
+  capture dates. `since` is exclusive; the effective cutoff is inclusive.
+- Symbol cohorts are explicit: maximum 20 normally, 10 for watchlist changes,
+  50 for breadth. Inputs reject duplicate symbols and caller SQL/paths.
+- Outputs have at most 2,000 typed records, no series, and an 8 MiB response cap.
+  Limits fail explicitly; there is no hidden provider request or silent sample
+  truncation. The existing host deadline and cancellation remain in force.
+- Nested record fields use JSON strings with `_json` suffixes. Preserve source
+  capture/version IDs, source dictionaries, receipt, research contract, and
+  warnings. Cross-store reads are not one atomic snapshot.
+- Options use only Theta's optional `data/options.sqlite`, covering SPY, QQQ,
+  IWM, DIA and the eleven sector ETFs. Missing options never use Alpaca.
+- U.S. cash-session calculations use the existing 2024–2026 calendar. Broader
+  date coverage is not asserted. Breadth is an explicit cohort, not a historical
+  index-membership backtest. Source adjustment vintages may differ; preserve
+  price audit and provenance warnings.
+
+## Feature semantics
+
+**Earnings:** Latest eligible FMP capture membership per endpoint/symbol is
+read coherently. A non-null EPS or revenue actual (including zero) marks a
+reported event; otherwise a saved date is unconfirmed. Announcement dates and
+consensus fiscal targets are never joined by guessing. The briefing includes
+independent prior drafts, recent tagged news, observed prices and a saved
+forward-P/E publication only if that publication's cutoff is eligible. Context
+records expose whether security identities match or remain unestablished.
+
+**Consensus:** Up to 128 eligible saved captures and 4,000 source rows / 4 MiB
+per analyst read. A recent `since` limits capture history and retains one
+preceding capture for a baseline. Repeated capture membership and changed value
+versions remain distinguishable. Revisions compare adjacent same-identity,
+same-target, same-period rows. Unknown/changed currency suppresses numeric
+changes; EPS also needs a known matching estimate basis. Percent change divides
+by the absolute baseline; zero baselines have no percentage. Raw values and
+exclusions remain visible. Analyst counts do not establish a fixed analyst
+population. History may include bounded latest grades and target context, with
+explicit omission counts beyond 20 rows per context endpoint.
+
+**Implied versus realized:** `horizon_days` is 7, 30 (default), or 90 calendar
+days. Realized volatility uses complete trailing cash sessions, log returns,
+sample standard deviation (ddof 1) and square-root-of-252 annualization. A close
+at/before the lower bound supplies the first return. Missing sessions or
+nonpositive prices suppress the calculation. IV/RV ratios are null when RV is
+zero. Spread percentiles use only earlier comparable rows in the requested
+sample. IV is a selected-anchor estimate; this trailing comparison is not a
+forward variance risk premium or a trading recommendation.
+
+**Transcript comparison:** Select two distinct calls for the same retained
+security, in chronological order. Uses existing saved draft sections and their
+original turn references; no new model extraction. Exact normalized labels and
+periods determine matches. Guidance point/range deltas also require matching
+units, qualifiers, schema and acceptable automatic quality. Human review and
+automatic assessment remain separate. Omission means absence from a saved
+summary, not proof management stopped discussing something. Citation excerpts
+are capped at 1,200 characters and 40 cited turns per call; truncation is marked.
+
+**Fundamentals:** Sharadar ARQ is the default; ARY/ART/MRQ/MRY/MRT remain
+separate. Latest eligible report rows and source-native metrics are retained.
+Revenue growth requires an exact prior calendar-year period, compatible report
+span and currency, and positive prior revenue. Criteria are transparent
+minimum/maximum bounds; missing values fail a criterion. Ranks are competition
+ranks across supplied peers with the same dimension, period and currency;
+ties share a rank, a singleton has no percentile. Optional `calendar_date`
+requires that selected period. Optional forward-P/E and EPS proxies and a
+21-observed-session price return require an evidenced cross-source instrument
+link. Proxy/price ranks also share the metric's observation date. These optional
+metrics retain their distinct meanings and source dates; price-window calendar
+completeness is not asserted for the observed-session return.
+
+**Watchlist changes:** Review at most 31 days. Stable IDs bind the symbol,
+domain and source version so overlapping reviews can deduplicate. Company
+changes use new capture/analysis availability. News scans are bounded to 2,000
+retained articles per symbol and fail if incomplete. Fundamentals expose latest
+visible versions in the chosen dimension (at most 100 observations), not every
+intermediate revision. Prices/options use the review date window plus seven
+calendar days, so older historical corrections outside that window are not
+claimed. Every requested domain reports coverage or an explicit gap.
+
+**Event responses:** Select reported earnings for one symbol, or an exact
+`event_name` with `event_source: "macro"`. Maximum 200 events and five horizons
+of 1–20 sessions. Date-only and during/after-open events use the next full
+session; a timezone-aware pre-open release can use that session. Timezone-
+unverified timestamps use their source date and the next session,
+with that assumption explicitly labeled; no intraday timezone is inferred.
+Returns are split-adjusted closes excluding distributions; gaps and event/price identity
+mismatches exclude a window. Volume compares the response-window average with
+20 prior sessions. Available ETF options compare baseline and final-session
+ATM IV30. Summaries include counts, exclusions, mean/median, positive fraction
+and lower-order-statistic quantiles. Overlapping windows are counted. This is
+retrospective descriptive analysis, not causal or benchmark-adjusted returns.
+
+**Breadth:** Moving-average windows 2–252 (up to three); high/low windows
+2–252; leadership windows 1–252. Defaults are 20/50/200, 252 and 20 respectively.
+Each measure reports its own eligible denominator. Prior-window highs/lows
+exclude the current close. Leaders are the top quintile including ties;
+persistence counts consecutive eligible sessions within the loaded sample.
+A missing constituent does not become a flat return or a negative vote.
+
+## Supporting tools
+
+**Coverage:** Retained ranges, capture freshness, identities, counts, supported
+calendar gaps and presence of workflow inputs. `inputs_available` is not a
+quality certification. Ambiguous company identities are explicit. Structured
+draft counts do not imply approval. News coverage refers to the publication-date
+window; fundamentals report up to 100 eligible periods and expose truncation.
+
+**Collection plan:** Reads the host's fixed, private Equibles queue/account
+files and an existing daily receipt if present. Optional `date` is today through
+seven days ahead; `limit` is 1–500 (default 100), with explicit truncation.
+Reports persisted due dates, phase, lane, blocking/backoff and saved account
+quota. Queue eligibility is separate from quota availability. An order hint
+assumes one request per task; actual work can take multiple requests. Normal
+execution may reclassify the queue using the earnings calendar. Configured
+02:00 America/Toronto slots do not prove live timer activation. No requests are
+reserved or executed and no state is written.
+
+## Validation scope
+
+Focused offline tests cover calculations, capture membership, cutoff exclusion,
+identity/basis gaps, citations, queue projection, read-only fingerprints, public
+CLI calls, discovery/version selection, exact predecessor preservation and
+reproducible generated contracts. Fixtures use temporary stores; live providers,
+operational collection and deployment are outside this change.
+
+Recorded outcome: all 27 new tests and 55 existing reader/platform checks pass
+across the focused run and correction rerun. Two older assertions in
+`test_sharadar_company_tools` and `test_forward_pe_tools` still compare historical
+migration inventories to the current inventory; both already fail against the
+saved starting registry. This change leaves migration declarations unchanged.
+The frozen v1 catalog, exact 2.93 predecessor, generated-artifact check and real
+launcher discovery are verified. No full-suite or live-provider claim is made.
+
+
+## September 29 implementation maintenance
+
+The two historical compatibility assertions noted in the original validation
+record now use their frozen release profiles and separately verify current
+compatibility. Their historical contract hashes are unchanged.
+
+The saved Equibles collection plan now shares its pure queue-selection policy
+with the collector. Its persisted-queue scope and read-only result are unchanged.
+Breadth converts each symbol/session price once within the request and reuses
+those numeric values across windows. Slice order, Decimal summation order,
+eligibility, missingness, cutoff behavior and output contracts are preserved.
+No cross-request cache, live fetch, store write or new tool version is introduced.
+
+
+### Composed-tool profile
+
+On 2026-09-29, `cProfile` measured 16 dispatcher calls within the existing
+`RetainedResearchPublicTests` fixtures: successors/watchlist coverage,
+transcript comparison/fundamental screening, and prices/Theta/breadth/events.
+Fixture creation and the test harness's before/after mutation fingerprints were
+outside the measured dispatcher span. The integration assertions and fingerprints
+still ran. This used only temporary stores, with provider connections blocked.
+
+The samples took 14–243 ms per dispatcher call under profiling. Each sampled
+price consumer selected its requested series once, except event response, which
+selected the same query twice for close and volume. Across its three scenarios,
+both selections together took 13–14 ms of 213–243 ms total (about 6%). Serialization
+and contract construction accounted for much more of the measured cost. This is
+a small fixture sample, including cold imports, not a production latency target.
+
+No further query cache or repository refactor was justified by this sample.
+The earlier breadth optimization remains request-local. If larger retained
+histories later show a material selection cost, benchmark an opt-in combined
+close/volume read with exact output, cutoff, provenance and missingness parity
+before changing the reader. Preserve the independent domain ownership and
+existing physical-store lock rules.
+
+## Peer comparison and guidance timeline — October 10, 2026
+
+Registry `2.98.0` / catalog `2.41.0` adds
+`company.compare_peers@1.0.0` and `company.get_guidance_history@2.0.0`.
+These bounded, local read-only tools reuse retained classifications, fundamentals
+and transcript evidence. Database structure, existing tool schemas and existing
+defaults are unchanged; guidance v2 is explicit opt-in. The
+[agent guide](../LOCAL_AGENT_TOOLS.md#peer-comparison-cumulative-options-and-guidance-timeline--october-10-2026)
+owns launcher discovery and copyable request envelopes. The original September
+28 inventory and validation record above remain historical evidence.
+
+### Peer comparison
+
+The required `symbol` anchors a saved FMP industry, or sector when
+`group_by: "sector"`. With no `peers`, the complete retained group is selected
+only when it contains at most 20 names including the anchor. Larger groups
+return candidate names and `explicit_peer_selection_required` without sampling.
+Explicit `peers` accepts 1–19 unique names excluding the anchor. Missing anchor
+classification yields `anchor_classification_unavailable`; unknown and off-group
+requested peers produce exclusions. FMP is the classification authority; these
+labels do not establish official GICS or historical effective membership.
+
+The underlying `company.screen_fundamentals@1.0.0` supplies source-native
+Sharadar metrics, optional proxies, criteria and date selectors. Supported
+metrics are `revenue`, `grossmargin`, `netmargin`, `roe`, `roa`, `de`,
+`pe`, `pb`, `ps`, `evsales`, `evebitda`, `revenue_growth_yoy`,
+`forward_pe_proxy`, `forward_eps_proxy` and `price_return_21_sessions`.
+Defaults are `ARQ`, metrics `revenue_growth_yoy/netmargin/de/pe`, ranking by
+`revenue_growth_yoy` descending and no criteria. The ranking metric and any
+criterion metrics are included even if omitted from `metrics`. Criteria have
+at most eight minimum/maximum bounds and label `passes`/exclusions; they do
+not remove failing rows from otherwise comparable rankings.
+
+Classification and fundamentals join only through explicit FMP and Sharadar
+provider mappings from the same cutoff-eligible selected membership, matching
+source symbol and Sharadar subject/symbol. Conflicting known instrument or CIK
+identities are rejected. `identity_link_json` retains mapping IDs, membership,
+provider subject and linkage basis. A Sharadar mapping without complete
+instrument/CIK evidence stays `partial`; no source-native identity is invented.
+The underlying screen's optional proxy/price metrics retain its stricter
+instrument-link requirements and can remain missing.
+
+`peer_comparison_row` preserves source capture/version IDs, metric dates,
+classification evidence, missingness and identity links. Rows rank within
+matching dimension, calendar period and applicable metric date.
+`revenue` and `forward_eps_proxy` additionally require known matching currency.
+Dimensionless ranks set only `ranking_cohort_json.currency` to
+`not_applicable_dimensionless_metric`; original `cohort_json.currency` remains
+unchanged. Separate cohorts can each contain rank 1. Equal values share
+competition rank; singleton percentile is null. Missing sources, identities,
+requested periods and ranking metrics remain explicit and unranked.
+`ranking_status`, `rank_cohort_size` and `ranking_cohort_json` must travel
+with the rank; it is a selected-cohort comparison, not a universe-wide score.
+
+### Management guidance timeline
+
+Required `ticker` selects retained calls. Optional `limit` is 1–20 (default
+8), `start_date`/`end_date` filter actual call dates inclusively, and
+`include_blocked` defaults to false. `mode` defaults to `latest`; a historical
+cutoff requires `mode: "as_of"` and an offset-aware `as_of` together.
+
+Selection uses the latest eligible retained capture for each provider event,
+then the most recent calls, and displays the selected window by actual call date
+ascending. Unknown dates sort last and cannot satisfy date filters; fiscal
+periods do not substitute for dates. Capture/source availability and extraction
+completion must satisfy the cutoff. A newer capture without a saved draft is a
+visible gap; the reader does not fall back to an older analyzed capture.
+
+| Record type | Contents |
+| --- | --- |
+| `guidance_timeline` | Cutoff, selection, eligible/selected call counts, `omitted_older_calls`, and zero provider/model requests |
+| `guidance_call` | Capture, instrument, call-date basis, analysis/schema IDs, availability, automatic quality, latest review and guidance status |
+| `guidance_item` | Original saved guidance object, item index and call/capture/analysis association |
+| `guidance_evidence` | Original cited source turn ID, pointer, hashes, speaker metadata and excerpt |
+| `guidance_unresolved_references` | Invalid or out-of-range source references |
+| `guidance_change` | Adjacent selected-call comparison or an explicit reason it could not be established |
+
+Comparison never bridges an intervening call gap. It requires the same instrument
+and schema, strictly increasing known call dates, automatic
+`accepted`/`accepted_with_flags` assessments, no unresolved citations, and
+either no review or a latest review of `accepted`, `accepted_with_flags`,
+`approved` or `pass`. Other reviews suppress comparison. Exposing blocked
+items with `include_blocked: true` does not qualify them for numeric changes.
+
+Items match unique normalized metric and period labels. Numeric point/range
+changes also require matching numeric kind, unit and qualifier. One-sided items
+are labelled `only_in_before_saved_summary` or
+`only_in_after_saved_summary`; neither means withdrawn or newly issued guidance.
+
+Citations retain exact turn IDs and hashes. Excerpts are capped at 1,200
+characters and carry `excerpt_truncated`; retrieve complete cited turns using
+`company.get_transcript@2.0.0` with the returned `capture_id` and `turn_ids`
+(at most 20 per call), preserving the same cutoff. Reader bounds include 512
+eligible captures, 40 cited turns per selected call, 32 MiB source text, 4 MiB
+saved draft output and 2,000 result records under the normal 8 MiB response cap.
+Exceeding resource bounds fails explicitly. All guidance remains saved model
+draft content with separate quality/review evidence; no fresh extraction runs.

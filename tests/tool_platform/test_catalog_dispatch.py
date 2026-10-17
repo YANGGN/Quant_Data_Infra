@@ -25,7 +25,12 @@ from quant_data.registry import (
 )
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
-from quant_data.tool_platform.catalog import FAMILY_COUNTS
+from quant_data.tool_platform.catalog import (
+    ADDITIVE_PUBLIC_TOOL_NAMES,
+    CURRENT_FAMILY_COUNTS,
+    CURRENT_PUBLIC_TOOL_NAMES,
+    FAMILY_COUNTS,
+)
 from quant_data.tool_platform.context import (
     CancellationToken,
     Deadline,
@@ -38,6 +43,7 @@ from quant_data.tool_platform.results import QueryResult
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
 CATALOG_PATH = PROJECT_ROOT / "quant_data" / "generated" / "tool_contract_schemas_v1.json"
+CATALOG_SHA256 = "a2469c903cc6c9dae64ea29c4d3b543837a37d4989277290220061101d28de87"
 
 
 def explicit_nonexistent_stores(root: Path) -> StoreMap:
@@ -65,23 +71,59 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
         self.temporary.cleanup()
 
     def test_exact_generated_inventory_examples_and_legacy_projection(self) -> None:
-        self.assertEqual(self.registry.schema_version, "1.5.0")
-        self.assertEqual(self.registry.registry_version, "2.7.0")
+        self.assertEqual(self.registry.schema_version, "1.9.0")
+        self.assertEqual(self.registry.registry_version, "2.94.0")
+        self.assertEqual(
+            self.registry.raw["tool_version_schema_catalog"]["schema_version"],
+            "2.38.0",
+        )
+        regression_v3 = self.registry.tool(
+            "econometrics.regression",
+            "3.0.0",
+        )
+        self.assertEqual(
+            regression_v3["operation_graph_id"],
+            "tool_platform.econometrics.regression.v3",
+        )
         stage5 = stage5_registry_profile(self.registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
         self.assertEqual(stage5.registry_version, "2.3.0")
         self.assertEqual([item["id"] for item in stage5.dashboard], ["stage1.overview"])
-        self.assertEqual(tuple(item["id"] for item in self.registry.tools), PUBLIC_TOOL_NAMES)
-        counts = {name: 0 for name in FAMILY_COUNTS}
+        self.assertEqual(
+            tuple(item["id"] for item in self.registry.tools),
+            CURRENT_PUBLIC_TOOL_NAMES,
+        )
+        self.assertEqual(
+            tuple(item["id"] for item in stage5.tools),
+            PUBLIC_TOOL_NAMES,
+        )
+        counts = {name: 0 for name in CURRENT_FAMILY_COUNTS}
         for declaration in self.registry.tools:
             counts[declaration["family"]] += 1
-            self.assertEqual(declaration["compatibility"]["status"],
-                "recovered_fixture_validated" if declaration["id"] in {
-                    "macro.get_series", "timeseries.describe"
-                } else "forward_reconstructed_v1")
+            if declaration["id"] in ADDITIVE_PUBLIC_TOOL_NAMES:
+                expected_status = "additive_native_v1"
+            elif declaration["id"] in {"macro.get_series", "timeseries.describe"}:
+                expected_status = "recovered_fixture_validated"
+            else:
+                expected_status = "forward_reconstructed_v1"
+            self.assertEqual(
+                declaration["compatibility"]["status"],
+                expected_status,
+            )
             for example in declaration["examples"]:
                 validate_schema(example, declaration["input_schema"])
-        self.assertEqual(counts, FAMILY_COUNTS)
+        self.assertEqual(counts, CURRENT_FAMILY_COUNTS)
+        self.assertEqual(
+            {
+                **FAMILY_COUNTS,
+                "macro": FAMILY_COUNTS["macro"] + 1,
+                "market": FAMILY_COUNTS["market"] + 5,
+                "company": FAMILY_COUNTS["company"] + 10,
+                "options": FAMILY_COUNTS["options"] + 7,
+                "research": FAMILY_COUNTS["research"] + 18,
+            },
+            CURRENT_FAMILY_COUNTS,
+        )
         stage4 = stage4_registry_profile(self.registry)
         self.assertEqual(stage4.schema_version, "1.0.0")
         self.assertEqual([item["id"] for item in stage4.tools],
@@ -91,17 +133,37 @@ class Stage5CatalogAndDispatchTests(unittest.TestCase):
     def test_generated_artifacts_are_current_and_checksum_bound(self) -> None:
         before = (hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest(),
             hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest())
-        generate(PROJECT_ROOT, check=True)
+        self.assertEqual(before[1], CATALOG_SHA256)
+        # Keep the real generator and its lock inside this explicit fixture root.
+        from quant_data.tool_platform.generate import (
+            REGISTRY_RESOURCE, CATALOG_RESOURCE, VERSIONED_CATALOG_RESOURCE,
+        )
+        resources = (REGISTRY_RESOURCE, CATALOG_RESOURCE, VERSIONED_CATALOG_RESOURCE)
+        for resource in resources:
+            target = self.root / resource
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes((PROJECT_ROOT / resource).read_bytes())
+        generate(self.root, check=True)
+        for resource in resources:
+            self.assertEqual((self.root / resource).read_bytes(),
+                (PROJECT_ROOT / resource).read_bytes())
         after = (hashlib.sha256(REGISTRY_PATH.read_bytes()).hexdigest(),
             hashlib.sha256(CATALOG_PATH.read_bytes()).hexdigest())
         self.assertEqual(before, after)
+        self.assertEqual(after[1], CATALOG_SHA256)
         self.assertEqual(after[1], self.registry.raw["tool_schema_catalog"]["sha256"])
 
-    def test_manifest_has_57_sanitized_generated_contracts(self) -> None:
+    def test_manifest_has_98_sanitized_contracts(self) -> None:
         manifest = self.dispatcher.manifest()
-        self.assertEqual(manifest["milestone"], {"id": "stage5", "status": "fixture_validated"})
-        self.assertEqual([item["name"] for item in manifest["tools"]], list(PUBLIC_TOOL_NAMES))
-        self.assertEqual(len(manifest["tools"]), 57)
+        self.assertEqual(
+            manifest["milestone"],
+            {"id": "tool_platform", "status": "active_read_only"},
+        )
+        self.assertEqual(
+            [item["name"] for item in manifest["tools"]],
+            list(CURRENT_PUBLIC_TOOL_NAMES),
+        )
+        self.assertEqual(len(manifest["tools"]), 98)
         for item in manifest["tools"]:
             self.assertNotIn("handler", item)
             self.assertIn("operation_graph_id", item)

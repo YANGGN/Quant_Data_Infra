@@ -23,7 +23,7 @@ from quant_data.operations.manual_backfill import (
     _default_fmp_bindings,
     main,
 )
-from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry
+from quant_data.registry import CANONICAL_REGISTRY_PATH, load_registry, stage9_registry_profile
 from quant_data.stage9 import _response_bytes
 from quant_data.stores import StoreMap, StoreRole, read_connection
 
@@ -418,10 +418,12 @@ class Stage9ManualBackfillTests(unittest.TestCase):
 
     def test_default_scratch_correction_path_is_network_free_and_complete(self) -> None:
         project_root = Path(__file__).resolve().parents[2]
-        registry = load_registry(
-            project_root / CANONICAL_REGISTRY_PATH,
-            project_root=project_root,
-            environment={},
+        registry = stage9_registry_profile(
+            load_registry(
+                project_root / CANONICAL_REGISTRY_PATH,
+                project_root=project_root,
+                environment={},
+            )
         )
         approved_target = self.root / "default-correction-target"
         rehearsal = _store_map(approved_target / "stores")

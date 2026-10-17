@@ -7,7 +7,8 @@ offline executable and independent verification on 2026-08-10. The user
 explicitly waived its unavailable browser-automation check. Chart and
 algorithm/backtest work remains deferred. The bounded fixture-only Stage 8 JSON
 snapshot and dependency-free static Atlas passed their primary offline fixture
-and independent gates; browser verification remains pending.
+and independent gates. The bounded Stage 8 gate was accepted on 2026-08-14
+with an explicit waiver for unavailable in-app browser automation.
 
 Reference reviewed: 2026-08-09 - [ThesisTrade](https://www.thesistrade.ai/)
 
@@ -49,6 +50,45 @@ with SHA-256
 `262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a`.
 The CSS and JavaScript are local assets too; the browser makes no reference-site
 or remote-font request at runtime.
+
+### 1.2 Canonical Inspector workspace refresh
+
+Accepted: 2026-09-05 — user-approved design preview and implementation.
+
+The current Canonical Data Inspector uses an Inspector-specific shell and local
+presentation assets over the existing shared light-theme tokens and bundled
+Inter font. Its grouped navigation covers all fixed data views plus Current
+news, Data status, and Agent Tools. Compact labelled query controls give the
+results more space; numeric columns use tabular figures and end alignment.
+
+Record selection progressively adds a contextual panel containing the original
+row fields. The presentation preserves numeric lexemes, date-only precision,
+availability and capture timestamps, and distinct null, empty-string, boolean,
+and zero values. Complete table data and fixed query forms remain available
+without JavaScript. Narrow screens retain all navigation destinations and
+contain horizontal table overflow. Visible keyboard focus, focus restoration
+when closing a record, and reduced-motion behavior apply throughout.
+
+The shared shell also styles the existing news, retained-status, and public-tool
+surfaces. Tool schemas, latest-version selection, reusable series, strict-JSON
+previews, read templates, pagination, and server boundaries retain their existing
+contracts. Retained freshness is not provider or scheduler health. This refresh
+adds no data reader, operational-store access, provider request, ingestion,
+export, hosting, or deployment authority. Frozen Stage 6 and Atlas assets and
+historical acceptance evidence remain unchanged.
+
+
+The follow-up Data status table adds Refresh Cadence and Next Scheduled Fetch
+immediately after Last successful capture. Cadence reflects the loaded local
+timer calendar, and next triggers preserve the UTC timestamp with an explicit
+zone label. Shared datasets disclose multiple schedules and the earliest known
+batch start. Inactive/unmapped and unavailable schedules remain distinct.
+These HTML-only schedule fields are included in record details and remain
+readable without JavaScript; retained freshness and its JSON contract stay
+separate from the local timer snapshot. Last successful capture displays New
+York time with the date-appropriate EST/EDT label and original fractional
+precision; its original timestamp remains in the machine-readable markup.
+Next Scheduled Fetch stays labelled UTC.
 
 ## 2. Desired feel
 
@@ -284,9 +324,10 @@ open.
 ### 9.2 Current bounded Stage 8 evidence state
 
 Stage 8's primary and independent offline gates passed with stable evidence
-pins. Browser accessibility/security verification remains pending; the exact
-executable evidence is recorded in
-[Stage 8 evidence](STAGE8_EVIDENCE.md).
+pins. On 2026-08-14 the user explicitly waived unavailable in-app browser
+automation and accepted the bounded gate. Browser accessibility/security
+observations remain unrecorded and are not claimed as passing evidence. The
+exact executable evidence is recorded in [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 Stage 8 Atlas UI work requires:
 

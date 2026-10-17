@@ -1,0 +1,16 @@
+[Unit]
+Description=Options monitoring aggregates and private Sites publication
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/.operations/options-monitor/connection.json
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/home/volatility/Python_Projects/Quant_Data_Infra/.local/options-monitor-runtime/venv312/bin/python -m quant_data.operations.options_monitor --project-root /home/volatility/Python_Projects/Quant_Data_Infra
+TimeoutStartSec=270
+Restart=no
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/data/.operations/options-monitor /home/volatility/Python_Projects/Quant_Data_Infra/data/.quant_data_locks

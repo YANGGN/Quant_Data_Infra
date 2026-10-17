@@ -1,0 +1,30 @@
+[
+  {
+    "symbol": "AAPL",
+    "publishedDate": "2026-08-14T09:30:00Z",
+    "title": "Offset-aware article",
+    "text": "",
+    "url": "https://news.example.test/story/shared",
+    "site": "Example Wire",
+    "image": null,
+    "providerExtra": "raw-only"
+  },
+  {
+    "symbol": "MSFT",
+    "publishedDate": "2026-08-14",
+    "title": "Date-only article",
+    "text": "Second body",
+    "url": "https://news.example.test/story/shared",
+    "site": "Example Wire",
+    "image": ""
+  },
+  {
+    "symbol": "TSLA",
+    "publishedDate": "2026-08-14T10:30:00",
+    "title": "Naive-time article",
+    "text": "Third body",
+    "url": "https://news.example.test/story/third",
+    "site": "Example Wire",
+    "image": "https://images.example.test/third.png"
+  }
+]

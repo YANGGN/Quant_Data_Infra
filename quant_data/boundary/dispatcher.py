@@ -1,4 +1,4 @@
-"""Fixed read-only adapters for the Stage 1 public tool subset.
+"""Fixed read-only adapters for the versioned public tool surface.
 
 The dispatcher deliberately contains no SQL or store-path selection.  It
 constructs typed, host-routed requests for the macro gateway and composes a
@@ -7,8 +7,12 @@ typed :class:`~quant_data.contracts.TimeSeries` in memory for description.
 
 from __future__ import annotations
 
+from quant_data.tool_platform.price_basis_versions import PRICE_BASIS_VERSIONS
+from quant_data.tool_platform.price_basis import extend_price_basis_schema
+
 import copy
 import hashlib
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -17,7 +21,11 @@ from threading import BoundedSemaphore, local
 from time import perf_counter_ns
 from typing import Any, Mapping
 
-from quant_data.contracts import Observation, TimeSeries
+from quant_data.contracts import (
+    EXACT_DECIMAL_QUALITY_FLAG_PREFIX,
+    Observation,
+    TimeSeries,
+)
 from quant_data.errors import (
     ConcurrencyLimitError,
     InternalOutputError,
@@ -27,7 +35,12 @@ from quant_data.errors import (
     ValidationError,
 )
 from quant_data.json_codec import dumps_strict
-from quant_data.registry import PUBLIC_TOOL_NAMES, Registry, STAGE1_TOOL_NAMES
+from quant_data.registry import (
+    CURRENT_PUBLIC_TOOL_NAMES,
+    PUBLIC_TOOL_NAMES,
+    Registry,
+    STAGE1_TOOL_NAMES,
+)
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap
 from quant_data.temporal import DateOnlyPolicy, TemporalValue, parse_date
@@ -36,7 +49,22 @@ from quant_data.tool_platform.arguments import (
     preflight_dimensions,
     public_arguments,
 )
-from quant_data.tool_platform.catalog import tool_profiles
+from quant_data.tool_platform.catalog import (
+    ADDITIVE_PUBLIC_TOOL_NAMES,
+    ADDITIVE_STAGE10_STATISTICS_TOOLS,
+    VERSIONED_DATA_QUALITY_TOOLS,
+    VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_ENERGY_TOOLS,
+    VERSIONED_COMPANY_FUNDAMENTAL_TOOLS,
+    VERSIONED_MACRO_CONDITION_TOOLS,
+    VERSIONED_MARKET_RETURN_TOOLS,
+    VERSIONED_RATE_TOOLS,
+    VERSIONED_RESEARCH_ANALYTIC_TOOLS,
+    VERSIONED_RESEARCH_STATE_TOOLS,
+    VERSIONED_TECHNICAL_INDICATOR_TOOLS,
+    VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+    current_tool_profiles,
+)
 
 from quant_data.tool_platform.context import (
     CapabilitySet,
@@ -54,10 +82,150 @@ _TIME_SERIES_VERSION = "1.0.0"
 _DESCRIPTION_CONTRACT = "quant_data.timeseries_description"
 _DESCRIPTION_VERSION = "1.0.0"
 _HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
+_SEMANTIC_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
 
 _STAGE5_INPUT_KINDS = {
-    profile.name: profile.input_kind for profile in tool_profiles()
+    profile.name: profile.input_kind for profile in current_tool_profiles()
+}
+from quant_data.tool_platform.retained_research_contracts import KINDS as RETAINED_KINDS, SUCCESSORS as RETAINED_SUCCESSORS
+_VERSIONED_INPUT_KINDS = {
+    ("company.get_guidance_history", "2.0.0"): "guidance_timeline_v2",
+    **{(name, "2.0.0"): RETAINED_KINDS[name] for name in RETAINED_SUCCESSORS},
+    ("company.get_transcript", "2.0.0"): "transcript_turns_v2",
+    ("news.search", "2.0.0"): "current_news_search_v2",
+    ("news.search", "2.1.0"): "current_news_search_v2_1",
+    ("news.search", "2.2.0"): "current_news_search_v2_2",
+    ("news.search", "2.3.0"): "current_news_search_v2_3",
+    ("macro.search_series", "2.0.0"): "canonical_macro_search_v2",
+    ("macro.describe_series", "2.0.0"): "canonical_macro_describe_v2",
+    ("macro.get_series", "2.0.0"): "canonical_macro_series_v2",
+    ("macro.get_release_calendar", "2.0.0"): "macro_release_calendar_v2",
+    (
+        "market.cross_sectional_performance",
+        "2.0.0",
+    ): "stage10_cross_sectional_performance_v2",
+    (
+        "market.cross_sectional_performance",
+        "2.1.0",
+    ): "stage10_cross_sectional_analytics_v2_1",
+    ("macro.revision_analysis", "2.0.0"): "macro_revision_v2",
+    (
+        "macro.standardize_surprises",
+        "2.0.0",
+    ): "macro_surprise_standardization_v2",
+    ("rates.get_funding_conditions", "2.0.0"): "funding_conditions_v2",
+    (
+        "rates.get_repo_facility_usage",
+        "2.0.0",
+    ): "macro_observed_snapshot_v2",
+    ("rates.curve_analytics", "2.0.0"): "curve_analytics_v2",
+    (
+        "macro.get_liquidity_snapshot",
+        "2.0.0",
+    ): "macro_observed_snapshot_v2",
+    ("macro.get_liquidity_impulse", "2.0.0"): "liquidity_impulse_v2",
+    (
+        "macro.get_credit_conditions",
+        "2.0.0",
+    ): "macro_observed_snapshot_v2",
+    ("macro.regime_snapshot", "2.0.0"): "macro_regime_v2",
+    ("research.liquidity_credit_state", "2.0.0"): "macro_regime_v2",
+    (
+        "energy.get_electricity_retail_sales",
+        "2.0.0",
+    ): "energy_electricity_retail_v2",
+    (
+        "energy.get_electricity_retail_sales",
+        "2.1.0",
+    ): "energy_electricity_retail_v2",
+    (
+        "energy.get_weekly_fundamentals",
+        "2.0.0",
+    ): "energy_weekly_fundamentals_v2",
+    (
+        "energy.get_weekly_fundamentals",
+        "2.1.0",
+    ): "energy_weekly_fundamentals_v2",
+    ("company.get_fundamentals", "3.0.0"): "get_fundamentals_sharadar_v3",
+    ("company.get_share_count_history", "3.0.0"): "get_share_count_history_sharadar_v3",
+    ("company.get_fundamentals", "2.0.0"): "company_fundamentals_v2",
+    (
+        "company.get_fundamentals",
+        "2.1.0",
+    ): "company_fundamental_ratios_v2_1",
+    ("company.search_filings", "2.0.0"): "company_filing_search_v2",
+    ("company.get_share_count_history", "2.0.0"): "company_share_count_history_v2",
+    ("market.search_instruments", "2.0.0"): "stage10_market_instrument_search_v2",
+    ("options.search_captures", "2.0.0"): "options_capture_search_v2",
+    ("options.search_contracts", "2.0.0"): "options_contract_search_v2",
+    ("options.get_surface_snapshot", "2.0.0"): "options_surface_snapshot_v2",
+    (
+        "portfolio.get_etf_allocator_snapshot",
+        "2.0.0",
+    ): "etf_allocator_snapshot_v1",
+    **{
+        (name, "2.0.0"): "stage10_market_return_v2"
+        for name in VERSIONED_MARKET_RETURN_TOOLS
+    },
+    (
+        "market.technical_indicators",
+        "2.0.0",
+    ): "stage10_technical_indicator_v2",
+    (
+        "market.technical_indicators",
+        "2.1.0",
+    ): "stage10_technical_indicator_v2_1",
+    (
+        "market.technical_indicators",
+        "2.2.0",
+    ): "stage10_technical_indicator_v2_2",
+    (
+        "market.technical_indicators",
+        "2.3.0",
+    ): "stage10_technical_indicator_v2_3",
+    (
+        "market.technical_indicators",
+        "2.4.0",
+    ): "stage10_technical_indicator_v2_4",
+    ("timeseries.describe", "2.0.0"): "stage10_market_describe_v2",
+    (
+        "market.technical_indicators",
+        "2.5.0",
+    ): "stage10_technical_indicator_v2_5",
+    (
+        "market.technical_indicators",
+        "2.6.0",
+    ): "stage10_technical_indicator_v2_6",
+    (
+        "market.technical_indicators",
+        "2.7.0",
+    ): "stage10_technical_indicator_v2_7",
+    ("timeseries.align", "2.0.0"): "stage10_market_align_v2",
+    ("timeseries.correlation", "2.0.0"): "stage10_market_correlation_v2",
+    ("timeseries.transform", "2.0.0"): "stage10_market_transform_v2",
+    ("data.quality_audit", "2.0.0"): "stage10_data_quality_v2",
+    ("stats.distribution_diagnostics", "1.0.0"): "stage10_distribution_v1",
+    ("stats.covariance_matrix", "1.0.0"): "stage10_covariance_v1",
+    ("stats.bootstrap_confidence_interval", "1.0.0"): "stage10_bootstrap_v1",
+    ("stats.principal_components", "1.0.0"): "stage10_principal_components_v1",
+    ("econometrics.regression", "2.0.0"): "stage10_market_regression_v2",
+    (
+        "econometrics.rolling_regression",
+        "2.0.0",
+    ): "stage10_market_rolling_regression_v2",
+    ("econometrics.stationarity", "2.0.0"): "stage10_market_stationarity_v2",
+    ("econometrics.stationarity", "2.1.0"): "stage10_market_stationarity_v2_1",
+    (
+        "econometrics.structural_breaks",
+        "2.0.0",
+    ): "stage10_market_structural_breaks_v2",
+    ("econometrics.regression", "2.1.0"): "stage10_market_regression_v2_1",
+    ("econometrics.regression", "3.0.0"): "stage10_market_regression_model_suite_v3",
+    (
+        "econometrics.rolling_regression",
+        "2.1.0",
+    ): "stage10_market_rolling_regression_v2_1",
 }
 
 class UnknownToolError(QuantDataError):
@@ -65,6 +233,13 @@ class UnknownToolError(QuantDataError):
 
     code = "unknown_tool"
     http_status = 404
+
+
+class UnsupportedToolVersionError(QuantDataError):
+    """A known logical tool does not expose the requested semantic version."""
+
+    code = "unsupported_tool_version"
+    http_status = 400
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,7 +284,9 @@ class ToolDispatcher:
         registry: Registry,
         *,
         cancellation: CancellationToken | None = None,
+        quote_fetcher=None,
     ) -> None:
+        self._quote_fetcher = quote_fetcher
         self._store_map = store_map
         self._registry = registry
         self._cancellation = (
@@ -117,7 +294,11 @@ class ToolDispatcher:
         )
         self._receipt_state = local()
         self._names = tuple(tool["id"] for tool in registry.tools)
-        if self._names not in (STAGE1_TOOL_NAMES, PUBLIC_TOOL_NAMES):
+        if self._names not in (
+            STAGE1_TOOL_NAMES,
+            PUBLIC_TOOL_NAMES,
+            CURRENT_PUBLIC_TOOL_NAMES,
+        ):
             raise ValidationError("Registry does not expose a reviewed tool inventory")
         self._registry_sha256 = registry.source_sha256 or hashlib.sha256(
             registry.source_path.read_bytes()
@@ -142,7 +323,9 @@ class ToolDispatcher:
                     "stage1_milestone_status"
                 ],
             }
-        return {"id": "stage5", "status": "fixture_validated"}
+        if self._names == PUBLIC_TOOL_NAMES:
+            return {"id": "stage5", "status": "fixture_validated"}
+        return {"id": "tool_platform", "status": "active_read_only"}
 
 
     def manifest(self) -> dict[str, Any]:
@@ -155,42 +338,33 @@ class ToolDispatcher:
 
         public_tools: list[dict[str, Any]] = []
         for declaration in self._registry.tools:
-            public = {
-                "name": declaration["id"],
-                "version": declaration["version"],
-                "read_only": True,
-                "datasets": list(declaration["datasets"]),
-                "input_schema": copy.deepcopy(declaration["input_schema"]),
-                "output_schema": copy.deepcopy(declaration["output_schema"]),
-                "examples": copy.deepcopy(declaration["examples"]),
-                "workload_bounds": copy.deepcopy(declaration["workload_bounds"]),
-                "availability_policy": copy.deepcopy(declaration["availability_policy"]),
-            }
-            for field_name in (
-                "family",
-                "api_version",
-                "operation_version",
-                "lifecycle",
-                "compatibility",
-                "description",
-                "assumptions",
-                "operation_graph_id",
-                "stores",
-                "input_type",
-                "input_schema_id",
-                "output_type",
-                "output_schema_id",
-                "cost_model",
-                "timeout_class",
-                "live_capability",
-                "contracts",
-                "composable",
-                "observability",
-                "owner",
-                "review_requirements",
-            ):
-                if field_name in declaration:
-                    public[field_name] = copy.deepcopy(declaration[field_name])
+            public = self._public_declaration(declaration)
+            policy = self._registry.version_policy(str(declaration["id"]))
+            if policy is not None:
+                deprecations = {
+                    item["version"]: item for item in policy["deprecations"]
+                }
+                versions: list[dict[str, Any]] = []
+                for variant in self._registry.versions_for(str(declaration["id"])):
+                    version_public = self._public_declaration(variant)
+                    deprecation = deprecations.get(variant["version"])
+                    if deprecation is not None:
+                        version_public["deprecation"] = copy.deepcopy(deprecation)
+                        version_public["lifecycle"] = "deprecated"
+                    versions.append(version_public)
+                public["version_selector"] = {
+                    "field": policy["selector_field"],
+                    "default_version": policy["default_version"],
+                    "explicit_selection_required_for": [
+                        item["version"]
+                        for item in policy["variants"]
+                    ],
+                }
+                public["versions"] = versions
+                public["deprecation"] = copy.deepcopy(
+                    deprecations[declaration["version"]]
+                )
+                public["lifecycle"] = "deprecated"
             public_tools.append(public)
 
         result = {
@@ -205,6 +379,46 @@ class ToolDispatcher:
         dumps_strict(result)
         return result
 
+    @staticmethod
+    def _public_declaration(declaration: Mapping[str, Any]) -> dict[str, Any]:
+        public = {
+            "name": declaration["id"],
+            "version": declaration["version"],
+            "read_only": True,
+            "datasets": list(declaration["datasets"]),
+            "input_schema": copy.deepcopy(declaration["input_schema"]),
+            "output_schema": copy.deepcopy(declaration["output_schema"]),
+            "examples": copy.deepcopy(declaration["examples"]),
+            "workload_bounds": copy.deepcopy(declaration["workload_bounds"]),
+            "availability_policy": copy.deepcopy(declaration["availability_policy"]),
+        }
+        for field_name in (
+            "family",
+            "api_version",
+            "operation_version",
+            "lifecycle",
+            "compatibility",
+            "description",
+            "assumptions",
+            "operation_graph_id",
+            "stores",
+            "input_type",
+            "input_schema_id",
+            "output_type",
+            "output_schema_id",
+            "cost_model",
+            "timeout_class",
+            "live_capability",
+            "contracts",
+            "composable",
+            "observability",
+            "owner",
+            "review_requirements",
+        ):
+            if field_name in declaration:
+                public[field_name] = copy.deepcopy(declaration[field_name])
+        return public
+
     def receipt_for(
         self,
         name: str,
@@ -212,12 +426,13 @@ class ToolDispatcher:
         result: Mapping[str, Any] | None = None,
         *,
         error_code: str | None = None,
+        tool_version: str | None = None,
     ) -> ToolReceipt:
         try:
-            declaration = self._tool_declaration(name)
-        except UnknownToolError:
+            declaration = self._tool_declaration(name, tool_version)
+        except (UnknownToolError, UnsupportedToolVersionError):
             if (
-                self._names != PUBLIC_TOOL_NAMES
+                self._names not in (PUBLIC_TOOL_NAMES, CURRENT_PUBLIC_TOOL_NAMES)
                 or error_code is None
                 or not isinstance(name, str)
                 or not name
@@ -232,7 +447,7 @@ class ToolDispatcher:
                 "started_at": "1970-01-01T00:00:00Z", "finished_at": "1970-01-01T00:00:00Z", "elapsed_seconds": Decimal("0")
             }
         details: dict[str, Any] | None = None
-        if self._names == PUBLIC_TOOL_NAMES:
+        if self._names in (PUBLIC_TOOL_NAMES, CURRENT_PUBLIC_TOOL_NAMES):
             raw_arguments = dict(arguments or {})
             if error_code is None:
                 public_arguments = self._public_arguments(raw_arguments)
@@ -241,6 +456,8 @@ class ToolDispatcher:
                     "tool": name,
                     "arguments": public_arguments,
                 }
+                if tool_version is not None:
+                    request_material["tool_version"] = tool_version
             else:
                 series_value = raw_arguments.get("series")
                 public_arguments = {
@@ -261,6 +478,8 @@ class ToolDispatcher:
                     "error_code": error_code,
                     "shape": public_arguments,
                 }
+                if tool_version is not None:
+                    request_material["tool_version"] = tool_version
             if declaration is None:
                 details = {
                     "request_id": hashlib.sha256(
@@ -295,7 +514,7 @@ class ToolDispatcher:
                 return ToolReceipt(
                     registry_revision=self._registry.revision,
                     tool_name=name,
-                    tool_version="unknown",
+                    tool_version=tool_version or "unknown",
                     details=details,
                 )
             public_result = dict(result or {})
@@ -307,6 +526,20 @@ class ToolDispatcher:
                     if isinstance(item, Mapping) and isinstance(item.get("code"), str)
                 }
             )
+            deprecation_warnings: list[dict[str, Any]] = []
+            policy = self._registry.version_policy(name)
+            if policy is not None:
+                deprecation_warnings = [
+                    copy.deepcopy(item)
+                    for item in policy["deprecations"]
+                    if item["version"] == declaration["version"]
+                ]
+                warning_codes = sorted(
+                    {
+                        *warning_codes,
+                        *(item["code"] for item in deprecation_warnings),
+                    }
+                )
             records = public_result.get("records", [])
             series = public_result.get("series", [])
             research_contract = public_result.get("research_contract", {})
@@ -362,6 +595,8 @@ class ToolDispatcher:
                 if isinstance(public_result.get("lineage"), list)
                 else 0,
             }
+            if policy is not None:
+                details["deprecation_warnings"] = deprecation_warnings
         return ToolReceipt(
             registry_revision=self._registry.revision,
             tool_name=name,
@@ -370,7 +605,13 @@ class ToolDispatcher:
         )
 
 
-    def call(self, name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
+    def call(
+        self,
+        name: str,
+        arguments: Mapping[str, Any],
+        *,
+        tool_version: str | None = None,
+    ) -> dict[str, Any]:
         """Execute within the process-wide bounded read-only request pool."""
 
         started_ns = perf_counter_ns()
@@ -385,7 +626,7 @@ class ToolDispatcher:
                 raise ConcurrencyLimitError(
                     "The host read-only execution pool is at capacity"
                 )
-            return self._call_one(name, arguments)
+            return self._call_one(name, arguments, tool_version=tool_version)
         finally:
             if acquired:
                 self._execution_slots.release()
@@ -401,18 +642,26 @@ class ToolDispatcher:
                 / Decimal(1_000_000_000),
             }
 
-    def _call_one(self, name: str, arguments: Mapping[str, Any]) -> dict[str, Any]:
+    def _call_one(
+        self,
+        name: str,
+        arguments: Mapping[str, Any],
+        *,
+        tool_version: str | None,
+    ) -> dict[str, Any]:
         """Validate and execute exactly one registered read-only operation."""
 
-        declaration = self._tool_declaration(name)
+        declaration = self._tool_declaration(name, tool_version)
         if not isinstance(arguments, Mapping):
             raise ValidationError(
                 "Tool arguments must be an object",
                 issues=(Issue("/arguments", "type", "Expected an object"),),
             )
 
-        if name == "timeseries.describe" and isinstance(
-            arguments.get("series"), TimeSeries
+        if (
+            name == "timeseries.describe"
+            and declaration["version"] == "1.0.0"
+            and isinstance(arguments.get("series"), TimeSeries)
         ):
             if set(arguments) != {"series"}:
                 raise ValidationError(
@@ -430,13 +679,22 @@ class ToolDispatcher:
             self._validate_output(result, declaration)
             return result
 
-
         public_material = public_arguments(dict(arguments))
         validate_schema(public_material, declaration["input_schema"])
-        if name in STAGE1_TOOL_NAMES:
+        if name in STAGE1_TOOL_NAMES and declaration["version"] == "1.0.0":
             typed_material = self._typed_arguments(dict(arguments))
         else:
-            dimensions = preflight_dimensions(public_material)
+            price_basis_pair = PRICE_BASIS_VERSIONS.get(name)
+            price_basis_version = (
+                price_basis_pair is not None and declaration["version"] == price_basis_pair[1]
+            )
+            input_version = price_basis_pair[0] if price_basis_version else declaration["version"]
+            input_kind = _VERSIONED_INPUT_KINDS.get(
+                (name, input_version), _STAGE5_INPUT_KINDS[name]
+            )
+            dimensions = preflight_dimensions(
+                public_material, input_kind=input_kind
+            )
             bounds = declaration["workload_bounds"]
             if (
                 dimensions["rows"] > bounds["max_rows"]
@@ -446,12 +704,63 @@ class ToolDispatcher:
                 raise ResourceLimitError(
                     "Tool workload exceeds its registered preflight limits"
                 )
+            decode_series = self._timeseries_from_public
+            if price_basis_version:
+                from quant_data.tool_platform.market_statistics import stage10_market_statistic_series_schema
+                from quant_data.tool_platform.technical_indicator_adapter import stage10_technical_indicator_input_series_schema
+                source_schema = (
+                    stage10_technical_indicator_input_series_schema()
+                    if name == "market.technical_indicators"
+                    else stage10_market_statistic_series_schema()
+                )
+                basis_schema = extend_price_basis_schema(source_schema)
+                decode_series = lambda value: self._timeseries_from_public(value, schema=basis_schema)
+            elif (
+                declaration["version"]
+                in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
+                and name in VERSIONED_TECHNICAL_INDICATOR_TOOLS
+            ):
+                from quant_data.tool_platform.technical_indicator_adapter import (
+                    stage10_technical_indicator_input_series_schema,
+                )
+
+                indicator_schema = (
+                    stage10_technical_indicator_input_series_schema()
+                )
+                decode_series = lambda value: self._timeseries_from_public(
+                    value, schema=indicator_schema
+                )
+            elif (
+                (
+                    declaration["version"] == "2.0.0"
+                    and name in (
+                        *VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+                        *VERSIONED_DATA_QUALITY_TOOLS,
+                        *VERSIONED_ECONOMETRICS_TOOLS,
+                        *VERSIONED_RESEARCH_ANALYTIC_TOOLS,
+                    )
+                )
+                or name in ADDITIVE_STAGE10_STATISTICS_TOOLS
+                or declaration["version"] == "2.1.0"
+                or (
+                    declaration["version"] == "3.0.0"
+                    and name == "econometrics.regression"
+                )
+            ):
+                from quant_data.tool_platform.market_statistics import (
+                    stage10_market_statistic_series_schema,
+                )
+
+                stage10_schema = stage10_market_statistic_series_schema()
+                decode_series = lambda value: self._timeseries_from_public(
+                    value, schema=stage10_schema
+                )
             typed_material = parse_arguments(
-                _STAGE5_INPUT_KINDS[name], public_material, self._timeseries_from_public
+                input_kind, public_material, decode_series
             )
-        if name == "macro.get_series":
+        if name == "macro.get_series" and declaration["version"] == "1.0.0":
             result = self._macro_get_series(public_material)
-        elif name == "timeseries.describe":
+        elif name == "timeseries.describe" and declaration["version"] == "1.0.0":
             result = self._describe(typed_material["series"])
         else:
             context = self._stage5_context(name, declaration)
@@ -465,7 +774,6 @@ class ToolDispatcher:
         self._validate_output(result, declaration)
         return result
 
-
     def describe(self, series: TimeSeries) -> dict[str, Any]:
         """Typed convenience entry point for direct in-process composition."""
 
@@ -474,10 +782,23 @@ class ToolDispatcher:
         series.validate_lineage()
         return self.call("timeseries.describe", {"series": series})
 
-    def _tool_declaration(self, name: str) -> Mapping[str, Any]:
+    def _tool_declaration(
+        self, name: str, tool_version: str | None = None
+    ) -> Mapping[str, Any]:
         if not isinstance(name, str) or name not in self._names:
             raise UnknownToolError("Unknown tool")
-        return self._registry.tool(name)
+        if tool_version is not None and (
+            not isinstance(tool_version, str)
+            or not _SEMANTIC_VERSION.fullmatch(tool_version)
+        ):
+            raise ValidationError(
+                "Tool version must be a semantic version",
+                issues=(Issue("/tool_version", "type", "Expected a semantic version"),),
+            )
+        for declaration in self._registry.versions_for(name):
+            if tool_version is None or declaration["version"] == tool_version:
+                return declaration
+        raise UnsupportedToolVersionError("Unsupported tool version")
 
     def _stage5_context(
         self,
@@ -503,10 +824,20 @@ class ToolDispatcher:
                 max_operations=int(bounds["max_operations"]),
                 max_output_bytes=int(bounds["max_response_bytes"]),
             ),
-            capabilities=CapabilitySet(),
+            capabilities=CapabilitySet(frozenset({"fmp_quote_live"}) if self._quote_fetcher is not None and name == "price_realtime" else frozenset()),
+            quote_fetcher=self._quote_fetcher if name == "price_realtime" else None,
             deadline=deadline,
             cancellation=self._cancellation,
             clock=clock,
+            execution=(
+                "read_only"
+                if (
+                    name in ADDITIVE_PUBLIC_TOOL_NAMES
+                    or declaration["version"]
+                    in {"2.0.0", "2.1.0", "2.2.0", "3.0.0"}
+                )
+                else "offline_fixture"
+            ),
         )
 
     def _typed_arguments(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -639,13 +970,22 @@ class ToolDispatcher:
             },
         }
 
-    def _timeseries_from_public(self, value: Any) -> TimeSeries:
+    def _timeseries_from_public(
+        self,
+        value: Any,
+        *,
+        schema: Mapping[str, Any] | None = None,
+    ) -> TimeSeries:
         """Decode a public envelope into an immutable, fully validated value."""
 
         if isinstance(value, TimeSeries):
             return value
-        macro_schema = self._registry.tool("macro.get_series")["output_schema"]
-        validate_schema(value, macro_schema)
+        selected_schema = (
+            self._registry.tool("macro.get_series")["output_schema"]
+            if schema is None
+            else schema
+        )
+        validate_schema(value, selected_schema)
         if not isinstance(value, Mapping):  # The schema check gives the caller a pointer.
             raise ValidationError("TimeSeries must be an object")
         if value.get("contract") != _TIME_SERIES_CONTRACT or value.get("contract_version") != _TIME_SERIES_VERSION:
@@ -694,8 +1034,6 @@ class ToolDispatcher:
                 "Observation period is inverted",
                 issues=(Issue(f"{pointer}/period_end", "range", "Period end must not precede period start"),),
             )
-        raw_number = value["value"]
-        decimal_value = _as_decimal(raw_number, f"{pointer}/value") if raw_number is not None else None
         dimensions = value["dimensions"]
         if not isinstance(dimensions, Mapping) or any(
             not isinstance(key, str) or not isinstance(item, str)
@@ -707,6 +1045,9 @@ class ToolDispatcher:
             isinstance(flag, str) for flag in quality_flags
         ):
             raise ValidationError("TimeSeries quality flags must be strings")
+        decimal_value = _decimal_from_public_observation(
+            value["value"], quality_flags, pointer
+        )
         return Observation(
             period_start=value["period_start"],
             period_end=value["period_end"],
@@ -772,6 +1113,94 @@ def _as_decimal(value: Any, pointer: str) -> Decimal:
             issues=(Issue(pointer, "finite", "NaN and infinity are not allowed"),),
         )
     return decimal_value
+
+
+def _decimal_from_public_observation(
+    value: Any,
+    quality_flags: list[str] | tuple[str, ...],
+    pointer: str,
+) -> Decimal | None:
+    exact_encodings = tuple(
+        flag.removeprefix(EXACT_DECIMAL_QUALITY_FLAG_PREFIX)
+        for flag in quality_flags
+        if flag.startswith(EXACT_DECIMAL_QUALITY_FLAG_PREFIX)
+    )
+    metadata_pointer = f"{pointer}/quality_flags"
+    if value is None:
+        if exact_encodings:
+            raise ValidationError(
+                "Missing observations cannot carry exact decimal metadata",
+                issues=(
+                    Issue(
+                        metadata_pointer,
+                        "integrity",
+                        "Exact decimal metadata requires a numeric value",
+                    ),
+                ),
+            )
+        return None
+
+    received = _as_decimal(value, f"{pointer}/value")
+    if not exact_encodings:
+        return received
+    if len(exact_encodings) != 1 or not exact_encodings[0]:
+        raise ValidationError(
+            "Exact decimal metadata is invalid",
+            issues=(
+                Issue(
+                    metadata_pointer,
+                    "integrity",
+                    "Expected one exact decimal metadata flag",
+                ),
+            ),
+        )
+    encoded = exact_encodings[0]
+    try:
+        exact = Decimal(encoded)
+    except (InvalidOperation, ValueError) as exc:
+        raise ValidationError(
+            "Exact decimal metadata is invalid",
+            issues=(
+                Issue(
+                    metadata_pointer,
+                    "format",
+                    "Expected a canonical finite decimal",
+                ),
+            ),
+        ) from exc
+    if not exact.is_finite() or dumps_strict(exact) != encoded:
+        raise ValidationError(
+            "Exact decimal metadata is invalid",
+            issues=(
+                Issue(
+                    metadata_pointer,
+                    "format",
+                    "Expected a canonical finite decimal",
+                ),
+            ),
+        )
+    if received == exact:
+        return exact
+
+    try:
+        ordinary_json_value = float(exact)
+    except (OverflowError, ValueError):
+        ordinary_json_value = math.inf
+    if (
+        math.isfinite(ordinary_json_value)
+        and received == Decimal(str(ordinary_json_value))
+    ):
+        return exact
+    raise ValidationError(
+        "Observation value does not match exact decimal metadata",
+        issues=(
+            Issue(
+                f"{pointer}/value",
+                "integrity",
+                "Numeric value conflicts with exact decimal metadata",
+            ),
+        ),
+    )
 
 
 def _stable_unique_strings(values: list[str]) -> list[str]:

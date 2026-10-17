@@ -1,0 +1,4 @@
+[
+  {"symbol":"NST","date":"2026-06-15","recordDate":"2026-06-16","paymentDate":"2026-06-30","declarationDate":"2026-06-01","adjDividend":0.125,"dividend":0.25,"yield":1.23,"frequency":"Quarterly"},
+  {"symbol":"NST","date":"2026-03-15","recordDate":"2026-03-16","paymentDate":"2026-03-30","declarationDate":"2026-03-01","adjDividend":0.1,"dividend":0.2,"yield":0.99,"frequency":"Quarterly"}
+]

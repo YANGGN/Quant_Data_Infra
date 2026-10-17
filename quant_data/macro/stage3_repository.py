@@ -17,7 +17,7 @@ from ..contracts import Observation, TimeSeries
 from ..errors import ResourceLimitError, ValidationError
 from ..json_codec import dumps_strict, loads_strict
 from ..registry import Registry
-from ..stores import StoreMap, StoreRole, read_connection
+from ..stores import StoreMap, StoreRole, quiet_immutable_read_connection
 from ..temporal import (
     DateOnlyPolicy,
     TemporalPrecision,
@@ -131,7 +131,7 @@ class MacroStage3Repository:
     def get_series(self, query: MacroStage3SeriesQuery) -> TimeSeries:
         family = _family_for_series(query.series_id)
         self._validate_mode_policy(family, query)
-        with read_connection(self._store_map, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.MACRO) as connection:
             series = connection.execute(
                 """
                 SELECT series_id, provider, title, frequency, unit,
@@ -254,7 +254,7 @@ class MacroStage3Repository:
 
     def get_recession_periods(self, query: MacroStage3RecessionQuery | None = None) -> tuple[dict[str, Any], ...]:
         request = query or MacroStage3RecessionQuery()
-        with read_connection(self._store_map, StoreRole.MACRO) as connection:
+        with quiet_immutable_read_connection(self._store_map, StoreRole.MACRO) as connection:
             rows = list(
                 connection.execute(
                     """

@@ -1,0 +1,3796 @@
+{
+  "contract": "forward_pe.reviewed_reporting_periods.v1",
+  "created_at": "2026-09-23T04:16:56.457452Z",
+  "cohort": "20260922T103042119554Z.sqlite",
+  "scope": "207 exact reviewed source events. Research-period boundaries only; actual EPS/revenue remain unverified and unchanged.",
+  "rows": [
+    {
+      "symbol": "ABVX",
+      "instrument_id": "stage10_instrument_4af97f908823955b4c388412c9150b38",
+      "natural_identity": "62e3bb1bc6fe273ae3f9938446c0576a38945c785c99904349a56d202c4b7e87",
+      "source_event_date": "2026-05-22",
+      "reviewed_version_id": "fmp_analyst_observation_b7e551fec540ebd0545e0770b55fce12",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-05-22",
+      "reported_period_end": "2026-03-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.abivax.com/events/event-details/q1-2026-financial-results/",
+        "https://ir.abivax.com/static-files/d6576f5c-567b-4993-b711-35378dced1bb"
+      ],
+      "finding": "Official event identifies Q1 2026 and release reports three months ended March 31."
+    },
+    {
+      "symbol": "ADUS",
+      "instrument_id": "stage10_instrument_b20b91562b2bec75e0dd63321bf50dba",
+      "natural_identity": "7e23a818d13f29d3be81d621a36d4b096bd2a85f06a61375850ed693b92ddef2",
+      "source_event_date": "2026-08-03",
+      "reviewed_version_id": "fmp_analyst_observation_ba6f4ee1b9f9d308a32ddd1c99dfc15e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-03",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1468328/000143774926025448/ex_997368.htm"
+      ],
+      "finding": "Issuer filing explicitly labels second quarter and six months ended June 30."
+    },
+    {
+      "symbol": "AEHR",
+      "instrument_id": "stage10_instrument_92bd01f8d2d4f063deb7f08f5cb3c7bd",
+      "natural_identity": "74f77f9fa46e2eeb0838dada880be35365edcbae65f0cbac24924ddf352714fd",
+      "source_event_date": "2026-07-14",
+      "reviewed_version_id": "fmp_analyst_observation_0d4911dbc499bd3fc4fd8026a672ebda",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-14",
+      "reported_period_end": "2026-05-29",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 4,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1040470/000165495426006655/aehr_ex991.htm"
+      ],
+      "finding": "Issuer release says FY2026 Q4 and year ended May 29 retained transcript Q2 label conflicts."
+    },
+    {
+      "symbol": "AFYA",
+      "instrument_id": "stage10_instrument_8cfad8ccef35f8388d148318b7f33f15",
+      "natural_identity": "34c9d85cd1ae858875a9d3a46a585540bda5da89ec36c86d7e38f1e773d2bf5e",
+      "source_event_date": "2026-08-13",
+      "reviewed_version_id": "fmp_analyst_observation_09f8f6e5fcd7114246f6469208ccba30",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-13",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1771007/000129281426004218/afyapr2q26_6k.htm"
+      ],
+      "finding": "Exhibit named second-quarter and first-half 2026."
+    },
+    {
+      "symbol": "AGM",
+      "instrument_id": "stage10_instrument_1699fe26f7e7b3442e702e1ddb524eb1",
+      "natural_identity": "2c25d06e26d2b2d0e5de3e2ef4858fc66564d6945fb58b52efc6bbbae2809a07",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_ccb25b366c1da87d15c4cb6a2f869cde",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/845877/000084587726000122/a2026q2pressrelease.htm"
+      ],
+      "finding": "Official release identifies Q2 ended June 30."
+    },
+    {
+      "symbol": "ALM",
+      "instrument_id": "stage10_instrument_fc4ecc8a519cb7a1ee13755497319424",
+      "natural_identity": "d26b0508ad28ad4261226dc41bca83a4b9e02a763a59eed2e87e1442f09587bb",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_94e1f12b87da32c25421346cea54d72d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://almonty.com/almonty-industries-reports-second-quarter-2026-financial-results/"
+      ],
+      "finding": "Issuer reports three and six months ended June 30."
+    },
+    {
+      "symbol": "AMLX",
+      "instrument_id": "stage10_instrument_12857d56766a134653589a69b60493ad",
+      "natural_identity": "2b463f90fe4a366cd558e28ca9e452a80088146484e2ec5516233189a516532d",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_0ee470382d5b47d6dc7a1e72493e5e68",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://amylyx.gcs-web.com/news-releases/news-release-details/amylyx-pharmaceuticals-reports-second-quarter-2026-financial"
+      ],
+      "finding": "Issuer reports second quarter ended June 30."
+    },
+    {
+      "symbol": "ANAB",
+      "instrument_id": "stage10_instrument_f64df1b9ecc7d1ca72ddfacc09f8cc2e",
+      "natural_identity": "83c713d7cbc1098f03b2766ec0927d5d0bf40bb2dfad4dda3d9d3dfbc0c6aacd",
+      "source_event_date": "2026-09-11",
+      "reviewed_version_id": "fmp_analyst_observation_5eb84ae680ed8e45714874f8789cb40b",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-21",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.anaptysbio.com/news-releases/news-release-details/anaptys-announces-second-quarter-and-transitional-fiscal-year",
+        "https://ir.anaptysbio.com/sec-filings/sec-filing/10-kt/0001193125-26-396696"
+      ],
+      "finding": "Issuer release explicitly calls the results Q2 and transitional FY ended June 30, 2026. Fiscal year-end changed from Dec. 31 to June 30; new regular quarterly reporting begins with quarter ending Sep. 30. Period is confirmed, while exact FMP event date and revenue value need correction. Official release reports collaboration revenue of $27.5m for the three months and $53.0m for six months ended June 30; retained $13.34m revenue does not corroborate that result and likely reflects a wrong financial line/item. Do not link retained actuals as verified Q2 revenue. EPS detail was not needed to identify the reporting period."
+    },
+    {
+      "symbol": "ANRO",
+      "instrument_id": "stage10_instrument_1abcf765ecd17104c640e3732da796c5",
+      "natural_identity": "dbbf8b49d846492181775b6e24875fd7209525fbf99db6b478aab37d74f881fe",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_f44936d85e8b56766ca445b8bcfd10b1",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.altoneuroscience.com/news/news-details/2026/Alto-Neuroscience-Reports-Second-Quarter-2026-Financial-Results-and-Recent-Business-Highlights/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/1999480/000199948026000022/alto-20260812.htm"
+      ],
+      "finding": "Exact Aug 12 8-K Item 2.02 states reported fiscal quarter ended June 30, 2026."
+    },
+    {
+      "symbol": "ARGX",
+      "instrument_id": "stage10_instrument_4a68369d97212d1623a392a0bf665754",
+      "natural_identity": "d59f6125c0716354aef0f324e6ae606cfd9344f9f88018ff43dc30f2cdc000ee",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_e15e1aa1d3378bcc1b0162d0220e0e92",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://argenx.com/news/2026/press-release-3331862.html",
+        "https://www.sec.gov/Archives/edgar/data/1697862/000169786226000033/argx-20260630.htm"
+      ],
+      "finding": "July 23 event is half-year results release with separately identified Q2 financial results."
+    },
+    {
+      "symbol": "ASML",
+      "instrument_id": "stage10_instrument_f4871de0e4d4ac1ea8176f52ec0da275",
+      "natural_identity": "e8909dabc44926cde010432210613be5a553223bfbeffb67839cf4163be1bace",
+      "source_event_date": "2026-07-15",
+      "reviewed_version_id": "fmp_analyst_observation_07a1ceb6b945d3a1bd9dc3645e1fd283",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-15",
+      "reported_period_end": "2026-06-28",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.asml.com/en/news/press-releases/2026/q2-2026-financial-results"
+      ],
+      "finding": "Q2 2026 issuer results statutory interim period ended June 28."
+    },
+    {
+      "symbol": "ATLC",
+      "instrument_id": "stage10_instrument_904ff1f819d1441cc743acc6648a6fff",
+      "natural_identity": "07e12afe810c68c305d099293974acae48424b20c0ac9f5144bd21518af71c23",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_b085010247c5e634507eb8673b7b27e7",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/de/news-release/2026/08/06/3340814/0/en/atlanticus-reports-second-quarter-2026-financial-results.html"
+      ],
+      "finding": "Company-authored release labels second quarter 2026."
+    },
+    {
+      "symbol": "AVBP",
+      "instrument_id": "stage10_instrument_26642d97d7585f341e855c9fdaecea62",
+      "natural_identity": "601a12ce8f5ed79962c3068b4f7f99af714da64fbc1e4b8de823ba720c2fec83",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_d277452830e25d776ffae6c7a5b16629",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.arrivent.com/news-releases/news-release-details/arrivent-biopharma-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer reports Q2 ended June 30."
+    },
+    {
+      "symbol": "AVLN",
+      "instrument_id": "stage10_instrument_b4d6ab0990a174d72df2e887d2530a40",
+      "natural_identity": "3a31a0545ee734bc6fd08d292efe1dcb03ba995bcb8b2383bd3d543b37cda593",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_0383ecfd2a8310899910fc1f9d91f915",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/news-release/2026/08/12/3343572/0/en/avalyn-reports-second-quarter-2026-financial-results-and-recent-business-highlights.html"
+      ],
+      "finding": "Issuer release labels Q2 2026."
+    },
+    {
+      "symbol": "AVTX",
+      "instrument_id": "stage10_instrument_1cb4fd17cfe0486cc6a43f3f22976810",
+      "natural_identity": "40acfa790fdec6523a2baedd9a60218890c3ddd71d8ab975a72b523346d17def",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_79e4322ccc7fd1c4afe45d130f8fce16",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1534120/000153412026000048/ex-9912q2026earningsrelease.htm"
+      ],
+      "finding": "Q2 2026 issuer earnings release."
+    },
+    {
+      "symbol": "BANF",
+      "instrument_id": "stage10_instrument_a71b1f05b36667172a03d7a57b25615a",
+      "natural_identity": "94f8a89ad9a6ad5c4fbb662943f1669a83f6305f58940c43e828cc013b23d930",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_cd14300eb39154b18f83dcd6e66073aa",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/760498/000119312526314223/banf-ex99_1.htm"
+      ],
+      "finding": "Official release identifies Q2 ended June 30."
+    },
+    {
+      "symbol": "BBT",
+      "instrument_id": "stage10_instrument_6c653d9540714db49d1e01ba33bc7707",
+      "natural_identity": "a3cc5bb3790a02723fd6c1fd69b9990dd827b68cb3011c35e12dd1576ba00fb6",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_73747c073f48351dfc0385957d10ce1c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.brooklinebancorp.com/"
+      ],
+      "finding": "Beacon Financial IR lists July 29 Second Quarter Results direct release body not checked."
+    },
+    {
+      "symbol": "BDRX",
+      "instrument_id": "stage10_instrument_b2070e4b4f288e0f3aa6b8eaf900d0d9",
+      "natural_identity": "446068fc6ede68b0f6c5a47face8fef7310a8b0ed8731ea34700f4a97b7cf223",
+      "source_event_date": "2026-03-27",
+      "reviewed_version_id": "fmp_analyst_observation_97393a6da1605d36e1c72c6abb3e3db2",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-03-27",
+      "reported_period_end": "2025-12-31",
+      "fiscal_year": 2025,
+      "fiscal_quarter": null,
+      "reporting_kind": "annual",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.nasdaq.com/press-release/preliminary-results-year-ended-31-december-2025-2026-03-27"
+      ],
+      "finding": "Exact event identifies audited preliminary year-ended results do not assign Q4."
+    },
+    {
+      "symbol": "BFC",
+      "instrument_id": "stage10_instrument_610051ae3a43360a8ab6f7d01c746d97",
+      "natural_identity": "136da40ccd19ee09836973ad3bf5faa8ef7dbe4d797499a43992e758f6165971",
+      "source_event_date": "2026-07-21",
+      "reviewed_version_id": "fmp_analyst_observation_2e5e17ed896ca5b1ff761754dd9e8120",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-24",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.prnewswire.com/news-releases/bank-first-announces-net-income-for-the-second-quarter-of-2026-302834188.html"
+      ],
+      "finding": "Official/company release date July 24 vs blocked July 21 EPS packet appears adjusted while release distinguishes GAAP/adjusted."
+    },
+    {
+      "symbol": "BFH",
+      "instrument_id": "stage10_instrument_b7578470a31d8956fc0f1ce9ea04c6a7",
+      "natural_identity": "bc5b621eb941be7b50fefd98135e292d3648bacba38f6a547261bf2c28a17bfc",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_910847d0435919e708fc69747a029526",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1101215/000110121526000068/exh991-2q26bfhepr_final.htm"
+      ],
+      "finding": "Issuer Q2 ended June 30."
+    },
+    {
+      "symbol": "BHF",
+      "instrument_id": "stage10_instrument_4a4e7b850eb8295fa830e181943f7fde",
+      "natural_identity": "3d29cdddfd2422a0abf3dc98c80ba02483acf70483ad1984fdb7274908d8df8c",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_97e52ece52c80c6a0aec65dbfdf700ad",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1685040/000168504026000026/q22026bhfearningspressrele.htm"
+      ],
+      "finding": "Release dated Aug 5, blocked date Aug 6 Q2 ended June 30."
+    },
+    {
+      "symbol": "BHRB",
+      "instrument_id": "stage10_instrument_7fe0a697041ff87aff11828ebcdfb329",
+      "natural_identity": "540a93d427935ce0901c623307eb63ae5db69002402dd4eadf7a6d30b2935c79",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_9ebf6f5c5c4e0c44928442dd3093f476",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1964333/000196433326000089/a2q2026earningspressrelease.htm"
+      ],
+      "finding": "Official Q2 release."
+    },
+    {
+      "symbol": "BHVN",
+      "instrument_id": "stage10_instrument_bec33606e121177d38e339735e1bb409",
+      "natural_identity": "8d7889bd043e7c87e2dce37d68507b5bbff9a4f7e6cda2a4f3baed0b7e31b9e8",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_71a8013b1069e78f7ba1a8f5ce690eb9",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://biohavenpharma.gcs-web.com/news-releases/news-release-details/biohaven-reports-recent-business-developments-and-second-quarter"
+      ],
+      "finding": "Q2 ended June 30."
+    },
+    {
+      "symbol": "BIDU",
+      "instrument_id": "stage10_instrument_3820969b5198148731ad2cff889fa4c0",
+      "natural_identity": "2939a20c470e07970c92f979fd9b646adb21262723b307bea763465c960a279e",
+      "source_event_date": "2026-08-18",
+      "reviewed_version_id": "fmp_analyst_observation_9be98de66e56cadc204a4e961d23d52b",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-18",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.baidu.com/news-releases/news-release-details/baidu-announces-second-quarter-2026-results"
+      ],
+      "finding": "Exact Aug 18 issuer release is titled Q2 2026 results; period end June 30."
+    },
+    {
+      "symbol": "BMNR",
+      "instrument_id": "stage10_instrument_fb2c1ffd2d7ca40df9aceee607445a1d",
+      "natural_identity": "57c712a32227c362a00a3ea147a7a1866e4325cfea216dd06b3c55307f5a3cab",
+      "source_event_date": "2026-07-13",
+      "reviewed_version_id": "fmp_analyst_observation_50044725793a8ebcfd838dd2a69b6f0f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-14",
+      "reported_period_end": "2026-05-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1829311/000162828026048157/bmnr-20260531.htm",
+        "https://www.sec.gov/Archives/edgar/data/1829311/000162828026048157/0001628280-26-048157-index.html"
+      ],
+      "finding": "Official Form 10-Q expressly states quarterly period ended May 31, 2026 and includes three- and nine-month statements. The issuer's fiscal year ends August 31, hence May 31 is Q3. SEC filing date supplies the verified publication date. Retained EPS/revenue align with Q3 quarterly results for the three months ended May 31; SEC filing identifies the quarter and fiscal schedule."
+    },
+    {
+      "symbol": "BNTX",
+      "instrument_id": "stage10_instrument_f7f065caf31a3fa421cd6eb1c1774d66",
+      "natural_identity": "e6f53567d15368a00e6b53c5fa1f8bb361b6618ab2e99f86f6f8650a0dca5b3f",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_2cd9683b12f906050f8af3683800667a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1776985/000177698526000054/a991bntx_q22026pressreleas.htm"
+      ],
+      "finding": "Q2 and six months ended June 30."
+    },
+    {
+      "symbol": "BOW",
+      "instrument_id": "stage10_instrument_9248f1b6ba9f2a7064bc5b6a810fb547",
+      "natural_identity": "3d871a4929f8314ec72326fd72306022d2a94b54968a0f80318a191462750088",
+      "source_event_date": "2026-08-03",
+      "reviewed_version_id": "fmp_analyst_observation_ed542369e3bd557c66c2bd00cdb007fd",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-03",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/2002473/000162828026051540/bow-20260802.htm"
+      ],
+      "finding": "Official Q2 result for three months ended June 30 press release Aug 3."
+    },
+    {
+      "symbol": "BPOP",
+      "instrument_id": "stage10_instrument_920f383ac7a1687253c18d3a05509aca",
+      "natural_identity": "acdd7cb1655cd0ea51c043162418a5e7ab5bb9cdb77d0d7f1684c679b5a37dfa",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_bc31fdecaba606617015abf4930af1de",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://investor.popular.com/events/event-details/popular-inc-q2-2026-earnings-webcast",
+        "https://investor.popular.com/news-events/press-releases"
+      ],
+      "finding": "Event page labels July 23 Q2 2026 and supporting materials release body not opened."
+    },
+    {
+      "symbol": "BULL",
+      "instrument_id": "stage10_instrument_6f29ed784b9351d11ae0b08d314e1c4e",
+      "natural_identity": "7938c4d590f9670e62cbca345fe7021e7d8c178ded5085dd821c31a8c976222e",
+      "source_event_date": "2026-08-19",
+      "reviewed_version_id": "fmp_analyst_observation_71902a715aa366d363e858faf9f51781",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-19",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1866364/000121390026091702/ea030257601ex99-1.htm"
+      ],
+      "finding": "Webull Q2 2026 release."
+    },
+    {
+      "symbol": "BUSE",
+      "instrument_id": "stage10_instrument_c94da6f0bc9c231788c215ddbd98a128",
+      "natural_identity": "69f84cbcb47b39ff5ed0b4361ef6060185d6d93fe389db6b28b862f6239725ef",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_b4de71080807dc988915dc4d0b1f2845",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.busey.com/news-releases/news-release-details/first-busey-corporation-announces-2026-second-quarter-earnings"
+      ],
+      "finding": "Issuer dated July 28 and reports second quarter 2026."
+    },
+    {
+      "symbol": "CAE",
+      "instrument_id": "stage10_instrument_3eed85facbb6a2c08ff6b54285e8bc94",
+      "natural_identity": "36d4c8cf9d65d064f1c45540a2ff21c49c77024e8ac0ba1207bc5f959cd05c40",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_7fd2e60198cd0d540f147c5d7667c638",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1173382/000117338226000040/cae_q1fy27xex1xpressrelease.htm"
+      ],
+      "finding": "Exact Aug 12 release identifies Q1 FY2027 ended June 30, 2026."
+    },
+    {
+      "symbol": "CALX",
+      "instrument_id": "stage10_instrument_f9db1bdd7d8bc25ca8462488adb29b95",
+      "natural_identity": "096ec6248ace0f5405c4e3ef0c10da42726b9d7f5818d0bce302954f62f5cad3",
+      "source_event_date": "2026-07-20",
+      "reviewed_version_id": "fmp_analyst_observation_7d7cc09881cafceff5d8324999b53f14",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-20",
+      "reported_period_end": "2026-06-27",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor-relations.calix.com/sec-filings/all-sec-filings/content/0001406666-26-000028/ex991pressrelease26q2.htm"
+      ],
+      "finding": "Q2 2026 ended June 27."
+    },
+    {
+      "symbol": "CATY",
+      "instrument_id": "stage10_instrument_f99ef07ff9576b444bbe85bf88e8f57f",
+      "natural_identity": "770af5dd2073a62c57e6ecd1cab9b573913f8700b91845a6469e6638217658ee",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_caf526f9964eb2ade00c8b9ae6a7523f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/861842/000143774926024142/ex_991410.htm"
+      ],
+      "finding": "Q2 ended June 30."
+    },
+    {
+      "symbol": "CBL",
+      "instrument_id": "stage10_instrument_12515154b139ecc0652a4c2020595e63",
+      "natural_identity": "7b57fe2bb728ac77db8e26ce59f3656444ec133d403ea2dd610eb975828354aa",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_2a797922b6099e834984ca381505451d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/910612/000119312526339362/cbl-ex99_1.htm"
+      ],
+      "finding": "Q2 ended June 30."
+    },
+    {
+      "symbol": "CBU",
+      "instrument_id": "stage10_instrument_dce5a791fe83a1e37fcfe81cc66ecac8",
+      "natural_identity": "c6ca849a5b4d1a568f146b36c10780e2940e90a3d771e592eb9355fea62d18d9",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_2df5d886c087b8b7253ebdfc968d6810",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.cfsi.com/news/news-details/2026/Community-Financial-System-Inc--Reports-Second-Quarter-2026-Results/default.aspx"
+      ],
+      "finding": "Issuer reports Q2."
+    },
+    {
+      "symbol": "CCEP",
+      "instrument_id": "stage10_instrument_ff2a71e10d41be473f367ae06917ecb8",
+      "natural_identity": "b0495e7eb431a4ef0f8f09592b92f6099a86e771701faa7c4983729dfd0ee7a0",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_9d3a3aacc51ea0272f4997c6dfd78d72",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "half_year",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://ir.cocacolaep.com/events/event-details/h1-2026-results"
+      ],
+      "finding": "Exact event is H1 financial results do not treat as a pure quarterly release."
+    },
+    {
+      "symbol": "CELC",
+      "instrument_id": "stage10_instrument_ee385b5525e857e41accb9b6d3685744",
+      "natural_identity": "811ff724baa80c977f322aae03aa8fab4bd5ec37a98d0fe9945cc451fff1e3b1",
+      "source_event_date": "2026-08-13",
+      "reviewed_version_id": "fmp_analyst_observation_54bad5c19b5bce79c6e96903386a3f78",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-13",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.celcuity.com/news-releases/news-release-details/celcuity-inc-reports-release-second-quarter-2026-financial"
+      ],
+      "finding": "Issuer reports Q2 ended June 30."
+    },
+    {
+      "symbol": "CFFN",
+      "instrument_id": "stage10_instrument_69a0c95d7bf8ddf4f8601239cb4cca3e",
+      "natural_identity": "672c3b97452d84feffe627741ae2526bd59e823d184268131a6c862fc904beb3",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_b6b7bff08dc8187855fc128c3dfcee65",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://ir.capfed.com/news/news-details/2026/CAPITOL-FEDERAL-FINANCIAL-INC--ANNOUNCES-QUARTERLY-DIVIDEND-AND-STOCK-BUYBACK-UPDATE-4a0181767/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/1490906/000149090626000022/0001490906-26-000022-index.htm"
+      ],
+      "finding": "Fiscal year ends Sep 30 June 30 is Q3 FY2026; July 29 company planned result release while 8-K filed July 28."
+    },
+    {
+      "symbol": "CGEM",
+      "instrument_id": "stage10_instrument_a712e84b1b5455460cb07948cd5ac99d",
+      "natural_identity": "9d6910e250511255e04baf7d9669d8d1e7f71dfaedd5a4437c0164159355553c",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_f9637498ed63c5c147206b9a5f9eb03c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.cullinantherapeutics.com/news-releases/",
+        "https://www.sec.gov/Archives/edgar/data/1789972/000119312526336700/0001193125-26-336700-index.htm"
+      ],
+      "finding": "Aug 6 issuer news title states Q2 financial results."
+    },
+    {
+      "symbol": "CHCO",
+      "instrument_id": "stage10_instrument_b32c0ae6d606da93479e1383222586a2",
+      "natural_identity": "e7ac2ec6ba35968cd9cc2935ec794195ab31f69c8c555c665606b96a2aa6e363",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_0386b2b77353db92103f4b4831ee0779",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/726854/000072685426000164/chco-20260630.htm"
+      ],
+      "finding": "10-Q confirms period end matching July earnings event likely Q2 but direct release not opened."
+    },
+    {
+      "symbol": "CLBK",
+      "instrument_id": "stage10_instrument_932b66e6c1d959d6eaa09a317d9a7c01",
+      "natural_identity": "5a1a3a89cc24b703013a17b47db87578cbbacfb7554bf17f41c0757f0ec85c34",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_1234530c6d3f7a1e0a4d9e2edb94c29c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/2115119/000211511926000026/exhibit9912q20266302026.htm"
+      ],
+      "finding": "Exact July 30 release identifies second quarter ended June 30 and gives EPS."
+    },
+    {
+      "symbol": "CMRE",
+      "instrument_id": "stage10_instrument_02cedd1650234ba30ab38a333d76dd96",
+      "natural_identity": "0c740d5a29b54768485ecb2aec0c33f94f6e90e578b68370a9dea35b6e7f9ae5",
+      "source_event_date": "2026-07-27",
+      "reviewed_version_id": "fmp_analyst_observation_7123d274d18ff46edea0e37d84b9dced",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1503584/000117184326005469/0001171843-26-005469-index.htm"
+      ],
+      "finding": "Costamare Q2 and six-month period ended June 30."
+    },
+    {
+      "symbol": "CNL",
+      "instrument_id": "stage10_instrument_6d94c9813e0bfb667033d9da804b7ccd",
+      "natural_identity": "0a8325c2c11b73bf9548ccf16fa000ab57c5d2be0b54c3ed27bfa482bda56e46",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_b564468b9cdc530d0631004b625ec303",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1953575/000121390026087988/ea030148801ex99-1.htm"
+      ],
+      "finding": "Parent checked SEC interim financial statements: separate three-month June 30, 2026 results report loss per share of 0.22, matching the blocked event EPS. Q2 is the likely period. Exact August 12 event linkage still needs filing-publication date reconciliation; unrelated same-day news does not invalidate these earnings statements."
+    },
+    {
+      "symbol": "CNX",
+      "instrument_id": "stage10_instrument_3a9f44b0ded75bcdd2f53c1c88717fa8",
+      "natural_identity": "69d9fa2cd5964cbee3bcb0134b9e7da5f06bd609a7e9c9d5e74758d97a5a85a9",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_171dcb1f9a05222ed73f4c531ba1c4fa",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1070412/000107041226000056/cnx-20260730.htm"
+      ],
+      "finding": "Exact July 30 8-K Item 2.02 furnishes 2Q 2026 results and supplemental info."
+    },
+    {
+      "symbol": "COAG",
+      "instrument_id": "stage10_instrument_9d50f370ca730d5615c0118a5941e2a0",
+      "natural_identity": "4f8dc9c6aac15844cc9e6769c63ee75eaf295c9fd7655b276f35a57532e11881",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_d3a64ed89cca34e3c863ae6d74b3a9e0",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/2114044/000119312526343421/d180684dex991.htm"
+      ],
+      "finding": "Exact Aug 11 earnings release calls out Q2 2026 results and three months ended June 30; net loss $24.15m, EPS -$0.80."
+    },
+    {
+      "symbol": "COGT",
+      "instrument_id": "stage10_instrument_95a9a03b9177e235632ea86610310045",
+      "natural_identity": "99fd21ffce1acf2c9044ea7f8260a813d49ccc9165233a4090bebe6ac78bc6a5",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_e09d3df6936a1bc86d2aca7058d7de97",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://cogentbiosciences.gcs-web.com/news-releases/news-release-details/cogent-biosciences-reports-recent-business-highlights-and-11"
+      ],
+      "finding": "Exact Aug 10 issuer Q2 release; separate Sep 2 8-K was supply agreement and unrelated."
+    },
+    {
+      "symbol": "CRML",
+      "instrument_id": "stage10_instrument_50991afb4754684db4394fd9c1c1a74a",
+      "natural_identity": "a36feddb7c3764ff4229e087fbe2b8e7912403dc008b33aa57851be5d6e7c395",
+      "source_event_date": "2026-09-02",
+      "reviewed_version_id": "fmp_analyst_observation_08040f25d57dd2044a41befd160e1589",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-02",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 4,
+      "reporting_kind": "annual",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1951089/000121390026027768/ea0280503-6k_critical.htm",
+        "https://www.sec.gov/Archives/edgar/data/1951089/000121390026027768/0001213900-26-027768-index.htm",
+        "https://www.criticalmetalscorp.com/news-events/"
+      ],
+      "finding": "User-authorized best-effort inference: September 2 is most likely intended to represent FY2026/Q4 ending June 30, given the June fiscal year-end and retained estimate period dates. No earnings release for September 2 was corroborated. This is not a confirmed reported result or verified actual EPS. The last located published report is H1 ending December 31, 2025. The March 13 Form 6-K states that it furnishes unaudited statements and MD&A for the half year ended Dec. 31, 2025. Targeted issuer/SEC checks found no Sep. 2 earnings release; the issuer's 2026 news/filing sequence around the date concerns corporate/project matters. Half-year is the best-supported latest reporting boundary, not a quarter label."
+    },
+    {
+      "symbol": "CTBI",
+      "instrument_id": "stage10_instrument_56f2cb662b9da4541775903fe547fd7d",
+      "natural_identity": "0aff909609af4921862f4c9f8971351c0bbde04e020850f0460ce6946a3aec18",
+      "source_event_date": "2026-07-15",
+      "reviewed_version_id": "fmp_analyst_observation_94187c3320c57368974000fe257c78fd",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-15",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/350852/000035085226000061/ctbi0626er8kex99-1.htm"
+      ],
+      "finding": "July 15 release explicitly says second quarter 2026."
+    },
+    {
+      "symbol": "CUBI",
+      "instrument_id": "stage10_instrument_8537e9b744286800a5caac13e164a102",
+      "natural_identity": "e850b938bedbcd9b07df4253f0f1b58618b2f9498786f04e12b8d1cd8afe604a",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_734833b1a0ac48d392a1b3b252e98aa3",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.customersbank.com/investor-relations/press-releases/press-release/Customers-Bancorp-Reports-Results-for-Second-Quarter-2026-1786/"
+      ],
+      "finding": "July 23 release labels Q2 2026."
+    },
+    {
+      "symbol": "DDS",
+      "instrument_id": "stage10_instrument_4da47fdc3288559f53b54c43616f4fa5",
+      "natural_identity": "1826b31ab4322b30da07a33c56dcbb5665f5fc7ccbb21683e7989f5abb5376af",
+      "source_event_date": "2026-08-13",
+      "reviewed_version_id": "fmp_analyst_observation_01ddbd700faaa6569afda89b4ad9afa6",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-13",
+      "reported_period_end": "2026-08-01",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/28917/000002891726000024/dds-20260813xex99d1.htm"
+      ],
+      "finding": "Quarter uses retail 13-week calendar, not June 30."
+    },
+    {
+      "symbol": "DEA",
+      "instrument_id": "stage10_instrument_19129cdebf2335d00f76de94d82c9cf9",
+      "natural_identity": "6cc692d1e2c2875ba2329beac802e0a4c390c1cd5179b558f68b5604aafd52b6",
+      "source_event_date": "2026-08-03",
+      "reviewed_version_id": "fmp_analyst_observation_33bca498dc59ca9c2c12078ed2188867",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-03",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://easterlygov.gcs-web.com/news-releases/news-release-details/easterly-government-properties-reports-second-quarter-2026"
+      ],
+      "finding": "Aug3 results for quarter ended June 30."
+    },
+    {
+      "symbol": "DFTX",
+      "instrument_id": "stage10_instrument_a5e3a329f89d1e577fe77cb1dd1e5600",
+      "natural_identity": "3832bbb55f5367f3c7e1fcaefce097ba6dad9af885a309a9b92bb242f5733d41",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_91ca836c554d2bd3f156db7ba8406c59",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.definiumtx.com/news-events/press-releases/detail/242/definium-therapeutics-reports-second-quarter-2026-financial-results-and-recent-highlights"
+      ],
+      "finding": "Exact Aug 6 issuer release reports Q2 ended June 30."
+    },
+    {
+      "symbol": "DHT",
+      "instrument_id": "stage10_instrument_a4c1889ff557084b8f3c556b9c1b625e",
+      "natural_identity": "76f8cac2c6193e6ef7ebaa9435d3ed1e6b0926b55d4770e346ff8ff22ea05df7",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_accb2ddf061b9b14fa771a9ba3a0c6f5",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1331284/000095015726000847/ex99-1.htm"
+      ],
+      "finding": "Official second quarter 2026 results Aug5."
+    },
+    {
+      "symbol": "DMRA",
+      "instrument_id": "stage10_instrument_c245d372212aa7f7e912318c6ea6c44c",
+      "natural_identity": "e5348dd31b3f96e3abd8db8bac38e89ef301617282f399650de95c3542e1b054",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_a751627130491f73359b240ecb51ab56",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://ir.damoratx.com/news-releases/news-release-details/damora-therapeutics-reports-second-quarter-2026-financial/"
+      ],
+      "finding": "Official issuer Q2 results for quarter ended June 30; release surfaced dated Aug 10, blocking event Aug 11, likely after-hours/next-session date difference."
+    },
+    {
+      "symbol": "DRTS",
+      "instrument_id": "stage10_instrument_dc0aa190c4d44813de78db0ad8e35a8f",
+      "natural_identity": "b30ce85805b732a567911df417a168f2ae9f4c10ba6eca3eebe70f0f8037e615",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_052e68fdff4d5a5181fbeb6c0d9a636d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1871321/000121390026087224/ea030079101ex99-3.htm"
+      ],
+      "finding": "Aug10 release says Q2 2026."
+    },
+    {
+      "symbol": "DSGX",
+      "instrument_id": "stage10_instrument_5ee128ce07ecccd645e7e16e204a81f2",
+      "natural_identity": "50fa7df97ad1e206998405c3fa9250f213242342bba485023245dbb76f3fb1e1",
+      "source_event_date": "2026-09-10",
+      "reviewed_version_id": "fmp_analyst_observation_c042265e5a5acca7f0df7d557e80b678",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-10",
+      "reported_period_end": "2026-07-31",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.descartes.com/resources/news/descartes-announces-fiscal-2027-second-quarter-financial-results"
+      ],
+      "finding": "Sep10 result says Q2 FY27 fiscal period based on Jan31 year end."
+    },
+    {
+      "symbol": "DYN",
+      "instrument_id": "stage10_instrument_1a2f52cac42b5391723c18fd8be3aa8d",
+      "natural_identity": "501d0475e8fdf1b742bf2e88ba1da4cc4e1687dbf6bbee8093c8cc6ffb938e6e",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_6828355921894f84319fad3b1757e693",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.dyne-tx.com/news-releases/news-release-details/dyne-therapeutics-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Dyne Therapeutics July29 Q2 result."
+    },
+    {
+      "symbol": "ELVN",
+      "instrument_id": "stage10_instrument_f8d0a64dd9223d29ae17e5ac6ca4408b",
+      "natural_identity": "8070185b9354d4a34b0b88b7d3855a2fea1054004181df520facc31338d1cd4b",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_7bfa7ef52f439f0802594631a7fd2820",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.enliventherapeutics.com/news-releases/news-release-details/enliven-therapeutics-reports-second-quarter-financial-results-1"
+      ],
+      "finding": "Aug5 Q2 ended June 30."
+    },
+    {
+      "symbol": "ENLT",
+      "instrument_id": "stage10_instrument_95c4e31c8effaf2ed4ddad3c41296a73",
+      "natural_identity": "e3de671195900ce85b22f9e6a8180cd6cb2ca0b420eebc529d25abde6f1fa1b4",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_923d7ff0e22da00dc3dc94ee9ca47a79",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1922641/000117891326003779/exhibit_99-1.htm"
+      ],
+      "finding": "Aug4 release explicitly for quarter ended June 30."
+    },
+    {
+      "symbol": "ERAS",
+      "instrument_id": "stage10_instrument_dad97d9c6980eba10201330c1e0ac153",
+      "natural_identity": "0db1cc29ed300fee0e2a2fb2d80f0de8f99cf2eed469b937bb104757fad28f63",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_d3e920df4e6847cc4dc6dbfc965819be",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.erasca.com/news-releases/news-release-details/erasca-reports-second-quarter-2026-business-updates-and"
+      ],
+      "finding": "Aug result says Q2 2026 release title plus financial results."
+    },
+    {
+      "symbol": "ESS",
+      "instrument_id": "stage10_instrument_e1cb66c064ad5f8219a04adeafbb8311",
+      "natural_identity": "c3641fe9f0773db34544230829e7e75571071bb9a2be817cd04d4e303b905de5",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_ed52d8dc2f9c53506e93b0b126aceffc",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://d18rn0p25nwr6d.cloudfront.net/CIK-0000920522/d8b0c968-8917-4eb6-91be-8d141c80226a.html"
+      ],
+      "finding": "July29 earnings release for three and six months ended June 30."
+    },
+    {
+      "symbol": "EWTX",
+      "instrument_id": "stage10_instrument_1c89b96fdf9e1bf86321498682efb9b8",
+      "natural_identity": "0492679de8bbc954398ef4df46e0a9f01c08b779eae0a88f7ae848b7915455a8",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_592418a45d50033e45ec84a58e573c51",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ebs.publicnow.com/view/3FDB5020AB2C191E14B5903A55CD3FCD1C7634C2",
+        "https://www.sec.gov/Archives/edgar/data/1710072/000110465926091671/0001104659-26-091671-index.htm"
+      ],
+      "finding": "Aug6 report explicitly Q2 2026."
+    },
+    {
+      "symbol": "EXPO",
+      "instrument_id": "stage10_instrument_43397a8632fc20f0760aa36bafef4023",
+      "natural_identity": "ecf5d517b6978a0bba775d87e052f3be863574a9a1c65a79b7826451663ed74e",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_e92973287ce64d1bfdc0a1f408e7a70a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-07-03",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.exponent.com/investors/news-events/news-details/2026/Exponent-Reports-Second-Quarter-2026-Financial-Results/"
+      ],
+      "finding": "July30 release says Q2 fiscal 2026 ended July 3."
+    },
+    {
+      "symbol": "FBNC",
+      "instrument_id": "stage10_instrument_c66ebfa2b415579bec6ce536a246de93",
+      "natural_identity": "7f60fc36fb5dc4f21b0105675881fce4fc0e8a8ccabf704757e1e202de5f273d",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_9ce4eb2fa3fe4a5d99bc83b1f8aa2754",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.localfirstbank.com/overview/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/811589/000081158926000153/fbnc-20260630.htm"
+      ],
+      "finding": "Official event/news page lists Q2 results and 10-Q period end."
+    },
+    {
+      "symbol": "FDX",
+      "instrument_id": "stage10_instrument_8fe69c560387f8ec687cad293a384253",
+      "natural_identity": "f9b96dd641519b9994a0a92f91453575b694ef3ed40a08a33481c5e67e14af71",
+      "source_event_date": "2026-06-23",
+      "reviewed_version_id": "fmp_analyst_observation_48b7f82141e914904d33e7b85f8ed096",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-06-23",
+      "reported_period_end": "2026-05-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 4,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.fedex.com/news-and-events/investor-news/investor-news-details/2026/FedEx-Reports-Strong-Fourth-Quarter-and-Full-Year-Results/",
+        "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000050/fdx-earningsreleasefy2026q4.htm"
+      ],
+      "finding": "Exact June 23 issuer release and SEC 8-K explicitly report Q4 FY2026 for quarter ended May 31, 2026. This historical period is confirmed. FedEx year-end change affects the later June–December transition reporting schedule, not this Q4 mapping."
+    },
+    {
+      "symbol": "FDXF",
+      "instrument_id": "stage10_instrument_4c6ac3ac33f6c692ec4636f67b8b98a9",
+      "natural_identity": "3c60c42010005cf6733cdb024e27be1c17aff550485a972782d7f8c85f689a5b",
+      "source_event_date": "2026-09-02",
+      "reviewed_version_id": "fmp_analyst_observation_e02e30c04140ed9a1ddf9ed8f4b97594",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-06-25",
+      "reported_period_end": "2026-05-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 4,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://ir.fedexfreight.com/news-events/press-releases/detail/185/fedex-freight-reports-fourth-quarter-and-full-fiscal-year-2026-financial-results",
+        "https://ir.fedexfreight.com/financial-information/sec-filings/content/0001628280-26-054314/fdxf-20260806.htm"
+      ],
+      "finding": "Issuer release explicitly reports fourth quarter and full fiscal year ended May 31 and says it completed spin-off June 1. The company subsequently changed year-end May 31 to Dec. 31 and introduced a seven-month transition period ending Dec. 31, 2026; that future calendar does not alter the already-reported Q4 FY26 boundary. Retained revenue $2.4114bn is close to the issuer's rounded $2.4bn Q4 segment revenue, but the release says the historical figures are FedEx segment results rather than standalone carve-out results and does not verify the retained $1.47 EPS. Treat the period/date mapping as confirmed and both retained actual values as needing source/basis reconciliation.",
+      "blocking_reason": "fiscal_calendar_transition"
+    },
+    {
+      "symbol": "FER",
+      "instrument_id": "stage10_instrument_8988260cb2001ad2c7b6671e4c6139ea",
+      "natural_identity": "770fda56de92ac68fb18c2a40777a76b9ddd020bc06286661641d3a449454d67",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_5a3d384db0dd745f087f0bbeda9d2ed7",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "half_year",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1468522/000162828026050224/q22026-ferrovialresultsp.htm"
+      ],
+      "finding": "July28 H1 results and Q2/H1 tables retain combined reporting period caveat."
+    },
+    {
+      "symbol": "FFIN",
+      "instrument_id": "stage10_instrument_6decb744c6b4ce432de868bc20f3743a",
+      "natural_identity": "6704c082a2a81f3b923d230ab6947290ad600941be5403a380c684c82d545f72",
+      "source_event_date": "2026-07-16",
+      "reviewed_version_id": "fmp_analyst_observation_19bbe5003c1b1fbda3b6f27dfa6e69ff",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-16",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/36029/000119312526307884/ffin-ex99_1.htm"
+      ],
+      "finding": "July16 second-quarter 2026 results."
+    },
+    {
+      "symbol": "FMBH",
+      "instrument_id": "stage10_instrument_67777b5770815189b9ad8143dce8167a",
+      "natural_identity": "d4a781e8d88ab2a5e095e2aee575896dfd0ef629b5cb1a3827dcf96f57893c60",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_34656bbd5a0a261380bcabb7fbc0a4b0",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://firstmid.q4ir.com/news/news-details/2026/First-Mid-Bancshares-Inc--Announces-Second-Quarter-2026-Results/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/700565/000117184326004848/exh_991.htm",
+        "https://www.sec.gov/Archives/edgar/data/700565/000119312526339679/fmbh-20260630.htm"
+      ],
+      "finding": "First Mid Bancshares official July 23 release and CIK 700565 SEC 8-K identify second-quarter results for the quarter ended June 30, 2026. Issuer release reports $27.8m net income / $1.04 diluted EPS and $33.4m adjusted net income / $1.26 adjusted diluted EPS. The linked 10-Q also states June 30, 2026 quarter end. Removed the unrelated FMBM filing."
+    },
+    {
+      "symbol": "FNB",
+      "instrument_id": "stage10_instrument_e62b5c50ecda99382a9ba6ddb38fa422",
+      "natural_identity": "0f05c605d10b461f898438c9390991cab7faf4d6d137a9adf9665ef35a81eafc",
+      "source_event_date": "2026-07-16",
+      "reviewed_version_id": "fmp_analyst_observation_5d64e95432cc3cfa08b9171900678010",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-16",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.fnb-online.com/about-us/newsroom/press-releases/2026/260716-fnb-reports-second-quarter-2026-earnings"
+      ],
+      "finding": "Official July 16 FNB release explicitly reports second-quarter 2026 earnings; confirms Q2 FY2026 ended June 30."
+    },
+    {
+      "symbol": "FSV",
+      "instrument_id": "stage10_instrument_d26879c5d5518588d29941d5b50c8e2e",
+      "natural_identity": "6ec1d90cd4245142deb411ffd5c0f103b5763982d87e8fe257433676bbcd7b28",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_6213e71b8e47196ed192a09df3636c33",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/news-release/2026/07/23/3332047/36351/en/FirstService-Reports-Second-Quarter-2026-Results.html"
+      ],
+      "finding": "FirstService July 23 release reports second-quarter 2026 results and identifies the three months ended June 30."
+    },
+    {
+      "symbol": "FTH",
+      "instrument_id": "stage10_instrument_4c13a90fe9ce1afec46c4c3079ccbdf2",
+      "natural_identity": "f673738419b2acb8179fce247c3e04511cdc476acc79cda5f840ac1d8f1fea9d",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_8f37b563497c9886e96e6a06533adbe4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://senseibio.gcs-web.com/news-releases/news-release-details/faeth-therapeutics-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Faeth August 4 release reports results for the quarter ended June 30, 2026."
+    },
+    {
+      "symbol": "FUTU",
+      "instrument_id": "stage10_instrument_091da6befde1de45431f216b2125a9e8",
+      "natural_identity": "070995e713b7f1e553a93c0fbba61e76c6720a58ad786d1f5a0c75e2e77f2853",
+      "source_event_date": "2026-08-20",
+      "reviewed_version_id": "fmp_analyst_observation_bcb824c767a5b276ba9c612114b4bec1",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-20",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1754581/000110465926098911/tm2623384d1_ex99-1.htm"
+      ],
+      "finding": "SEC exhibit reports Futu Q2 2026 unaudited results; quarter ended June 30."
+    },
+    {
+      "symbol": "GABC",
+      "instrument_id": "stage10_instrument_583c072695c118517e0d961ea7be0e1e",
+      "natural_identity": "6d56892db729b25cd21e81f00f36f0108ef57dd04a1680a2d3e851f63ac7c355",
+      "source_event_date": "2026-07-27",
+      "reviewed_version_id": "fmp_analyst_observation_e0dc30cde126842fe6609233a89ed2b2",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/714395/000071439526000030/exhibit991q22026earnings.htm"
+      ],
+      "finding": "SEC Exhibit 99.1 is the July 27 Q2 2026 earnings release; three months ended June 30."
+    },
+    {
+      "symbol": "GHRS",
+      "instrument_id": "stage10_instrument_08ca19a7df541e4c9dd0ef77dcf3cdc2",
+      "natural_identity": "3e87d9938ebd6286b310c8d249388cb893237487760a6b9ef5b401ecf15c5d00",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_2fb5a7065c6e641edac2f463a01b5c56",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.ghres.com/news-events/news-releases"
+      ],
+      "finding": "Issuer August 6 release explicitly reports results for quarter ended June 30, 2026."
+    },
+    {
+      "symbol": "GLUE",
+      "instrument_id": "stage10_instrument_55dc0dbbf09310ec9d27bf3fb0a07275",
+      "natural_identity": "e22f319b9e763a67dad087481e30ed11b0390ffef11392a67ddd23bde6bc4d53",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_75194fd5dcf53526fdd2c876aaf78adb",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1826457/000119312526336681/glue-ex99_1.htm"
+      ],
+      "finding": "SEC 8-K exhibit dated August 6 reports Monte Rosa Q2 2026 results."
+    },
+    {
+      "symbol": "GPCR",
+      "instrument_id": "stage10_instrument_983a45ac3d6dee1a18455cade459c284",
+      "natural_identity": "07a9d8833326082bae6e72b91ba8343813668eea7c45ed12a869587f177e35c3",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_d61d0365d9776847d6e4fb0d2034f89d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://structuretx.gcs-web.com/news-releases/news-release-details/structure-therapeutics-reports-second-quarter-2026-financial"
+      ],
+      "finding": "Structure Therapeutics issuer release reports second-quarter 2026 results for quarter ended June 30."
+    },
+    {
+      "symbol": "HBNC",
+      "instrument_id": "stage10_instrument_f3d6cf0da6a45953b1e1320a03760ac9",
+      "natural_identity": "0d0ed634b4ab647ec74fa982c9c1818557962172f37d33a243aec48161c4f574",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_1417f21d4e1af3e222113b5e63fc3e39",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/706129/000070612926000060/hbnc-20260630earningsrelea.htm"
+      ],
+      "finding": "SEC exhibit dated July 22 announces Home BancShares Q2 2026 earnings; quarter ended June 30."
+    },
+    {
+      "symbol": "HBT",
+      "instrument_id": "stage10_instrument_14b172a04344a07ed8a88dae972a1f46",
+      "natural_identity": "0c8d68d76093ea63b8927baa4115710116c892a66b558a91af66144d352d55bd",
+      "source_event_date": "2026-07-27",
+      "reviewed_version_id": "fmp_analyst_observation_6abf2f1b732ebe0f6dcd784d3ca977f5",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://hbtbank.gcs-web.com/news-releases/news-release-details/hbt-financial-inc-announces-second-quarter-2026-financial"
+      ],
+      "finding": "HBT Financial issuer release announces second-quarter 2026 results."
+    },
+    {
+      "symbol": "HCM",
+      "instrument_id": "stage10_instrument_8d501a33ba318e96600392975a63a352",
+      "natural_identity": "f9cae1dfa4295de9a5a0c7057afb78c1b1921e7b80055583412d83b000fbbd9c",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_367bda1ab5082a1072ad4d7b5149038b",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "half_year",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1648257/000110465926088458/hcm-20260730xex99d1.htm"
+      ],
+      "finding": "The July 30 issuer/SEC announcement reports interim results for the six months ended June 30, 2026; it is H1 reporting, with no standalone quarterly event."
+    },
+    {
+      "symbol": "HFWA",
+      "instrument_id": "stage10_instrument_b0a8beb66f0d79066f265121fe947334",
+      "natural_identity": "1ce720411f8ece659035a09a996b928d9cd4716719414018c4b13f89cb9c41c0",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_1369102f723c57944972439c9c55bd87",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.hf-wa.com/"
+      ],
+      "finding": "Issuer news lists Jul 23 release titled “Heritage Financial Announces Second Quarter 2026 Results”; confirms Q2 FY2026, quarter ended Jun 30."
+    },
+    {
+      "symbol": "HSAI",
+      "instrument_id": "stage10_instrument_bb42cab4f1887ac1e4a0e3d7192003f1",
+      "natural_identity": "20d82bc3d5536cbae00712092f6933f35099804757b8d3992101d4cc7f74a554",
+      "source_event_date": "2026-08-18",
+      "reviewed_version_id": "fmp_analyst_observation_d44d2f9514844e8353a0f06c9ad72642",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-18",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.hesaitech.com/news-releases/news-release-details/hesai-group-reports-second-quarter-2026-unaudited-financial"
+      ],
+      "finding": "Aug 18 issuer release reports second-quarter 2026 unaudited results for three months ended Jun 30."
+    },
+    {
+      "symbol": "HTHT",
+      "instrument_id": "stage10_instrument_21835ad830eae5a94bd3c48aca7ed53f",
+      "natural_identity": "6cc52f71c5ccb6fed5baaf641619ce08fc82f1500eae24eab13b8c50ec7207c7",
+      "source_event_date": "2026-08-17",
+      "reviewed_version_id": "fmp_analyst_observation_c5be57c666fb0ad5545c4497e94a4c32",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-17",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.hworld.com/node/13626/pdf"
+      ],
+      "finding": "Issuer August 17 release reports second-quarter and interim results; standalone quarter ended June 30, with H1 reported alongside it."
+    },
+    {
+      "symbol": "HUBG",
+      "instrument_id": "stage10_instrument_95a61fa12cfa25cf44b53cb6260d6768",
+      "natural_identity": "ffb81a769a1c1d55d4f52c67eff37beef8f181ef00e7936a670803d36021748c",
+      "source_event_date": "2026-09-17",
+      "reviewed_version_id": "fmp_analyst_observation_4173b569e208fff757290bba21edd0a5",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-14",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "preliminary_half_year",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/940942/000119312526394408/d574815dex991.htm",
+        "https://www.sec.gov/Archives/edgar/data/940942/000119312526391228/d137221dex991.htm",
+        "https://www.sec.gov/Archives/edgar/data/940942/000119312526391228/0001193125-26-391228-index.html"
+      ],
+      "finding": "The exact Sep. 17 SEC 8-K is Item 3.01 delisting; the Sep. 14 issuer/SEC release covers both first and second quarters, is preliminary/unaudited, and says results remain subject to restatement and close. June 30 is the supported H1 reporting boundary, but allocating actuals to a single quarter would be invented. Retained single-quarter EPS/revenue do not match an individually disclosed, finalized quarter in the Sep. 14 release. The release supplies a first-half revenue range ($1.70–$1.80bn), no finalized quarter EPS, and states restatement/closing remains incomplete. Do not attach $0.17/$902.6m to either quarter."
+    },
+    {
+      "symbol": "HYMC",
+      "instrument_id": "stage10_instrument_1ab9713777642db626c89bacc3b9e184",
+      "natural_identity": "865c57964706a6b5e620a9d89bd296813c335a1ef532519585bf61b9ae94dac6",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_9b5409b7a67b87d14210fba167f88bb3",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://hycroftmining.com/press-releases/hycroft-reports-q2-2026-results-with-strong-balance-sheet/"
+      ],
+      "finding": "Jul 28 issuer release titled Q2 2026 Results; confirms quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "IESC",
+      "instrument_id": "stage10_instrument_7cb78cf390dae1852c9a5f9cc7d49d2d",
+      "natural_identity": "63b05903348080837ddff5c219b497444cd8387e6419d85f2fd13dde8c4f34f4",
+      "source_event_date": "2026-07-31",
+      "reviewed_version_id": "fmp_analyst_observation_67748407962d3f5ff0c4cb05b9640d8c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-31",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1048268/000104826826000131/q32026pressrelease-june.htm"
+      ],
+      "finding": "Jul 31 SEC exhibit announces fiscal 2026 third-quarter results; quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "IMAX",
+      "instrument_id": "stage10_instrument_0f89780576320d0c7131f19128d5879a",
+      "natural_identity": "e1347e553d0e05c621f1e7c8b758961d780f75e35895bfbb59425b18fc90bf7c",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_359775180bd5d7a4552fa890f8892501",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/921582/000162828026049290/imax-q22026epr.htm"
+      ],
+      "finding": "Jul 23 SEC exhibit is IMAX Q2 2026 results release."
+    },
+    {
+      "symbol": "IMNM",
+      "instrument_id": "stage10_instrument_0ed4ba8a0dcb118857d6b9e6d3c38d88",
+      "natural_identity": "8ff1f61be47112fe5452a4de9b2c52b957bc348b976017be1ec7c756819d3535",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_a71cb0e96065d14b9d150d62c01bc864",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.immunome.com/immunome-reports-second-quarter-2026-financial-results-and-provides-business-update/"
+      ],
+      "finding": "Aug 11 issuer release reports Q2 2026 financial results for quarter ended Jun 30."
+    },
+    {
+      "symbol": "IMOS",
+      "instrument_id": "stage10_instrument_7b9833803b2c95283d9364fad21829c1",
+      "natural_identity": "3b91c6bafd76e3d58ec27530de407dd54e2868b375b205a4502a85842e9c021a",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_45bc8f3edc9eb784aeb13df00933c778",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1123134/000119312526343297/imos-ex99_2.htm"
+      ],
+      "finding": "SEC company presentation labels the results 2Q26."
+    },
+    {
+      "symbol": "IMTX",
+      "instrument_id": "stage10_instrument_12e8f5a4d111290da13be6cb0a06735c",
+      "natural_identity": "e585259e7efc10bf7a6a630f4a75849d56cf34daa37ee17c8e672d1144f8d1b8",
+      "source_event_date": "2026-08-18",
+      "reviewed_version_id": "fmp_analyst_observation_749925978063e6500cb332678317644f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-18",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1809196/000119312526354715/imtx-20260630.htm"
+      ],
+      "finding": "SEC 6-K dated August 18 announces interim results for the three and six months ended June 30 and identifies the quarterly results as second quarter 2026."
+    },
+    {
+      "symbol": "INBX",
+      "instrument_id": "stage10_instrument_6159173db883b1cacbb5f71860c97a13",
+      "natural_identity": "d9b19c0c2b430f2c1aa8d1d44d6e9736132407cf0431e022e7f336bab1b90d41",
+      "source_event_date": "2026-08-13",
+      "reviewed_version_id": "fmp_analyst_observation_caba8031cb583be00b9fa978beffa16a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-13",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/2007919/000200791926000044/exhibit99106302026.htm"
+      ],
+      "finding": "Aug 13 SEC exhibit reports Inhibrx Q2 2026 results; period is quarter ended Jun 30."
+    },
+    {
+      "symbol": "INTR",
+      "instrument_id": "stage10_instrument_1262f39d101b1ccab96e871dde443294",
+      "natural_identity": "7fdf9a4657d84a6656d601633da005797015087f149b3fcc3796c48c0cde0953",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_549b47dca35157c64ac052bf0a57ba4e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/news-release/2026/08/05/3339788/0/en/inter-co-delivers-record-second-quarter-with-strong-growth-and-us-81m-net-income-as-rule-of-50-becomes-a-reality.html"
+      ],
+      "finding": "Aug 5 company-authored release reports Inter second-quarter 2026 results."
+    },
+    {
+      "symbol": "IPAR",
+      "instrument_id": "stage10_instrument_6aceab09e4365c2576e27e82cf692b6b",
+      "natural_identity": "aed1a2a7b244561eb89ace449efb26e4f231d747c5bdd4e7aedbbe5db05709ca",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_ffbee127c57146aa21eb0b0ba3046265",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/822663/000175392626001319/ex991_1.htm"
+      ],
+      "finding": "SEC exhibit reports both second-quarter and half-year results; its standalone quarter ended June 30, 2026."
+    },
+    {
+      "symbol": "IRON",
+      "instrument_id": "stage10_instrument_0f0897d25aa73dbfef91a9d65987dfa7",
+      "natural_identity": "0043a8fb32673eef85699c9541b2c37f2b097d64576d6a80ee554b6a8d6ab52b",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_a958317e2b90bd1344b9869fafc7c64f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.discmedicine.com/news-releases/news-release-details/disc-medicine-reports-second-quarter-2026-financial-results-and"
+      ],
+      "finding": "Jul 30 issuer release reports Q2 2026 financial results for quarter ended Jun 30."
+    },
+    {
+      "symbol": "JBIO",
+      "instrument_id": "stage10_instrument_44691cf846adc176b601957d63ad697a",
+      "natural_identity": "7c7ad54aac432d4922dedcad94d77d6216f89700a5441bdafca19e5a658cd04c",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_5b8e5b618045acd8c26af2a7cfb0f15a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1798749/000119312526341229/d40629dex991.htm"
+      ],
+      "finding": "Aug 10 SEC exhibit reports financial results for second quarter ending Jun 30, 2026."
+    },
+    {
+      "symbol": "KARD",
+      "instrument_id": "stage10_instrument_2a0b01b61dde78692efa241c47603991",
+      "natural_identity": "e2bb81a339a48970034273344eac62b8f3685e3010a363eaf8f595576f9db167",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_3519d8a58a37d948cd28766d45d00caa",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.kardigan.bio/news-releases/news-release-details/kardigan-reports-second-quarter-2026-financial-results-and"
+      ],
+      "finding": "Aug 11 issuer release reports second-quarter results for quarter ended Jun 30."
+    },
+    {
+      "symbol": "KARO",
+      "instrument_id": "stage10_instrument_20ad59361a6bc05f7c69c2dd806dad9e",
+      "natural_identity": "7208a7abdd85aacbacb7606fa2c5876f5a86aedba1a27e3f3a137cb902bf0749",
+      "source_event_date": "2026-07-15",
+      "reviewed_version_id": "fmp_analyst_observation_d2262622ff6b97117db50ebd1f4165ff",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-15",
+      "reported_period_end": "2026-05-31",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1828102/000121390026078315/ea029809401ex99-1.htm"
+      ],
+      "finding": "Official SEC exhibit says first quarter 2027."
+    },
+    {
+      "symbol": "KLRA",
+      "instrument_id": "stage10_instrument_db43441f167277afdef93aad125d0e32",
+      "natural_identity": "3142879b255819040175b06161b97198b0d59001e74b144f9c7493fdd6e325ad",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_432a683b7e907b332da7cb31404358e4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.kailera.com/news-releases/news-release-details/kailera-reports-second-quarter-2026-financial-results-and"
+      ],
+      "finding": "Aug 12 issuer release reports Q2 results for quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "KOD",
+      "instrument_id": "stage10_instrument_cb3a82f62941969a8c3431476f79986b",
+      "natural_identity": "65c43a8fbc5acb6dcde2589404f6e79e1a50a06fa8242d2a41eb35d011c88bf3",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_e2e556d02126405988701b9bdfce77ed",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-13",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://ir.kodiak.com/news-releases/news-release-details/kodiak-sciences-announces-recent-business-highlights-and-3"
+      ],
+      "finding": "Issuer release dated August 13 reports second-quarter 2026 results; retained event is dated August 12, so period is confirmed but event date is one day earlier than the primary announcement."
+    },
+    {
+      "symbol": "KSPI",
+      "instrument_id": "stage10_instrument_78a5e56443a28e281963af7f371e6ad7",
+      "natural_identity": "bdbfcf59fb79641f21bca159e6c0ecebf85b01c59956960b2d7907f126f91b17",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_d9bf672292d932bac0fbfef60b92694d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1985487/000198548726000024/kspi-ex99_1.htm"
+      ],
+      "finding": "SEC exhibit dated August 10 reports 2Q and 1H 2026; the standalone quarterly component is Q2 ended June 30."
+    },
+    {
+      "symbol": "KSS",
+      "instrument_id": "stage10_instrument_c9abf7afc5721e3c97e1c61ead7b459a",
+      "natural_identity": "54c8b900cc008502a70ee21620e5e9b3d071992bc5bb31e7917721a46855aada",
+      "source_event_date": "2026-08-26",
+      "reviewed_version_id": "fmp_analyst_observation_43271604ecd9776d0d2b9a6195dbef5c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-26",
+      "reported_period_end": "2026-08-01",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.kohls.com/news/news-details/2026/Kohls-Reports-Second-Quarter-Fiscal-2026-Financial-Results/default.aspx"
+      ],
+      "finding": "Official Kohl's release calls this second quarter fiscal 2026; retained statement fiscalperiod label 2027-Q2 conflicts."
+    },
+    {
+      "symbol": "LBRX",
+      "instrument_id": "stage10_instrument_f03dbe92b768cba9d2a79f0e3c38fdf6",
+      "natural_identity": "bff5fb2b9521984cb238a99abf62b527d27154388f47d0b0b4ba55836f3988be",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_025f2cbb3e6c8dbf339d6c581b98f35e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/news-release/2026/08/11/3342636/0/en/lb-pharmaceuticals-reports-second-quarter-2026-financial-results-and-provides-corporate-update.html"
+      ],
+      "finding": "Aug 11 company release reports Q2 2026 financial results."
+    },
+    {
+      "symbol": "LEN",
+      "instrument_id": "stage10_instrument_52b681b88a35cd01492e97c62d155837",
+      "natural_identity": "ec37cac162fac2b513591292e140fc82428f17839c512c338f4e73eae980b2a1",
+      "source_event_date": "2026-09-16",
+      "reviewed_version_id": "fmp_analyst_observation_0b2cf3eac363452a7f54dd4d465e3da9",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-16",
+      "reported_period_end": "2026-08-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://newsroom.lennar.com/2026-09-16-Lennar-Reports-Third-Quarter-2026-Results"
+      ],
+      "finding": "Official Lennar release says third quarter ended August 31, 2026."
+    },
+    {
+      "symbol": "LIF",
+      "instrument_id": "stage10_instrument_c46ab76abc177d859b964b0516f922b3",
+      "natural_identity": "f017c952664ebfa93ae65bfeddf7e317b9053d2e1615268f61b20c1b94aaf4ec",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_509e73773744066660fa2fb497a402a8",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.life360.com/news-releases/news-release-details/life360-reports-record-q2-2026-results"
+      ],
+      "finding": "Life360 issuer release dated August 10 reports unaudited Q2 2026 results for the quarter ended June 30; it reports total revenue of $159.0 million, matching the retained event payload."
+    },
+    {
+      "symbol": "LILAK",
+      "instrument_id": "stage10_instrument_30f376595193affb6d60f8089a3ccd06",
+      "natural_identity": "35684006f185717aaf8afe9768cb6d664c992a07504a9c08ff7928743f018c71",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_0c9a3d3908786c297170856a0a66f05d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1712184/000171218426000129/ex991toform_llaq22026earni.htm"
+      ],
+      "finding": "Aug 5 SEC exhibit reports Liberty Latin America Q2 and H1 ended Jun 30, 2026."
+    },
+    {
+      "symbol": "LKFN",
+      "instrument_id": "stage10_instrument_bbca0e8533e434e947373885b049157f",
+      "natural_identity": "848cde31975cbcd63a878b4ea81ea269393a73c6732c5adf776f60ee984c68e1",
+      "source_event_date": "2026-07-27",
+      "reviewed_version_id": "fmp_analyst_observation_2b64802a653e911122d252718b96f61e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/news-release/2026/07/27/3333368/8543/en/lakeland-financial-reports-record-second-quarter-performance-net-income-increases-5-to-28-4-million-on-7-revenue-expansion-average-loans-grow-by-6.html"
+      ],
+      "finding": "The July 27 company-authored release explicitly reports second-quarter 2026 results; the period ended June 30, 2026."
+    },
+    {
+      "symbol": "LKFT",
+      "instrument_id": "stage10_instrument_d00a995948fc178b7a66219f48013bf3",
+      "natural_identity": "0021e7de79024020d4e08cdef5e4899558bd1b9f01981eaeafa78a201392e0d8",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_4b357a35a3203c35363fd819748f9ab2",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "half_year",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://lakefrontbio.com/press-releases/lakefront-biotherapeutics-reports-half-year-2026-financial-results-and-provides-business-update/"
+      ],
+      "finding": "Issuer reported half-year 2026 results and a second-quarter/post-period update; no standalone quarterly EPS/period is established."
+    },
+    {
+      "symbol": "LLYVA",
+      "instrument_id": "stage10_instrument_af974c50c743e8a9228f661ea49637cf",
+      "natural_identity": "bc5c221974604ea2eed1292b972bda3a34383b811edc92fb778473bbb73f408b",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_8a638d422f7435050686e0f212b00161",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.libertyliveholdings.com/investors/sec-filings/all-sec-filings/content/0001104659-26-092020/tmb-20260630x10q.htm"
+      ],
+      "finding": "Liberty Live Holdings (CIK 0002078416) filed its Q2 2026 Form 10-Q on August 6; the filing names LLYVA and LLYVK as its Series A and Series C trading symbols and covers quarter ended June 30. This is the issuer filing, not Liberty Media Corporation."
+    },
+    {
+      "symbol": "LLYVK",
+      "instrument_id": "stage10_instrument_5b0a729b9bcfd7a8b47595021f95f12b",
+      "natural_identity": "40b73c0c2f010c7a935c2a3c67fda272b705fdd7f52302990d470d110b494274",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_f7df294997e20fe9f2203bc51fe59f00",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.libertyliveholdings.com/investors/sec-filings/all-sec-filings/content/0001104659-26-092020/tmb-20260630x10q.htm"
+      ],
+      "finding": "Liberty Live Holdings (CIK 0002078416) filed its Q2 2026 Form 10-Q on August 6; the filing names LLYVA and LLYVK as its Series A and Series C trading symbols and covers quarter ended June 30. This is the issuer filing, not Liberty Media Corporation."
+    },
+    {
+      "symbol": "LNC",
+      "instrument_id": "stage10_instrument_5cddd9a2038f02cbe171d2e327eb8a1f",
+      "natural_identity": "75f4327dca4be52ff7dc2a0431a0b42741410cd83f5c0cc867aef649c458bafe",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_d73ab0167ef9cd15efe27575c6bd8590",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/59558/000005955826000058/a2q2026lncearningspr.htm"
+      ],
+      "finding": "Jul 30 SEC exhibit is Lincoln National Q2 2026 earnings release for quarter ended Jun 30."
+    },
+    {
+      "symbol": "LXP",
+      "instrument_id": "stage10_instrument_1b416522141c495a9faf2ed244ab8638",
+      "natural_identity": "b06770e9c6fedf3694f4b18e316be88029ac99934deed5b9c7636463137c3090",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_279c0fd1c4aef17d80625e09aae30a97",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.lxp.com/financials/quarterly-results/default.aspx"
+      ],
+      "finding": "Issuer quarterly-results page identifies Q2 2026 results released July 29 for the quarter ended June 30, 2026."
+    },
+    {
+      "symbol": "MANE",
+      "instrument_id": "stage10_instrument_0edb17bfce9a9c37d1bdcf28f853580e",
+      "natural_identity": "58476ec7bf780c5caab7650a7d3bed158f5bcea54b428b1c597e87c034b28605",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_abf7a3d65ee0fdd8f5eb21fecc4fef15",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1827635/000182763526000028/ex991q226earnings.htm"
+      ],
+      "finding": "Aug 11 SEC exhibit reports Veradermics Q2 financial results for quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "MAZE",
+      "instrument_id": "stage10_instrument_8b3d377982f6fb206c86b4f601834216",
+      "natural_identity": "d173face8c693868ee71e2faf4078100b4cb38f828d6f69ce54338d7108f6000",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_778bfae8faa246a4ca6fa217b4e34d15",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://ir.mazetx.com/news-releases/news-release-details/maze-therapeutics-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer release reports Q2 2026 results for quarter ended June 30, published August 11, one day before the retained event date August 12."
+    },
+    {
+      "symbol": "MBIN",
+      "instrument_id": "stage10_instrument_e3ca18d792aa30854453648876154d2f",
+      "natural_identity": "c94f59bae9f52933e47a4a4eb5a03fc7946094f1b7c184a0137ae7aa0165c165",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_1f567940cf4d6f9e821d56f5f50000f8",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1629019/000110465926087529/tm2621390d1_ex99-1.htm"
+      ],
+      "finding": "Jul 28 SEC exhibit reports Merchants Bancorp second-quarter 2026 results, including EPS $1.48."
+    },
+    {
+      "symbol": "MBWM",
+      "instrument_id": "stage10_instrument_b69c6cf7e1a432e873ca7b5ca1cdd1bf",
+      "natural_identity": "7599631820d9af1eaaf53097d2c4b664db119e0a37cfd751e49b78bea24b7679",
+      "source_event_date": "2026-07-21",
+      "reviewed_version_id": "fmp_analyst_observation_5c4cb659d2abb16f438ebda0993b77be",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-21",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.mercbank.com/news/news-details/2026/Mercantile-Bank-Corporation-Announces-Strong-Second-Quarter-2026-Results/default.aspx"
+      ],
+      "finding": "Jul 21 issuer release announces strong second-quarter 2026 results."
+    },
+    {
+      "symbol": "MBX",
+      "instrument_id": "stage10_instrument_5517c74ddfa57c198d3a46d3ecf0d31d",
+      "natural_identity": "7de9a7f77ac1d1ee2cd920fb1f4f867a64178d3810b5b6320e07ee7b937cc274",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_f060f31b29308133214d881c52fc5ddd",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.mbxbio.com/news-releases/news-release-details/mbx-biosciences-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Aug 6 issuer release reports second-quarter results for quarter ended Jun 30."
+    },
+    {
+      "symbol": "MCBS",
+      "instrument_id": "stage10_instrument_493b7cabe851998cafed022a2e5ccf13",
+      "natural_identity": "f38b49091ad1546602ada95f54df2e97f7a52154010f982c1d2e287c3ecb1243",
+      "source_event_date": "2026-07-24",
+      "reviewed_version_id": "fmp_analyst_observation_035a670b5bf176f5486f03cc19b23b17",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-24",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1747068/000110465926086635/mcbs-20260724xex99d1.htm"
+      ],
+      "finding": "Jul 24 SEC exhibit reports MetroCity net income and EPS for second quarter 2026; quarter ended Jun 30."
+    },
+    {
+      "symbol": "MCY",
+      "instrument_id": "stage10_instrument_d11e7a7e7b7844dc59fef637e119f014",
+      "natural_identity": "24e7446a4f99455038677f7b676020385a87e3eff6e76906c9962cc7cd56d31e",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_69afc5f301b43f5235bdc8a40f38c3f4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://mercuryinsurance.investorroom.com/2026-08-04-Mercury-General-Corporation-Announces-Second-Quarter-Results-and-Declares-Quarterly-Dividend"
+      ],
+      "finding": "Aug 4 issuer release announces second-quarter 2026 results."
+    },
+    {
+      "symbol": "MEOH",
+      "instrument_id": "stage10_instrument_65eb600611d404dbf04a3cdf9a864a57",
+      "natural_identity": "9946ea56fa17d6bd53c0f1dfbdbb5aa2dd5d7332438ecab1680b40a6b17ee414",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_5403b0a1b1e4190a79b12930c24f06d2",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.methanex.com/news/release/methanex-reports-record-north-american-production-and-second-quarter-2026-earnings/"
+      ],
+      "finding": "Jul 28 issuer release reports second-quarter 2026 earnings; quarter ended Jun 30."
+    },
+    {
+      "symbol": "MESO",
+      "instrument_id": "stage10_instrument_1b8d0efa701ea1dc518d91e1ef6f4e76",
+      "natural_identity": "58480de9b3d90e64200fa9d71d2c0c2209c6fefd419135f0d2e97209199ed9e3",
+      "source_event_date": "2026-08-26",
+      "reviewed_version_id": "fmp_analyst_observation_0d3a7716bd1e236aca00db87be068738",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-26",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "annual",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investorsmedia.mesoblast.com/news-releases/news-release-details/msb-annual-financial-results-and-operational-update-2"
+      ],
+      "finding": "Issuer published annual financial results for the period ended June 30, 2026; do not force a Q4 mapping."
+    },
+    {
+      "symbol": "MIDD",
+      "instrument_id": "stage10_instrument_3750f0ca64425d6b36506990b920b6a5",
+      "natural_identity": "e64bdeeb0515682e394d03b55fed0300ac2b5ef9e04cac7f388281854b018570",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_6394233d3872b7d3d4563404351fa43f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-07-04",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://middlebycorporation.gcs-web.com/news-releases/news-release-details/middleby-corporation-reports-second-quarter-results-14"
+      ],
+      "finding": "The August 11 issuer release identifies second-quarter results; retained Middleby quarterly filing dates the fiscal quarter end July 4, 2026."
+    },
+    {
+      "symbol": "MKTX",
+      "instrument_id": "stage10_instrument_2bed55450e498cb2bc5bad2224ab9b5b",
+      "natural_identity": "4569d59b184c3408d891464e982184b686e67a07f65ad75790f78946e2c0cca0",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_559fb6f6b46840dc86650b50a4e1fb7a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.marketaxess.com/news/news-details/2026/MarketAxess-Reports-Second-Quarter-2026-Financial-Results/default.aspx"
+      ],
+      "finding": "Jul 30 issuer release reports second-quarter 2026 financial results for quarter ended Jun 30."
+    },
+    {
+      "symbol": "MLTX",
+      "instrument_id": "stage10_instrument_772ebeaea5e0c40292f96f461e1831bd",
+      "natural_identity": "20ec379fc85767aec98ce19a676f95ccc6e1830eedd707ab155256204ac3eeec",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_7bc7a072092e61a209b5234012fea0e2",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1821586/000121390026086939/ea030119101ex99-1.htm"
+      ],
+      "finding": "Aug 10 SEC exhibit reports MoonLake Q2 2026 financial results."
+    },
+    {
+      "symbol": "MUSA",
+      "instrument_id": "stage10_instrument_127fa79c75902a47564beaad79e72015",
+      "natural_identity": "279067112eb2d5ad6bbdefd7957b7a32078e338bac57ca1e50e31514c39e69b4",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_9eedf3f033472d7645c458ba2f5946ea",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1573516/000157351626000164/musa-20260805.htm"
+      ],
+      "finding": "Aug 5 SEC 8-K says Murphy USA reported results for three and six months ended Jun 30; Q2 2026."
+    },
+    {
+      "symbol": "NAMS",
+      "instrument_id": "stage10_instrument_eafe4af305395f8f3653515990841fc1",
+      "natural_identity": "3818945cd5e160abc4ff66d58c743cfec6180bfba5a645ac182020b2e681ee36",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_cd29741d3bf7aad51e9861a48be902bc",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.newamsterdampharma.com/news-releases/news-release-details/newamsterdam-pharma-provides-corporate-update-and-reports-7"
+      ],
+      "finding": "Aug 5 issuer release reports results for quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "NAT",
+      "instrument_id": "stage10_instrument_731b4b017191655a88f7ad8abc7704fb",
+      "natural_identity": "74cca2a1e172bb0cb36267fae156ffa5fdf1bf0a2eb8eed0f7ded6a74e9bcf4b",
+      "source_event_date": "2026-08-27",
+      "reviewed_version_id": "fmp_analyst_observation_682b9dbc0a3fe4acca07c5bdc773b955",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.nat.bm/nat-2q2026-report/"
+      ],
+      "finding": "Issuer quarterly report is titled NAT 2Q2026 report."
+    },
+    {
+      "symbol": "NBHC",
+      "instrument_id": "stage10_instrument_5287b6f2a6f3c8e3eb37915f5fe8fed6",
+      "natural_identity": "3164ae30421f15eb82140eb5e54012f0b655db1853e09796665ce3fa2316290d",
+      "source_event_date": "2026-07-21",
+      "reviewed_version_id": "fmp_analyst_observation_ee363b9864621f2ca875a10b9cd2d98c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-21",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1475841/000110465926085408/nbhc-20260721xex99d1.htm"
+      ],
+      "finding": "Jul 21 SEC exhibit reports second-quarter 2026 results; GAAP diluted EPS $0.58 and adjusted $0.78."
+    },
+    {
+      "symbol": "NBR",
+      "instrument_id": "stage10_instrument_7ad92063e93ca0b44f7a8ea555f4e6ac",
+      "natural_identity": "bbe6c005f7907fd62ea04c914273f7f7c36cde91a33eb885a26a0716de65ad2a",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_dc547386d7c70a39e6fe95915c4c806b",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.nabors.com/2026-07-28-Momentum-Accelerates-Cash-Flow-Improves-Nabors-2Q-2026-Results"
+      ],
+      "finding": "Jul 28 issuer release reports Nabors 2Q 2026 results."
+    },
+    {
+      "symbol": "NBTB",
+      "instrument_id": "stage10_instrument_bc26412b0332e3b6ab1555efe2783455",
+      "natural_identity": "a5b7e5d4a5f69dd27323a0027184e14fe5ca065e899a9bc7ebe47648ab384e5e",
+      "source_event_date": "2026-07-27",
+      "reviewed_version_id": "fmp_analyst_observation_dfd9f73e21fd1c5fcd755ae886470419",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.globenewswire.com/news-release/2026/07/27/3333880/15780/en/NBT-Bancorp-Inc-Announces-Second-Quarter-2026-Results-and-Approves-an-8-1-Cash-Dividend-Increase.html"
+      ],
+      "finding": "Jul 27 company release reports second-quarter 2026 results, quarter ended Jun 30."
+    },
+    {
+      "symbol": "NBTX",
+      "instrument_id": "stage10_instrument_8932467576c71dd30c7d93f730ff2323",
+      "natural_identity": "ad7ac234030560ba11372dedae3949a708f329a9e16dd5a2d69761de5ac47de7",
+      "source_event_date": "2026-03-31",
+      "reviewed_version_id": "fmp_analyst_observation_9d7573887698f02190cc2108d29f14b4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-03-31",
+      "reported_period_end": "2025-12-31",
+      "fiscal_year": 2025,
+      "fiscal_quarter": null,
+      "reporting_kind": "annual",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.nanobiotix.com/news-releases/news-release-details/nanobiotix-provides-business-update-and-reports-full-year-2025"
+      ],
+      "finding": "Official March 31 release reports full-year 2025 results. Retained Q4 statement is not sufficient to treat the combined annual release as standalone quarterly earnings."
+    },
+    {
+      "symbol": "NHI",
+      "instrument_id": "stage10_instrument_269acebc0feb5e3512b7a9089fee98c0",
+      "natural_identity": "c5a343d1a340b4597b06d600983251123264e4daf797694ba848bfb8bf1f2866",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_4d81daacd235d9d8a0da1df4be394e8e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/877860/000087786026000200/nhi-20260810.htm"
+      ],
+      "finding": "Aug 10 SEC 8-K reports earnings for quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "NIC",
+      "instrument_id": "stage10_instrument_5b0fdba5d66023018ffcb6dad0435063",
+      "natural_identity": "b31003d3c4564d7062e0b562c014c654ee3aea1b9f661fef9aa932d88729bdbd",
+      "source_event_date": "2026-07-21",
+      "reviewed_version_id": "fmp_analyst_observation_875fb707c649f0cb12938c15425c6473",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-21",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1174850/000117485026000157/exhibit99_12q2026pressrele.htm"
+      ],
+      "finding": "Jul 21 SEC exhibit reports Nicolet second-quarter 2026 results."
+    },
+    {
+      "symbol": "NMIH",
+      "instrument_id": "stage10_instrument_a6977d90b2c70dcf07f1b8b27c66fedb",
+      "natural_identity": "9fc5d080202a17139155020e5797536c9ede94609510e94d3a549daa6a7bb26b",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_3322d350372d0b614674f1265901071a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://nmiholdings.gcs-web.com/news-releases/news-release-details/nmi-holdings-inc-reports-record-second-quarter-2026-financial"
+      ],
+      "finding": "Jul 30 issuer release reports record second-quarter 2026 financial results."
+    },
+    {
+      "symbol": "NNI",
+      "instrument_id": "stage10_instrument_70b008dba5656eed6be42176abe30e5e",
+      "natural_identity": "c805de209ff813254c3f86d634e30bd92673486c3ddcc2c31640e4cf1e028da4",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_7e8c1d8d8b6be87b27bda34470e2acf4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1258602/000125860226000041/aex991-080626xearningsrele.htm"
+      ],
+      "finding": "Aug 6 SEC exhibit reports Nelnet Q2 2026 results."
+    },
+    {
+      "symbol": "NNN",
+      "instrument_id": "stage10_instrument_a74da470c1bc7dde907b5d6d4717a986",
+      "natural_identity": "f90f5eb7f7a051e5ffb5eef8556a402ea51976cafe57563240bcc46d0cb073a5",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_abf2738f7853314de4adb925be835ad4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.nnnreit.com/news/"
+      ],
+      "finding": "Issuer news identifies its August 5 release as second-quarter 2026 results; fiscal quarter ended June 30, 2026."
+    },
+    {
+      "symbol": "NTES",
+      "instrument_id": "stage10_instrument_a034d53d972ad5c531c198859628a6ea",
+      "natural_identity": "3cc604a5e5b9a7ef5a52b6d26e6de8bab4d2eee0c792ed5e48eb1491ebb8a86f",
+      "source_event_date": "2026-08-20",
+      "reviewed_version_id": "fmp_analyst_observation_7d59c48fbfe7131d4d1165b7ed58b3b6",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-20",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.netease.com/"
+      ],
+      "finding": "Issuer August 20 release explicitly combines second-quarter and interim 2026 unaudited results; quarterly component is Q2 ended June 30, with H1 also reported."
+    },
+    {
+      "symbol": "NWE",
+      "instrument_id": "stage10_instrument_cffc00c85747bc5a7f1954eadb0a5676",
+      "natural_identity": "fd6e0e9556014965e4126a1cc34026e964a4f715b2b54e917a9d950aaaa434ef",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_a448ccda9d56562145c422f8e25c1ad2",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www2.northwesternenergy.com/about-us/news-articles-events/2026/07/29/northwestern-energy-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer July 29 release explicitly reports second-quarter 2026 financial results."
+    },
+    {
+      "symbol": "OBK",
+      "instrument_id": "stage10_instrument_a4bddd3f208d7ecc8efee7e42112eba5",
+      "natural_identity": "f95c0cfce695a1daf0baee5795a26a3da2c5559f8b85f8d06a44b50a8b5aaf6e",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_744e5ccefdfdc1b396cb7bfab1f8a3f3",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.origin.bank/news-and-events/news-releases/"
+      ],
+      "finding": "Jul 22 issuer news release reports Origin Bancorp net income and diluted EPS for quarter ended Jun 30, 2026."
+    },
+    {
+      "symbol": "ODTX",
+      "instrument_id": "stage10_instrument_d9145e357a472cc3e35bc4a640a84e2e",
+      "natural_identity": "ab878985526cb76f663de26786b2503912a4e36d093a2889400a9bd73d94ed56",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_2e26003f379709bfacb673bcc95a5c88",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.odysseytx.com/news-events/news-releases"
+      ],
+      "finding": "Issuer archive identifies August 4 second-quarter results; June 30 cash date corroborates quarter end."
+    },
+    {
+      "symbol": "OFG",
+      "instrument_id": "stage10_instrument_8a4bf7e29e53bded2b1b69257a5f994c",
+      "natural_identity": "03d472d09594023f12a9a9bb2b1a4676b54b3cd561331748867285ac385ebb7d",
+      "source_event_date": "2026-07-21",
+      "reviewed_version_id": "fmp_analyst_observation_3891022355d56bf1de6ad75013dc7a1a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-21",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.ofgbancorp.com/news/news-details/2026/OFG-Bancorp-Reports-2Q26-Results/default.aspx"
+      ],
+      "finding": "Issuer July 21 release reports second quarter ended June 30."
+    },
+    {
+      "symbol": "OGN",
+      "instrument_id": "stage10_instrument_d276a1896306ac398af9068c42bf63a9",
+      "natural_identity": "39ddb003fe8cf5c8277a14b48226479ae78e62ac7aa2dc02b648f03f02a9c193",
+      "source_event_date": "2026-07-31",
+      "reviewed_version_id": "fmp_analyst_observation_5abc19ac23f6cf57e502eb7fd2768d4d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-31",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.organon.com/news/organon-to-report-second-quarter-2026-results-in-its-regularly-scheduled-form-10-q-filing/",
+        "https://www.sec.gov/Archives/edgar/data/1821825/000110465926089008/tm2621744d1_8k.htm"
+      ],
+      "finding": "SEC 8-K explicitly states Organon released June 30 quarter results on July 31 via its 10-Q."
+    },
+    {
+      "symbol": "ORIC",
+      "instrument_id": "stage10_instrument_e3577cc6cb017bc37e8e2d0ce2867c8f",
+      "natural_identity": "7924929852e36b1595b9cfc7fceabf9e8fd3debda19699cb21c3498377725c42",
+      "source_event_date": "2026-08-03",
+      "reviewed_version_id": "fmp_analyst_observation_c4850470d58ff74e89ad8b5a304d8203",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-03",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1796280/000119312526330568/oric-20260803.htm"
+      ],
+      "finding": "SEC August 3 8-K reports quarter ended June 30."
+    },
+    {
+      "symbol": "ORKA",
+      "instrument_id": "stage10_instrument_ec3ac351def0243b6111225eea0abb38",
+      "natural_identity": "e2c86ba09e88677b36aafaa82cafb50a8574eb27d04169fec7a4ab1c6f6e5224",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_48c50334a287a8891f2a5506cb4706d3",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/907654/000121390026086933/ea0301312-8k_oruka.htm"
+      ],
+      "finding": "SEC August 10 8-K identifies Q2 ended June 30."
+    },
+    {
+      "symbol": "PAGS",
+      "instrument_id": "stage10_instrument_cf11d986abb1c841ed320aa5fd69d1b2",
+      "natural_identity": "0c70ad6b87ca2bf5ce7eee6e8566cfb77c0974cc7e0a67be373b12ca2560cc3a",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_3f754f7449fa79f83114a6b2dd604c42",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1712807/000155485526001793/MainDocument.htm"
+      ],
+      "finding": "SEC 6-K release identifies second-quarter results."
+    },
+    {
+      "symbol": "PAHC",
+      "instrument_id": "stage10_instrument_878fd682c1ac4c39eb5862ead7233d78",
+      "natural_identity": "6b1fd01c5a04b430f21c00ce97ce1eef31220675c3d5a7c88d52967d36096f3d",
+      "source_event_date": "2026-08-26",
+      "reviewed_version_id": "fmp_analyst_observation_b4053514fc90bb9a4b16c3f41d925003",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-26",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 4,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1069899/000110465926101531/pahc-20260826xex99d1.htm"
+      ],
+      "finding": "SEC release identifies Q4 and full fiscal year ended June 30."
+    },
+    {
+      "symbol": "PBLS",
+      "instrument_id": "stage10_instrument_21b6a0e2e84147c664ea664e1e16c429",
+      "natural_identity": "314131b5eca7818b08fe450ddd7a499e417657c6657310b858f111159759db36",
+      "source_event_date": "2026-08-13",
+      "reviewed_version_id": "fmp_analyst_observation_ba0fae3c6d36b3768ed79eec3f75474d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-13",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1657677/000119312526347869/ck0001657677-ex99_1.htm"
+      ],
+      "finding": "Parent checked Parabilis Medicines August 13 SEC release explicitly stating second quarter ended June 30."
+    },
+    {
+      "symbol": "PCVX",
+      "instrument_id": "stage10_instrument_87d06b8477b4f9fa1010a765a3f28a3d",
+      "natural_identity": "af1c6f1c98c6a164f6ec9c6086912e0759ebdba00496dc715e441b2ac60d265b",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_bce2bd5d831c4f6657b0dce5c4c06b3a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1649094/000164909426000041/pcvx-20260805xexx991.htm"
+      ],
+      "finding": "SEC release has statements for three months ended June 30."
+    },
+    {
+      "symbol": "PGR",
+      "instrument_id": "stage10_instrument_1c6cb796f640d6b7b0f46bcd5ab2cbc6",
+      "natural_identity": "ac885f91ca98af1ecef530f4f5a7ce51cac07d364539f8ab6a26a7511775716b",
+      "source_event_date": "2026-07-15",
+      "reviewed_version_id": "fmp_analyst_observation_56483012c924c1435bf00a257d753c55",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-15",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/80661/000008066126000262/pgr202606ex99earningsrelea.htm"
+      ],
+      "finding": "Parent reopened July 15 June-results release: separate month and quarter ended June 30 tables support quarterly mapping."
+    },
+    {
+      "symbol": "PHVS",
+      "instrument_id": "stage10_instrument_a35d16d940fc5b36ff0fb68c080595c1",
+      "natural_identity": "373fa14372ab4a9029edca9060d003fe763c29464a5a7c6cfd2b2fa9fd96af92",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_44a858eb4c3910749acc4b01e1d773b4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.pharvaris.com/",
+        "https://www.globenewswire.com/news-release/2026/08/12/3343484/0/en/pharvaris-reports-second-quarter-2026-financial-results-and-provides-business-update.html"
+      ],
+      "finding": "Company-authored August 12 release explicitly states second quarter ended June 30."
+    },
+    {
+      "symbol": "PLMR",
+      "instrument_id": "stage10_instrument_7e434d73f1cca55f3d002702c971646b",
+      "natural_identity": "4b5b98c4d26581027415c0bf4a7122aecffe9bb506df939ab70c0e7e3c0c484f",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_a20ecebb78761b6ecc0dda5726ed1d86",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.palomarspecialty.com/news-releases/news-release-details/palomar-holdings-inc-reports-second-quarter-2026-results",
+        "https://ir.palomarspecialty.com/static-files/55e76228-ff5b-42f9-b08e-9659ee44bd04"
+      ],
+      "finding": "Issuer August 4 8-K explicitly links press release to fiscal quarter ended June 30."
+    },
+    {
+      "symbol": "PPTA",
+      "instrument_id": "stage10_instrument_66ef32ea8b028c61396c27143d6e4d55",
+      "natural_identity": "690dcbc50711a4ad26d4cc9937e0f790cb5550d7b4ce1751a4ed9d71a163b66a",
+      "source_event_date": "2026-08-14",
+      "reviewed_version_id": "fmp_analyst_observation_41091e54805f78d17d19894af697ea9a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-14",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://perpetuaresources.com/investors/",
+        "https://www.sec.gov/Archives/edgar/data/1526243/000110465926097134/ppta-20260630x10q.htm"
+      ],
+      "finding": "Issuer archive links August 14 Q2 results and SEC 10-Q identifies June 30 period."
+    },
+    {
+      "symbol": "PRK",
+      "instrument_id": "stage10_instrument_e6f055772dc2da9977f1d2a2520a7563",
+      "natural_identity": "3628a39cc8f5831bdd1e68c491399a7cabfc64ebb90d25295816a17c02c0ff57",
+      "source_event_date": "2026-07-27",
+      "reviewed_version_id": "fmp_analyst_observation_7c8ff276866702b6da515a6be9fd21c4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-27",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/805676/000080567626000057/exhibit991earningsrelease2.htm"
+      ],
+      "finding": "SEC earnings exhibit reports Q2 and first-half periods ended June 30."
+    },
+    {
+      "symbol": "Q",
+      "instrument_id": "stage10_instrument_92dc688482d70eb8aefb27623d3e1b80",
+      "natural_identity": "bb7a47f9fbec029e51aa1e1842843e970d05dfb04d89880c8d2d1ceaaa16bd00",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_44d49227a6fc970021ded5b87a69fc0e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.qnityelectronics.com/press-releases/detail/69/qnity-reports-second-quarter-2026-results-raises-full-year-financial-guidance"
+      ],
+      "finding": "Qnity CIK 2058873; parent reopened official August 4 results explicitly identifying second quarter ended June 30."
+    },
+    {
+      "symbol": "RAMP",
+      "instrument_id": "stage10_instrument_5ae4e55285be727796bf33dbc6986edd",
+      "natural_identity": "9f56d74b57d606f5d9e8b8dfac5dc44ab080d49efa5856e5b1f4bc877e58f627",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_b1a65514dce36845155519eb669f57b8",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.liveramp.com/news-events/news-releases"
+      ],
+      "finding": "Issuer archive labels First Quarter FY27; fiscal year begins April 1."
+    },
+    {
+      "symbol": "RAPP",
+      "instrument_id": "stage10_instrument_678f35d84601ce501c15296b1d2dcc6b",
+      "natural_identity": "c47e4f4dea365476f617ff0b1c77c1a4d8f8afa4611c72ab46eecb9dfbf13655",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_871b8e7898c0dbe11d6c922af736adbf",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/2012593/000119312526333853/rapp-20260805.htm"
+      ],
+      "finding": "SEC August 5 8-K reports quarter ended June 30."
+    },
+    {
+      "symbol": "RBCAA",
+      "instrument_id": "stage10_instrument_ae0a535e07870c8ffeae7a2d023bc19f",
+      "natural_identity": "a66b908a43f2df7a08c9baa8ea4deb2d5b0e76be9db9f5b52d99cee503f12b05",
+      "source_event_date": "2026-07-24",
+      "reviewed_version_id": "fmp_analyst_observation_ec7bf610a5a0c5f960c617206cfa7747",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-24",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/921557/000110465926086487/rbcaa-20260724x8k.htm"
+      ],
+      "finding": "Parent reopened correct SEC 8-K: July 24 results for quarter and six months ended June 30."
+    },
+    {
+      "symbol": "REPL",
+      "instrument_id": "stage10_instrument_cc724bfc2d88fbefc806820b8819a84c",
+      "natural_identity": "55785b66239c60d44f5d3fd366d1645bf0b9cef7f64ae29efb3cccbd4fc52cb2",
+      "source_event_date": "2026-08-14",
+      "reviewed_version_id": "fmp_analyst_observation_535c774a45302c714cd8c832f1541120",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-14",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.replimune.com/news-releases/news-release-details/replimune-reports-fiscal-first-quarter-2027-financial-results",
+        "https://ir.replimune.com/press-releases"
+      ],
+      "finding": "Official August 14 release identifies fiscal first quarter 2027 ended June 30, 2026."
+    },
+    {
+      "symbol": "RUM",
+      "instrument_id": "stage10_instrument_6637219081f234c4ffcf43ac83e0ffda",
+      "natural_identity": "8a88072483079162000937a2fe0e73a54ee265bbdf3336dc0319aaaf7f44aa2d",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_884d42e759e535985510611c294e78a4",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1830081/000121390026087234/ea030115001ex99-1.htm"
+      ],
+      "finding": "SEC release labels fiscal quarter ended June 30."
+    },
+    {
+      "symbol": "RXRX",
+      "instrument_id": "stage10_instrument_f3065a4a1361877c78a61684539ceb11",
+      "natural_identity": "77dc36a09a86cb0bc76f2dbeaa3916cf3a71722516d261b56ec8a56a2e1122bb",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_ab18fe24fd729c7d988950ed4e147a2b",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.recursion.com/news-releases/news-release-details/recursion-reports-second-quarter-financial-results-genentech",
+        "https://www.sec.gov/Archives/edgar/data/1601830/000160183026000097/rxrx-20260805.htm"
+      ],
+      "finding": "SEC August 5 8-K explicitly links that day to results for second quarter June 30."
+    },
+    {
+      "symbol": "RYAAY",
+      "instrument_id": "stage10_instrument_5f1cc059c9cd144b91a884f67a660dc9",
+      "natural_identity": "db7c28bcb16aa473389900601d053ad1b5c31d88f632519ff2ace8af72e58b8c",
+      "source_event_date": "2026-07-20",
+      "reviewed_version_id": "fmp_analyst_observation_ffafeb6d836d3de5c9970652f7aa5f48",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-20",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.ryanair.com/wp-content/uploads/2026/07/Q1-FY27-Ryanair-Results.pdf"
+      ],
+      "finding": "Issuer Q1 FY27 PDF explicitly ends June 30."
+    },
+    {
+      "symbol": "SAFT",
+      "instrument_id": "stage10_instrument_0b9be4cb70f504ca22666470de1213fc",
+      "natural_identity": "bfcb8eb0db5de6e77b5cdc4a43bab0a11b608f90a724ce34cf0d66f925b1d7e7",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_234a99e103663e9637b4c1dffb0c1cac",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1172052/000117205226000021/saft-20260805xex99d1.htm"
+      ],
+      "finding": "SEC exhibit states Q2 ended June 30."
+    },
+    {
+      "symbol": "SANA",
+      "instrument_id": "stage10_instrument_86a0caf83dff5b7e1ce0cc1a71f2cdb7",
+      "natural_identity": "2c332187167ad1d1123f01922bea0a91bd739a9f61734fd3841722d7ba6b008e",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_3fa14b793dc52e7a47b404a0f1d2269d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://sana.gcs-web.com/news-releases/news-release-details/sana-biotechnology-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Official Q2 release has separate three-month and six-month June 30 results, including quarterly net loss."
+    },
+    {
+      "symbol": "SBCF",
+      "instrument_id": "stage10_instrument_8815ac095003a97329c66a10c2e8b598",
+      "natural_identity": "919a1f379cece8b35dddb60843639f9895e506f8bcc511237911d4cb156a3e70",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_3b744bcd2e3f22d7c755f8e116138a5a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/730708/000162828026050147/sbcf-20260728.htm"
+      ],
+      "finding": "SEC 8-K identifies quarter and six months ended June 30."
+    },
+    {
+      "symbol": "SBLK",
+      "instrument_id": "stage10_instrument_5a5890744260c7218bc00194c48e4477",
+      "natural_identity": "58a795b826e9f04c9754e7d6eb6cb58e282718a9d464b75d1e581c3912487d94",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_5914eb7ca560b1e5f7811d1c794bd450",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1386716/000095015726000846/ex99-1.htm"
+      ],
+      "finding": "SEC earnings exhibit reports second-quarter 2026 results."
+    },
+    {
+      "symbol": "SEDG",
+      "instrument_id": "stage10_instrument_59ebfb01606db5ca5c9319b2f37af9d0",
+      "natural_identity": "618181f9cb0c4d1f571df537e218c789faea701904a4e95166e805a13e2026e0",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_af4e26cfb46c2beae0eef80bfbe5c53e",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.solaredge.com/news-releases/news-release-details/solaredge-announces-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer release states second quarter ended June 30."
+    },
+    {
+      "symbol": "SFNC",
+      "instrument_id": "stage10_instrument_ba00a5cd1830885a8df4bf54aa796e9b",
+      "natural_identity": "5efa38e938217e1f8acbe8218e2f4c5b250625c3cc59bd8ea17cb88b0ca4c3e0",
+      "source_event_date": "2026-07-16",
+      "reviewed_version_id": "fmp_analyst_observation_f3771f47e66cf5dc64ee9bb314c247be",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-16",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://newsroom.simmonsbank.com/2026-07-16-Simmons-First-National-Corporation-Reports-Second-Quarter-Results"
+      ],
+      "finding": "Official July 16 Q2 release includes quarter tables for three months ended June 2026."
+    },
+    {
+      "symbol": "SKT",
+      "instrument_id": "stage10_instrument_952d365b7ab36de4a56c04d4307f7f8a",
+      "natural_identity": "10167dff91df1e2deedd71ebe64273564b3faa481c7ccc0866ee664d63a6f57c",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_44b16ca01885b6036da301bede5e561a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.tanger.inc/press-releases/detail/648/tanger-reports-second-quarter-results-and-increases-2026-guidance"
+      ],
+      "finding": "Issuer release has three- and six-month results ended June 30."
+    },
+    {
+      "symbol": "SLDB",
+      "instrument_id": "stage10_instrument_425a37bec090cfb6015466d480fb4c6b",
+      "natural_identity": "b14c54e8c2ffba51557dc38c57bc33814a635fb517889aebafc2dfb889c980b8",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_ed64dadcb3404c10c782fe31dcdf8fe0",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://solidbio.gcs-web.com/news-releases/news-release-details/solid-biosciences-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer reports second quarter ended June 30."
+    },
+    {
+      "symbol": "SLS",
+      "instrument_id": "stage10_instrument_9d2f9ae033ddc101fdc24a2b065d13dd",
+      "natural_identity": "b3ed6a882c950b1a2438bbb1b749fb93236595034a2ab80d9065cd433a62f494",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_b9104e49f9b4b6547fab68065c9c1e9b",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1390478/000139047826000013/sls-20260811.htm"
+      ],
+      "finding": "SEC August 11 8-K identifies quarter ended June 30."
+    },
+    {
+      "symbol": "SNEX",
+      "instrument_id": "stage10_instrument_ccc59173bb98725dc3c100375e5ad1e1",
+      "natural_identity": "fec4c305b695e6ca7838602891c0279f5ce95f71f4897059955acd6deba8ceb4",
+      "source_event_date": "2026-08-05",
+      "reviewed_version_id": "fmp_analyst_observation_2ce16ca89faa40b872b9078ebbe5d10c",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/913760/000091376026000037/snex2026er_exhq3roll.htm"
+      ],
+      "finding": "SEC exhibit labels fiscal 2026 third quarter ended June 30; fiscal year ends September."
+    },
+    {
+      "symbol": "SNY",
+      "instrument_id": "stage10_instrument_d833216a0799c6f090354b527390259f",
+      "natural_identity": "7e54f0ad388ee7171df71a50c3fbec5b16a2795a3ad6cb60d284167b3b617207",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_53f5ab5706c4c06131784f4fa34ec8bf",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://dotcom.prod.accelerator.sanofi/en/media-room/press-releases/2026/2026-07-30-05-30-00-3335767",
+        "https://www.sec.gov/Archives/edgar/data/1121404/000162828026050803/0001628280-26-050803-index.htm"
+      ],
+      "finding": "Issuer identifies Q2; SEC 6-K reports June 30 period."
+    },
+    {
+      "symbol": "SPTX",
+      "instrument_id": "stage10_instrument_03f139d7717cf7ee6dbb70dc6475d444",
+      "natural_identity": "51f5587fe47cc58bed710cec3529a7e80aa24ac5dd1e66a4ccb92caf55dea5fe",
+      "source_event_date": "2026-08-03",
+      "reviewed_version_id": "fmp_analyst_observation_da5ad5c5eb74cb025e69e5bea740eb35",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-03",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.seaporttx.com/news-events/news-releases",
+        "https://www.sec.gov/Archives/edgar/data/2042347/000119312526329528/sptx-20260803.htm"
+      ],
+      "finding": "SEC August 3 8-K explicitly states the company announced results for quarter ended June 30."
+    },
+    {
+      "symbol": "SRCE",
+      "instrument_id": "stage10_instrument_7288c4f3d42bd21bb1f59a358ee334ae",
+      "natural_identity": "39ba070ae5197d318d2df4b6ba0c63fac260be4b141bf0a1047752d5d5782d80",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_db4de93d588c118dd1fd512b6c56d0cd",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/34782/000003478226000044/source-20260723.htm"
+      ],
+      "finding": "Parent SEC check: July 23 8-K explicitly describes second quarter ended June 30."
+    },
+    {
+      "symbol": "STC",
+      "instrument_id": "stage10_instrument_d1153e8605f22bbb47189aee3049e687",
+      "natural_identity": "9b9b83c7df885d654f4f7ca70791a197f05ffcb69c9f2698c2c0bf260d059b24",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_0918d0177efff5d80c526d3280b626b3",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.stewart.com/news-and-events/news/news-details/2026/Stewart-Reports-Second-Quarter-2026-Results/default.aspx"
+      ],
+      "finding": "Issuer reports second quarter ended June 30."
+    },
+    {
+      "symbol": "STRA",
+      "instrument_id": "stage10_instrument_c69b4e650dcdb996f98c44b2d4981925",
+      "natural_identity": "98c9a28a71cb60a2fa4d815637205e898d737c19c43a906d5fd60038ab7b2e1e",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_cedd839e36415742bd82bee9ef627c4f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1013934/000101393426000015/stra-20260729xexhibit991.htm"
+      ],
+      "finding": "SEC July 29 earnings exhibit gives quarter ended June 30."
+    },
+    {
+      "symbol": "SVRA",
+      "instrument_id": "stage10_instrument_630972f6e731ac13021e088fcb626f55",
+      "natural_identity": "2e653a79bf9e902d48305779179b511f427540a21ba2ba30039bb93317dacf7b",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_298c1411d620845daca509ee30d44573",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.savarapharma.com/overview/default.aspx?id=14831",
+        "https://www.sec.gov/Archives/edgar/data/1160308/000119312526344585/0001193125-26-344585-index.htm",
+        "https://www.sec.gov/Archives/edgar/data/1160308/000119312526344585/svra-20260630.htm"
+      ],
+      "finding": "Issuer IR lists August 11 Q2 results; matching SEC 10-Q reports three months ended June 30."
+    },
+    {
+      "symbol": "SYBT",
+      "instrument_id": "stage10_instrument_108cc6e20e1705e752173ffea84203ca",
+      "natural_identity": "2ba635ff29e8eeed10e815cde65f650fc8ab6f3be74cb5a6e349af7bf61138b4",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_117f22b8639cfdfd76ee5e1c1c71fb8d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://stockyardsbancorp.q4ir.com/news/Press-Releases/News-Details/2026/Stock-Yards-Bancorp-Reports-Record-Second-Quarter-Earnings-of-40-1-Million-or-1-31-Per-Diluted-Share/default.aspx"
+      ],
+      "finding": "Issuer July 29 release directly reports Q2 results."
+    },
+    {
+      "symbol": "SYRE",
+      "instrument_id": "stage10_instrument_a84e1132a449d3fc274f5f040290d294",
+      "natural_identity": "44561a10f454dcf0f25a99883474eba8ef4030e513a99f572bada70d04e495c9",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_a6fb71bea9b6c46515471b5ce34ac9e8",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.spyre.com/news-releases/news-release-details/spyre-therapeutics-reports-second-quarter-2026-financial-results",
+        "https://www.sec.gov/Archives/edgar/data/1636282/000163628226000096/syre-20260630.htm"
+      ],
+      "finding": "Issuer Q2 results and SEC June 30 10-Q corroborate period."
+    },
+    {
+      "symbol": "TCBK",
+      "instrument_id": "stage10_instrument_4b27fdfd7cd0ec57a427f17703c0f35f",
+      "natural_identity": "5ae50bb64534b8e58eef59ebecb2cc09adebadcb2eb0b06145420c77dd1a4ead",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_6ab4929f0c31ae991f8290275f8d3664",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/356171/000035617126000104/tcbk-20260723.htm",
+        "https://www.sec.gov/Archives/edgar/data/356171/000035617126000109/tcbk-20260630.htm"
+      ],
+      "finding": "July 23 SEC 8-K and Q2 10-Q link event to three/six months ended June 30."
+    },
+    {
+      "symbol": "TCOM",
+      "instrument_id": "stage10_instrument_31872748f2e09d71e2075ab9966557fa",
+      "natural_identity": "a4bc5cd4058661a007da223e73257ea56062ee3ac582f620eb2b4595e12e486d",
+      "source_event_date": "2026-09-15",
+      "reviewed_version_id": "fmp_analyst_observation_9a35d4b907dec7dd8dcf1da303f55abe",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-15",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ctripcominternationalltd.gcs-web.com/news-releases/news-release-details/tripcom-group-limited-reports-unaudited-second-quarter-and-4"
+      ],
+      "finding": "Issuer September 15 release reports unaudited Q2 and H1 results."
+    },
+    {
+      "symbol": "TECH",
+      "instrument_id": "stage10_instrument_6077246318118459bd5e7548c9ca198c",
+      "natural_identity": "f74f322d515a50ba5f7b8c91d0824290ee2a9fc44875e6c68509b99c5282860b",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_2fa2ce5e9ab962cab4d940ec7a387e20",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 4,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.bio-techne.com/press-releases/detail/537/bio-techne-releases-fourth-quarter-fiscal-2026-results"
+      ],
+      "finding": "Issuer August 12 release identifies fourth quarter fiscal 2026; fiscal year ends June 30."
+    },
+    {
+      "symbol": "TFSL",
+      "instrument_id": "stage10_instrument_0c8edbe26bf66885e1bf9dff79908d4a",
+      "natural_identity": "636ba439109be601f51bb09b313a53fdf8850a7f5685c0ff6f66d3cb29c1a8eb",
+      "source_event_date": "2026-07-30",
+      "reviewed_version_id": "fmp_analyst_observation_31583f980dd79a8b0835119812833238",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-30",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1381668/000138166826000036/tfslfy26jun8kexhibits.htm",
+        "https://www.sec.gov/Archives/edgar/data/1381668/000138166826000039/tfsl-20260630.htm"
+      ],
+      "finding": "July 30 SEC earnings release explicitly states quarter and nine months ended June 30: Q3 fiscal 2026."
+    },
+    {
+      "symbol": "THFF",
+      "instrument_id": "stage10_instrument_5d5386b73d133324beaa744a459cadfa",
+      "natural_identity": "48e09fb85a7cea0bbe1b1ebba951b26ae4b4983feee44fb5c6a2092bbf77af1b",
+      "source_event_date": "2026-07-28",
+      "reviewed_version_id": "fmp_analyst_observation_ba93a8437d62f10b46937e8ed58faf7a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-28",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/714562/000071456226000050/thff-20260728xex99d1.htm"
+      ],
+      "finding": "SEC exhibit states Q2 and first-half 2026 results."
+    },
+    {
+      "symbol": "TK",
+      "instrument_id": "stage10_instrument_8a25fbb61d33f7c61a5cb0e5260d22a7",
+      "natural_identity": "d3c48a865962df31be0ce6388a959eea32f6fc2411b90cfd6148ba5788c2069e",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_6edbf00086f727e252c6d983645359cc",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/911971/000091197126000046/tkq2-26pressrelease.htm"
+      ],
+      "finding": "July 29 business update explicitly includes unaudited US GAAP quarterly earnings tables for three months ended June 30; quarterly mapping supported despite update title."
+    },
+    {
+      "symbol": "TLX",
+      "instrument_id": "stage10_instrument_34609d4830d42e0b7675106c1b1c1d7f",
+      "natural_identity": "0de6105026e2e11ced7867a174345cd79bcb0b6f4e24d34319c174c21affb858",
+      "source_event_date": "2026-08-19",
+      "reviewed_version_id": "fmp_analyst_observation_5607d744a85b802510ceeb25bf303136",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-19",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "half_year",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.telixpharma.com/news-releases/news-release-details/telix-2026-half-year-results-strong-commercial-execution-and"
+      ],
+      "finding": "Telix August 19 release is half-year results; do not relabel as standalone Q2."
+    },
+    {
+      "symbol": "TMP",
+      "instrument_id": "stage10_instrument_c45b8c81da18aa49a609c4128b91715f",
+      "natural_identity": "77afdb0438b81c90b1db76977b6e1daa3ea6b23cfcce718cda3b1531fc720cf9",
+      "source_event_date": "2026-07-24",
+      "reviewed_version_id": "fmp_analyst_observation_c11343ddb5201ff80bf9e48ba3e9f4aa",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-24",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://tompkinsfinancial.q4ir.com/news/news-details/2026/Tompkins-Financial-Corporation-Reports-Record-Financial-Results-for-Third-Consecutive-Quarter/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/1005817/000100581726000087/tmp-20260723.htm"
+      ],
+      "finding": "SEC 8-K explicitly states earnings were announced July 24 for calendar quarter ended June 30."
+    },
+    {
+      "symbol": "TNGX",
+      "instrument_id": "stage10_instrument_10170c4c7bccc8ab703c8ff6c1d74e8b",
+      "natural_identity": "b1b5f993d169f71f36bf2e1bae21910731bf276d6e17ffda0a7e0728e24979a6",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_4757d1be4aca914b87c2cb815703dc73",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.tangotx.com/news-releases/news-release-details/tango-therapeutics-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer release identifies second quarter ended June 30."
+    },
+    {
+      "symbol": "TNK",
+      "instrument_id": "stage10_instrument_e5d1e216a7b52afe563d2d93734d2d9a",
+      "natural_identity": "4f2bed67b481e38e41e97eb31d8492f857813793c9336f8c821a7bba7d64f01e",
+      "source_event_date": "2026-07-29",
+      "reviewed_version_id": "fmp_analyst_observation_cd8b41a2f2dcaacdf7c9d53b86b27d63",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-29",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.teekay.com/blog/2026/07/29/teekay-tankers-ltd-reports-second-quarter-2026-results-and-declares-dividend/"
+      ],
+      "finding": "Issuer July 29 release reports second quarter ended June 30."
+    },
+    {
+      "symbol": "TRAX",
+      "instrument_id": "stage10_instrument_d85ebd47a7dbf34b87609aad35831d0a",
+      "natural_identity": "8f923de3520913f70a59f78c7088f98bdcb3bda6417a11c5e1a6f96f8ea6d508",
+      "source_event_date": "2026-08-12",
+      "reviewed_version_id": "fmp_analyst_observation_5ef5e48b08a31c65ce244fff028732d9",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-12",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/2091349/000119312526346908/trax-ex99_1.htm"
+      ],
+      "finding": "Parent checked First Tracks Biotherapeutics August 12 SEC release explicitly stating second quarter ended June 30."
+    },
+    {
+      "symbol": "TRMD",
+      "instrument_id": "stage10_instrument_768a96c3f08ca3895e1c91f0ffe0e685",
+      "natural_identity": "59f4c39fa22c51cd6b6c7a2735ab9548f18622913c0ac6a3151870883695df27",
+      "source_event_date": "2026-08-26",
+      "reviewed_version_id": "fmp_analyst_observation_c92f8200a81d64b16028630b6f2ebd16",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-26",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1655891/000162828026058979/trmd-20260630.htm"
+      ],
+      "finding": "Parent checked August 26 SEC 6-K explicitly reporting Q2 and half year ended June 30."
+    },
+    {
+      "symbol": "TYRA",
+      "instrument_id": "stage10_instrument_79eac0d14084614901214f2451734dbc",
+      "natural_identity": "1f94b746e97ee4ba6d78ddc1bdafec37f10c48701803ccafddb5e0e95028bc67",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_50149d4d0ce18e8477f89136814f871a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.tyra.bio/news-releases/news-release-details/tyra-biosciences-reports-second-quarter-2026-financial-results",
+        "https://www.sec.gov/Archives/edgar/data/1863127/000119312526332995/0001193125-26-332995-index.htm"
+      ],
+      "finding": "Issuer Q2 results and SEC exhibit identify June 30 period."
+    },
+    {
+      "symbol": "UBSI",
+      "instrument_id": "stage10_instrument_0335b7ffdefeab563d25c91053977fdc",
+      "natural_identity": "744a218f1153c1cc0e453138bfd4b424f66b15fda8a9cc8782d3d1c51e5c4de1",
+      "source_event_date": "2026-07-23",
+      "reviewed_version_id": "fmp_analyst_observation_3cf38c929b83ecd0ca4bc382f637e4af",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-23",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ubsi-inc.com/financials/quarterly-results/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/729986/000119312526313364/d139267dex991.htm",
+        "https://www.sec.gov/Archives/edgar/data/729986/000119312526313364/d139267dex992.htm"
+      ],
+      "finding": "July 23 SEC earnings release explicitly labels Q2 and includes separate three-month June 2026 tables."
+    },
+    {
+      "symbol": "UVSP",
+      "instrument_id": "stage10_instrument_c697a39afe28cccd69699500d60ea787",
+      "natural_identity": "3d2fc0bb45a6466082692c16d6e6ac9650212c977ec8fddb81b1b203193e6a1a",
+      "source_event_date": "2026-07-22",
+      "reviewed_version_id": "fmp_analyst_observation_7874d88a8aaa572d3296482fb0547278",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-22",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.univest.net/investors/news-and-events/press-releases/press-details/2026/Univest-Financial-Corporation-Reports-Second-Quarter-Results/"
+      ],
+      "finding": "Issuer release explicitly states quarter ended June 30."
+    },
+    {
+      "symbol": "UWMC",
+      "instrument_id": "stage10_instrument_1da54c25f6faa86e2c72613fc2776e88",
+      "natural_identity": "14a31277c73487b75b2b4d5381fe56efe7f798fb70cb4982c56d1fbeb0cff9e0",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_9694814d6cf54057168a98645b10857a",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-05",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://investors.uwm.com/news/financial-news/news-details/2026/UWM-Holdings-Corporation-Announces-Second-Quarter-2026-Results/default.aspx",
+        "https://www.sec.gov/Archives/edgar/data/1783398/000178339826000114/q22026ex-991pressrelease.htm"
+      ],
+      "finding": "Q2 period ended June 30 is explicit, but SEC release is dated August 5 versus stored August 6 (conference-call date). Reconcile event date before applying."
+    },
+    {
+      "symbol": "VERA",
+      "instrument_id": "stage10_instrument_eb62140e2fbb35a4bf1047aa1bad62c6",
+      "natural_identity": "af74d8129e96691f4586f755d68197b1ba3a9dea73cee9ee3e2123930153a957",
+      "source_event_date": "2026-08-10",
+      "reviewed_version_id": "fmp_analyst_observation_5b34868d07ab07299f0a9121f07daf41",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-10",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1831828/000119312526342335/vera-20260810.htm"
+      ],
+      "finding": "SEC August 10 8-K explicitly identifies Q2 ended June 30."
+    },
+    {
+      "symbol": "VFS",
+      "instrument_id": "stage10_instrument_3a17d05f21a507ddad8f0bbf5097b8fd",
+      "natural_identity": "e47614d932bcd243a49e58ee2b0a610e7687d2cb6077a43c02463d6c1269bd97",
+      "source_event_date": "2026-09-18",
+      "reviewed_version_id": "fmp_analyst_observation_e9be2042521501a5523c500455f86834",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-18",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "intended_quarter",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1913510/000118518526003172/vfs6k072926.htm",
+        "https://vinfastauto.us/investor-relations",
+        "https://www.sec.gov/Archives/edgar/data/1913510/000118518526003926/vfs6k091126.htm"
+      ],
+      "finding": "SEC Form 6-K dated July 29 says the Company announced preliminary Q2 deliveries and required additional time to finalize unaudited Q2 results, promising to announce timing later. Q2 2026/June 30 is the likely intended scheduled quarter, but is not an issued financial report. The latest actual financial-results report located was Q1 ended March 31. Sept. 18 was instead dealership-network news on issuer IR. Keep alleged Q2 actual values unresolved. Retained EPS/revenue values are not corroborated by issuer/SEC financial-results release and must not be treated as reported actuals. The Q2 period end is supported as the intended scheduled quarter, not as an issued financial report.",
+      "blocking_reason": "financial_results_not_released"
+    },
+    {
+      "symbol": "VNET",
+      "instrument_id": "stage10_instrument_0861c5b4f9d015cc94d54a831a75ac3d",
+      "natural_identity": "b26a85257b1a5ed194efa6ba3b59e6278fc5e72d1b5d28f5a42a256f7e3fd88c",
+      "source_event_date": "2026-08-18",
+      "reviewed_version_id": "fmp_analyst_observation_f11a54c62c2ff83045d17fbf7b5359f1",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-18",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://21vianetgroupinc.gcs-web.com/news-releases/news-release-details/vnet-reports-unaudited-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer reports unaudited second quarter ended June 30."
+    },
+    {
+      "symbol": "VOD",
+      "instrument_id": "stage10_instrument_e3c9e3e83b1fb0de3809b4a1ca92c028",
+      "natural_identity": "4896b312af67e582e2da8252e6649d2d8dc372b2d17af9cb60953c8fb3da7e23",
+      "source_event_date": "2026-05-12",
+      "reviewed_version_id": "fmp_analyst_observation_7a930bb904a18c03294b1ecb45373de8",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-05-12",
+      "reported_period_end": "2026-03-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "annual",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.vodafone.com/investors/performance-and-reports/results-and-presentations"
+      ],
+      "finding": "May 12 annual FY2026 results ended March 31; no standalone quarter assigned."
+    },
+    {
+      "symbol": "VOR",
+      "instrument_id": "stage10_instrument_2e7cb7dc4060c08f3f8f8da0d825bde2",
+      "natural_identity": "17c0f525ea616bc089e657323ca77571e2b232e0f96a25680ec8356e1c2d42a1",
+      "source_event_date": "2026-08-11",
+      "reviewed_version_id": "fmp_analyst_observation_b605b437d7523042e79202e9545e8eab",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-11",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.vorbio.com/news-releases/news-release-details/vor-bio-reports-second-quarter-2026-financial-results-and"
+      ],
+      "finding": "Issuer Q2 results specify quarter ended June 30."
+    },
+    {
+      "symbol": "VSAT",
+      "instrument_id": "stage10_instrument_a89afce306b03221244ff1e89410c440",
+      "natural_identity": "3346a484ea269a6433f05a9538a89c298138a23ff2ea19c259645ec767b20795",
+      "source_event_date": "2026-08-04",
+      "reviewed_version_id": "fmp_analyst_observation_d6792f766eac7cf21687592bbde2c041",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-04",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2027,
+      "fiscal_quarter": 1,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investors.viasat.com/node/27886/pdf",
+        "https://www.sec.gov/Archives/edgar/data/797721/000119312526332896/d131434dex992.htm"
+      ],
+      "finding": "Issuer SEC Q1 FY27 letter includes financial tables for three months ended June 30, 2026."
+    },
+    {
+      "symbol": "WABC",
+      "instrument_id": "stage10_instrument_e28e98e0e08475888200204f834fee34",
+      "natural_identity": "d806b7133db05d4d472fa44fa2614aa4593778b47912822de48c0fad89e68b7d",
+      "source_event_date": "2026-07-16",
+      "reviewed_version_id": "fmp_analyst_observation_5ce7104165f6a2fbfce25fd6508629e0",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-16",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/311094/000117184326005234/wabc20260630_10q.htm",
+        "https://www.westamerica.com/about/shareholders/releases/"
+      ],
+      "finding": "July 16 issuer results and SEC 10-Q give quarter ended June 30."
+    },
+    {
+      "symbol": "WAFD",
+      "instrument_id": "stage10_instrument_14349fb889a114c1d379f61fa479a185",
+      "natural_identity": "3f3491821a13ae55decd96313f833819a278bcf0d20adb5a178ff393822bf91e",
+      "source_event_date": "2026-07-16",
+      "reviewed_version_id": "fmp_analyst_observation_b266933a65b1a5e7521fdec61e9ee530",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-16",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 3,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/936528/000093652826000055/exhibit991_june2026earning.htm"
+      ],
+      "finding": "Parent checked July 16 SEC earnings release stating quarter ended June 30; September fiscal year end makes this Q3."
+    },
+    {
+      "symbol": "WSE",
+      "instrument_id": "stage10_instrument_757af5b609c10d430ba4f24950f87c7d",
+      "natural_identity": "5920acd3420a241f10cf4bad744403b77a264f3f7090cdc9a5bb0decf445cc3a",
+      "source_event_date": "2026-06-25",
+      "reviewed_version_id": "fmp_analyst_observation_d4388b9c4e183ce754b6b448a09dec8f",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-06-26",
+      "reported_period_end": "2026-03-31",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "annual",
+      "confidence": "most_likely",
+      "source_urls": [
+        "https://owners.wise.com/news-releases/news-release-details/wise-fy26-results"
+      ],
+      "finding": "Official FY26 annual report explicitly ends March 31, 2026; page is dated June 26 versus stored June 25. No standalone quarter; reconcile release date and annual semantics."
+    },
+    {
+      "symbol": "XERS",
+      "instrument_id": "stage10_instrument_88d05daabef43e06b40366dea15e344d",
+      "natural_identity": "351ebdf9c16e46bfd2749211b464376d0226178ae88e53d57d46dbe008454fdf",
+      "source_event_date": "2026-08-06",
+      "reviewed_version_id": "fmp_analyst_observation_37ae3cee24e9d4f859183d22468b2d47",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-08-06",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.xerispharma.com/news-releases/news-release-details/xeris-biopharma-reports-second-quarter-2026-financial-results"
+      ],
+      "finding": "Issuer second-quarter release identifies quarter ended June 30."
+    },
+    {
+      "symbol": "XOM",
+      "instrument_id": "stage10_instrument_452c31eb3d26084b8ae66f1dcb2a5dd7",
+      "natural_identity": "5f706273045604f007225e6a1cdcf7d6cc41a72956d4732c18031c006544a5ef",
+      "source_event_date": "2026-07-31",
+      "reviewed_version_id": "fmp_analyst_observation_c411dc06b0d65c7041e0f1ee7352fd1d",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-31",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://investor.exxonmobil.com/earnings",
+        "https://www.sec.gov/Archives/edgar/data/2115436/000211543626000006/livef8k2q26991.htm"
+      ],
+      "finding": "ExxonMobil Holdings CIK 2115436; July 31 release identifies second quarter, earnings page confirms June 30."
+    },
+    {
+      "symbol": "ZGN",
+      "instrument_id": "stage10_instrument_0c68a6c213468bb344cc6124a2bb9ca6",
+      "natural_identity": "e386bd1ff34bfbfc60a2a10885d439b5909f436574d44c8bdcba85f74d567f2b",
+      "source_event_date": "2026-09-03",
+      "reviewed_version_id": "fmp_analyst_observation_ff3a06da4c0589da1222a4ca62f4baf1",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-09-03",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": null,
+      "reporting_kind": "half_year",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/1877787/000187778726000035/eznv-h12026resultspressrel.htm",
+        "https://www.sec.gov/Archives/edgar/data/1877787/000187778726000036/zgn-20260630.htm"
+      ],
+      "finding": "September 3 report is H1 FY2026 six-month results, not a standalone Q2 earnings period."
+    },
+    {
+      "symbol": "ZION",
+      "instrument_id": "stage10_instrument_8860c0620a725116499e75a2664d62ee",
+      "natural_identity": "77a19d904a3b0e91d9dd86859fd350e8308eddda358920f2cb5009c904259fe1",
+      "source_event_date": "2026-07-20",
+      "reviewed_version_id": "fmp_analyst_observation_022c5669586602745b2f11c5f2f2ec32",
+      "reviewed_at": "2026-09-23T04:16:56.457452Z",
+      "announcement_date": "2026-07-20",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "quarter",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://www.sec.gov/Archives/edgar/data/109380/000010938026000103/zion-20260720.htm"
+      ],
+      "finding": "SEC July 20 8-K identifies results for quarter ended June 30."
+    },
+    {
+      "symbol": "ABVX",
+      "instrument_id": "stage10_instrument_4af97f908823955b4c388412c9150b38",
+      "natural_identity": "15773187366be51893b6f00fdc6dc81ac5347699884c2b984eaaa2a37650daf1",
+      "source_event_date": "2026-09-21",
+      "reviewed_version_id": "fmp_analyst_observation_66e469cecb502eb17964cfa2bb03610d",
+      "reviewed_at": "2026-09-23T04:24:27.803995Z",
+      "announcement_date": "2026-09-21",
+      "reported_period_end": "2026-06-30",
+      "fiscal_year": 2026,
+      "fiscal_quarter": 2,
+      "reporting_kind": "half_year",
+      "confidence": "confirmed",
+      "source_urls": [
+        "https://ir.abivax.com/news-releases/news-release-details/abivax-presents-business-updates-and-first-half-2026-financial/"
+      ],
+      "finding": "Issuer September 21 release reports the six months ended June 30, 2026. Added for the newer event found in the production preflight; prior May Q1 event review remains retained. Half-year actual EPS is not used as quarterly estimated EPS."
+    }
+  ]
+}

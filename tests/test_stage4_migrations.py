@@ -13,6 +13,7 @@ from quant_data.operations.health import _reviewed_schema, inspect_all_stores
 from quant_data.registry import MigrationDeclaration, load_registry, stage4_registry_profile
 from quant_data.stage1 import explicit_store_map
 from quant_data.stores import StoreRole, writer_connection
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +48,15 @@ class Stage4MigrationTests(unittest.TestCase):
         missing = STAGE4_MIGRATION_IDS - set(cls.declarations)
         if missing:
             raise AssertionError(f"Stage 4 migrations are absent: {sorted(missing)}")
+
+    def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
+
+    def tearDown(self) -> None:
+        assert_project_data_unchanged(
+            self._project_data_before,
+            project_root=PROJECT_ROOT,
+        )
 
     @staticmethod
     def _sha(value: str) -> str:
@@ -180,7 +190,6 @@ class Stage4MigrationTests(unittest.TestCase):
                     str(actual[0]).lstrip().upper().startswith("CREATE VIRTUAL TABLE")
                 )
 
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_bytes_order_tamper_atomicity_and_fts_exception_scope(self) -> None:
         forbidden = (
@@ -329,7 +338,6 @@ class Stage4MigrationTests(unittest.TestCase):
                     ).fetchone()
                 )
 
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def _insert_market_capture(
         self,
@@ -705,7 +713,6 @@ class Stage4MigrationTests(unittest.TestCase):
                 self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
                 connection.rollback()
 
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_company_joint_filing_view_guidance_and_post_success_guards(self) -> None:
         with tempfile.TemporaryDirectory(prefix="quant-stage4-company-") as directory:
@@ -927,7 +934,6 @@ class Stage4MigrationTests(unittest.TestCase):
                 self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
                 connection.rollback()
 
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_news_cross_run_associations_immutability_fts_and_post_success_guard(self) -> None:
         with tempfile.TemporaryDirectory(prefix="quant-stage4-news-") as directory:
@@ -1010,7 +1016,6 @@ class Stage4MigrationTests(unittest.TestCase):
                 self.assertEqual(list(connection.execute("PRAGMA foreign_key_check")), [])
                 connection.rollback()
 
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
 
 if __name__ == "__main__":

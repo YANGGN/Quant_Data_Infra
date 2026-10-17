@@ -1,0 +1,509 @@
+{
+  "frozen_sha256": {
+    "docs/rebuild/TRANSCRIPT_ANALYSIS_V1.example.json": "abde828ad69f9acbfcfcda9cb9f9fdc23feb13b51e19d0852daa268f4c312116",
+    "docs/rebuild/TRANSCRIPT_ANALYSIS_V1.schema.json": "64be1bf7d00d2721de1a837cb1f7dd9bdcef126ab93a79f7be3cfa63eb20cf6c",
+    "quant_data/company/transcript_analysis_request_v2.py": "1c9074c21e6ae710d2a353c6f19e82fbba99b03d4448896049740713bf6a4ce1",
+    "quant_data/migrations/company/0011_transcript_analysis.sql": "199db61444e8a6ad78f7696b52121725794a67dfc46cb56ae1f79283ff975a73"
+  },
+  "source": {
+    "capture_id": "fixture",
+    "input_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "turns": []
+  },
+  "validation": {
+    "derived": {
+      "courtesy_policy_version": "courtesy_only.v1",
+      "distinct_identified_analyst_count": 2,
+      "excluded_courtesy_block_count": 0,
+      "processing_coverage": "complete",
+      "ranked_topics": [
+        {
+          "distinct_identified_analyst_count": 2,
+          "question_block_count": 2,
+          "question_block_share": "1",
+          "rank": 1,
+          "topic_local_id": "topic1",
+          "unresolved_analyst_question_block_count": 0
+        }
+      ],
+      "ranking_policy_version": "question_frequency.v1",
+      "total_question_block_count": 2,
+      "unresolved_analyst_question_block_count": 0
+    },
+    "evidence": [
+      {
+        "char_end": 82,
+        "char_start": 0,
+        "output_pointer": "/guidance_claims/0/evidence/0",
+        "quote": "For fiscal 2027, we expect consolidated non-GAAP gross margin between 47% and 48%.",
+        "turn_id": "t1"
+      },
+      {
+        "char_end": 60,
+        "char_start": 0,
+        "output_pointer": "/analyst_focus/question_blocks/0/evidence/0",
+        "quote": "How much could higher component costs pressure gross margin?",
+        "turn_id": "t2"
+      },
+      {
+        "char_end": 70,
+        "char_start": 0,
+        "output_pointer": "/analyst_focus/question_blocks/1/evidence/0",
+        "quote": "If component costs increase further, can you protect the margin range?",
+        "turn_id": "t4"
+      },
+      {
+        "char_end": 60,
+        "char_start": 0,
+        "output_pointer": "/analyst_focus/topics/0/question_evidence/0",
+        "quote": "How much could higher component costs pressure gross margin?",
+        "turn_id": "t2"
+      },
+      {
+        "char_end": 70,
+        "char_start": 0,
+        "output_pointer": "/analyst_focus/topics/0/question_evidence/1",
+        "quote": "If component costs increase further, can you protect the margin range?",
+        "turn_id": "t4"
+      },
+      {
+        "char_end": 82,
+        "char_start": 0,
+        "output_pointer": "/analyst_focus/topics/0/answer_evidence/0",
+        "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+        "turn_id": "t3"
+      },
+      {
+        "char_end": 73,
+        "char_start": 0,
+        "output_pointer": "/analyst_focus/topics/0/answer_evidence/1",
+        "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+        "turn_id": "t5"
+      },
+      {
+        "char_end": 117,
+        "char_start": 83,
+        "output_pointer": "/management_tone/overall/supporting_evidence/0",
+        "quote": "We are confident in our cost plan.",
+        "turn_id": "t1"
+      },
+      {
+        "char_end": 82,
+        "char_start": 0,
+        "output_pointer": "/management_tone/overall/supporting_evidence/1",
+        "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+        "turn_id": "t3"
+      },
+      {
+        "char_end": 73,
+        "char_start": 0,
+        "output_pointer": "/management_tone/overall/supporting_evidence/2",
+        "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+        "turn_id": "t5"
+      },
+      {
+        "char_end": 117,
+        "char_start": 83,
+        "output_pointer": "/management_tone/prepared_remarks/supporting_evidence/0",
+        "quote": "We are confident in our cost plan.",
+        "turn_id": "t1"
+      },
+      {
+        "char_end": 82,
+        "char_start": 0,
+        "output_pointer": "/management_tone/qa/supporting_evidence/0",
+        "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+        "turn_id": "t3"
+      },
+      {
+        "char_end": 73,
+        "char_start": 0,
+        "output_pointer": "/management_tone/qa/supporting_evidence/1",
+        "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+        "turn_id": "t5"
+      },
+      {
+        "char_end": 117,
+        "char_start": 83,
+        "output_pointer": "/management_tone/by_speaker/0/assessment/supporting_evidence/0",
+        "quote": "We are confident in our cost plan.",
+        "turn_id": "t1"
+      },
+      {
+        "char_end": 82,
+        "char_start": 0,
+        "output_pointer": "/management_tone/by_speaker/0/assessment/supporting_evidence/1",
+        "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+        "turn_id": "t3"
+      },
+      {
+        "char_end": 73,
+        "char_start": 0,
+        "output_pointer": "/management_tone/by_speaker/0/assessment/supporting_evidence/2",
+        "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+        "turn_id": "t5"
+      }
+    ],
+    "model_output": {
+      "analyst_focus": {
+        "ambiguities": [],
+        "qa_observed": "present",
+        "question_blocks": [
+          {
+            "analyst_turn_ids": [
+              "t2"
+            ],
+            "evidence": [
+              {
+                "quote": "How much could higher component costs pressure gross margin?",
+                "turn_id": "t2"
+              }
+            ],
+            "intent": "concern",
+            "management_answer_turn_ids": [
+              "t3"
+            ],
+            "question_local_id": "q1",
+            "summary": "Potential gross-margin pressure from component costs."
+          },
+          {
+            "analyst_turn_ids": [
+              "t4"
+            ],
+            "evidence": [
+              {
+                "quote": "If component costs increase further, can you protect the margin range?",
+                "turn_id": "t4"
+              }
+            ],
+            "intent": "concern",
+            "management_answer_turn_ids": [
+              "t5"
+            ],
+            "question_local_id": "q2",
+            "summary": "Ability to protect guidance against further component cost increases."
+          }
+        ],
+        "topics": [
+          {
+            "ambiguities": [],
+            "answer_evidence": [
+              {
+                "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+                "turn_id": "t3"
+              },
+              {
+                "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+                "turn_id": "t5"
+              }
+            ],
+            "label": "Component costs and margin resilience",
+            "management_response_summary": "Current costs are included in the plan; additional mitigation remains unquantified.",
+            "question_evidence": [
+              {
+                "quote": "How much could higher component costs pressure gross margin?",
+                "turn_id": "t2"
+              },
+              {
+                "quote": "If component costs increase further, can you protect the margin range?",
+                "turn_id": "t4"
+              }
+            ],
+            "question_local_ids": [
+              "q1",
+              "q2"
+            ],
+            "response_status": "partially_answered",
+            "summary": "Two analysts ask about component costs and protection of the margin outlook.",
+            "topic_code": "margins",
+            "topic_local_id": "topic1",
+            "underlying_concern": "Higher component costs could pressure the guided margin range."
+          }
+        ]
+      },
+      "coverage_notes": [],
+      "guidance_claims": [
+        {
+          "accounting_basis": "non_gaap",
+          "ambiguities": [],
+          "claim_local_id": "g1",
+          "comparison_period_text": null,
+          "conditions": [],
+          "evidence": [
+            {
+              "quote": "For fiscal 2027, we expect consolidated non-GAAP gross margin between 47% and 48%.",
+              "turn_id": "t1"
+            }
+          ],
+          "growth_basis": "unspecified",
+          "management_action": "unspecified",
+          "measurement": "level",
+          "metric": "gross_margin",
+          "metric_text": "non-GAAP gross margin",
+          "scope": {
+            "geography": null,
+            "kind": "consolidated",
+            "product": null,
+            "segment": null
+          },
+          "target": {
+            "fiscal_quarter": null,
+            "fiscal_year": 2027,
+            "period_kind": "fiscal_year",
+            "period_text": "fiscal 2027"
+          },
+          "value": {
+            "approximate": null,
+            "bound_inclusivity": "unspecified",
+            "currency": null,
+            "high": "48",
+            "low": "47",
+            "point": null,
+            "qualitative_text": null,
+            "scale": "1",
+            "shape": "range",
+            "source_value_text": "between 47% and 48%",
+            "unit": "percent"
+          }
+        }
+      ],
+      "management_tone": {
+        "basis": "transcript_text",
+        "by_speaker": [
+          {
+            "assessment": {
+              "ambiguities": [],
+              "assessment_support": "clear",
+              "counterevidence": [],
+              "expressed_confidence": "mixed",
+              "hedging": "moderate",
+              "sentiment": "mixed",
+              "summary": "Management expresses confidence in its cost plan but uses qualified language about supplier pricing and mitigation.",
+              "supporting_evidence": [
+                {
+                  "quote": "We are confident in our cost plan.",
+                  "turn_id": "t1"
+                },
+                {
+                  "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+                  "turn_id": "t3"
+                },
+                {
+                  "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+                  "turn_id": "t5"
+                }
+              ]
+            },
+            "speaker_id": "m1"
+          }
+        ],
+        "overall": {
+          "ambiguities": [],
+          "assessment_support": "clear",
+          "counterevidence": [],
+          "expressed_confidence": "mixed",
+          "hedging": "moderate",
+          "sentiment": "mixed",
+          "summary": "Management expresses confidence in its cost plan but uses qualified language about supplier pricing and mitigation.",
+          "supporting_evidence": [
+            {
+              "quote": "We are confident in our cost plan.",
+              "turn_id": "t1"
+            },
+            {
+              "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+              "turn_id": "t3"
+            },
+            {
+              "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+              "turn_id": "t5"
+            }
+          ]
+        },
+        "prepared_remarks": {
+          "ambiguities": [],
+          "assessment_support": "clear",
+          "counterevidence": [],
+          "expressed_confidence": "high",
+          "hedging": "low",
+          "sentiment": "positive",
+          "summary": "Management explicitly expresses confidence in its cost plan.",
+          "supporting_evidence": [
+            {
+              "quote": "We are confident in our cost plan.",
+              "turn_id": "t1"
+            }
+          ]
+        },
+        "qa": {
+          "ambiguities": [],
+          "assessment_support": "limited",
+          "counterevidence": [],
+          "expressed_confidence": "moderate",
+          "hedging": "high",
+          "sentiment": "mixed",
+          "summary": "Management identifies mitigation options while qualifying its visibility.",
+          "supporting_evidence": [
+            {
+              "quote": "Our plan includes current component costs, but supplier pricing remains uncertain.",
+              "turn_id": "t3"
+            },
+            {
+              "quote": "We have mitigation options, although we cannot quantify their effect yet.",
+              "turn_id": "t5"
+            }
+          ]
+        }
+      },
+      "schema_version": "transcript.analysis.v1"
+    }
+  },
+  "vectors": [
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0f320f42d43a27782ab5983c6184ba69f626665db6580448b4e6507bc54ef2a3",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "590bb561a326e0ee5bde95cf4052ff2ded9fb4045f9a9ea8b7c8c4ed6b015660"
+      },
+      "request_identity": "a3739cca6f635e4653d1fce9a4877e431c551adace862b41bd51f71effdc3179",
+      "request_sha256": "344efcb9621181b1a3a08ad8992a6d0ba1afbcc1550080df9632021a2762e9a1",
+      "review": false,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "246ac2809b530e58453a2f77dcdc855cc5af7b63344c8af981983ced5ee3238c",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c"
+      },
+      "request_identity": "f3d5d4cbae84f3fcb4253791470a284c9c859eb407578c816671239b0a768436",
+      "request_sha256": "730dcf005a94c421127273d83b53db6fa5cb259ade8bd61f006a4a6504a4ee24",
+      "review": true,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0f320f42d43a27782ab5983c6184ba69f626665db6580448b4e6507bc54ef2a3",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "590bb561a326e0ee5bde95cf4052ff2ded9fb4045f9a9ea8b7c8c4ed6b015660",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "d7fbe3657a5b20610a100e7bf2e1501687e8dbe5ef6951969d74eccce662c926",
+      "request_sha256": "344efcb9621181b1a3a08ad8992a6d0ba1afbcc1550080df9632021a2762e9a1",
+      "review": false,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "246ac2809b530e58453a2f77dcdc855cc5af7b63344c8af981983ced5ee3238c",
+        "prompt_version": "transcript_analysis_prompt.v1",
+        "reasoning_effort": "high",
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "c062f727552362733e41fd0fe7c3545446a856b84aa650f79c7031ea3f708bdd",
+      "request_sha256": "730dcf005a94c421127273d83b53db6fa5cb259ade8bd61f006a4a6504a4ee24",
+      "review": true,
+      "version": "transcript_analysis_prompt.v1"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0352f5eff65f55bea5066ed2ec972f07015e656a99b9da13829426aa8a642176",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "schema_sha256": "6d506d28995bfb93a9119ac6b3498f26298999f31d1baf54cfd2a497569ca127"
+      },
+      "request_identity": "2b5b93936097b15e07fd4611110f0e28648d80a38c64347013ab0556058a395b",
+      "request_sha256": "822ba07e7c947f25bce4e21fbd8e8af8e325cf095c9098ac4e4efe60d8f88bfc",
+      "review": false,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "openai_api",
+      "configuration": {
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "715d56f3d9fb4450dda9789268d74638e5493b85cec4e92f8ee4aac185f69213",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c"
+      },
+      "request_identity": "9c95051ca0336ac458f477f6c623d0572f001bca2c7bd4c41a674c2238d3e781",
+      "request_sha256": "29e00dfa4d90ca826221ddc9e3283add624816b12664e039bfca2a6aeeab09a4",
+      "review": true,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-terra",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "0352f5eff65f55bea5066ed2ec972f07015e656a99b9da13829426aa8a642176",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "request_timeout_seconds": 1200,
+        "schema_sha256": "6d506d28995bfb93a9119ac6b3498f26298999f31d1baf54cfd2a497569ca127",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "393223550dfd6d4eaa414463fcaa84fc179769fc9368ca0e1d99a28b9ad86a5c",
+      "request_sha256": "822ba07e7c947f25bce4e21fbd8e8af8e325cf095c9098ac4e4efe60d8f88bfc",
+      "review": false,
+      "version": "transcript_analysis_prompt.v2"
+    },
+    {
+      "backend": "codex_subscription",
+      "configuration": {
+        "backend": "codex_subscription",
+        "cli_version": "0.144.4",
+        "max_output_tokens": 16384,
+        "model": "gpt-5.6-sol",
+        "output_token_limit_kind": "post_completion_validation",
+        "parser_version": "equibles_turns.v2",
+        "prompt_sha256": "715d56f3d9fb4450dda9789268d74638e5493b85cec4e92f8ee4aac185f69213",
+        "prompt_version": "transcript_analysis_prompt.v2",
+        "reasoning_effort": "high",
+        "request_timeout_seconds": 1200,
+        "schema_sha256": "f17ee48ebb4d46a21b1e8edc6ae534153ab54461629f73f2f4cd2869bcd0a27c",
+        "transport_version": "codex_exec.v1"
+      },
+      "request_identity": "a1422e9794c4fdc63531f7ef77284c17bd0e5ef2a5f0f2d0afeb191b2b77ff4e",
+      "request_sha256": "29e00dfa4d90ca826221ddc9e3283add624816b12664e039bfca2a6aeeab09a4",
+      "review": true,
+      "version": "transcript_analysis_prompt.v2"
+    }
+  ]
+}

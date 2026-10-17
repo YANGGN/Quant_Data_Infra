@@ -1,0 +1,2597 @@
+{
+  "baseline": {
+    "coverage_end_date": "2026-08-12",
+    "frozen_symbol_count": 629,
+    "history_policy": "earliest_provider_returned_per_symbol",
+    "price_data": "fmp_daily_provider_native_ohlcv",
+    "price_variant": "fmp_full_eod_v1",
+    "provider": "fmp",
+    "roster_policy": "frozen_stage10_629_symbol_roster"
+  },
+  "contract": "quant_data.stage12_market_v1_scope",
+  "excluded_claims": [
+    "historical_constituent_membership",
+    "common_start_date",
+    "adjusted_price_or_corporate_action_inference",
+    "full_us_or_delisted_coverage",
+    "currency_conversion",
+    "incremental_refresh",
+    "promotion",
+    "scheduling"
+  ],
+  "retained_stage10": {
+    "base": {
+      "completed_symbols": 621,
+      "retained_failures": 8
+    },
+    "extension": {
+      "authorized_terminal_outcomes": 58,
+      "completed_windows": 3970,
+      "planned_windows": 5032,
+      "successful_empty_windows": 1004,
+      "terminal_outcome_tickers": 9
+    },
+    "projection": {
+      "current_rows": 4235893,
+      "missing_current_references": 0,
+      "version_rows": 4236635
+    }
+  },
+  "roster": [
+    {
+      "symbol": "A",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AAPL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ABBV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ABNB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ABT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ACGL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ACN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ACWI",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ADBE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ADI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ADM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ADP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ADSK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AEE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AEP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AES",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AFL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AGG",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "AIG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AIQ",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "AIZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AJG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AKAM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ALAB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ALB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ALGN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ALL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ALLE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ALNY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMAT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMCR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AME",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMGN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AMZN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ANET",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AON",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AOS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "APA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "APD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "APH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "APO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "APP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "APTV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ARE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ARES",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ARKF",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ARKG",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ARKX",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ARM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ASML",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ATO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AVB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AVGO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AVY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AWK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AXON",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AXP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "AZO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BAC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BALL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BAX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BBY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BDX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BEN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BF-B",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BIIB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BIL",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "BKLN",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "BKNG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BKR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BLDR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BLK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BLOK",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "BMY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BND",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "BNY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BOTZ",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "BR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BRK-B",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BRO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BSX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "BXP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "C",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CAH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CARR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CASY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CAT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CBOE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CBRE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CCEP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CCI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CCL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CDNS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CDW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CEG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CFG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CHD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CHRW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CHTR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CIBR",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "CIEN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CINF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CLOU",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "CLX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CMCSA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CME",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CMG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CMI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CMS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CNC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CNP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COHR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COIN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "COST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CPAY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CPRT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CPT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CRH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CRL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CRM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CRWD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CRWV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CSCO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CSGP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CSX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CTAS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CTSH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CTVA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CVNA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CVS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CVX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "CWB",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "D",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DAL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DASH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DBA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "DBC",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "DD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DDOG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DECK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DELL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DGX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DHI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DHR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DIA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "DIS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DLR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DLTR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DOC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DOV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DOW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DPZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DRAM",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "DRI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DRIV",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "DTE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DUK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DVA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DVN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "DXCM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EBAY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ECHO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ECL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ED",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EEM",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "EFA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "EFX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EIX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ELV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EME",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EMR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EOG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EQIX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EQR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EQT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ERIE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ES",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ESS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ETHA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ETN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ETR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EUV",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "EVRG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EXC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EXE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EXPD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EXPE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "EXR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "F",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FANG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FAST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FCX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FDS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FDX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FDXF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FER",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FERG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FFIV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FICO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FINX",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "FIS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FISV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FITB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FIW",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "FIX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FLEX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FOX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FOXA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FRT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FSLR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FTNT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FTV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "FXE",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "FXY",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "GD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GDDY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GEHC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GEN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GEV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GILD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GIS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GLD",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "GLW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GNRC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GOOG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GOOGL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GPC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GPN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GRMN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "GWW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HACK",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "HAL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HAS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HBAN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HCA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HIG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HII",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HLT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HON",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HONA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HOOD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HPE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HPQ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HRL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HSIC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HSY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HUBB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HUM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HWM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "HYG",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IAU",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IBB",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IBIT",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IBKR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IBM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ICE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ICLN",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IDRV",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IDXX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IEF",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IEI",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IEX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IFF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IFRA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IGV",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IHAK",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IJR",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "INCY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "INTC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "INTU",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "INVH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IQV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IRBO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "IRM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ISRG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ITA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ITW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IVZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "IYR",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "J",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "JBHT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "JBL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "JCI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "JKHY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "JNJ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "JPM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KDP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KEY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KEYS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KHC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KIM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KKR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KLAC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KMB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KMI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "KVUE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "L",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LDOS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LEN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LHX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LII",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LIN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LIT",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "LITE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LLY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LMT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LNT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LOW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LQD",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "LRCX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LULU",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LUV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LVS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LYB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "LYV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MAA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MAR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MAS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MCD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MCHP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MCK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MCO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MDLZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MDT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MELI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MET",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "META",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MGM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MKC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MLM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MMM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MNST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MOO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "MOS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MPC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MPWR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MRK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MRNA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MRSH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MRVL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MSCI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MSFT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MSI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MSTR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MTB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MTD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MU",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "MUB",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "NBIS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NCLH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NDAQ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NDSN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NEE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NEM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NFLX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NKE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NLR",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "NOC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NOW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NRG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NSC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NTAP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NTRS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NUE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NVDA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NVR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NWS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NWSA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "NXPI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "O",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ODFL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "OKE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "OMC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ON",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ORCL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ORLY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "OTIS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "OXY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PANW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PAVE",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PAYX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PBW",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PCAR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PCG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PDBC",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PDD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PEG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PEP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PFE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PFF",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PFG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PGR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PHM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PHO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PKG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PLD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PLTR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PNC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PNR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PNW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PODD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PPA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PPG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PPL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PRNT",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "PRU",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PSA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PSKY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PSX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PTC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PWR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "PYPL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "Q",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "QCOM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "QQQ",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "QTUM",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "RCL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "REG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "REGN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RJF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RKLB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RMD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ROBO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "ROK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ROL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ROP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ROST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RSG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RSP",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "RTX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "RVTY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SBAC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SBUX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SCHW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SHOP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SHW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SHY",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SJM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SKYY",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SLB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SLV",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SMCI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SMH",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SNA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SNDK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SNPS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SOLV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SOXQ",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SOXX",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SPCX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SPG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SPGI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SPY",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "SRE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "STE",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "STLD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "STT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "STX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "STZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SWK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SWKS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SYF",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SYK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "SYY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "T",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TAN",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "TAP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TDG",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TDY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TECH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TEL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TER",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TFC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TGT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TIP",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "TJX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TKO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TLT",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "TMO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TMUS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TPL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TPR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TRGP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TRI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TRMB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TROW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TRV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TSCO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TSLA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TSN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TTD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TTWO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TXN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TXT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "TYL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UAL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UBER",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UDR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UFO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "UHS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ULTA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UNH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UNP",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "UPS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "URA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "URI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "URNM",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "USB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "USO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "UUP",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "V",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VEA",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "VEEV",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VICI",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VLO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VLTO",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VMC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VNQ",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "VRSK",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VRSN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VRT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VRTX",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VT",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "VTI",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "VTR",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VTRS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "VWO",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "VZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WAB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WAT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WBD",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WCLD",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "WDAY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WDC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WEC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WELL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WFC",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WMB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WMT",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WRB",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WSM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WST",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WTW",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WY",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "WYNN",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "XAR",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XBI",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XEL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "XLB",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLC",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLE",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLF",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLI",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLK",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLP",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLRE",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLU",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLV",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XLY",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XOM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "XSD",
+      "asset_type": "etf"
+    },
+    {
+      "symbol": "XYL",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "XYZ",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "YUM",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ZBH",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ZBRA",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "ZTS",
+      "asset_type": "equity"
+    },
+    {
+      "symbol": "^AXJO",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^DJI",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^FCHI",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^FTSE",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^GDAXI",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^GSPC",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^GSPTSE",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^HSI",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^IXIC",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^KS11",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^N225",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^NDX",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^STOXX50E",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^TWII",
+      "asset_type": "index"
+    },
+    {
+      "symbol": "^VIX",
+      "asset_type": "index"
+    }
+  ],
+  "source_bindings": {
+    "resume_artifact_sha256": "1c0a9f941d829170e4085ef133df6343dadf32d975168ce43aa3724749553795",
+    "stage10_failure_manifest_sha256": "1b0b2a64ca302b1c5c411f927d625e852fd176a0d0aeebba20ba71ba9b9ebceb",
+    "stage10_registry_source_sha256": "c64aceefcc9a37cc0669398ea4d5817d997a5d82167941a204c2b77fffce77f9",
+    "stage10_resume_contract": "quant_data.stage10_backfill_resume",
+    "stage10_resume_version": "1.1.0",
+    "stage10_scope_manifest_sha256": "0782e0fdf39c3113f3c9537238200c9c73495f2fc2462637792d723cf33e68fd",
+    "stage10_target_profile_id": "stage10_fmp_market_history_v1"
+  },
+  "store_defaults": {
+    "company": "data/company_data.sqlite",
+    "macro": "data/macro_data.sqlite",
+    "market": "data/market.sqlite",
+    "news": "data/news_data.sqlite"
+  },
+  "successor_phases": [
+    {
+      "id": "12B",
+      "scope": "incremental_market_collector",
+      "status": "separate_authorization_required"
+    },
+    {
+      "id": "12C",
+      "scope": "gap_only_new_scope_population",
+      "status": "separate_authorization_required"
+    },
+    {
+      "id": "12D",
+      "scope": "audited_project_local_operationalization_repeated_manual_evidence",
+      "status": "separate_authorization_required"
+    },
+    {
+      "id": "12E",
+      "scope": "separate_scheduler_proposal",
+      "status": "separate_authorization_required"
+    }
+  ],
+  "target_profile_id": "stage12_market_v1_authority_coverage",
+  "version": "1.0.0"
+}

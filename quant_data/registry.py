@@ -2,26 +2,70 @@
 
 from __future__ import annotations
 
+from .tool_platform.price_basis_versions import PRICE_BASIS_VERSIONS, NEW_PRICE_BASIS_POLICIES, remove_price_basis_policies
+
 import copy
 import hashlib
+import json
 import re
+from collections import OrderedDict as _OrderedDict
 from dataclasses import dataclass, replace
+from threading import RLock as _RLock
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Mapping
 
 from .errors import Issue, RegistryError, ValidationError
 from .json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
+
+# Host-owned registry metadata grows independently of public JSON request limits.
+_MAX_REGISTRY_BYTES = 16 * 1024 * 1024
 from .schema import validate_schema
 from .stores import STORE_ROLES
 from .tool_platform.catalog import (
+    ADDITIVE_DATA_STATUS_TOOLS,
+    ADDITIVE_ETF_TOOLS,
+    ADDITIVE_NEWS_RESEARCH_TOOLS,
+    ADDITIVE_PUBLIC_TOOL_NAMES,
+    ADDITIVE_STAGE10_STATISTICS_TOOLS,
     CATALOG_ID,
     CATALOG_VERSION,
+    CURRENT_FAMILY_COUNTS,
+    CURRENT_PUBLIC_TOOL_NAMES,
+    ADDITIVE_FMP_RESEARCH_TOOLS,
+    ADDITIVE_TRANSCRIPT_TOOLS,
+    ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
+    ADDITIVE_MONITOR_TOOLS,
+    ADDITIVE_THETA_TOOLS,
+    ADDITIVE_RETAINED_RESEARCH_TOOLS,
+    ADDITIVE_FORWARD_PE_TOOLS,
+    ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
     FAMILY_COUNTS,
     LEGACY_TOOL_NAMES,
     OPERATION_GRAPH_IDS,
     PUBLIC_TOOL_NAMES,
     SCHEMA_DIALECT,
+    VERSIONED_CATALOG_ID,
+    VERSIONED_CATALOG_VERSION,
+    VERSIONED_CANONICAL_MACRO_TOOLS,
+    VERSIONED_COMPANY_FILING_TOOLS,
+    VERSIONED_COMPANY_SHARE_COUNT_TOOLS,
+    VERSIONED_DATA_QUALITY_TOOLS,
+    VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_INVESTMENT_ANALYSIS_TOOLS,
+    VERSIONED_ETF_SNAPSHOT_TOOLS,
+    VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
+    VERSIONED_NEWS_TOOLS,
+    VERSIONED_OPTIONS_ACCESS_TOOLS,
+    VERSIONED_MARKET_RETURN_TOOLS,
+    VERSIONED_OPERATION_GRAPH_IDS,
+    VERSIONED_RESEARCH_ANALYTIC_TOOLS,
+    VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+    VERSIONED_TOOL_NAMES,
+    build_additive_tool_entries,
+    build_current_tool_entries,
+    build_tool_version_policies,
+    current_tool_profiles,
     legacy_tool_entry,
     tool_profiles,
 )
@@ -199,6 +243,42 @@ _STAGE4_COLLECTOR_IDS = frozenset(
     }
 )
 
+_ALPACA_SPY_OPTION_COLLECTOR_ID = "alpaca.market.spy_option_surface"
+_ALPACA_SPY_OPTION_DATASET_IDS = (
+    "fixture.market.instruments",
+    "fixture.market.option_capture_evidence",
+    "fixture.market.options",
+)
+_ALPACA_ETF_OPTION_COLLECTOR_ID = "alpaca.market.etf_option_surface_grid"
+_ALPACA_ETF_OPTION_DATASET_IDS = _ALPACA_SPY_OPTION_DATASET_IDS
+
+_IWM_ETF_DAILY_HISTORY_COLLECTOR_ID = "fmp.market.iwm_etf_daily_history"
+_IWM_ETF_DAILY_HISTORY_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.instruments",
+    "market.stage10.universes",
+    "market.stage10.daily_prices",
+)
+
+
+_IWM_ETF_DAILY_HISTORY_BACKFILL_COLLECTOR_ID = (
+    "fmp.market.iwm_etf_daily_history_backfill"
+)
+_IWM_ETF_DAILY_HISTORY_BACKFILL_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.daily_prices",
+)
+_SEC_AAPL_COMPANYFACTS_COLLECTOR_ID = "sec.company.aapl_fundamentals"
+_SEC_AAPL_COMPANYFACTS_DATASET_IDS = (
+    "fixture.company.sec_evidence",
+    "fixture.company.issuers",
+    "fixture.company.filings",
+    "fixture.company.fundamentals",
+    "fixture.company.filing_issuer_membership",
+)
+_SEC_MARKET_COMPANYFACTS_COLLECTOR_ID = "sec.company.market_fundamentals"
+_SEC_MARKET_COMPANYFACTS_DATASET_IDS = _SEC_AAPL_COMPANYFACTS_DATASET_IDS
+
 _STAGE1_DASHBOARD_ID = "stage1.overview"
 _STAGE5_REGISTRY_SOURCE_SHA256 = (
     "56c2e8c97623c23596c92b177ee5e0aa89ecf164c37094216142cc82fc78cd9a"
@@ -212,6 +292,574 @@ _STAGE7_REGISTRY_SOURCE_SHA256 = (
 _STAGE8_REGISTRY_SOURCE_SHA256 = (
     "f4f565db7638ef026859af3f3b68b967ca54a80d1e09027d3afd1260cf53c10b"
 )
+_STAGE9_REGISTRY_SOURCE_SHA256 = (
+    "46ff0f92f92380c203aacaf54e511ed219f3bc43edaaba0fb5a6fbe29b95a145"
+)
+_STAGE10_REGISTRY_SOURCE_SHA256 = (
+    "c64aceefcc9a37cc0669398ea4d5817d997a5d82167941a204c2b77fffce77f9"
+)
+_STAGE11_REGISTRY_SOURCE_SHA256 = (
+    "7e8ec6fc38d5a24962460d9c78a4df7754d3b29ad4b74c0c5e8ae807cd59ed56"
+)
+_STAGE12_REGISTRY_SOURCE_SHA256 = (
+    "f65f7d039b73037012c6183c34501027f4298376ab94125e856e9dd79c6d234d"
+)
+_STAGE12A_REGISTRY_SOURCE_SHA256 = (
+    "80a41e9f124cccb85bbdda665e33b1ef408f538b7e50b499b630b5ce6c761e7e"
+)
+_STAGE12B_REGISTRY_SOURCE_SHA256 = (
+    "b39057d548d6ced6e7c0663ffafbee7e0c16c88a94baced584ff6949da7766f6"
+)
+_STAGE12C_REGISTRY_SOURCE_SHA256 = (
+    "c24398b35bc9fe9553dd85346dd3879abd6b802e1dd255ffb186d4ed9e1ea769"
+)
+_PRE_MACRO_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "b6cfa9db720f4cb878127eae001e6bc1d59e0c7421a8c65277b24ab8fe36adb6"
+)
+_PRE_EMPLOYMENT_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "8da35a5a21ecd097d62fe625bdb096ecf3f2eba62413346957372ea81b9d7992"
+)
+_PRE_MACRO_HISTORY_REGISTRY_SOURCE_SHA256 = (
+    "6040e45faa3ddbe522a97921a36e3a1f5ded34b3a4da7dd0ee32d52929e1fcb2"
+)
+_PRE_FMP_GDP_CPI_CALENDAR_REGISTRY_SOURCE_SHA256 = (
+    "177908e080573f051231c9f89b2bb2967e12fd1a3cc2b20754ce86c7d8a216e6"
+)
+_PRE_FMP_EMPLOYMENT_CALENDAR_REGISTRY_SOURCE_SHA256 = (
+    "f76a61027045c4408c60e57dacfcb5a17c617de4099395b1c6a62790e4019c4e"
+)
+_PRE_FMP_WHOLESALE_CALENDAR_REGISTRY_SOURCE_SHA256 = (
+    "3c1caec6eedfb7e179d8a1f8e291ef6e8971da5f4539946ae76691ac53f22647"
+)
+_PRE_FMP_TREASURY_YIELD_CURVE_REGISTRY_SOURCE_SHA256 = (
+    "b16724532234c3c1082326bdd2f0957c8518508849bcc5d090728fcfd2e3a8cd"
+)
+_PRE_NYFED_OVERNIGHT_RATES_REGISTRY_SOURCE_SHA256 = (
+    "1c672f602735af44d19abb5d678492c053fac7d001b17e0aba2d6ed398689c08"
+)
+_PRE_NYFED_REPO_FACILITIES_REGISTRY_SOURCE_SHA256 = (
+    "62a8f72f9b565f5b81eefce3bbef6704d5c9c65bd1222c19d49e6b53f54e4779"
+)
+_PRE_NYFED_SOMA_REGISTRY_SOURCE_SHA256 = (
+    "a6fa1cc606182743ddcb8d6b0cc06b236e3dc5ba4891d71627bf5d1454a8c863"
+)
+_PRE_OFFICIAL_CONDITIONS_REGISTRY_SOURCE_SHA256 = (
+    "999ff3ef57e2c858139e2c1122e9d2409d53d66dd6f1cdcd7cb624e08542f969"
+)
+_PRE_NYFED_CMDI_REGISTRY_SOURCE_SHA256 = (
+    "9be40d07a7984b223303174a079b19a2a57fa7fcb5a56678482533dc53e4f8ff"
+)
+_PRE_OFFICIAL_MACRO_EXTENSION_REGISTRY_SOURCE_SHA256 = (
+    "131b4f24b2e8d7d9dfa7fedb5de37cf16455aa5a0ee91d0aae69315fd0ac2aef"
+)
+_PRE_BLS_PRICE_WAGE_PRODUCTIVITY_REGISTRY_SOURCE_SHA256 = (
+    "d7a5ba0a556abc9faa6d726e162969d4c11f0a5da614865eff23318d16ca55ff"
+)
+_PRE_GDI_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "4945c54e695b093112e6e7425dc214e5288396cf309d23ccf1aba33e386ee1e6"
+)
+_GDI_VINTAGE_REGISTRY_SOURCE_SHA256 = (
+    "d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0"
+)
+_PRE_MARKET_RETURN_V2_REGISTRY_SOURCE_SHA256 = (
+    "d28298c36ce6b418ec516845ac3f58c8b9e4c0706afdacbb5f752ed7d5431bd0"
+)
+_MARKET_RETURN_V2_REGISTRY_SOURCE_SHA256 = (
+    "4b57a6bfb311001eee852f19ca45ad500095c7f997d804860cdd24a5ef24565d"
+)
+_PRE_TIMESERIES_ANALYSIS_V2_REGISTRY_SOURCE_SHA256 = (
+    "4b57a6bfb311001eee852f19ca45ad500095c7f997d804860cdd24a5ef24565d"
+)
+_PRE_TIMESERIES_ANALYSIS_V2_CATALOG_SOURCE_SHA256 = (
+    "2697d9abc49880a156b7d607d59aa6903f518fbd16d8d764adc0b8c0b257415b"
+)
+_TIMESERIES_ANALYSIS_V2_REGISTRY_SOURCE_SHA256 = (
+    "eae80b10840afa2b724215aa431e1b8feab303486bbc87a60a8591e5812536cb"
+)
+_PRE_ECONOMETRICS_V2_REGISTRY_SOURCE_SHA256 = (
+    "eae80b10840afa2b724215aa431e1b8feab303486bbc87a60a8591e5812536cb"
+)
+_PRE_ECONOMETRICS_V2_CATALOG_SOURCE_SHA256 = (
+    "3ae30774d87c31217204da2240a56124c2e732a14f9fb6e38a57e3d6d7341b79"
+)
+_ECONOMETRICS_V2_REGISTRY_SOURCE_SHA256 = (
+    "9ed2affcaa84c6420c7650c10a02361fad2bd892b33a5df2797e033e300ef86d"
+)
+_BEA_PERSONAL_INCOME_REGISTRY_SOURCE_SHA256 = (
+    "a5e5b11bd9578428430c96f9eec59214e39f8cbb85f5b74fffc37aebaabdc27e"
+)
+_PRE_ROBUST_ECONOMETRICS_V21_REGISTRY_SOURCE_SHA256 = (
+    "a5e5b11bd9578428430c96f9eec59214e39f8cbb85f5b74fffc37aebaabdc27e"
+)
+_PRE_ROBUST_ECONOMETRICS_V21_CATALOG_SOURCE_SHA256 = (
+    "5250c18b70066de734cb2a4715ec20825f4a587892ba70728065dde82a4a239c"
+)
+_ROBUST_ECONOMETRICS_V21_REGISTRY_SOURCE_SHA256 = (
+    "5c9702d8ca4c2f896083471cc60adecfd3a43c72d45694d04688ab07e6330035"
+)
+_ROBUST_ECONOMETRICS_V21_CATALOG_SOURCE_SHA256 = (
+    "7de5126d50c438d0bb35cb82a9a0dd282251de3acceeb850d69ca20f894ef7b9"
+)
+_STATIONARITY_V21_REGISTRY_SOURCE_SHA256 = (
+    "2a2b611ac6f752e6d83a81369155454b1484b8caebf4d1aaa3be60c41f0e866b"
+)
+_STATIONARITY_V21_CATALOG_SOURCE_SHA256 = (
+    "529d904d46003c53785926730279dc4c37bf09b7d15f99c366122c416c4af26e"
+)
+_STRUCTURAL_BREAKS_V2_REGISTRY_SOURCE_SHA256 = (
+    "3d6c0f31f2c72c20e5459c4e7f2358ea273437d59af99ef017b1f3ad47b1b547"
+)
+_STRUCTURAL_BREAKS_V2_CATALOG_SOURCE_SHA256 = (
+    "e0650e5b76ec9a851220c2395c34f9172f1380b5a5c9b2bc681056c655bdeb5b"
+)
+_ECONOMETRICS_MODEL_SUITE_V3_REGISTRY_SOURCE_SHA256 = (
+    "f7f445a3dbc991ca7b309ce306e5bc439403d929b96fb9931a22c036cb0eea85"
+)
+_PRE_FMP_CALENDAR_INCREMENTAL_REGISTRY_SOURCE_SHA256 = (
+    "f7f445a3dbc991ca7b309ce306e5bc439403d929b96fb9931a22c036cb0eea85"
+)
+_FMP_CALENDAR_INCREMENTAL_REGISTRY_SOURCE_SHA256 = (
+    "72516749f56f962bea2a265ef4a917558ef6e757444ae5d679bc50d2d64e6ed7"
+)
+_MARKET_PRICE_SERIES_V1_REGISTRY_SOURCE_SHA256 = (
+    "835fe846c0d0bf0ce630cda0dd23588983c83f6fad663cbe51202fe00deee2a3"
+)
+_MARKET_PRICE_SERIES_V1_CATALOG_SOURCE_SHA256 = (
+    "0f89da921b37d210c596646b3c4f47e4dbe27c2fe2579d8772c6db2bed312398"
+)
+_MARKET_AVAILABLE_TICKER_V1_REGISTRY_SOURCE_SHA256 = (
+    "1ab956e8338b864873f25e6e41cc6a18ba9a271a1951bec0bdccf32a07b8fd2b"
+)
+_MARKET_AVAILABLE_TICKER_V1_CATALOG_SOURCE_SHA256 = (
+    "554873c79f58abbee6f4fbf83e4a6767153c9ff920651825d8cac3bd6075905f"
+)
+_ALPACA_SPY_OPTION_REGISTRY_SOURCE_SHA256 = (
+    "841041060550eeb41fed491c19835f77d278cbf68daaa9a7b2f754c3f9c4f0ff"
+)
+_SEC_AAPL_COMPANYFACTS_REGISTRY_SOURCE_SHA256 = (
+    "af6545258751f7b7a7e7c68c673e18a36c65762809032db6ea540b33f249c182"
+)
+_SEC_MARKET_COMPANYFACTS_REGISTRY_SOURCE_SHA256 = (
+    "f151db20dd26fe2123e887415736431cfe1dcda8bf8f42d83a8b47ad3a27fec2"
+)
+_CANONICAL_ACCESS_REGISTRY_SOURCE_SHA256 = (
+    "b5236b88a2b320628b870fe3abe7898b76fa5fc1d527a223f87985963e38e264"
+)
+_CANONICAL_ACCESS_CATALOG_SOURCE_SHA256 = (
+    "e6fa88fa63856247ab00073a14ff1321cfafa05d5323a22c26008e81d0b1eb5c"
+)
+_ANALYTICS_FOUNDATION_REGISTRY_SOURCE_SHA256 = (
+    "eefa1288e8007518d466a3d4820522ae113ae6c52dc6df0e448cd3654de4a1b8"
+)
+_ANALYTICS_FOUNDATION_CATALOG_SOURCE_SHA256 = (
+    "381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf"
+)
+_TECHNICAL_INDICATORS_V2_REGISTRY_SOURCE_SHA256 = (
+    "3709c16168e2959a946c78e99c50b540b860d5f26ccf4afc3434831b8e9d8524"
+)
+_ALPACA_ETF_OPTION_REGISTRY_SOURCE_SHA256 = (
+    "6d34dc495de10de42765e8909e30df744f69ad72d1901259f7da67be2d2710e1"
+)
+_IWM_ETF_DAILY_HISTORY_REGISTRY_SOURCE_SHA256 = (
+    "0adc78cbe419b18ece989c9cdd6d918ef13113fa5f573d6f5fbe045b9eca8259"
+)
+_IWM_ETF_DAILY_HISTORY_BACKFILL_REGISTRY_SOURCE_SHA256 = (
+    "1d8485bd1df5351d94f0b13f2264828640d40c756c6241503f40a7b7f4e46c43"
+)
+_STAGE10_RESEARCH_ANALYTICS_REGISTRY_SOURCE_SHA256 = (
+    "87c74bbc26ce6101ff6136eefe9fdab0d9616f06d714d049d4c30287eda78323"
+)
+_STAGE10_RESEARCH_ANALYTICS_CATALOG_SOURCE_SHA256 = (
+    "3c15ebcbf145d188681a49016dc621ffc96a48f6480f7ff9067d962c8fa29693"
+)
+_COMPANY_FILING_PAGINATION_REGISTRY_SOURCE_SHA256 = (
+    "c201524e4e4a72b5377d36390e0cc5c746d392674b598ac1499ab818b418d238"
+)
+_COMPANY_FILING_PAGINATION_CATALOG_SOURCE_SHA256 = (
+    "b313cc2c4e4fd39311c00a5c18ae3ef8aa4de157f58f23c0837b52a51d601ac5"
+)
+_PLACEHOLDER_SUCCESSOR_REGISTRY_SOURCE_SHA256 = (
+    "f40c4d2e0cad90f686bffe52116d138f3b578f33f4844245682387d398a19e01"
+)
+_PLACEHOLDER_SUCCESSOR_CATALOG_SOURCE_SHA256 = (
+    "a70903e9ba65fd71d5d79775698174dafea630c58c435bb4d8fcc504320aa05b"
+)
+_TECHNICAL_INDICATORS_V21_REGISTRY_SOURCE_SHA256 = (
+    "cec35d5cfed9f25c40f5adfa2f2581b0de8d442a75202e687f791b3a16dc3d7f"
+)
+_TECHNICAL_INDICATORS_V21_CATALOG_SOURCE_SHA256 = (
+    "65311bb28efe62651ecb3420f0be13fd413df468487141cca0972d45e7684c85"
+)
+_TECHNICAL_INDICATORS_V22_REGISTRY_SOURCE_SHA256 = (
+    "9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802"
+)
+_TECHNICAL_INDICATORS_V22_CATALOG_SOURCE_SHA256 = (
+    "cb1c6965582b90eaeec27054eda0d66e7a4c603aefa69f9b453ae342d779302b"
+)
+_TECHNICAL_INDICATORS_V23_REGISTRY_SOURCE_SHA256 = (
+    "02a4aeb34632c5ae194622b7de77ec31145135bdf399620e45af461132134d43"
+)
+_TECHNICAL_INDICATORS_V23_CATALOG_SOURCE_SHA256 = (
+    "4803071d5cb2ababa2710ac4c0e3eb1e1640b06aa0b6071e14c2f40be68fec72"
+)
+_INVESTMENT_ANALYSIS_V2_REGISTRY_SOURCE_SHA256 = (
+    "1d36ddd20494cfc0ae9e6172f662c5dfe04b905319c0f83b439446f44fd29b5e"
+)
+_REGISTRY_259_ADDITIVE_SUCCESSORS_SOURCE_SHA256 = (
+    "0457910706181d7f4d9bb07efbf18845dd86335999b55c5d5a8d203041d315a1"
+)
+_REGISTRY_259_ADDITIVE_SUCCESSORS_CATALOG_SOURCE_SHA256 = (
+    "e4fdb9d9b6783ec131838762d8e2ae4b1c6833cc37c0292e1ceed09e0d919474"
+)
+_TECHNICAL_INDICATORS_V25_REGISTRY_SOURCE_SHA256 = (
+    "563c4294c47d534754014dc77a4a1b39e84749cc4d8165636bafd82feff679b0"
+)
+_TECHNICAL_INDICATORS_V25_CATALOG_SOURCE_SHA256 = (
+    "cebc1ca58257fed167db36973be1ce37e6e01162c2bc072c24591a673b0aedb4"
+)
+_TECHNICAL_INDICATORS_V26_REGISTRY_SOURCE_SHA256 = (
+    "0f43045c1dcc46b0f9d5ecb0aaf98aa3e9ad61a43e250afc389408602a8615ea"
+)
+_TECHNICAL_INDICATORS_V26_CATALOG_SOURCE_SHA256 = (
+    "b70798594de6149b7710b36d3b735b3d24ff81eb23277ba54dfdc697aceb0efc"
+)
+_TECHNICAL_INDICATORS_V27_REGISTRY_SOURCE_SHA256 = (
+    "59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2"
+)
+_TECHNICAL_INDICATORS_V27_CATALOG_SOURCE_SHA256 = (
+    "18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1"
+)
+_CURRENT_NEWS_REGISTRY_SOURCE_SHA256 = (
+    "06466e9b79be5bc0fab927a81b5972059bbad34ba4a674c1c456c3eaeaf04d72"
+)
+_CURRENT_NEWS_CATALOG_SOURCE_SHA256 = (
+    "05cfbfb29b544594a3b176daeca659470f3c91a20a423c730d8da9622c8cae2d"
+)
+_CURRENT_MULTI_SOURCE_REGISTRY_SOURCE_SHA256 = (
+    "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4"
+)
+_CURRENT_MULTI_SOURCE_CATALOG_SOURCE_SHA256 = (
+    "6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46"
+)
+_OPTION_RAW_EVIDENCE_REGISTRY_SOURCE_SHA256 = (
+    "c22d9ada8be3c3c7f9538c902bac3ef3467b9fdfa43c23fd7aa1c88200d58614"
+)
+_NEWS_RESEARCH_REGISTRY_SOURCE_SHA256 = (
+    "f7b8c402ce4abce5d024f7fcdc8debde97e25324739f037ef209312bb4d070f3"
+)
+_NEWS_RESEARCH_CATALOG_SOURCE_SHA256 = (
+    "e35b136e3e47a6211a85d62c75baf6ecd52b9246938a30549ace5c19e0c39700"
+)
+_DATA_STATUS_OPTIONS_REGISTRY_SOURCE_SHA256 = (
+    "a80b0e06db95968c9fd49cd3d90054b709c57895993a28b512ba2550e162f325"
+)
+_MACRO_DATABASE_EXPANSION_REGISTRY_SOURCE_SHA256 = (
+    "9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e"
+)
+_DATA_STATUS_OPTIONS_CATALOG_SOURCE_SHA256 = (
+    "fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28"
+)
+_INVESTMENT_ANALYSIS_V2_CATALOG_SOURCE_SHA256 = (
+    "5c0ea96b9aba9d73f8f89aea20a052c858691e10a1047f22594f027d8f893101"
+)
+_PLACEHOLDER_SUCCESSOR_VERSIONED_TOOL_IDS = frozenset(
+    (
+        *VERSIONED_COMPANY_SHARE_COUNT_TOOLS,
+        *VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
+    )
+)
+_TECHNICAL_INDICATORS_V2_CATALOG_SOURCE_SHA256 = (
+    "864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757"
+)
+# Registry 2.70 must exclude names introduced by later additive releases.
+_PRE_FMP_RESEARCH_TOOL_NAMES = tuple(
+    name
+    for name in CURRENT_PUBLIC_TOOL_NAMES
+    if name not in (
+        *ADDITIVE_FMP_RESEARCH_TOOLS,
+        *ADDITIVE_TRANSCRIPT_TOOLS,
+        *ADDITIVE_FORWARD_PE_TOOLS,
+        *ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS,
+        *ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS,
+        *ADDITIVE_THETA_TOOLS,
+        *ADDITIVE_RETAINED_RESEARCH_TOOLS,
+        *ADDITIVE_MONITOR_TOOLS,
+        "market.get_classifications",
+        "company.compare_peers",
+    )
+)
+_PRE_ETF_TOOL_NAMES = tuple(name for name in _PRE_FMP_RESEARCH_TOOL_NAMES if name not in ADDITIVE_ETF_TOOLS)
+_PRE_DATA_STATUS_OPTIONS_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_ETF_TOOL_NAMES
+    if name not in ADDITIVE_DATA_STATUS_TOOLS
+)
+_PRE_NEWS_RESEARCH_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_DATA_STATUS_OPTIONS_TOOL_NAMES
+    if name not in ADDITIVE_NEWS_RESEARCH_TOOLS
+)
+_PRE_ANALYTICS_FOUNDATION_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_NEWS_RESEARCH_TOOL_NAMES
+    if name not in ADDITIVE_STAGE10_STATISTICS_TOOLS
+)
+_PRE_CANONICAL_ACCESS_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_ANALYTICS_FOUNDATION_TOOL_NAMES
+    if name not in {"macro.get_release_calendar", "market.get_volume_series"}
+)
+_PRE_MARKET_AVAILABLE_TICKER_TOOL_NAMES = tuple(
+    name
+    for name in _PRE_CANONICAL_ACCESS_TOOL_NAMES
+    if name != "market.get_available_ticker"
+)
+
+_ECONOMETRICS_MODEL_SUITE_V3_CATALOG_SOURCE_SHA256 = (
+    "2c9424a0ff9cda9130d559c2dacb6cef55ff9ff8537191285219d608411b7f24"
+)
+
+_VERSIONED_TOOL_NAMES_2_35 = (
+    "market.get_returns",
+    "market.get_forward_returns",
+    "timeseries.describe",
+    "timeseries.align",
+    "timeseries.correlation",
+    "econometrics.regression",
+    "econometrics.rolling_regression",
+    "econometrics.stationarity",
+)
+_VERSIONED_ECONOMETRICS_TOOLS_2_34 = (
+    "econometrics.regression",
+    "econometrics.rolling_regression",
+    "econometrics.stationarity",
+)
+_POLICY_VARIANTS_2_35 = tuple(
+    (name, ("2.0.0",)) for name in _VERSIONED_TOOL_NAMES_2_35
+)
+_POLICY_VARIANTS_2_36 = tuple(
+    (name, ("2.0.0", "2.1.0"))
+    if name in {"econometrics.regression", "econometrics.rolling_regression"}
+    else (name, ("2.0.0",))
+    for name in _VERSIONED_TOOL_NAMES_2_35
+)
+_POLICY_VARIANTS_2_37 = tuple(
+    (name, ("2.0.0", "2.1.0")) if name.startswith("econometrics.") else (name, ("2.0.0",))
+    for name in _VERSIONED_TOOL_NAMES_2_35
+)
+_POLICY_VARIANTS_2_38 = (
+    *_POLICY_VARIANTS_2_37,
+    ("econometrics.structural_breaks", ("2.0.0",)),
+)
+_POLICY_VARIANTS_2_39 = tuple(
+    (name, versions + ("3.0.0",))
+    if name == "econometrics.regression" else (name, versions)
+    for name, versions in _POLICY_VARIANTS_2_38
+)
+
+_GDI_VINTAGE_MIGRATION_ID = "macro:0017_live_gdi_vintages"
+_GDI_VINTAGE_MIGRATION_RESOURCE = (
+    "quant_data/migrations/macro/0017_live_gdi_vintages.sql"
+)
+_GDI_VINTAGE_MIGRATION_SHA256 = (
+    "e92da1620b2da10e15d76ee9a3817fc081d0363f6cd7b87653f2340a8f756e71"
+)
+_FMP_GDP_CPI_CALENDAR_COLLECTOR_ID = (
+    "fmp.macro.gdp_cpi_release_calendar_history"
+)
+_FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID = (
+    "fmp.macro.employment_release_calendar_refresh"
+)
+_FMP_GDP_CPI_CALENDAR_DATASET_ID = "fixture.macro.economic_calendar"
+_FMP_GDP_CPI_OFFICIAL_DATASET_ID = "macro.official_vintages"
+_FMP_GDP_CPI_SURPRISE_TOOL_ID = "macro.release_surprises"
+_FMP_WHOLESALE_CALENDAR_MIGRATION_ID = (
+    "macro:0016_fmp_calendar_wholesale_evidence"
+)
+_FMP_WHOLESALE_CALENDAR_DATASET_ID = "macro.fmp.economic_calendar_evidence"
+_FMP_WHOLESALE_CALENDAR_COLLECTOR_ID = (
+    "fmp.macro.us_economic_calendar_wholesale"
+)
+_FMP_WHOLESALE_CALENDAR_RELATIONS = (
+    "fmp_economic_calendar_captures",
+    "fmp_economic_calendar_rows",
+)
+_FMP_CALENDAR_INCREMENTAL_MIGRATION_ID = (
+    "macro:0018_fmp_calendar_incremental_events"
+)
+_FMP_CALENDAR_INCREMENTAL_MIGRATION_RESOURCE = (
+    "quant_data/migrations/macro/0018_fmp_calendar_incremental_events.sql"
+)
+_FMP_CALENDAR_INCREMENTAL_MIGRATION_SHA256 = (
+    "078cfd62e7cd7a314e6b828b19414023f60fa81c760c89a31b3398f1b7e41a3e"
+)
+_FMP_CALENDAR_INCREMENTAL_EVIDENCE_DATASET_ID = (
+    "macro.fmp.economic_calendar_incremental_evidence"
+)
+_FMP_CALENDAR_INCREMENTAL_EVENT_DATASET_ID = (
+    "macro.fmp.economic_calendar_incremental_events"
+)
+_FMP_CALENDAR_INCREMENTAL_DATASET_IDS = (
+    _FMP_CALENDAR_INCREMENTAL_EVIDENCE_DATASET_ID,
+    _FMP_CALENDAR_INCREMENTAL_EVENT_DATASET_ID,
+)
+_FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID = (
+    "fmp.macro.treasury_yield_curve_history"
+)
+_FMP_TREASURY_YIELD_CURVE_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+    "fixture.macro.treasury_yield_curves",
+)
+_NYFED_OVERNIGHT_RATES_COLLECTOR_ID = "nyfed.macro.overnight_rates_history"
+_NYFED_OVERNIGHT_RATES_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
+_NYFED_REPO_FACILITIES_COLLECTOR_ID = (
+    "nyfed.macro.repo_facility_usage_history"
+)
+_NYFED_REPO_FACILITIES_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
+_NYFED_SOMA_COLLECTOR_ID = "nyfed.macro.soma_summary_history"
+_NYFED_SOMA_DATASET_IDS = (
+    "fixture.macro.soma_evidence",
+    "fixture.macro.soma_summary",
+)
+_OFFICIAL_CONDITIONS_COLLECTOR_IDS = (
+    "federal_reserve.macro.h41_history",
+    "chicagofed.macro.nfci_history",
+    "bis.macro.credit_conditions_history",
+)
+_OFFICIAL_CONDITIONS_DATASET_IDS = (
+    "fixture.macro.rtdsm_employ_evidence",
+    "fixture.macro.rtdsm_employ",
+    "fixture.macro.stage3_catalog",
+)
+_STAGE12B_COLLECTOR_ID = "market.stage12b.fmp_daily_incremental_fixture"
+_STAGE12C_COLLECTOR_ID = "market.stage12c.fmp_daily_incremental_manual"
+_NYFED_CMDI_COLLECTOR_ID = "nyfed.macro.cmdi_history"
+_NYFED_CMDI_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS = (
+    "treasury_fiscal_data.macro.tga_closing_balance_history",
+    "eia.macro.natural_gas_storage_history",
+    "nber.macro.us_recession_history",
+)
+_OFFICIAL_MACRO_EXTENSION_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID = (
+    "bls.macro.price_wage_productivity_history"
+)
+_BLS_PRICE_WAGE_PRODUCTIVITY_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_BEA_PERSONAL_INCOME_COLLECTOR_ID = "bea.macro.personal_income_history"
+_BEA_PERSONAL_INCOME_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_ETF_SNAPSHOT_REGISTRY_SOURCE_SHA256 = "4c2de9ef1ac49a4c23ab326000878fa66629caa1f8a0bcb65d4c089d827e9ac3"
+_COMPANY_MARKET_REGISTRY_SOURCE_SHA256 = '2e9c3e4d2bfc263735a1e9c875d2091210065e0a375a0a0e0c420839a03c774f'
+_COMPANY_MARKET_COLLECTOR_SPECS = {'fmp.company.corporate_actions_current': {'id': 'fmp.company.corporate_actions_current', 'version': '1.0.0', 'handler': 'company.fmp_corporate_actions_current', 'network': True, 'input_datasets': ['market.stage10.instruments', 'fixture.company.issuers'], 'output_datasets': ['fixture.company.action_evidence', 'fixture.company.corporate_actions'], 'semantic_identity': {'includes': ['request_scope', 'normalization_version', 'normalized_records'], 'excludes': ['api_key', 'captured_at', 'http_headers', 'source_row_order', 'raw_response_identity', 'discovery_evidence_identity', 'dividend_yield']}, 'mutation_policy': {'mode': 'append_versions_and_capture_membership', 'unchanged': 'zero_persistent_writes'}, 'workload_bounds': {'max_requests': 1, 'max_rows': 1000, 'max_bytes': 1048576, 'max_seconds': 30}, 'retry_policy': {'transient_classes': [], 'max_attempts': 1, 'backoff': 'none_single_attempt', 'honor_retry_after': False}, 'configuration_env': ['FMP_API_KEY'], 'physical_locks': 'derived_from_output_store_paths', 'schedule_eligibility': {'mode': 'manual_only'}}, 'fmp.company.analyst_estimates_current': {'id': 'fmp.company.analyst_estimates_current', 'version': '1.0.0', 'handler': 'company.fmp_analyst_estimates_current', 'network': True, 'input_datasets': ['market.stage10.instruments', 'fixture.company.issuers'], 'output_datasets': ['fixture.company.expectation_evidence', 'fixture.company.expectations'], 'semantic_identity': {'includes': ['request_scope', 'normalization_version', 'normalized_records'], 'excludes': ['api_key', 'captured_at', 'http_headers', 'source_row_order', 'raw_response_identity', 'discovery_evidence_identity', 'dividend_yield']}, 'mutation_policy': {'mode': 'append_versions_and_capture_membership', 'unchanged': 'zero_persistent_writes'}, 'workload_bounds': {'max_requests': 1, 'max_rows': 10, 'max_bytes': 1048576, 'max_seconds': 30}, 'retry_policy': {'transient_classes': [], 'max_attempts': 1, 'backoff': 'none_single_attempt', 'honor_retry_after': False}, 'configuration_env': ['FMP_API_KEY'], 'physical_locks': 'derived_from_output_store_paths', 'schedule_eligibility': {'mode': 'manual_only'}}}
+
+_MACRO_DATABASE_EXPANSION_COLLECTOR_IDS = (
+    "cftc.macro.tff_futures_only_history",
+    "cftc.macro.disaggregated_futures_only_history",
+    "treasury_fiscal_data.macro.securities_auctions_history",
+    "nyfed.macro.primary_dealer_statistics_history",
+    "federal_reserve.macro.h8_history",
+    "federal_reserve.macro.sloos_history",
+)
+_MACRO_DATABASE_EXPANSION_DATASET_IDS = _OFFICIAL_CONDITIONS_DATASET_IDS
+_MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS: Mapping[
+    str, tuple[str, int, int, int, int]
+] = {
+    "cftc.macro.tff_futures_only_history": (
+        "macro.cftc_tff_futures_only_history", 8, 4_000, 16_777_216, 480
+    ),
+    "cftc.macro.disaggregated_futures_only_history": (
+        "macro.cftc_disaggregated_futures_only_history",
+        8,
+        4_000,
+        16_777_216,
+        480,
+    ),
+    "treasury_fiscal_data.macro.securities_auctions_history": (
+        "macro.treasury_securities_auctions_history",
+        1,
+        1_000,
+        16_777_216,
+        60,
+    ),
+    "nyfed.macro.primary_dealer_statistics_history": (
+        "macro.nyfed_primary_dealer_statistics_history",
+        33,
+        100_000,
+        67_108_864,
+        180,
+    ),
+    "federal_reserve.macro.h8_history": (
+        "macro.federal_reserve_h8_history", 7, 20_000, 16_777_216, 420
+    ),
+    "federal_reserve.macro.sloos_history": (
+        "macro.federal_reserve_sloos_history",
+        6,
+        20_000,
+        16_777_216,
+        360,
+    ),
+}
+_STAGE12C_OUTPUT_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.daily_prices",
+)
+_STAGE12C_INPUT_DATASET_IDS = (
+    "market.stage10.instruments",
+    "market.stage10.daily_prices",
+)
+_STAGE12C_EXPECTED_DATASET_COLLECTOR_IDS: Mapping[str, tuple[str, ...]] = {
+    "market.stage10.source_evidence": (
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+        _STAGE12C_COLLECTOR_ID,
+    ),
+    "market.stage10.daily_prices": (
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+        _STAGE12C_COLLECTOR_ID,
+    ),
+}
+_STAGE12B_OUTPUT_DATASET_IDS = (
+    "market.stage10.source_evidence",
+    "market.stage10.daily_prices",
+)
+_STAGE12B_INPUT_DATASET_IDS = (
+    "market.stage10.instruments",
+    "market.stage10.daily_prices",
+)
+_STAGE12B_EXPECTED_DATASET_COLLECTOR_IDS: Mapping[str, tuple[str, ...]] = {
+    "market.stage10.source_evidence": (
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+    ),
+    "market.stage10.daily_prices": (
+        "fmp.market.stage10_daily_history",
+        _STAGE12B_COLLECTOR_ID,
+    ),
+}
+_STAGE11_CANONICAL_RETRY_POLICY = {
+    "transient_classes": ["connection", "timeout", "http_429", "http_5xx"],
+    "max_attempts": 3,
+    "backoff": "deterministic_1s_then_2s_no_jitter",
+    "honor_retry_after": False,
+}
+_STAGE11_HISTORICAL_RETRY_POLICY = {
+    "transient_classes": ["http_429", "http_500", "transport"],
+    "max_attempts": 1,
+    "backoff": "none_operator_resume",
+    "honor_retry_after": False,
+}
 _STAGE9_COLLECTOR_ID = "fmp.market.daily_price_backfill"
 _STAGE9_DATASET_IDS = frozenset(
     {
@@ -221,6 +869,165 @@ _STAGE9_DATASET_IDS = frozenset(
     }
 )
 _STAGE9_MIGRATION_ID = "market:0009_fmp_daily_price_backfill"
+_STAGE10_COLLECTOR_IDS = frozenset(
+    {
+        "fmp.market.stage10_universe_capture",
+        "fmp.market.stage10_daily_history",
+    }
+)
+_STAGE10_DATASET_IDS = frozenset(
+    {
+        "market.stage10.source_evidence",
+        "market.stage10.instruments",
+        "market.stage10.universes",
+        "market.stage10.daily_prices",
+    }
+)
+_STAGE10_MIGRATION_ID = "market:0010_stage10_market_history"
+_STAGE11_COLLECTOR_IDS = frozenset(
+    {
+        "bea.macro.stage11_nipa_history",
+        "eia.macro.stage11_electricity_retail_history",
+        "eia.macro.stage11_petroleum_weekly_stock_history",
+    }
+)
+_STAGE11_DATASET_IDS = frozenset(
+    {
+        "macro.bea.nipa_history_evidence",
+        "macro.bea.nipa_history",
+        "macro.eia.electricity_retail_history_evidence",
+        "macro.eia.electricity_retail_history",
+        "macro.eia.petroleum_weekly_stock_history_evidence",
+        "macro.eia.petroleum_weekly_stock_history",
+    }
+)
+_STAGE11_MIGRATION_ID = "macro:0012_stage11_bea_eia_live_history"
+_MACRO_VINTAGE_MIGRATION_ID = "macro:0013_live_gdp_cpi_vintages"
+_MACRO_VINTAGE_DATASET_IDS = frozenset(
+    {
+        "macro.official_vintages_evidence",
+        "macro.official_vintages",
+    }
+)
+_MACRO_VINTAGE_COLLECTOR_IDS = frozenset(
+    {
+        "bea.macro.live_gdp_vintages",
+        "bls.macro.live_cpi_vintages",
+    }
+)
+_EMPLOYMENT_VINTAGE_MIGRATION_ID = "macro:0014_live_employment_vintages"
+_EMPLOYMENT_VINTAGE_COLLECTOR_IDS = frozenset(
+    {
+        "philadelphia_fed.macro.live_employment_vintages",
+        "bls.macro.live_employment_current",
+    }
+)
+_MACRO_HISTORY_MIGRATION_ID = "macro:0015_live_macro_history_extension"
+_MACRO_HISTORY_COLLECTOR_IDS = frozenset(
+    {
+        "bls.macro.cpi_current_history",
+        "philadelphia_fed.macro.gdp_cpi_vintage_history",
+    }
+)
+_STAGE11_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "macro.bea.nipa_history_evidence": ("stage11_bea_nipa_captures",),
+    "macro.bea.nipa_history": (
+        "stage11_bea_nipa_observation_versions",
+        "stage11_bea_nipa_observations",
+    ),
+    "macro.eia.electricity_retail_history_evidence": (
+        "stage11_eia_retail_captures",
+    ),
+    "macro.eia.electricity_retail_history": (
+        "stage11_eia_retail_observation_versions",
+        "stage11_eia_retail_observations",
+    ),
+    "macro.eia.petroleum_weekly_stock_history_evidence": (
+        "stage11_eia_weekly_captures",
+    ),
+    "macro.eia.petroleum_weekly_stock_history": (
+        "stage11_eia_weekly_observation_versions",
+        "stage11_eia_weekly_observations",
+    ),
+}
+_FMP_STOCK_LATEST_COLLECTOR_ID = "fmp.news.stock_latest"
+_FMP_STOCK_LATEST_DATASET_IDS = frozenset(
+    {
+        "news.fmp.stock_latest_evidence",
+        "news.fmp.stock_latest_articles",
+    }
+)
+_FMP_STOCK_LATEST_MIGRATION_ID = "news:0005_fmp_stock_latest"
+_FMP_STOCK_LATEST_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "news.fmp.stock_latest_evidence": (
+        "fmp_stock_latest_attempts",
+        "fmp_stock_latest_outcomes",
+        "fmp_stock_latest_captures",
+    ),
+    "news.fmp.stock_latest_articles": (
+        "fmp_stock_latest_articles",
+        "fmp_stock_latest_article_versions",
+        "fmp_stock_latest_capture_articles",
+    ),
+}
+_FMP_STOCK_LATEST_CURRENT_COLLECTOR_ID = "fmp.news.stock_latest_current"
+_FMP_STOCK_LATEST_CURRENT_DATASET_IDS = frozenset(
+    {
+        "news.fmp.stock_latest_current_evidence",
+        "news.fmp.stock_latest_current_articles",
+    }
+)
+_FMP_STOCK_LATEST_CURRENT_MIGRATION_ID = (
+    "news:0006_fmp_stock_latest_current"
+)
+_FMP_STOCK_LATEST_CURRENT_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "news.fmp.stock_latest_current_evidence": (
+        "fmp_stock_latest_current_attempts",
+        "fmp_stock_latest_current_outcomes",
+        "fmp_stock_latest_current_captures",
+    ),
+    "news.fmp.stock_latest_current_articles": (
+        "fmp_stock_latest_current_articles",
+        "fmp_stock_latest_current_article_versions",
+        "fmp_stock_latest_current_capture_articles",
+    ),
+}
+_CURRENT_MULTI_SOURCE_COLLECTOR_ID = "news.current_multi_source"
+_CURRENT_MULTI_SOURCE_DATASET_IDS = frozenset(
+    {
+        "news.current_multi_source_evidence",
+        "news.current_multi_source_articles",
+    }
+)
+_CURRENT_MULTI_SOURCE_MIGRATION_ID = "news:0007_current_multi_source"
+_LEGACY_FMP_NEWS_MIGRATION_ID = "news:0008_adopt_fmp_news_legacy"
+_LEGACY_FMP_NEWS_DATASET_ID = "news.fmp.stock_latest_legacy_articles"
+_CURRENT_MULTI_SOURCE_DATASET_RELATIONS: Mapping[str, tuple[str, ...]] = {
+    "news.current_multi_source_evidence": (
+        "current_multi_source_attempts",
+        "current_multi_source_outcomes",
+        "current_multi_source_captures",
+    ),
+    "news.current_multi_source_articles": (
+        "current_multi_source_articles",
+        "current_multi_source_article_versions",
+        "current_multi_source_capture_articles",
+        "current_multi_source_article_symbols",
+    ),
+}
+_LEGACY_FMP_NEWS_DATASET_RELATIONS = {
+    _LEGACY_FMP_NEWS_DATASET_ID: ("fmp_news_articles",),
+}
+_OPTION_RAW_EVIDENCE_MIGRATION_ID = "market:0011_option_raw_evidence"
+_OPTION_RAW_EVIDENCE_DATASET_ID = "market.alpaca.option_raw_evidence"
+_OPTION_RAW_EVIDENCE_RELATIONS = (
+    "option_raw_responses",
+    "option_capture_raw_responses",
+)
+_ALPACA_OPTION_COLLECTOR_IDS = (
+    "alpaca.market.spy_option_surface",
+    "alpaca.market.etf_option_surface_grid",
+)
 _STAGE7_JOB_IDS = (
     "news-hourly",
     "sec-daily",
@@ -855,6 +1662,7 @@ class Registry:
     jobs: tuple[JobDeclaration, ...]
     exports: tuple[ExportDeclaration, ...]
     tools: tuple[Mapping[str, Any], ...]
+    tool_version_policies: tuple[Mapping[str, Any], ...]
     dashboard: tuple[Mapping[str, Any], ...]
     raw: Mapping[str, Any]
     source_sha256: str | None = None
@@ -881,11 +1689,33 @@ class Registry:
     def datasets_for(self, role: str) -> tuple[DatasetDeclaration, ...]:
         return tuple(item for item in self.datasets if item.store == role)
 
-    def tool(self, name: str) -> Mapping[str, Any]:
+    def tool(self, name: str, version: str | None = None) -> Mapping[str, Any]:
         for item in self.tools:
             if item["id"] == name:
-                return item
+                if version is None or item["version"] == version:
+                    return item
+                break
+        for policy in self.tool_version_policies:
+            if policy["tool"] != name:
+                continue
+            for variant in policy["variants"]:
+                if variant["version"] == version:
+                    return variant
+            break
         raise RegistryError("Unknown tool declaration")
+
+    def versions_for(self, name: str) -> tuple[Mapping[str, Any], ...]:
+        base = self.tool(name)
+        for policy in self.tool_version_policies:
+            if policy["tool"] == name:
+                return (base, *tuple(policy["variants"]))
+        return (base,)
+
+    def version_policy(self, name: str) -> Mapping[str, Any] | None:
+        for policy in self.tool_version_policies:
+            if policy["tool"] == name:
+                return policy
+        return None
 
     def job(self, name: str) -> JobDeclaration:
         for item in self.jobs:
@@ -991,8 +1821,69 @@ def _validate_strict_schema(schema: Any, pointer: str) -> None:
             or len(schema_type) != len(set(schema_type))
         ):
             raise _error(pointer, "schema", "Unsupported union schema type")
-        if set(schema) != {"type"}:
-            raise _error(pointer, "schema", "Stage 1 union schemas may only declare type")
+        allowed = {
+            "type",
+            "enum",
+            "minimum",
+            "maximum",
+            "minLength",
+            "maxLength",
+        }
+        if set(schema) - allowed:
+            raise _error(
+                pointer,
+                "schema",
+                "Union schema contains an unsupported keyword",
+            )
+        nonnull = set(schema_type) - {"null"}
+        if set(schema) != {"type"} and (
+            "null" not in schema_type or len(nonnull) != 1
+        ):
+            raise _error(
+                pointer,
+                "schema",
+                "Constrained unions must contain one scalar type and null",
+            )
+        if "enum" in schema:
+            enum = schema["enum"]
+            if (
+                not isinstance(enum, list)
+                or not enum
+                or None not in enum
+                or any(
+                    item is not None
+                    and (
+                        ("string" in nonnull and not isinstance(item, str))
+                        or (
+                            "integer" in nonnull
+                            and (
+                                isinstance(item, bool)
+                                or not isinstance(item, int)
+                            )
+                        )
+                    )
+                    for item in enum
+                )
+            ):
+                raise _error(
+                    pointer,
+                    "schema",
+                    "Nullable union enum is invalid",
+                )
+        for bound in ("minimum", "maximum", "minLength", "maxLength"):
+            if bound in schema and (
+                isinstance(schema[bound], bool)
+                or not isinstance(schema[bound], int)
+            ):
+                raise _error(
+                    pointer,
+                    "schema",
+                    "Nullable union bound must be an integer",
+                )
+        if schema.get("minimum", 0) > schema.get("maximum", MAX_JSON_BYTES):
+            raise _error(pointer, "schema", "Nullable numeric bounds are inverted")
+        if schema.get("minLength", 0) > schema.get("maxLength", MAX_JSON_BYTES):
+            raise _error(pointer, "schema", "Nullable string bounds are inverted")
         return
     if schema_type == "object":
         allowed = {"type", "additionalProperties", "properties", "required"}
@@ -1064,32 +1955,49 @@ def _validate_top_level(raw: Any) -> Mapping[str, Any]:
         "dashboard",
         "exports",
         "tool_schema_catalog",
+        "tool_version_schema_catalog",
+        "tool_versions",
         "presentation_order",
     }
     _require_keys(raw, required, "/")
     schema_id = _stable_identifier(raw["schema_id"], "/schema_id")
     if (
         schema_id != "quant_data.system_registry"
-        or raw["schema_version"] != "1.5.0"
+        or raw["schema_version"] != "1.9.0"
         or not isinstance(raw["registry_version"], str)
         or not _SEMVER.fullmatch(raw["registry_version"])
-        or raw["registry_version"] != "2.7.0"
+        or raw["registry_version"] not in {"2.67.0", "2.68.0", "2.69.0", "2.70.0", "2.71.0", "2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0", "2.96.0", "2.97.0", "2.98.0", "2.99.0", "2.100.0", "2.101.0", "2.102.0"}
         or raw["status"] != "validated"
     ):
         raise RegistryError("Unsupported registry schema, version, or lifecycle status")
-    for collection in ("stores", "migrations", "datasets", "collectors", "jobs", "tools", "dashboard", "exports"):
+    for collection in ("stores", "migrations", "datasets", "collectors", "jobs", "tools", "tool_versions", "dashboard", "exports"):
         if not isinstance(raw[collection], list):
             raise _error(f"/{collection}", "type", "Expected an array")
     return raw
 
 
 
+# Cache only fully validated, privately owned schema bundles. Every load still
+# resolves the resource and hashes its current bytes before consulting this cache.
+# Four entries bound retention across alternate roots/catalog revisions; callers
+# receive detached copies, so one Registry cannot mutate another's contracts.
+_SCHEMA_CATALOG_CACHE_LIMIT = 4
+_SCHEMA_CATALOG_CACHE: _OrderedDict[tuple[Any, ...], dict[str, Mapping[str, Any]]] = _OrderedDict()
+_SCHEMA_CATALOG_CACHE_LOCK = _RLock()
+
+
 def _load_tool_schema_catalog(
     raw: Mapping[str, Any],
     root: Path,
+    *,
+    declaration_key: str = "tool_schema_catalog",
+    expected_id: str = CATALOG_ID,
+    expected_version: str = CATALOG_VERSION,
+    expected_count: int = 114,
+    allowed_tool_names: tuple[str, ...] = PUBLIC_TOOL_NAMES,
 ) -> dict[str, Mapping[str, Any]]:
-    declaration = raw["tool_schema_catalog"]
-    pointer = "/tool_schema_catalog"
+    declaration = raw[declaration_key]
+    pointer = f"/{declaration_key}"
     if not isinstance(declaration, dict):
         raise _error(pointer, "type", "Tool schema catalog declaration must be an object")
     _require_keys(
@@ -1098,8 +2006,8 @@ def _load_tool_schema_catalog(
         pointer,
     )
     if (
-        declaration["schema_id"] != CATALOG_ID
-        or declaration["schema_version"] != CATALOG_VERSION
+        declaration["schema_id"] != expected_id
+        or declaration["schema_version"] != expected_version
         or not isinstance(declaration["sha256"], str)
         or not _SHA256.fullmatch(declaration["sha256"])
     ):
@@ -1115,13 +2023,27 @@ def _load_tool_schema_catalog(
             "Tool schema catalog must remain inside the project",
         ) from exc
     payload = resource_path.read_bytes()
-    if hashlib.sha256(payload).hexdigest() != declaration["sha256"]:
+    content_sha256 = hashlib.sha256(payload).hexdigest()
+    if content_sha256 != declaration["sha256"]:
         raise _error(
             f"{pointer}/sha256",
             "checksum",
             "Tool schema catalog checksum mismatch",
         )
-    catalog = loads_strict(payload, max_bytes=4 * 1024 * 1024)
+    # Validation expectations are part of the key: identical content accepted
+    # under one catalog contract must never bypass a different contract's checks.
+    cache_key = (
+        content_sha256, declaration_key, expected_id, expected_version,
+        expected_count, tuple(allowed_tool_names), SCHEMA_DIALECT,
+    )
+    with _SCHEMA_CATALOG_CACHE_LOCK:
+        cached = _SCHEMA_CATALOG_CACHE.get(cache_key)
+        if cached is not None:
+            _SCHEMA_CATALOG_CACHE.move_to_end(cache_key)
+    if cached is not None:
+        return copy.deepcopy(cached)
+
+    catalog = loads_strict(payload, max_bytes=MAX_JSON_BYTES)
     if not isinstance(catalog, dict):
         raise _error(pointer, "catalog", "Tool schema catalog must be an object")
     _require_keys(
@@ -1130,11 +2052,11 @@ def _load_tool_schema_catalog(
         pointer,
     )
     if (
-        catalog["schema_id"] != CATALOG_ID
-        or catalog["schema_version"] != CATALOG_VERSION
+        catalog["schema_id"] != expected_id
+        or catalog["schema_version"] != expected_version
         or catalog["dialect"] != SCHEMA_DIALECT
         or not isinstance(catalog["contracts"], list)
-        or len(catalog["contracts"]) != 114
+        or len(catalog["contracts"]) != expected_count
     ):
         raise _error(pointer, "catalog", "Tool schema catalog identity or size drifted")
     contracts: dict[str, Mapping[str, Any]] = {}
@@ -1146,7 +2068,7 @@ def _load_tool_schema_catalog(
         if (
             not isinstance(contract["id"], str)
             or contract["id"] in contracts
-            or contract["tool"] not in PUBLIC_TOOL_NAMES
+            or contract["tool"] not in allowed_tool_names
             or contract["direction"] not in {"input", "output"}
             or not isinstance(contract["schema"], dict)
         ):
@@ -1159,7 +2081,12 @@ def _load_tool_schema_catalog(
             raise _error(contract_pointer, "catalog", "Generated schema identity drifted")
         _validate_strict_schema(schema, f"{contract_pointer}/schema")
         contracts[contract["id"]] = schema
-    return contracts
+    with _SCHEMA_CATALOG_CACHE_LOCK:
+        _SCHEMA_CATALOG_CACHE[cache_key] = contracts
+        _SCHEMA_CATALOG_CACHE.move_to_end(cache_key)
+        while len(_SCHEMA_CATALOG_CACHE) > _SCHEMA_CATALOG_CACHE_LIMIT:
+            _SCHEMA_CATALOG_CACHE.popitem(last=False)
+    return copy.deepcopy(contracts)
 
 
 
@@ -1853,16 +2780,25 @@ def load_registry(
         payload = source.read_bytes()
     except OSError as exc:
         raise RegistryError("Registry file is unavailable") from exc
-    raw = _validate_top_level(loads_strict(payload, max_bytes=MAX_JSON_BYTES))
+    raw = _validate_top_level(loads_strict(payload, max_bytes=_MAX_REGISTRY_BYTES))
     schema_contracts = _load_tool_schema_catalog(raw, root)
+    versioned_schema_contracts = _load_tool_schema_catalog(
+        raw,
+        root,
+        declaration_key="tool_version_schema_catalog",
+        expected_id=VERSIONED_CATALOG_ID,
+        expected_version=VERSIONED_CATALOG_VERSION,
+        expected_count=288,
+        allowed_tool_names=CURRENT_PUBLIC_TOOL_NAMES,
+    )
 
     stores: list[StoreDeclaration] = []
     expected_roles = {role.value for role in STORE_ROLES}
     expected_defaults = {
-        "market": "data/market_data.sqlite",
-        "macro": "data/macro_data.sqlite",
-        "company": "data/company_data.sqlite",
-        "news": "data/news_data.sqlite",
+        "market": "data/market.sqlite",
+        "macro": "data/macro.sqlite",
+        "company": "data/company.sqlite",
+        "news": "data/news.sqlite",
     }
     expected_control = (
         "schema_migrations",
@@ -2328,10 +3264,10 @@ def load_registry(
     if stage1_tool_names != STAGE1_TOOL_NAMES:
         raise RegistryError("Stage 1 compatibility subset must contain exactly two tools")
 
-    profiles = {profile.name: profile for profile in tool_profiles()}
+    profiles = {profile.name: profile for profile in current_tool_profiles()}
     tools: list[Mapping[str, Any]] = []
     tool_names: list[str] = []
-    family_counts = {family: 0 for family in FAMILY_COUNTS}
+    family_counts = {family: 0 for family in CURRENT_FAMILY_COUNTS}
     dataset_store_by_id = {item.id: item.store for item in datasets}
     required_tool_keys = {
         "id",
@@ -2374,7 +3310,7 @@ def load_registry(
         tool_id = _stable_identifier(value["id"], f"{pointer}/id")
         profile = profiles.get(tool_id)
         if profile is None or tool_id in tool_names:
-            raise _error(f"{pointer}/id", "inventory", "Tool is not in the reviewed Stage 5 inventory")
+            raise _error(f"{pointer}/id", "inventory", "Tool is not in the reviewed active inventory")
         if (
             value["handler"] != profile.operation_graph_id
             or value["operation_graph_id"] != profile.operation_graph_id
@@ -2409,9 +3345,13 @@ def load_registry(
             f"{pointer}/compatibility",
         )
         expected_compatibility = (
-            "recovered_fixture_validated"
-            if tool_id in STAGE1_TOOL_NAMES
-            else "forward_reconstructed_v1"
+            "additive_native_v1"
+            if tool_id in ADDITIVE_PUBLIC_TOOL_NAMES
+            else (
+                "recovered_fixture_validated"
+                if tool_id in STAGE1_TOOL_NAMES
+                else "forward_reconstructed_v1"
+            )
         )
         if (
             compatibility_value["status"] != expected_compatibility
@@ -2441,11 +3381,16 @@ def load_registry(
                 raise _error(f"{pointer}/{name}", "type", "Tool contract type is required")
         expected_input_id = f"urn:quant-data:tool:{tool_id}:input:1.0.0"
         expected_output_id = f"urn:quant-data:tool:{tool_id}:output:1.0.0"
+        contract_catalog = (
+            versioned_schema_contracts
+            if tool_id in ADDITIVE_PUBLIC_TOOL_NAMES
+            else schema_contracts
+        )
         if (
             value["input_schema_id"] != expected_input_id
             or value["output_schema_id"] != expected_output_id
-            or schema_contracts.get(expected_input_id) != value["input_schema"]
-            or schema_contracts.get(expected_output_id) != value["output_schema"]
+            or contract_catalog.get(expected_input_id) != value["input_schema"]
+            or contract_catalog.get(expected_output_id) != value["output_schema"]
         ):
             raise _error(f"{pointer}/input_schema_id", "schema_reference", "Tool schema reference or bytes drifted")
         _validate_strict_schema(value["input_schema"], f"{pointer}/input_schema")
@@ -2550,14 +3495,466 @@ def load_registry(
         family_counts[profile.family] += 1
         tool_names.append(tool_id)
         tools.append(value)
-    if tuple(tool_names) != PUBLIC_TOOL_NAMES or len(set(tool_names)) != 57:
-        raise RegistryError("Canonical Stage 5 registry must expose exactly 57 ordered tools")
-    if family_counts != FAMILY_COUNTS:
-        raise RegistryError("Canonical Stage 5 tool family counts drifted")
-    macro_output = tools[PUBLIC_TOOL_NAMES.index("macro.get_series")]["output_schema"]
-    describe_series = tools[PUBLIC_TOOL_NAMES.index("timeseries.describe")]["input_schema"]["properties"]["series"]
+    if (
+        tuple(tool_names) != CURRENT_PUBLIC_TOOL_NAMES
+        or len(set(tool_names)) != len(CURRENT_PUBLIC_TOOL_NAMES)
+    ):
+        raise RegistryError("Canonical registry must expose the reviewed active tools")
+    if family_counts != CURRENT_FAMILY_COUNTS:
+        raise RegistryError("Canonical active tool family counts drifted")
+    macro_output = tools[CURRENT_PUBLIC_TOOL_NAMES.index("macro.get_series")]["output_schema"]
+    describe_series = tools[CURRENT_PUBLIC_TOOL_NAMES.index("timeseries.describe")]["input_schema"]["properties"]["series"]
     if describe_series != macro_output:
         raise RegistryError("Composable describe input must exactly match macro TimeSeries output")
+
+    expected_version_policies = build_tool_version_policies()
+    if raw["tool_versions"] != list(expected_version_policies):
+        raise _error(
+            "/tool_versions",
+            "version_contract",
+            "Versioned public tool contracts drifted from their typed declarations",
+        )
+    tool_version_policies = tuple(raw["tool_versions"])
+    if tuple(policy["tool"] for policy in tool_version_policies) != (
+        VERSIONED_TOOL_NAMES
+    ):
+        raise _error(
+            "/tool_versions",
+            "inventory",
+            "The reviewed v2 public-tool inventory drifted",
+        )
+    seen_tool_versions: set[tuple[str, str]] = set()
+    for policy_index, policy in enumerate(tool_version_policies):
+        policy_pointer = f"/tool_versions/{policy_index}"
+        _require_keys(
+            policy,
+            {
+                "tool",
+                "default_version",
+                "selector_field",
+                "variants",
+                "deprecations",
+            },
+            policy_pointer,
+        )
+        if (
+            policy["default_version"] != "1.0.0"
+            or policy["selector_field"] != "tool_version"
+            or not isinstance(policy["variants"], list)
+            or len(policy["variants"])
+            != (
+                8
+                if policy["tool"] == "market.technical_indicators"
+                else (
+                    3
+                    if policy["tool"] == "econometrics.regression"
+                    else (
+                        4
+                        if policy["tool"] == "news.search"
+                        else 2
+                        if policy["tool"]
+                        in {
+                            "econometrics.rolling_regression",
+                            "econometrics.stationarity",
+                            "market.cross_sectional_performance",
+                            "energy.get_electricity_retail_sales",
+                            "energy.get_weekly_fundamentals",
+                            "company.get_fundamentals",
+                        }
+                        else 1
+                    )
+                )
+            ) + int(
+                policy["tool"] in PRICE_BASIS_VERSIONS
+                and policy["tool"] not in NEW_PRICE_BASIS_POLICIES
+            )
+            + int(policy["tool"] in {"company.get_fundamentals", "company.get_share_count_history"})
+            or not isinstance(policy["deprecations"], list)
+            or len(policy["deprecations"]) != 1
+        ):
+            raise _error(
+                policy_pointer,
+                "selection_policy",
+                "Tool version selection or deprecation policy is invalid",
+            )
+        base = tools[CURRENT_PUBLIC_TOOL_NAMES.index(policy["tool"])]
+        variant = policy["variants"][0]
+        if not isinstance(variant, dict):
+            raise _error(
+                f"{policy_pointer}/variants/0",
+                "type",
+                "Tool version variant must be an object",
+            )
+        version_key = (str(variant.get("id")), str(variant.get("version")))
+        if version_key in seen_tool_versions:
+            raise _error(
+                f"{policy_pointer}/variants/0/version",
+                "unique",
+                "Tool version variants must be unique",
+            )
+        seen_tool_versions.add(version_key)
+        if (
+            variant.get("id") != policy["tool"]
+            or variant.get("version") != "2.0.0"
+            or variant.get("operation_version") != "2.0.0"
+            or variant.get("api_version") != "1.0"
+            or variant.get("read_only") is not True
+            or variant.get("operation_graph_id") not in VERSIONED_OPERATION_GRAPH_IDS
+            or variant.get("handler") != variant.get("operation_graph_id")
+            or variant.get("input_schema_id")
+            != f"urn:quant-data:tool:{policy['tool']}:input:2.0.0"
+            or variant.get("output_schema_id")
+            != f"urn:quant-data:tool:{policy['tool']}:output:2.0.0"
+            or versioned_schema_contracts.get(variant["input_schema_id"])
+            != variant.get("input_schema")
+            or versioned_schema_contracts.get(variant["output_schema_id"])
+            != variant.get("output_schema")
+        ):
+            raise _error(
+                f"{policy_pointer}/variants/0",
+                "variant_contract",
+                "Versioned tool schema, operation, or access contract is invalid",
+            )
+        _validate_strict_schema(
+            variant["input_schema"], f"{policy_pointer}/variants/0/input_schema"
+        )
+        _validate_strict_schema(
+            variant["output_schema"], f"{policy_pointer}/variants/0/output_schema"
+        )
+        variant_datasets = _stable_identifier_array(
+            variant["datasets"], f"{policy_pointer}/variants/0/datasets"
+        )
+        variant_stores = _stable_identifier_array(
+            variant["stores"], f"{policy_pointer}/variants/0/stores"
+        )
+        if policy["tool"] in VERSIONED_CANONICAL_MACRO_TOOLS:
+            expected_variant_stores = ("macro",)
+            expected_variant_datasets = (
+                "fixture.macro.rtdsm_employ",
+                "fixture.macro.rtdsm_employ_evidence",
+                "fixture.macro.stage3_catalog",
+                "macro.official_vintages",
+                "macro.official_vintages_evidence",
+            )
+        elif policy["tool"] in VERSIONED_MARKET_RETURN_TOOLS:
+            expected_variant_stores = ("market",)
+            expected_variant_datasets = (
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+                "market.stage10.instruments",
+            )
+        elif policy["tool"] == "company.get_guidance_history":
+            from .tool_platform.transcript_contracts import RAW_DATASET, STRUCTURED_DATASET
+            expected_variant_stores = ("company",)
+            expected_variant_datasets = (RAW_DATASET, STRUCTURED_DATASET)
+        elif policy["tool"] in VERSIONED_COMPANY_FILING_TOOLS:
+            expected_variant_stores = ("company",)
+            expected_variant_datasets = ("fixture.company.filings",)
+        elif policy["tool"] in VERSIONED_COMPANY_SHARE_COUNT_TOOLS:
+            expected_variant_stores = ("company",)
+            expected_variant_datasets = ("fixture.company.fundamentals",)
+        elif policy["tool"] in VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS:
+            expected_variant_stores = ("market",)
+            expected_variant_datasets = ("market.stage10.instruments",)
+        elif policy["tool"] in VERSIONED_NEWS_TOOLS:
+            expected_variant_stores = ("news",)
+            expected_variant_datasets = (
+                "news.fmp.stock_latest_current_evidence",
+                "news.fmp.stock_latest_current_articles",
+            )
+        elif policy["tool"] in VERSIONED_OPTIONS_ACCESS_TOOLS:
+            expected_variant_stores = ("market",)
+            expected_variant_datasets = (
+                "fixture.market.instruments",
+                "fixture.market.option_capture_evidence",
+                "fixture.market.options",
+            )
+        elif policy["tool"] in {"company.get_earnings_calendar", "company.get_earnings_setup", "company.get_consensus_history", "company.get_estimate_revisions"}:
+            from .tool_platform.retained_research_contracts import stores_for, datasets_for
+            expected_variant_stores = stores_for(policy["tool"])
+            expected_variant_datasets = datasets_for(policy["tool"])
+        elif policy["tool"] in VERSIONED_INVESTMENT_ANALYSIS_TOOLS:
+            expected_variant_stores = tuple(variant_stores)
+            expected_variant_datasets = tuple(variant_datasets)
+        elif policy["tool"] in {"market.get_price_series", "research.news_event_impact", "company.get_transcript"}:
+            expected_variant_stores = tuple(base["stores"])
+            expected_variant_datasets = tuple(base["datasets"])
+        elif policy["tool"] in VERSIONED_ETF_SNAPSHOT_TOOLS:
+            expected_variant_stores = ("market",)
+            expected_variant_datasets = (
+                "market.stage10.instruments",
+                "market.stage10.daily_prices",
+                "market.stage10.source_evidence",
+            )
+        else:
+            expected_variant_stores = ()
+            expected_variant_datasets = ()
+        if (
+            variant_stores != expected_variant_stores
+            or tuple(variant_datasets) != expected_variant_datasets
+            or any(
+                dataset_store_by_id[item] not in variant_stores
+                for item in variant_datasets
+            )
+        ):
+            raise _error(
+                f"{policy_pointer}/variants/0/datasets",
+                "routing",
+                "Versioned tool dataset routing is invalid",
+            )
+        for example_index, example in enumerate(variant["examples"]):
+            try:
+                validate_schema(example, variant["input_schema"])
+            except ValidationError as exc:
+                raise _error(
+                    f"{policy_pointer}/variants/0/examples/{example_index}",
+                    "example",
+                    "Versioned tool example does not satisfy its input schema",
+                ) from exc
+        deprecation = policy["deprecations"][0]
+        if (
+            deprecation.get("version") != base["version"]
+            or deprecation.get("code") != "tool_version_deprecated"
+            or deprecation.get("replacement")
+            != {
+                "tool": policy["tool"],
+                "version": (
+                    policy["variants"][-1]["version"]
+                    if policy["tool"] == "news.search"
+                    else variant["version"]
+                ),
+            }
+            or deprecation.get("removal")
+            != {"status": "not_scheduled", "milestone": None}
+        ):
+            raise _error(
+                f"{policy_pointer}/deprecations/0",
+                "deprecation",
+                "Tool deprecation metadata is invalid",
+            )
+        for variant_index, additional_variant in enumerate(
+            policy["variants"][1:], start=1
+        ):
+            is_v3_variant = (
+                policy["tool"] == "econometrics.regression"
+                and variant_index == 2
+            )
+            is_indicator_v22_variant = (
+                policy["tool"] == "market.technical_indicators"
+                and variant_index == 2
+            )
+            is_indicator_v23_variant = (
+                policy["tool"] == "market.technical_indicators"
+                and variant_index == 3
+            )
+            is_indicator_v24_variant = (
+                policy["tool"] == "market.technical_indicators"
+                and variant_index == 4
+            )
+            is_indicator_v25_variant = (
+                policy["tool"] == "market.technical_indicators"
+                and variant_index == 5
+            )
+            is_indicator_v27_variant = (
+                policy["tool"] == "market.technical_indicators"
+                and variant_index == 7
+            )
+            is_indicator_v26_variant = (
+                policy["tool"] == "market.technical_indicators"
+                and variant_index == 6
+            )
+            is_news_v23_variant = (
+                policy["tool"] == "news.search" and variant_index == 3
+            )
+            is_news_v22_variant = (
+                policy["tool"] == "news.search" and variant_index == 2
+            )
+            basis_pair = PRICE_BASIS_VERSIONS.get(policy["tool"])
+            is_price_basis_variant = (
+                basis_pair is not None and additional_variant.get("version") == basis_pair[1]
+            )
+            is_sharadar_variant = (
+                policy["tool"] in {"company.get_fundamentals", "company.get_share_count_history"}
+                and additional_variant.get("version") == "3.0.0"
+            )
+            expected_version = (
+                "3.0.0" if is_sharadar_variant else
+                basis_pair[1] if is_price_basis_variant else
+                "2.3.0" if is_news_v23_variant else
+                "3.0.0"
+                if is_v3_variant
+                else "2.2.0"
+                if is_news_v22_variant
+                else "2.7.0"
+                if is_indicator_v27_variant
+                else "2.6.0"
+                if is_indicator_v26_variant
+                else "2.5.0"
+                if is_indicator_v25_variant
+                else "2.4.0"
+                if is_indicator_v24_variant
+                else "2.3.0"
+                if is_indicator_v23_variant
+                else "2.2.0"
+                if is_indicator_v22_variant
+                else "2.1.0"
+            )
+            expected_graph_suffix = (
+                "v3" if is_sharadar_variant else
+                "v" + basis_pair[1][:-2].replace(".", "_") if is_price_basis_variant else
+                "v2_3" if is_news_v23_variant else
+                "v3"
+                if is_v3_variant
+                else "v2_2"
+                if is_news_v22_variant
+                else "v2_7"
+                if is_indicator_v27_variant
+                else "v2_6"
+                if is_indicator_v26_variant
+                else "v2_5"
+                if is_indicator_v25_variant
+                else "v2_4"
+                if is_indicator_v24_variant
+                else "v2_3"
+                if is_indicator_v23_variant
+                else "v2_2"
+                if is_indicator_v22_variant
+                else "v2_1"
+            )
+
+            variant_pointer = f"{policy_pointer}/variants/{variant_index}"
+            if not isinstance(additional_variant, dict):
+                raise _error(
+                    variant_pointer,
+                    "type",
+                    "Tool version variant must be an object",
+                )
+            version_key = (
+                str(additional_variant.get("id")),
+                str(additional_variant.get("version")),
+            )
+            if version_key in seen_tool_versions:
+                raise _error(
+                    f"{variant_pointer}/version",
+                    "unique",
+                    "Tool version variants must be unique",
+                )
+            seen_tool_versions.add(version_key)
+            if (
+                not is_price_basis_variant and not is_sharadar_variant and policy["tool"]
+                not in {
+                    "econometrics.regression",
+                    "econometrics.rolling_regression",
+                    "econometrics.stationarity",
+                    "market.technical_indicators",
+                    "market.cross_sectional_performance",
+                    "energy.get_electricity_retail_sales",
+                    "energy.get_weekly_fundamentals",
+                    "company.get_fundamentals",
+                    "news.search",
+                }
+                or additional_variant.get("id") != policy["tool"]
+                or additional_variant.get("version") != expected_version
+                or additional_variant.get("operation_version") != expected_version
+                or additional_variant.get("api_version") != "1.0"
+                or additional_variant.get("read_only") is not True
+                or additional_variant.get("operation_graph_id")
+                != f"tool_platform.{policy['tool']}.{expected_graph_suffix}"
+                or additional_variant.get("operation_graph_id")
+                not in VERSIONED_OPERATION_GRAPH_IDS
+                or additional_variant.get("handler")
+                != additional_variant.get("operation_graph_id")
+                or additional_variant.get("input_schema_id")
+                != f"urn:quant-data:tool:{policy['tool']}:input:{expected_version}"
+                or additional_variant.get("output_schema_id")
+                != f"urn:quant-data:tool:{policy['tool']}:output:{expected_version}"
+                or versioned_schema_contracts.get(
+                    additional_variant["input_schema_id"]
+                )
+                != additional_variant.get("input_schema")
+                or versioned_schema_contracts.get(
+                    additional_variant["output_schema_id"]
+                )
+                != additional_variant.get("output_schema")
+            ):
+                raise _error(
+                    variant_pointer,
+                    "variant_contract",
+                    "Versioned tool schema, operation, or access contract is invalid",
+                )
+            _validate_strict_schema(
+                additional_variant["input_schema"],
+                f"{variant_pointer}/input_schema",
+            )
+            _validate_strict_schema(
+                additional_variant["output_schema"],
+                f"{variant_pointer}/output_schema",
+            )
+            additional_datasets = _stable_identifier_array(
+                additional_variant["datasets"],
+                f"{variant_pointer}/datasets",
+            )
+            additional_stores = _stable_identifier_array(
+                additional_variant["stores"],
+                f"{variant_pointer}/stores",
+            )
+            store_backed_successor = policy["tool"] in {
+                "market.get_returns",
+                "market.get_forward_returns",
+                "market.cross_sectional_performance",
+                "energy.get_electricity_retail_sales",
+                "energy.get_weekly_fundamentals",
+                "company.get_fundamentals",
+            }
+            if is_sharadar_variant:
+                from .tool_platform.sharadar_company_contracts import DATASETS
+                if additional_datasets != DATASETS or additional_stores != ("market", "company"):
+                    raise _error(f"{variant_pointer}/datasets", "routing", "Sharadar successor routing is invalid")
+            elif policy["tool"] == "news.search":
+                expected_news_datasets = (
+                    *tuple(variant["datasets"]),
+                    "news.current_multi_source_evidence",
+                    "news.current_multi_source_articles",
+                )
+                if (
+                    additional_datasets != expected_news_datasets
+                    or additional_stores != tuple(variant["stores"])
+                ):
+                    raise _error(
+                        f"{variant_pointer}/datasets",
+                        "routing",
+                        "Current-news successor routing is invalid",
+                    )
+            elif store_backed_successor:
+                if (
+                    additional_datasets != tuple(variant["datasets"])
+                    or additional_stores != tuple(variant["stores"])
+                ):
+                    raise _error(
+                        f"{variant_pointer}/datasets",
+                        "routing",
+                        "Store-backed successors must preserve v2 routing",
+                    )
+            elif additional_datasets or additional_stores:
+                raise _error(
+                    f"{variant_pointer}/datasets",
+                    "routing",
+                    "Additional analytical variants must remain store-free",
+                )
+            for example_index, example in enumerate(
+                additional_variant["examples"]
+            ):
+                try:
+                    validate_schema(
+                        example, additional_variant["input_schema"]
+                    )
+                except ValidationError as exc:
+                    raise _error(
+                        f"{variant_pointer}/examples/{example_index}",
+                        "example",
+                        "Versioned tool example does not satisfy its input schema",
+                    ) from exc
+
 
     collectors = tuple(raw["collectors"])
 
@@ -2646,13 +4043,98 @@ def load_registry(
             {"max_requests", "max_rows", "max_bytes", "max_seconds"},
             f"{pointer}/workload_bounds",
         )
+        stage11_collector = collector_id in _STAGE11_COLLECTOR_IDS
+        fmp_stock_latest_collector = collector_id in {
+            _FMP_STOCK_LATEST_COLLECTOR_ID,
+            _FMP_STOCK_LATEST_CURRENT_COLLECTOR_ID,
+            _CURRENT_MULTI_SOURCE_COLLECTOR_ID,
+        }
+        max_workload_bytes = (
+            268_435_456
+            if collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID
+            else 67_108_864
+            if (
+                fmp_stock_latest_collector
+                or collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            )
+            else 16_777_216
+            if (
+                collector_id
+                in {
+                    "fmp.market.stage10_daily_history",
+                    _IWM_ETF_DAILY_HISTORY_COLLECTOR_ID,
+                    _IWM_ETF_DAILY_HISTORY_BACKFILL_COLLECTOR_ID,
+                }
+                or collector_id
+                == "philadelphia_fed.macro.live_employment_vintages"
+                or stage11_collector
+                or collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID
+                or collector_id == _NYFED_OVERNIGHT_RATES_COLLECTOR_ID
+                or collector_id == _NYFED_REPO_FACILITIES_COLLECTOR_ID
+                or collector_id == _NYFED_SOMA_COLLECTOR_ID
+                or collector_id in _OFFICIAL_CONDITIONS_COLLECTOR_IDS
+                or collector_id == _NYFED_CMDI_COLLECTOR_ID
+                or collector_id in _OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS
+                or collector_id == _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID
+                or collector_id == _BEA_PERSONAL_INCOME_COLLECTOR_ID
+                or collector_id == _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID
+            )
+            else MAX_JSON_BYTES
+        )
+        if collector_id == "fmp.company.statement_history":
+            max_workload_bytes = 8_388_608
+        if collector_id in ("nasdaq.company.sharadar_sf1","sharadar.company.direct_sf1"):
+            max_workload_bytes = 268_435_456
+        if collector_id in ("nasdaq.company.sharadar_definitions","sharadar.company.direct_definitions","fmp.company.short_descriptions"):
+            max_workload_bytes = 33_554_432
+        if collector_id in ("local.market.collection_manifest","local.market.selected_instruments"):
+            max_workload_bytes = 67_108_864
+        if collector_id in _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS:
+            max_workload_bytes = _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS[collector_id][3]
         if any(
             isinstance(workload[name], bool)
             or not isinstance(workload[name], int)
-            or workload[name] < 1
-            or workload[name] > MAX_JSON_BYTES
+            or workload[name] < (0 if collector_id in ("local.market.collection_manifest","local.market.selected_instruments") and name == "max_requests" else 1)
+            or workload[name] > max_workload_bytes
             for name in workload
-        ) or workload["max_rows"] > 10_000:
+        ) or workload["max_rows"] > (
+            _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS[collector_id][2]
+            if collector_id in _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS
+            else
+            900_016
+            if collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID
+            else 500_000
+            if collector_id == "philadelphia_fed.macro.live_employment_vintages"
+            else 1_000
+            if fmp_stock_latest_collector
+            else 40_000
+            if collector_id == "eia.macro.stage11_electricity_retail_history"
+            else 30_000
+            if collector_id
+            in {
+                "fmp.market.stage10_daily_history",
+                _IWM_ETF_DAILY_HISTORY_COLLECTOR_ID,
+                _IWM_ETF_DAILY_HISTORY_BACKFILL_COLLECTOR_ID,
+            }
+            else 20_000
+            if collector_id
+            in {
+                _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID,
+                _NYFED_OVERNIGHT_RATES_COLLECTOR_ID,
+                _NYFED_REPO_FACILITIES_COLLECTOR_ID,
+                _NYFED_SOMA_COLLECTOR_ID,
+                *_OFFICIAL_CONDITIONS_COLLECTOR_IDS,
+                _NYFED_CMDI_COLLECTOR_ID,
+                *_OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS,
+                _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
+                _BEA_PERSONAL_INCOME_COLLECTOR_ID,
+            }
+            else 50_000
+            if collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID
+            else 100_000
+            if collector_id in ("nasdaq.company.sharadar_sf1","sharadar.company.direct_sf1")
+            else 10_000
+        ):
             raise _error(f"{pointer}/workload_bounds", "bounds", "Collector bounds are invalid")
         retry = _nonempty_mapping(collector["retry_policy"], f"{pointer}/retry_policy")
         _require_keys(
@@ -2673,7 +4155,758 @@ def load_registry(
         configuration_env = _string_array(
             collector["configuration_env"], f"{pointer}/configuration_env"
         )
-        if collector_id == _STAGE9_COLLECTOR_ID:
+        if collector_id == _FMP_GDP_CPI_CALENDAR_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "macro.fmp_gdp_cpi_release_calendar"
+                or collector["network"] is not True
+                or inputs
+                or outputs != (_FMP_GDP_CPI_CALENDAR_DATASET_ID,)
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 2_000,
+                    "max_bytes": 1_048_576,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_macro_calendar",
+                    "FMP GDP/CPI calendar collector drifted",
+                )
+        elif collector_id == _FMP_EMPLOYMENT_CALENDAR_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "macro.fmp_employment_release_calendar_refresh"
+                or collector["network"] is not True
+                or inputs
+                or outputs != (_FMP_GDP_CPI_CALENDAR_DATASET_ID,)
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 2_000,
+                    "max_bytes": 1_048_576,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_employment_calendar",
+                    "FMP employment calendar collector drifted",
+                )
+        elif collector_id == _FMP_WHOLESALE_CALENDAR_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.fmp_us_economic_calendar_wholesale"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _FMP_CALENDAR_INCREMENTAL_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                    "predecessor_receipt_id",
+                )
+                or excludes != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy != {
+                    "mode": "append_event_versions_and_replace_latest_cache",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != {
+                    "max_requests": 1,
+                    "max_rows": 2_000,
+                    "max_bytes": 1_048_576,
+                    "max_seconds": 60,
+                }
+                or retry != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_wholesale_calendar",
+                    "FMP wholesale calendar collector drifted",
+                )
+        elif collector_id == _FMP_TREASURY_YIELD_CURVE_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.fmp_treasury_yield_curve_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _FMP_TREASURY_YIELD_CURVE_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_12_tenor_batch",
+                )
+                or excludes != (
+                    "api_key",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                    "unknown_provider_fields",
+                )
+                or mutation_policy != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_treasury_yield_curve",
+                    "FMP Treasury yield-curve collector drifted",
+                )
+        elif collector_id == _NYFED_OVERNIGHT_RATES_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.nyfed_overnight_rates_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _NYFED_OVERNIGHT_RATES_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_headline_rate_batch",
+                )
+                or excludes != (
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                    "unknown_provider_fields",
+                    "unsupported_rate_types",
+                )
+                or mutation_policy != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "nyfed_overnight_rates",
+                    "NY Fed overnight-rate collector drifted",
+                )
+        elif collector_id == _NYFED_REPO_FACILITIES_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "macro.nyfed_repo_facility_usage_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _NYFED_REPO_FACILITIES_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_daily_facility_batch",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "explicit_small_value_exercises",
+                    "http_headers",
+                    "source_row_order",
+                    "unknown_provider_fields",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "nyfed_repo_facilities",
+                    "NY Fed repo-facility collector drifted",
+                )
+        elif collector_id == _NYFED_SOMA_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "macro.nyfed_soma_summary_history"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _NYFED_SOMA_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_summary_components",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_summary_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 20_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "nyfed_soma",
+                    "NY Fed SOMA collector drifted",
+                )
+        elif collector_id in (
+            *_OFFICIAL_CONDITIONS_COLLECTOR_IDS,
+            _NYFED_CMDI_COLLECTOR_ID,
+            *_OFFICIAL_MACRO_EXTENSION_COLLECTOR_IDS,
+            _BLS_PRICE_WAGE_PRODUCTIVITY_COLLECTOR_ID,
+            _BEA_PERSONAL_INCOME_COLLECTOR_ID,
+        ):
+            exact = {
+                "federal_reserve.macro.h41_history": (
+                    "macro.federal_reserve_h41_history",
+                    1,
+                    20_000,
+                    120,
+                ),
+                "chicagofed.macro.nfci_history": (
+                    "macro.chicagofed_nfci_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "bis.macro.credit_conditions_history": (
+                    "macro.bis_credit_conditions_history",
+                    2,
+                    5_000,
+                    120,
+                ),
+                "nyfed.macro.cmdi_history": (
+                    "macro.nyfed_cmdi_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "treasury_fiscal_data.macro.tga_closing_balance_history": (
+                    "macro.treasury_fiscal_tga_history",
+                    1,
+                    10_000,
+                    60,
+                ),
+                "eia.macro.natural_gas_storage_history": (
+                    "macro.eia_natural_gas_storage_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "nber.macro.us_recession_history": (
+                    "macro.nber_us_recession_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "bls.macro.price_wage_productivity_history": (
+                    "macro.bls_price_wage_productivity_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+                "bea.macro.personal_income_history": (
+                    "macro.bea_personal_income_history",
+                    1,
+                    5_000,
+                    60,
+                ),
+            }[collector_id]
+            expected_configuration_env = (
+                ("EIA_API_KEY",)
+                if collector_id == "eia.macro.natural_gas_storage_history"
+                else ("BEA_API_KEY",)
+                if collector_id == _BEA_PERSONAL_INCOME_COLLECTOR_ID
+                else ()
+            )
+            expected_excludes = (
+                ("api_key", "captured_at", "http_headers", "source_row_order")
+                if expected_configuration_env
+                else ("captured_at", "http_headers", "source_row_order")
+            )
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != exact[0]
+                or collector["network"] is not True
+                or inputs
+                or outputs != _OFFICIAL_CONDITIONS_DATASET_IDS
+                or includes != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_observations",
+                )
+                or excludes != expected_excludes
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": exact[1],
+                    "max_rows": exact[2],
+                    "max_bytes": 16_777_216,
+                    "max_seconds": exact[3],
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != expected_configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "official_conditions",
+                    "Official conditions collector drifted",
+                )
+        elif collector_id == "local.market.selected_instruments":
+            from quant_data.company.fmp_statement_registry import identity_declaration
+            if collector != identity_declaration(raw):
+                raise _error(pointer, "selected_instruments", "Selected instrument collector drifted")
+        elif collector_id == "fmp.company.short_descriptions":
+            from quant_data.company.short_description_registry import collector_declaration
+            if collector != collector_declaration(raw):
+                raise _error(pointer, "short_descriptions", "Description collector drifted")
+        elif collector_id == "fmp.company.statement_history":
+            from quant_data.company.fmp_statement_registry import declaration
+            if collector != declaration(raw):
+                raise _error(pointer, "statement_history", "Statement history collector drifted")
+        elif collector_id in ("sharadar.company.direct_sf1","sharadar.company.direct_definitions"):
+            from quant_data.company.sharadar_direct_registry import declarations
+            if collector != next(c for c in declarations(raw) if c["id"]==collector_id):
+                raise _error(pointer,"sharadar_direct","Direct Sharadar collector drifted")
+        elif collector_id == "nasdaq.company.sharadar_definitions":
+            from quant_data.company.sharadar_definition_registry import declaration
+            if collector != declaration(raw):
+                raise _error(pointer,"sharadar_definitions","Sharadar definitions collector drifted")
+        elif collector_id == "nasdaq.company.sharadar_sf1":
+            from quant_data.company.sharadar_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "sharadar", "Sharadar collector drifted")
+        elif collector_id == "local.market.collection_manifest":
+            from quant_data.market.collection_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "collection_manifest", "Collection manifest collector drifted")
+        elif collector_id == "openai.company.transcript_analysis":
+            from quant_data.company.transcript_analysis_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "transcript_analysis", "Transcript analysis collector drifted")
+        elif collector_id == "equibles.company.transcripts":
+            from quant_data.company.equibles_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "equibles", "Equibles collector drifted")
+        elif collector_id == "fmp.company.analyst_history":
+            from quant_data.company.fmp_analyst_registry import COLLECTOR
+            if collector != COLLECTOR:
+                raise _error(pointer, "fmp_analyst", "FMP analyst collector drifted")
+        elif collector_id in {"fmp.company.research_inputs", "fmp.market.research_gap_repair"}:
+            from quant_data.company.fmp_research_registry import COLLECTORS
+            if collector != next(c for c in COLLECTORS if c["id"] == collector_id):
+                raise _error(pointer, "fmp_research", "FMP research collector drifted")
+        elif collector_id in _COMPANY_MARKET_COLLECTOR_SPECS:
+            if collector != _COMPANY_MARKET_COLLECTOR_SPECS[collector_id]:
+                raise _error(pointer, "company_market_data", "Company market-data collector drifted")
+        elif collector_id in _MACRO_DATABASE_EXPANSION_COLLECTOR_IDS:
+            (
+                expected_handler,
+                expected_requests,
+                expected_rows,
+                expected_bytes,
+                expected_seconds,
+            ) = _MACRO_DATABASE_EXPANSION_COLLECTOR_SPECS[collector_id]
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != expected_handler
+                or collector["network"] is not True
+                or inputs
+                or outputs != _MACRO_DATABASE_EXPANSION_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_observations",
+                )
+                or excludes
+                != ("captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_snapshot_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": expected_requests,
+                    "max_rows": expected_rows,
+                    "max_bytes": expected_bytes,
+                    "max_seconds": expected_seconds,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "macro_database_expansion",
+                    "Macro database-expansion collector drifted",
+                )
+        elif collector_id == _FMP_STOCK_LATEST_COLLECTOR_ID:
+            if (
+                collector["handler"] != "news.fmp_stock_latest"
+                or collector["network"] is not True
+                or inputs
+                or outputs
+                != (
+                    "news.fmp.stock_latest_evidence",
+                    "news.fmp.stock_latest_articles",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_partial_page",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_capture_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 1_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_stock_latest",
+                    "FMP stock-latest collector drifted",
+                )
+        elif collector_id == _FMP_STOCK_LATEST_CURRENT_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "news.fmp_stock_latest_current"
+                or collector["network"] is not True
+                or inputs
+                or outputs
+                != (
+                    "news.fmp.stock_latest_current_evidence",
+                    "news.fmp.stock_latest_current_articles",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_partial_page",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_capture_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 1_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "fmp_stock_latest_current",
+                    "FMP current stock-latest collector drifted",
+                )
+        elif collector_id == _CURRENT_MULTI_SOURCE_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "news.current_multi_source"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs
+                != (
+                    "news.current_multi_source_evidence",
+                    "news.current_multi_source_articles",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_partial_feed",
+                )
+                or excludes
+                != (
+                    "fmp_api_key",
+                    "alpaca_api_key",
+                    "alpaca_api_secret",
+                    "captured_at",
+                    "http_headers",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_capture_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 24,
+                    "max_rows": 1_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 60,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != (
+                    "FMP_API_KEY",
+                    "ALPACA_API_KEY",
+                    "ALPACA_API_SECRET",
+                )
+            ):
+                raise _error(
+                    pointer,
+                    "current_multi_source_news",
+                    "Current multi-source news collector drifted",
+                )
+        elif collector_id == _STAGE12B_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "market.stage12b_fmp_daily_incremental_fixture"
+                or collector["network"] is not False
+                or inputs != _STAGE12B_INPUT_DATASET_IDS
+                or outputs != _STAGE12B_OUTPUT_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes != ("captured_at", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 5,
+                    "max_bytes": 65_536,
+                    "max_seconds": 30,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "stage12b_fixture",
+                    "Stage 12B incremental fixture collector drifted",
+                )
+        elif collector_id == _STAGE12C_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "market.stage12c_fmp_daily_incremental_manual"
+                or collector["network"] is not True
+                or inputs != _STAGE12C_INPUT_DATASET_IDS
+                or outputs != _STAGE12C_OUTPUT_DATASET_IDS
+                or includes
+                != (
+                    "scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_batch",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 2,
+                    "max_bytes": 65_536,
+                    "max_seconds": 45,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "stage12c_live",
+                    "Stage 12C manual collector drifted",
+                )
+        elif collector_id == _STAGE9_COLLECTOR_ID:
             if (
                 collector["handler"] != "market.fmp_daily_price"
                 or collector["network"] is not True
@@ -2709,6 +4942,568 @@ def load_registry(
                 or configuration_env != ("FMP_API_KEY",)
             ):
                 raise _error(pointer, "stage9_fmp", "Stage 9 FMP collector drifted")
+        elif collector_id == _IWM_ETF_DAILY_HISTORY_BACKFILL_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"]
+                != "market.fmp_iwm_etf_daily_history_backfill"
+                or collector["network"] is not True
+                or inputs
+                != (
+                    "market.stage10.instruments",
+                    "market.stage10.universes",
+                )
+                or outputs != _IWM_ETF_DAILY_HISTORY_BACKFILL_DATASET_IDS
+                or includes
+                != (
+                    "iwm_scope_manifest_sha256",
+                    "backfill_scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_backfill_sha256",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_missing_price_versions",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 30_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 45,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "iwm_etf_daily_history_backfill",
+                    "IWM ETF daily-history backfill collector drifted",
+                )
+        elif collector_id == _IWM_ETF_DAILY_HISTORY_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "market.fmp_iwm_etf_daily_history"
+                or collector["network"] is not True
+                or inputs != (
+                    "market.stage10.instruments",
+                    "market.stage10.universes",
+                )
+                or outputs != _IWM_ETF_DAILY_HISTORY_DATASET_IDS
+                or includes
+                != (
+                    "scope_manifest_sha256",
+                    "base_scope_manifest_sha256",
+                    "successor_membership_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_history_sha256",
+                )
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_successor_universe_and_price_versions",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 1,
+                    "max_rows": 30_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 45,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "iwm_etf_daily_history",
+                    "IWM ETF daily-history collector drifted",
+                )
+        elif collector_id in _STAGE10_COLLECTOR_IDS:
+            universe_capture = collector_id == "fmp.market.stage10_universe_capture"
+            expected_inputs = (
+                ()
+                if universe_capture
+                else (
+                    "market.stage10.instruments",
+                    "market.stage10.universes",
+                )
+            )
+            expected_outputs = (
+                (
+                    "market.stage10.source_evidence",
+                    "market.stage10.instruments",
+                    "market.stage10.universes",
+                )
+                if universe_capture
+                else (
+                    "market.stage10.source_evidence",
+                    "market.stage10.daily_prices",
+                )
+            )
+            expected_includes = (
+                (
+                    "scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_snapshot",
+                )
+                if universe_capture
+                else (
+                    "scope_manifest_sha256",
+                    "request_scope",
+                    "normalization_version",
+                    "normalized_complete_history",
+                )
+            )
+            expected_workload = (
+                {
+                    "max_requests": 3,
+                    "max_rows": 600,
+                    "max_bytes": 4_194_304,
+                    "max_seconds": 135,
+                }
+                if universe_capture
+                else {
+                    "max_requests": 1,
+                    "max_rows": 30_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 45,
+                }
+            )
+            if (
+                collector["handler"]
+                != (
+                    "market.stage10_fmp_universes"
+                    if universe_capture
+                    else "market.stage10_fmp_daily_history"
+                )
+                or collector["network"] is not True
+                or inputs != expected_inputs
+                or outputs != expected_outputs
+                or includes != expected_includes
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": (
+                        "append_complete_universe_snapshots"
+                        if universe_capture
+                        else "append_versions_and_move_current_projection"
+                    ),
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != expected_workload
+                or retry
+                != {
+                    "transient_classes": ["http_429", "http_500", "transport"],
+                    "max_attempts": 1,
+                    "backoff": "none_operator_resume",
+                    "honor_retry_after": False,
+                }
+                or configuration_env != ("FMP_API_KEY",)
+            ):
+                raise _error(
+                    pointer,
+                    "stage10_fmp",
+                    "Stage 10 FMP collector drifted",
+                )
+        elif collector_id in _STAGE11_COLLECTOR_IDS:
+            expected = {
+                "bea.macro.stage11_nipa_history": {
+                    "handler": "macro.stage11_bea_nipa_history",
+                    "outputs": (
+                        "macro.bea.nipa_history_evidence",
+                        "macro.bea.nipa_history",
+                    ),
+                    "configuration_env": ("BEA_API_KEY",),
+                    "workload": {
+                        "max_requests": 2,
+                        "max_rows": 2_000,
+                        "max_bytes": 8_388_608,
+                        "max_seconds": 90,
+                    },
+                },
+                "eia.macro.stage11_electricity_retail_history": {
+                    "handler": "macro.stage11_eia_retail_history",
+                    "outputs": (
+                        "macro.eia.electricity_retail_history_evidence",
+                        "macro.eia.electricity_retail_history",
+                    ),
+                    "configuration_env": ("EIA_API_KEY",),
+                    "workload": {
+                        "max_requests": 8,
+                        "max_rows": 40_000,
+                        "max_bytes": 16_777_216,
+                        "max_seconds": 360,
+                    },
+                },
+                "eia.macro.stage11_petroleum_weekly_stock_history": {
+                    "handler": "macro.stage11_eia_weekly_history",
+                    "outputs": (
+                        "macro.eia.petroleum_weekly_stock_history_evidence",
+                        "macro.eia.petroleum_weekly_stock_history",
+                    ),
+                    "configuration_env": ("EIA_API_KEY",),
+                    "workload": {
+                        "max_requests": 1,
+                        "max_rows": 5_000,
+                        "max_bytes": 16_777_216,
+                        "max_seconds": 45,
+                    },
+                },
+            }[collector_id]
+            if (
+                collector["handler"] != expected["handler"]
+                or collector["network"] is not True
+                or inputs
+                or outputs != expected["outputs"]
+                or includes
+                != ("request_scope", "normalization_version", "normalized_complete_history")
+                or excludes
+                != ("api_key", "captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_versions_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != expected["workload"]
+                or retry != _STAGE11_CANONICAL_RETRY_POLICY
+                or configuration_env != expected["configuration_env"]
+            ):
+                raise _error(pointer, "stage11_macro", "Stage 11 macro collector drifted")
+        elif collector_id in (
+            _MACRO_VINTAGE_COLLECTOR_IDS
+            | _EMPLOYMENT_VINTAGE_COLLECTOR_IDS
+            | _MACRO_HISTORY_COLLECTOR_IDS
+        ):
+            expected = {
+                "bea.macro.live_gdp_vintages": {
+                    "handler": "macro.live_gdp_vintages",
+                    "workload": {
+                        "max_requests": 1,
+                        "max_rows": 5_000,
+                        "max_bytes": 1_048_576,
+                        "max_seconds": 60,
+                    },
+                },
+                "bls.macro.live_cpi_vintages": {
+                    "handler": "macro.live_cpi_vintages",
+                    "workload": {
+                        "max_requests": 15,
+                        "max_rows": 10_000,
+                        "max_bytes": 8_388_608,
+                        "max_seconds": 300,
+                    },
+                },
+                "philadelphia_fed.macro.live_employment_vintages": {
+                    "handler": "macro.live_employment_vintages",
+                    "workload": {
+                        "max_requests": 2,
+                        "max_rows": 500_000,
+                        "max_bytes": 16_777_216,
+                        "max_seconds": 600,
+                    },
+                },
+                "bls.macro.live_employment_current": {
+                    "handler": "macro.live_employment_current",
+                    "workload": {
+                        "max_requests": 1,
+                        "max_rows": 300,
+                        "max_bytes": 2_097_152,
+                        "max_seconds": 60,
+                    },
+                },
+                "bls.macro.cpi_current_history": {
+                    "handler": "macro.cpi_current_history",
+                    "workload": {
+                        "max_requests": 7,
+                        "max_rows": 1_344,
+                        "max_bytes": 2_097_152,
+                        "max_seconds": 300,
+                    },
+                },
+                "philadelphia_fed.macro.gdp_cpi_vintage_history": {
+                    "handler": "macro.gdp_cpi_vintage_history",
+                    "workload": {
+                        "max_requests": 4,
+                        "max_rows": 10_000,
+                        "max_bytes": 8_388_608,
+                        "max_seconds": 300,
+                    },
+                },
+            }[collector_id]
+            if (
+                collector["handler"] != expected["handler"]
+                or collector["network"] is not True
+                or inputs
+                or outputs
+                != (
+                    "macro.official_vintages_evidence",
+                    "macro.official_vintages",
+                )
+                or includes
+                != (
+                    "request_scope",
+                    "source_vintage",
+                    "normalization_version",
+                    "normalized_vintage_batch",
+                )
+                or excludes != ("captured_at", "http_headers", "source_row_order")
+                or mutation_policy
+                != {
+                    "mode": "append_vintages_and_move_current_projection",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload != expected["workload"]
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+            ):
+                raise _error(
+                    pointer,
+                    "macro_vintages",
+                    "Live GDP/CPI vintage collector drifted",
+                )
+        elif collector_id == _ALPACA_SPY_OPTION_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "market.alpaca_spy_option_surface"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs
+                != _ALPACA_SPY_OPTION_DATASET_IDS
+                + (_OPTION_RAW_EVIDENCE_DATASET_ID,)
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "resolved_feed",
+                    "environment",
+                    "normalized_contracts",
+                    "normalized_surface",
+                    "synchronized_inputs",
+                    "raw_response_content_sha256",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "api_secret",
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_capture_cohort_and_bridge_instrument",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 4,
+                    "max_rows": 10_000,
+                    "max_bytes": 8_388_608,
+                    "max_seconds": 120,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("ALPACA_API_KEY", "ALPACA_API_SECRET")
+            ):
+                raise _error(
+                    pointer,
+                    "alpaca_spy_options",
+                    "Alpaca SPY option-surface collector drifted",
+                )
+        elif collector_id == _ALPACA_ETF_OPTION_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "market.alpaca_etf_option_surface_grid"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs
+                != _ALPACA_ETF_OPTION_DATASET_IDS
+                + (_OPTION_RAW_EVIDENCE_DATASET_ID,)
+                or includes
+                != (
+                    "request_scope",
+                    "normalization_version",
+                    "resolved_feed",
+                    "environment",
+                    "normalized_contracts",
+                    "normalized_surface",
+                    "synchronized_inputs",
+                    "raw_response_content_sha256",
+                )
+                or excludes
+                != (
+                    "api_key",
+                    "api_secret",
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_capture_cohort_and_bridge_instrument",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 362,
+                    "max_rows": 900_016,
+                    "max_bytes": 268_435_456,
+                    "max_seconds": 900,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("ALPACA_API_KEY", "ALPACA_API_SECRET")
+            ):
+                raise _error(
+                    pointer,
+                    "alpaca_etf_options",
+                    "Alpaca ETF option-surface grid collector drifted",
+                )
+        elif collector_id == _SEC_AAPL_COMPANYFACTS_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "company.sec_aapl_fundamentals"
+                or collector["network"] is not True
+                or inputs
+                or outputs != _SEC_AAPL_COMPANYFACTS_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "cik_scope",
+                    "normalization_version",
+                    "submissions",
+                    "companyfacts",
+                    "metric_mappings",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                    "user_agent_email",
+                    "user_agent_name",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_sec_versions_and_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 2,
+                    "max_rows": 10_000,
+                    "max_bytes": 16_777_216,
+                    "max_seconds": 120,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("SEC_USER_AGENT_NAME", "SEC_USER_AGENT_EMAIL")
+            ):
+                raise _error(
+                    pointer,
+                    "sec_aapl_companyfacts",
+                    "SEC AAPL company-fundamentals collector drifted",
+                )
+        elif collector_id == _SEC_MARKET_COMPANYFACTS_COLLECTOR_ID:
+            if (
+                collector["version"] != "1.0.0"
+                or collector["handler"] != "company.sec_market_fundamentals"
+                or collector["network"] is not True
+                or inputs != ("market.stage10.instruments",)
+                or outputs != _SEC_MARKET_COMPANYFACTS_DATASET_IDS
+                or includes
+                != (
+                    "request_scope",
+                    "cik_scope",
+                    "normalization_version",
+                    "submissions",
+                    "companyfacts",
+                    "metric_mappings",
+                )
+                or excludes
+                != (
+                    "captured_at",
+                    "http_headers",
+                    "raw_response_order",
+                    "source_row_order",
+                    "user_agent_email",
+                    "user_agent_name",
+                )
+                or mutation_policy
+                != {
+                    "mode": "append_sec_versions_and_membership",
+                    "unchanged": "zero_persistent_writes",
+                }
+                or workload
+                != {
+                    "max_requests": 2,
+                    "max_rows": 50_000,
+                    "max_bytes": 67_108_864,
+                    "max_seconds": 120,
+                }
+                or retry
+                != {
+                    "transient_classes": [],
+                    "max_attempts": 1,
+                    "backoff": "none_single_attempt",
+                    "honor_retry_after": False,
+                }
+                or configuration_env
+                != ("SEC_USER_AGENT_NAME", "SEC_USER_AGENT_EMAIL")
+            ):
+                raise _error(
+                    pointer,
+                    "sec_market_companyfacts",
+                    "SEC market-universe company-fundamentals collector drifted",
+                )
         elif collector["network"] is not False or any(
             not name.startswith("QUANT_") for name in configuration_env
         ):
@@ -2888,8 +5683,18 @@ def load_registry(
         for dataset_id in dataset_ids
     }
 
+    all_tool_contracts = [
+        *tools,
+        *[
+            variant
+            for policy in tool_version_policies
+            for variant in policy["variants"]
+        ],
+    ]
     tool_dataset_refs = {
-        dataset_id: {tool["id"] for tool in tools if dataset_id in tool["datasets"]}
+        dataset_id: {
+            tool["id"] for tool in all_tool_contracts if dataset_id in tool["datasets"]
+        }
         for dataset_id in dataset_ids
     }
     collector_dataset_refs = {
@@ -2930,8 +5735,8 @@ def load_registry(
     )
     if presentation["stores"] != [role.value for role in STORE_ROLES] or tuple(
         presentation_tools
-    ) != PUBLIC_TOOL_NAMES:
-        raise RegistryError("Presentation order must match the reviewed Stage 5 inventory")
+    ) != CURRENT_PUBLIC_TOOL_NAMES:
+        raise RegistryError("Presentation order must match the reviewed active inventory")
 
     return Registry(
         schema_id=raw["schema_id"],
@@ -2947,590 +5752,143 @@ def load_registry(
         jobs=jobs,
         exports=exports,
         tools=tuple(tools),
+        tool_version_policies=tool_version_policies,
         dashboard=dashboard,
         raw=raw,
         source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
     )
 
 
-
-def _stage1_dashboard_projection(
-    datasets: tuple[DatasetDeclaration, ...],
-    raw: dict[str, Any],
-) -> tuple[
-    tuple[DatasetDeclaration, ...],
-    tuple[Mapping[str, Any], ...],
-    dict[str, Any],
-]:
-    """Restore the exact historical Stage 1 dashboard declaration."""
-
-    projected_datasets = tuple(
-        replace(
-            item,
-            dashboard_ids=tuple(
-                dashboard_id
-                for dashboard_id in item.dashboard_ids
-                if dashboard_id == _STAGE1_DASHBOARD_ID
-            ),
-        )
-        for item in datasets
+# Preserve existing imports without loading historical projection code on startup.
+_COMPATIBILITY_EXPORTS = frozenset(
+    (
+        '_stage1_dashboard_projection',
+        '_legacy_tool_projection',
+        '_export_free_dataset_projection',
+        '_tool_policy_variant_inventory',
+        '_REGISTRY_259_ADDITIVE_VARIANTS',
+        '_pre_website_policies',
+        '_pre_registry_267_policies',
+        '_pre_registry_266_policies',
+        '_WEBSITE_SOURCE_REGISTRY_SHA256',
+        '_ETF_SNAPSHOT_V2_PREDECESSOR_SHA256',
+        '_ETF_SNAPSHOT_V2_PREDECESSOR_CATALOG_SHA256',
+        'transcript_research_registry_profile',
+        'forward_pe_analysis_registry_profile',
+        'forward_pe_tools_registry_profile',
+        'sharadar_company_tools_registry_profile',
+        'transcript_tools_registry_profile',
+        'price_basis_registry_profile',
+        'etf_snapshot_v2_registry_profile',
+        'structured_transcript_registry_profile',
+        'sharadar_direct_registry_profile',
+        'fmp_research_lookup_registry_profile',
+        'sec_completion_registry_profile',
+        'sharadar_definitions_registry_profile',
+        'statement_history_registry_profile',
+        'sharadar_registry_profile',
+        'collection_universe_registry_profile',
+        'transcript_analysis_registry_profile',
+        'equibles_transcript_registry_profile',
+        'analyst_history_registry_profile',
+        'website_source_registry_profile',
+        '_FMP_RESEARCH_REGISTRY_SOURCE_SHA256',
+        'fmp_research_registry_profile',
+        'etf_snapshot_registry_profile',
+        'company_market_data_registry_profile',
+        'macro_database_expansion_registry_profile',
+        'data_status_options_registry_profile',
+        '_pre_registry_264_policies',
+        'news_research_registry_profile',
+        '_pre_registry_262_policies',
+        '_pre_registry_261_policies',
+        '_pre_registry_260_policies',
+        '_pre_registry_259_policies',
+        '_pre_technical_indicators_v23_policies',
+        '_pre_investment_analysis_policies',
+        'option_raw_evidence_registry_profile',
+        'multi_source_current_news_registry_profile',
+        'current_news_registry_profile',
+        'technical_indicators_v27_registry_profile',
+        'technical_indicators_v26_registry_profile',
+        'technical_indicators_v25_registry_profile',
+        'registry_259_additive_successors_profile',
+        'technical_indicators_v23_registry_profile',
+        'investment_analysis_v2_registry_profile',
+        'technical_indicators_v22_registry_profile',
+        'technical_indicators_v21_registry_profile',
+        'placeholder_successor_registry_profile',
+        'company_filing_pagination_registry_profile',
+        'stage10_research_analytics_registry_profile',
+        'fmp_iwm_etf_daily_history_backfill_registry_profile',
+        'fmp_iwm_etf_daily_history_registry_profile',
+        'alpaca_etf_options_registry_profile',
+        'technical_indicators_v2_registry_profile',
+        'analytics_foundation_registry_profile',
+        'canonical_access_registry_profile',
+        'sec_market_companyfacts_registry_profile',
+        'sec_aapl_companyfacts_registry_profile',
+        'alpaca_spy_options_registry_profile',
+        'market_available_ticker_v1_registry_profile',
+        'market_price_series_v1_registry_profile',
+        'fmp_calendar_incremental_registry_profile',
+        'econometrics_model_suite_v3_registry_profile',
+        'structural_breaks_v2_registry_profile',
+        'stationarity_v21_registry_profile',
+        'robust_econometrics_v21_registry_profile',
+        'bea_personal_income_registry_profile',
+        'econometrics_v2_registry_profile',
+        'timeseries_analysis_v2_registry_profile',
+        'market_return_v2_registry_profile',
+        'gdi_vintage_registry_profile',
+        'bls_price_wage_productivity_registry_profile',
+        'official_macro_extension_registry_profile',
+        'nyfed_cmdi_registry_profile',
+        'official_conditions_registry_profile',
+        'nyfed_soma_summary_registry_profile',
+        'nyfed_repo_facilities_registry_profile',
+        'nyfed_overnight_rates_registry_profile',
+        'fmp_treasury_yield_curve_registry_profile',
+        'fmp_wholesale_calendar_registry_profile',
+        'fmp_employment_release_calendar_registry_profile',
+        'fmp_gdp_cpi_release_calendar_registry_profile',
+        'macro_history_extension_registry_profile',
+        'employment_vintage_registry_profile',
+        'macro_vintage_registry_profile',
+        'stage12d_registry_profile',
+        'stage12c_registry_profile',
+        'stage12b_registry_profile',
+        'stage12_registry_profile',
+        'stage11_registry_profile',
+        'stage10_registry_profile',
+        '_stage10_input',
+        'stage9_registry_profile',
+        '_stage9_input',
+        'stage8_registry_profile',
+        '_stage8_input',
+        'stage2_registry_profile',
+        'stage3_registry_profile',
+        'stage4_registry_profile',
+        'stage5_registry_profile',
+        'stage6_registry_profile',
+        'stage7_registry_profile',
     )
-    raw["datasets"] = [
-        {
-            **item,
-            "dashboard_ids": [
-                dashboard_id
-                for dashboard_id in item["dashboard_ids"]
-                if dashboard_id == _STAGE1_DASHBOARD_ID
-            ],
-        }
-        for item in raw["datasets"]
-    ]
-    source = next(
-        item for item in raw["dashboard"] if item["id"] == _STAGE1_DASHBOARD_ID
-    )
-    legacy = {
-        key: copy.deepcopy(source[key])
-        for key in ("id", "route", "visibility", "datasets", "tools", "relations")
-    }
-    legacy["api_routes"] = [
-        "/api/health",
-        "/api/price-series",
-        "/api/agent-tools",
-        "/api/agent-tools/call",
-    ]
-    raw["dashboard"] = [legacy]
-    return projected_datasets, (legacy,), raw
+)
+
+# Preserve the former star-import surface, including historical public profiles.
+__all__ = sorted(
+    {name for name in globals() if not name.startswith("_")}
+    | {name for name in _COMPATIBILITY_EXPORTS if not name.startswith("_")}
+)
 
 
-def _legacy_tool_projection(
-    registry: Registry,
-    datasets: tuple[DatasetDeclaration, ...],
-    raw: dict[str, Any],
-) -> tuple[
-    tuple[DatasetDeclaration, ...],
-    tuple[Mapping[str, Any], ...],
-    tuple[Mapping[str, Any], ...],
-    dict[str, Any],
-]:
-    """Restore the exact two-tool Stage 1 surface inside historical profiles."""
+def __getattr__(name: str) -> Any:
+    if name in _COMPATIBILITY_EXPORTS:
+        from . import registry_compat
 
-    allowed = set(STAGE1_TOOL_NAMES)
-    projected_datasets = tuple(
-        replace(
-            item,
-            tool_ids=tuple(tool_id for tool_id in item.tool_ids if tool_id in allowed),
-        )
-        for item in datasets
-    )
-    tools = tuple(
-        legacy_tool_entry(registry.tool(name)) for name in STAGE1_TOOL_NAMES
-    )
-    raw["schema_version"] = "1.0.0"
-    raw.pop("tool_schema_catalog", None)
-    raw["tools"] = [copy.deepcopy(dict(item)) for item in tools]
-    raw["datasets"] = [
-        {
-            **item,
-            "tool_ids": [
-                tool_id for tool_id in item["tool_ids"] if tool_id in allowed
-            ],
-        }
-        for item in raw["datasets"]
-    ]
-    projected_datasets, dashboard, raw = _stage1_dashboard_projection(
-        projected_datasets, raw
-    )
-    raw["presentation_order"]["tools"] = list(STAGE1_TOOL_NAMES)
-    return projected_datasets, tools, dashboard, raw
+        return getattr(registry_compat, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-
-def _export_free_dataset_projection(
-    datasets: tuple[DatasetDeclaration, ...],
-    raw: dict[str, Any],
-) -> tuple[tuple[DatasetDeclaration, ...], dict[str, Any]]:
-    """Remove later Stage 8 consumers from immutable historical projections."""
-
-    projected = tuple(replace(item, export_ids=()) for item in datasets)
-    raw["exports"] = []
-    raw["datasets"] = [
-        {**item, "export_ids": []} for item in raw["datasets"]
-    ]
-    return projected, raw
-
-
-def stage8_registry_profile(registry: Registry) -> Registry:
-    """Project the canonical Stage 9 registry back to Stage 8 exactly."""
-
-    if (
-        registry.schema_version != "1.5.0"
-        or registry.registry_version != "2.7.0"
-        or len(registry.migrations) != 31
-        or len(registry.datasets) != 36
-        or len(registry.collectors) != 20
-        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
-        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
-        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
-        or _STAGE9_MIGRATION_ID not in {item.id for item in registry.migrations}
-        or not _STAGE9_DATASET_IDS.issubset(
-            {item.id for item in registry.datasets}
-        )
-        or _STAGE9_COLLECTOR_ID
-        not in {str(item["id"]) for item in registry.collectors}
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 8 profile")
-
-    migrations = tuple(
-        item for item in registry.migrations if item.id != _STAGE9_MIGRATION_ID
-    )
-    datasets = tuple(
-        item for item in registry.datasets if item.id not in _STAGE9_DATASET_IDS
-    )
-    collectors = tuple(
-        item
-        for item in registry.collectors
-        if str(item["id"]) != _STAGE9_COLLECTOR_ID
-    )
-    stores = tuple(
-        replace(
-            store,
-            migration_order=tuple(
-                migration_id
-                for migration_id in store.migration_order
-                if migration_id != _STAGE9_MIGRATION_ID
-            ),
-        )
-        for store in registry.stores
-    )
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["schema_version"] = "1.4.0"
-    raw["registry_version"] = "2.6.0"
-    raw["migrations"] = [
-        item for item in raw["migrations"] if item["id"] != _STAGE9_MIGRATION_ID
-    ]
-    raw["datasets"] = [
-        item for item in raw["datasets"] if item["id"] not in _STAGE9_DATASET_IDS
-    ]
-    raw["collectors"] = [
-        item for item in raw["collectors"] if item["id"] != _STAGE9_COLLECTOR_ID
-    ]
-    for store in raw["stores"]:
-        store["migration_order"] = [
-            migration_id
-            for migration_id in store["migration_order"]
-            if migration_id != _STAGE9_MIGRATION_ID
-        ]
-    return replace(
-        registry,
-        schema_version="1.4.0",
-        registry_version="2.6.0",
-        stores=stores,
-        migrations=migrations,
-        datasets=datasets,
-        collectors=collectors,
-        raw=raw,
-        source_sha256=_STAGE8_REGISTRY_SOURCE_SHA256,
-    )
-
-
-def _stage8_input(registry: Registry) -> Registry:
-    if registry.schema_version == "1.5.0" and registry.registry_version == "2.7.0":
-        return stage8_registry_profile(registry)
-    return registry
-
-
-def stage2_registry_profile(registry: Registry) -> Registry:
-    """Project the validated additive registry back to the Stage 2 contract.
-
-    Stage 1 and Stage 2 evidence is immutable historical evidence.  Later
-    additive registry revisions may append migrations, datasets, and offline
-    collectors, but must not silently rewrite those earlier acceptance
-    receipts.  This allow-listed projection is derived only from an already
-    validated canonical registry and retains the original resource bytes.
-    """
-
-    registry = _stage8_input(registry)
-    migration_ids = {item.id for item in registry.migrations}
-    dataset_ids = {item.id for item in registry.datasets}
-    collector_ids = {str(item["id"]) for item in registry.collectors}
-    if (
-        not _STAGE2_MIGRATION_IDS.issubset(migration_ids)
-        or not _STAGE2_DATASET_IDS.issubset(dataset_ids)
-        or not _STAGE2_COLLECTOR_IDS.issubset(collector_ids)
-        or registry.registry_version.split(".", 1)[0] != "2"
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 2 profile")
-
-    migrations = tuple(
-        item for item in registry.migrations if item.id in _STAGE2_MIGRATION_IDS
-    )
-    collectors = tuple(
-        item
-        for item in registry.collectors
-        if str(item["id"]) in _STAGE2_COLLECTOR_IDS
-    )
-    datasets = tuple(
-        replace(
-            item,
-            collector_ids=tuple(
-                collector_id
-                for collector_id in item.collector_ids
-                if collector_id in _STAGE2_COLLECTOR_IDS
-            ),
-        )
-        for item in registry.datasets
-        if item.id in _STAGE2_DATASET_IDS
-    )
-    stores = tuple(
-        replace(
-            store,
-            migration_order=tuple(
-                migration_id
-                for migration_id in store.migration_order
-                if migration_id in _STAGE2_MIGRATION_IDS
-            ),
-        )
-        for store in registry.stores
-    )
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["registry_version"] = "2.0.0"
-    raw["jobs"] = []
-    raw["migrations"] = [
-        item
-        for item in raw["migrations"]
-        if item["id"] in _STAGE2_MIGRATION_IDS
-    ]
-    raw["datasets"] = [
-        {
-            **item,
-            "collector_ids": [
-                collector_id
-                for collector_id in item["collector_ids"]
-                if collector_id in _STAGE2_COLLECTOR_IDS
-            ],
-        }
-        for item in raw["datasets"]
-        if item["id"] in _STAGE2_DATASET_IDS
-    ]
-    raw["collectors"] = [
-        item
-        for item in raw["collectors"]
-        if item["id"] in _STAGE2_COLLECTOR_IDS
-    ]
-    for store in raw["stores"]:
-        store["migration_order"] = [
-            migration_id
-            for migration_id in store["migration_order"]
-            if migration_id in _STAGE2_MIGRATION_IDS
-        ]
-
-    datasets, raw = _export_free_dataset_projection(datasets, raw)
-    datasets, tools, dashboard, raw = _legacy_tool_projection(
-        registry, datasets, raw
-    )
-    return replace(
-        registry,
-        schema_version="1.0.0",
-        registry_version="2.0.0",
-        stores=stores,
-        migrations=migrations,
-        datasets=datasets,
-        collectors=collectors,
-        jobs=(),
-        exports=(),
-        tools=tools,
-        dashboard=dashboard,
-        raw=raw,
-    )
-
-
-def stage3_registry_profile(registry: Registry) -> Registry:
-    """Project an additive canonical registry back to the Stage 3 contract."""
-
-    registry = _stage8_input(registry)
-    migration_ids = {item.id for item in registry.migrations}
-    dataset_ids = {item.id for item in registry.datasets}
-    collector_ids = {str(item["id"]) for item in registry.collectors}
-    if (
-        not _STAGE3_MIGRATION_IDS.issubset(migration_ids)
-        or not _STAGE3_DATASET_IDS.issubset(dataset_ids)
-        or not _STAGE3_COLLECTOR_IDS.issubset(collector_ids)
-        or registry.registry_version.split(".", 1)[0] != "2"
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 3 profile")
-
-    migrations = tuple(
-        item for item in registry.migrations if item.id in _STAGE3_MIGRATION_IDS
-    )
-    collectors = tuple(
-        item
-        for item in registry.collectors
-        if str(item["id"]) in _STAGE3_COLLECTOR_IDS
-    )
-    datasets = tuple(
-        replace(
-            item,
-            collector_ids=tuple(
-                collector_id
-                for collector_id in item.collector_ids
-                if collector_id in _STAGE3_COLLECTOR_IDS
-            ),
-        )
-        for item in registry.datasets
-        if item.id in _STAGE3_DATASET_IDS
-    )
-    stores = tuple(
-        replace(
-            store,
-            migration_order=tuple(
-                migration_id
-                for migration_id in store.migration_order
-                if migration_id in _STAGE3_MIGRATION_IDS
-            ),
-        )
-        for store in registry.stores
-    )
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["registry_version"] = "2.1.0"
-    raw["jobs"] = []
-    raw["migrations"] = [
-        item for item in raw["migrations"] if item["id"] in _STAGE3_MIGRATION_IDS
-    ]
-    raw["datasets"] = [
-        {
-            **item,
-            "collector_ids": [
-                collector_id
-                for collector_id in item["collector_ids"]
-                if collector_id in _STAGE3_COLLECTOR_IDS
-            ],
-        }
-        for item in raw["datasets"]
-        if item["id"] in _STAGE3_DATASET_IDS
-    ]
-    raw["collectors"] = [
-        item for item in raw["collectors"] if item["id"] in _STAGE3_COLLECTOR_IDS
-    ]
-    for store in raw["stores"]:
-        store["migration_order"] = [
-            migration_id
-            for migration_id in store["migration_order"]
-            if migration_id in _STAGE3_MIGRATION_IDS
-        ]
-
-    datasets, raw = _export_free_dataset_projection(datasets, raw)
-    datasets, tools, dashboard, raw = _legacy_tool_projection(
-        registry, datasets, raw
-    )
-    return replace(
-        registry,
-        schema_version="1.0.0",
-        registry_version="2.1.0",
-        stores=stores,
-        migrations=migrations,
-        datasets=datasets,
-        collectors=collectors,
-        jobs=(),
-        exports=(),
-        tools=tools,
-        dashboard=dashboard,
-        raw=raw,
-    )
-
-
-def stage4_registry_profile(registry: Registry) -> Registry:
-    """Project an additive canonical registry back to the Stage 4 contract."""
-
-    registry = _stage8_input(registry)
-    migration_ids = {item.id for item in registry.migrations}
-    dataset_ids = {item.id for item in registry.datasets}
-    collector_ids = {str(item["id"]) for item in registry.collectors}
-    if (
-        not _STAGE4_MIGRATION_IDS.issubset(migration_ids)
-        or not _STAGE4_DATASET_IDS.issubset(dataset_ids)
-        or not _STAGE4_COLLECTOR_IDS.issubset(collector_ids)
-        or registry.registry_version.split(".", 1)[0] != "2"
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 4 profile")
-
-    migrations = tuple(
-        item for item in registry.migrations if item.id in _STAGE4_MIGRATION_IDS
-    )
-    collectors = tuple(
-        item
-        for item in registry.collectors
-        if str(item["id"]) in _STAGE4_COLLECTOR_IDS
-    )
-    datasets = tuple(
-        replace(
-            item,
-            collector_ids=tuple(
-                collector_id
-                for collector_id in item.collector_ids
-                if collector_id in _STAGE4_COLLECTOR_IDS
-            ),
-        )
-        for item in registry.datasets
-        if item.id in _STAGE4_DATASET_IDS
-    )
-    stores = tuple(
-        replace(
-            store,
-            migration_order=tuple(
-                migration_id
-                for migration_id in store.migration_order
-                if migration_id in _STAGE4_MIGRATION_IDS
-            ),
-        )
-        for store in registry.stores
-    )
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["registry_version"] = "2.2.0"
-    raw["jobs"] = []
-    raw["migrations"] = [
-        item for item in raw["migrations"] if item["id"] in _STAGE4_MIGRATION_IDS
-    ]
-    raw["datasets"] = [
-        {
-            **item,
-            "collector_ids": [
-                collector_id
-                for collector_id in item["collector_ids"]
-                if collector_id in _STAGE4_COLLECTOR_IDS
-            ],
-        }
-        for item in raw["datasets"]
-        if item["id"] in _STAGE4_DATASET_IDS
-    ]
-    raw["collectors"] = [
-        item for item in raw["collectors"] if item["id"] in _STAGE4_COLLECTOR_IDS
-    ]
-    for store in raw["stores"]:
-        store["migration_order"] = [
-            migration_id
-            for migration_id in store["migration_order"]
-            if migration_id in _STAGE4_MIGRATION_IDS
-        ]
-
-    datasets, raw = _export_free_dataset_projection(datasets, raw)
-    datasets, tools, dashboard, raw = _legacy_tool_projection(
-        registry, datasets, raw
-    )
-    return replace(
-        registry,
-        schema_version="1.0.0",
-        registry_version="2.2.0",
-        stores=stores,
-        migrations=migrations,
-        datasets=datasets,
-        collectors=collectors,
-        jobs=(),
-        exports=(),
-        tools=tools,
-        dashboard=dashboard,
-        raw=raw,
-    )
-
-
-def stage5_registry_profile(registry: Registry) -> Registry:
-    """Project the additive canonical registry back to Stage 5 exactly."""
-
-    registry = _stage8_input(registry)
-    if (
-        registry.registry_version.split(".", 1)[0] != "2"
-        or len(registry.migrations) != 30
-        or len(registry.datasets) != 33
-        or len(registry.collectors) != 19
-        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
-        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 5 profile")
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["schema_version"] = "1.1.0"
-    raw["registry_version"] = "2.3.0"
-    raw["jobs"] = []
-    datasets, raw = _export_free_dataset_projection(registry.datasets, raw)
-    datasets, dashboard, raw = _stage1_dashboard_projection(
-        datasets, raw
-    )
-    return replace(
-        registry,
-        schema_version="1.1.0",
-        registry_version="2.3.0",
-        datasets=datasets,
-        jobs=(),
-        exports=(),
-        dashboard=dashboard,
-        raw=raw,
-        source_sha256=_STAGE5_REGISTRY_SOURCE_SHA256,
-    )
-
-
-def stage6_registry_profile(registry: Registry) -> Registry:
-    """Project the canonical Stage 8 registry back to Stage 6 exactly."""
-
-    registry = _stage8_input(registry)
-    if (
-        registry.schema_version != "1.4.0"
-        or registry.registry_version != "2.6.0"
-        or len(registry.migrations) != 30
-        or len(registry.datasets) != 33
-        or len(registry.collectors) != 19
-        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
-        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
-        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 6 profile")
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["schema_version"] = "1.2.0"
-    raw["registry_version"] = "2.4.0"
-    raw["jobs"] = []
-    datasets, raw = _export_free_dataset_projection(registry.datasets, raw)
-    return replace(
-        registry,
-        schema_version="1.2.0",
-        registry_version="2.4.0",
-        datasets=datasets,
-        jobs=(),
-        exports=(),
-        raw=raw,
-        source_sha256=_STAGE6_REGISTRY_SOURCE_SHA256,
-    )
-
-
-def stage7_registry_profile(registry: Registry) -> Registry:
-    """Project the Stage 8 registry back to the immutable Stage 7 contract."""
-
-    registry = _stage8_input(registry)
-    if (
-        registry.schema_version != "1.4.0"
-        or registry.registry_version != "2.6.0"
-        or len(registry.migrations) != 30
-        or len(registry.datasets) != 33
-        or len(registry.collectors) != 19
-        or tuple(str(item["id"]) for item in registry.tools) != PUBLIC_TOOL_NAMES
-        or tuple(item.id for item in registry.jobs) != _STAGE7_JOB_IDS
-        or tuple(item.id for item in registry.exports) != (_STAGE8_EXPORT_ID,)
-    ):
-        raise RegistryError("Canonical registry cannot reproduce the Stage 7 profile")
-
-    raw = copy.deepcopy(dict(registry.raw))
-    raw["schema_version"] = "1.3.0"
-    raw["registry_version"] = "2.5.0"
-    datasets, raw = _export_free_dataset_projection(registry.datasets, raw)
-    return replace(
-        registry,
-        schema_version="1.3.0",
-        registry_version="2.5.0",
-        datasets=datasets,
-        exports=(),
-        raw=raw,
-        source_sha256=_STAGE7_REGISTRY_SOURCE_SHA256,
-    )
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | _COMPATIBILITY_EXPORTS)

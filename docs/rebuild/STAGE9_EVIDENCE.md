@@ -151,4 +151,5 @@ The bounded response above is recorded only as private non-production evidence.
 | One live FMP receipt with 22-date reconciliation, replay, backup/restore, scratch correction, and candidate receipt | Passed; independently verified with no findings |
 | Operational promotion or old-store retirement | Explicitly excluded from this stage |
 
-Stage 8 browser verification remains pending independently; it is neither replaced nor waived by Stage 9 work.
+The later 2026-08-14 Stage 8 browser-automation waiver is independent of Stage
+9 and does not broaden the Stage 9 scope.

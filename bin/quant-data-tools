@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Local read-only bridge for agents working in sibling projects.
+set -euo pipefail
+
+script_dir="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+project_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
+cd "$project_root"
+export PYTHONDONTWRITEBYTECODE=1
+exec python3 -m quant_data.tool_platform.local_agent_cli "$@"

@@ -13,7 +13,32 @@ from typing import Any, Mapping
 from quant_data.contracts import TruncationV1, WarningV1
 from quant_data.registry import Registry
 
-from .catalog import LEGACY_TOOL_NAMES, PUBLIC_TOOL_NAMES
+from .catalog import (
+    ADDITIVE_DATA_STATUS_TOOLS,
+    ADDITIVE_NEWS_RESEARCH_TOOLS,
+    ADDITIVE_PUBLIC_TOOL_NAMES,
+    ADDITIVE_STAGE10_STATISTICS_TOOLS,
+    CURRENT_PUBLIC_TOOL_NAMES,
+    LEGACY_TOOL_NAMES,
+    PUBLIC_TOOL_NAMES,
+    VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS,
+    VERSIONED_NEWS_TOOLS,
+    VERSIONED_OPTIONS_ACCESS_TOOLS,
+    VERSIONED_CANONICAL_MACRO_TOOLS,
+    VERSIONED_COMPANY_FILING_TOOLS,
+    VERSIONED_COMPANY_SHARE_COUNT_TOOLS,
+    VERSIONED_DATA_QUALITY_TOOLS,
+    VERSIONED_ECONOMETRICS_TOOLS,
+    VERSIONED_ENERGY_TOOLS,
+    VERSIONED_ETF_SNAPSHOT_TOOLS,
+    VERSIONED_COMPANY_FUNDAMENTAL_TOOLS,
+    VERSIONED_MACRO_CONDITION_TOOLS,
+    VERSIONED_RATE_TOOLS,
+    VERSIONED_RESEARCH_ANALYTIC_TOOLS,
+    VERSIONED_RESEARCH_STATE_TOOLS,
+    VERSIONED_TECHNICAL_INDICATOR_TOOLS,
+    VERSIONED_TIMESERIES_ANALYSIS_TOOLS,
+)
 from .context import ToolExecutionContext
 from .results import (
     DiagnosticV1,
@@ -25,9 +50,9 @@ from .results import (
 
 
 _RESEARCH_PREFIXES = ("research.", "data.", "alpha.", "stats.", "forecast.")
-REGISTERED_STAGE5_OPERATIONS = frozenset(PUBLIC_TOOL_NAMES) - frozenset(
-    LEGACY_TOOL_NAMES
-)
+REGISTERED_STAGE5_OPERATIONS = frozenset(
+    CURRENT_PUBLIC_TOOL_NAMES
+) - frozenset(LEGACY_TOOL_NAMES)
 
 
 def _limit(arguments: Mapping[str, Any]) -> int:
@@ -80,16 +105,450 @@ def invoke_operation(
 ) -> QueryResult:
     """Invoke one closed read-only graph and return an immutable typed result."""
 
-    if name not in REGISTERED_STAGE5_OPERATIONS:
+    from .research_extensions_contracts import PEERS, GUIDANCE, KINDS as EKINDS, VERSIONS as EVERSIONS, ResearchExtensionArguments
+    if name == PEERS or (name == GUIDANCE and context.tool_version == "2.0.0"):
+        if (not isinstance(arguments, ResearchExtensionArguments) or arguments.kind != EKINDS[name]
+            or context.tool_version != EVERSIONS[name]
+            or context.operation_graph_id != f"tool_platform.{name}.v{EVERSIONS[name][0]}"):
+            raise LookupError("Selected research extension graph is invalid")
+        if name == PEERS:
+            from .peer_comparison import invoke
+        else:
+            from .guidance_timeline import invoke
+        return invoke(arguments, context, registry)
+    from .retained_research_contracts import TOOLS as RTOOLS, VERSIONS as RVERSIONS
+    if name in RTOOLS and context.tool_version == RVERSIONS[name]:
+        if context.operation_graph_id != f"tool_platform.{name}.v{RVERSIONS[name][0]}":
+            raise LookupError("Selected retained research graph is invalid")
+        from .retained_research_access import invoke
+        return invoke(name, arguments, context, registry)
+    from .monitor_contracts import TOOLS as MONITOR_TOOLS
+    from .classification_contracts import TOOL as CLASSIFICATION_TOOL
+    if name == CLASSIFICATION_TOOL:
+        if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
+            raise LookupError("Selected classification tool graph is invalid")
+        from .classification_access import invoke
+        return invoke(arguments, context, registry)
+    if name in MONITOR_TOOLS:
+        if context.tool_version not in ("1.0.0", "2.0.0") or context.operation_graph_id != f"tool_platform.{name}.v{context.tool_version[0]}":
+            raise LookupError("Selected monitor tool graph is invalid")
+        from .monitor_access import invoke
+        return invoke(name, arguments, context, registry)
+    from .theta_contracts import TOOLS as THETA_TOOLS
+    if name in THETA_TOOLS:
+        if context.tool_version != "1.0.0" or context.operation_graph_id != f"tool_platform.{name}.v1":
+            raise LookupError("Selected Theta tool graph is invalid")
+        from .theta_access import invoke
+        return invoke(name, arguments, context, registry)
+    from .price_basis_versions import PRICE_BASIS_VERSIONS
+    pair = PRICE_BASIS_VERSIONS.get(name)
+    if pair is not None and context.tool_version == pair[1]:
+        from .price_basis_adapter import invoke_price_basis_tool
+        return invoke_price_basis_tool(name, arguments, context, registry)
+
+    from .transcript_research_contracts import NEW_TOOLS
+    if name in NEW_TOOLS or (name == "company.get_transcript" and context.tool_version == "2.0.0"):
+        version = "2.0.0" if name == "company.get_transcript" else "1.0.0"
+        if context.tool_version != version or context.operation_graph_id != f"tool_platform.{name}.v{version[0]}":
+            raise LookupError("Selected transcript research graph is invalid")
+        from .transcript_research_access import invoke
+        return invoke(name, arguments, context)
+
+    versioned_timeseries = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_TIMESERIES_ANALYSIS_TOOLS
+    )
+    versioned_macro = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_CANONICAL_MACRO_TOOLS
+    )
+    versioned_quality = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_DATA_QUALITY_TOOLS
+    )
+    versioned_econometrics = (
+        (
+            context.tool_version == "2.0.0"
+            and name in VERSIONED_ECONOMETRICS_TOOLS
+        )
+        or (
+            context.tool_version == "2.1.0"
+            and name in {
+                "econometrics.regression",
+                "econometrics.rolling_regression",
+                "econometrics.stationarity",
+            }
+        )
+        or (
+            context.tool_version == "3.0.0"
+            and name == "econometrics.regression"
+        )
+    )
+    versioned_technical_indicator = (
+        context.tool_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0", "2.5.0", "2.6.0", "2.7.0"}
+        and name in VERSIONED_TECHNICAL_INDICATOR_TOOLS
+    )
+    versioned_research_analytic = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_RESEARCH_ANALYTIC_TOOLS
+    )
+    versioned_company_filing = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_COMPANY_FILING_TOOLS
+    )
+    versioned_company_share_count = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_COMPANY_SHARE_COUNT_TOOLS
+    )
+    versioned_market_instrument_search = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_MARKET_INSTRUMENT_SEARCH_TOOLS
+    )
+    versioned_news = (
+        context.tool_version in {"2.0.0", "2.1.0", "2.2.0", "2.3.0"}
+        and name in VERSIONED_NEWS_TOOLS
+    )
+    versioned_options_access = (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_OPTIONS_ACCESS_TOOLS
+    )
+    if name not in REGISTERED_STAGE5_OPERATIONS and not (
+        versioned_macro
+        or versioned_quality
+        or versioned_timeseries
+        or versioned_econometrics
+        or versioned_technical_indicator
+        or versioned_research_analytic
+        or versioned_company_filing
+        or versioned_company_share_count
+        or versioned_market_instrument_search
+        or versioned_news
+        or versioned_options_access
+    ):
         raise LookupError("Operation graph is not registered")
     context.checkpoint()
+    requested_rows = 1 if name == "price_realtime" else _limit(arguments)
     context.budget.require(
-        rows=_limit(arguments),
+        rows=requested_rows,
         series=_series_count(arguments),
-        operations=min(_limit(arguments) * max(_series_count(arguments), 1), 5_000_000),
+        operations=min(requested_rows * max(_series_count(arguments), 1), 5_000_000),
     )
+    if versioned_macro:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected canonical macro operation graph is invalid")
+        from .macro_access import invoke_canonical_macro
+
+        return invoke_canonical_macro(name, arguments, context, registry)
+    if versioned_company_filing:
+        expected_graph = "tool_platform.company.search_filings.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected company filing operation graph is invalid")
+        from .domain_operations import invoke_domain_operation
+
+        return invoke_domain_operation(name, arguments, context, registry)
+    if context.tool_version == "3.0.0" and name in ("company.get_fundamentals", "company.get_share_count_history"):
+        if context.operation_graph_id != f"tool_platform.{name}.v3":
+            raise LookupError("Selected Sharadar company operation graph is invalid")
+        from .sharadar_company_access import invoke_sharadar_company
+        return invoke_sharadar_company(name, arguments, context, registry)
+    if versioned_company_share_count:
+        expected_graph = "tool_platform.company.get_share_count_history.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected company share-count operation graph is invalid"
+            )
+        from .company_access import invoke_company_share_count_history
+
+        return invoke_company_share_count_history(
+            name, arguments, context, registry
+        )
+    if versioned_market_instrument_search:
+        expected_graph = "tool_platform.market.search_instruments.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected market instrument-search operation graph is invalid"
+            )
+        from .market_tickers import invoke_stage10_market_instrument_search
+
+        return invoke_stage10_market_instrument_search(
+            name, arguments, context, registry
+        )
+    if versioned_news:
+        expected_graph = {
+            "2.0.0": "tool_platform.news.search.v2",
+            "2.1.0": "tool_platform.news.search.v2_1",
+            "2.2.0": "tool_platform.news.search.v2_2",
+            "2.3.0": "tool_platform.news.search.v2_3",
+        }[context.tool_version]
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected current-news operation graph is invalid")
+        from .news_access import (
+            invoke_news_search_v2,
+            invoke_news_search_v21,
+            invoke_news_search_v22,
+            invoke_news_search_v23,
+        )
+
+        if context.tool_version == "2.3.0":
+            return invoke_news_search_v23(name, arguments, context, registry)
+        if context.tool_version == "2.2.0":
+            return invoke_news_search_v22(
+                name, arguments, context, registry
+            )
+        if context.tool_version == "2.1.0":
+            return invoke_news_search_v21(
+                name, arguments, context, registry
+            )
+        return invoke_news_search_v2(name, arguments, context, registry)
+    if versioned_options_access:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected options-v2 operation graph is invalid")
+        from .options_access import invoke_options_v2
+
+        return invoke_options_v2(name, arguments, context, registry)
+    if name in ADDITIVE_NEWS_RESEARCH_TOOLS:
+        expected_graph = f"tool_platform.{name}.v1"
+        if context.tool_version != "1.0.0" or context.operation_graph_id != expected_graph:
+            raise LookupError("Selected news-research operation graph is invalid")
+        from .news_research import invoke_news_research_tool
+
+        return invoke_news_research_tool(name, arguments, context, registry)
+    if context.tool_version == "2.0.0" and name == "macro.get_release_calendar":
+        expected_graph = "tool_platform.macro.get_release_calendar.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected release-calendar v2 operation graph is invalid"
+            )
+        from .macro_access import invoke_release_calendar_v2
+
+        return invoke_release_calendar_v2(
+            name, arguments, context, registry
+        )
+    if (
+        context.tool_version == "2.0.0"
+        and name == "market.cross_sectional_performance"
+    ):
+        expected_graph = "tool_platform.market.cross_sectional_performance.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected cross-sectional operation graph is invalid"
+            )
+        from .market_cross_sectional import (
+            invoke_stage10_cross_sectional_performance,
+        )
+
+        return invoke_stage10_cross_sectional_performance(
+            name, arguments, context, registry
+        )
+    if (
+        context.tool_version == "2.1.0"
+        and name == "market.cross_sectional_performance"
+    ):
+        expected_graph = "tool_platform.market.cross_sectional_performance.v2_1"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected cross-sectional analytics graph is invalid"
+            )
+        from .market_cross_sectional import (
+            invoke_stage10_cross_sectional_analytics_v21,
+        )
+
+        return invoke_stage10_cross_sectional_analytics_v21(
+            name, arguments, context, registry
+        )
+    if context.tool_version == "2.0.0" and name in (
+        *VERSIONED_MACRO_CONDITION_TOOLS,
+        *VERSIONED_RATE_TOOLS,
+        *VERSIONED_RESEARCH_STATE_TOOLS,
+    ):
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected macro-condition operation graph is invalid")
+        from .macro_conditions import invoke_macro_conditions
+
+        return invoke_macro_conditions(name, arguments, context, registry)
+    if context.tool_version == "2.1.0" and name in VERSIONED_ENERGY_TOOLS:
+        expected_graph = f"tool_platform.{name}.v2_1"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected energy analytics graph is invalid")
+        from .energy_access import invoke_energy_access_v21
+
+        return invoke_energy_access_v21(name, arguments, context, registry)
+    if context.tool_version == "2.0.0" and name in VERSIONED_ENERGY_TOOLS:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected energy operation graph is invalid")
+        from .energy_access import invoke_energy_access
+
+        return invoke_energy_access(name, arguments, context, registry)
+    if (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_COMPANY_FUNDAMENTAL_TOOLS
+    ):
+        expected_graph = "tool_platform.company.get_fundamentals.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected company-fundamentals graph is invalid")
+        from .company_fundamentals import invoke_company_fundamentals
+
+        return invoke_company_fundamentals(name, arguments, context, registry)
+    if (
+        context.tool_version == "2.1.0"
+        and name in VERSIONED_COMPANY_FUNDAMENTAL_TOOLS
+    ):
+        expected_graph = "tool_platform.company.get_fundamentals.v2_1"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected company-ratios graph is invalid")
+        from .company_fundamentals import invoke_company_fundamentals_v21
+
+        return invoke_company_fundamentals_v21(
+            name, arguments, context, registry
+        )
+    if (
+        context.tool_version == "2.0.0"
+        and name in VERSIONED_ETF_SNAPSHOT_TOOLS
+    ):
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected ETF snapshot operation graph is invalid")
+        from .etf_snapshot import invoke_etf_snapshot
+
+        return invoke_etf_snapshot(name, arguments, context, registry)
+    if name in ADDITIVE_PUBLIC_TOOL_NAMES:
+        expected_graph = f"tool_platform.{name}.v1"
+        if (
+            context.tool_version != "1.0.0"
+            or context.operation_graph_id != expected_graph
+        ):
+            raise LookupError("Selected additive operation graph is invalid")
+        from .transcript_contracts import TOOLS
+        if name in TOOLS:
+            from .transcript_access import invoke_transcript
+            return invoke_transcript(name, arguments, context)
+        if name == "company.get_forward_pe_analysis":
+            from .forward_pe_analysis_access import invoke_analysis
+            return invoke_analysis(arguments, context, registry)
+        if name == "company.get_forward_pe":
+            from .forward_pe_access import invoke_forward_pe
+            return invoke_forward_pe(arguments,context,registry)
+        if name == "price_realtime":
+            from .realtime_quote import invoke_quote
+            return invoke_quote(arguments, context)
+        if name == "company.get_research_inputs":
+            from quant_data.company.fmp_research import read_research_inputs
+            return read_research_inputs(context, arguments)
+        if name == "portfolio.get_etf_allocator_snapshot":
+            from .etf_snapshot import invoke_etf_snapshot
+            return invoke_etf_snapshot(name, arguments, context, registry)
+        if name in ADDITIVE_DATA_STATUS_TOOLS:
+            from .data_status_access import invoke_dataset_status
+
+            return invoke_dataset_status(name, arguments, context, registry)
+        if name in ADDITIVE_STAGE10_STATISTICS_TOOLS:
+            from .market_analysis_adapter import (
+                invoke_stage10_analysis_foundation,
+            )
+
+            return invoke_stage10_analysis_foundation(
+                name, arguments, context
+            )
+        if name == "market.get_available_ticker":
+            from .market_tickers import invoke_stage10_available_tickers
+
+            return invoke_stage10_available_tickers(
+                name, arguments, context, registry
+            )
+        if name == "market.get_price_series":
+            from .market_prices import invoke_stage10_market_price
+
+            return invoke_stage10_market_price(
+                name, arguments, context, registry
+            )
+        if name == "market.get_volume_series":
+            from .market_volume import invoke_stage10_market_volume
+
+            return invoke_stage10_market_volume(
+                name, arguments, context, registry
+            )
+        if name == "macro.get_release_calendar":
+            from .macro_access import invoke_release_calendar
+
+            return invoke_release_calendar(name, arguments, context, registry)
+        raise LookupError("Selected additive operation is invalid")
+    if context.tool_version == "2.0.0" and name in {
+        "market.get_returns",
+        "market.get_forward_returns",
+    }:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected market-return operation graph is invalid")
+        from .market_returns import invoke_stage10_market_return
+
+        return invoke_stage10_market_return(name, arguments, context, registry)
+    if versioned_technical_indicator:
+        expected_graph = (
+            {
+                "2.0.0": "tool_platform.market.technical_indicators.v2",
+                "2.1.0": "tool_platform.market.technical_indicators.v2_1",
+                "2.2.0": "tool_platform.market.technical_indicators.v2_2",
+                "2.3.0": "tool_platform.market.technical_indicators.v2_3",
+                "2.4.0": "tool_platform.market.technical_indicators.v2_4",
+                "2.5.0": "tool_platform.market.technical_indicators.v2_5",
+                "2.6.0": "tool_platform.market.technical_indicators.v2_6",
+                "2.7.0": "tool_platform.market.technical_indicators.v2_7",
+            }[context.tool_version]
+        )
+        if context.operation_graph_id != expected_graph:
+            raise LookupError(
+                "Selected technical-indicator operation graph is invalid"
+            )
+        from .technical_indicator_adapter import (
+            invoke_stage10_technical_indicator,
+        )
+
+        return invoke_stage10_technical_indicator(name, arguments, context)
+    if versioned_timeseries:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected Stage 10 statistic operation graph is invalid")
+        if name == "timeseries.transform":
+            from .market_analysis_adapter import (
+                invoke_stage10_analysis_foundation,
+            )
+
+            return invoke_stage10_analysis_foundation(
+                name, arguments, context
+            )
+        from .market_statistics import invoke_stage10_market_statistic
+
+        return invoke_stage10_market_statistic(name, arguments, context)
+    if versioned_quality:
+        expected_graph = f"tool_platform.{name}.v2"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected data-quality operation graph is invalid")
+        from .market_analysis_adapter import invoke_stage10_analysis_foundation
+
+        return invoke_stage10_analysis_foundation(name, arguments, context)
+    if versioned_econometrics:
+        graph_suffix = {
+            "2.0.0": "v2",
+            "2.1.0": "v2_1",
+            "3.0.0": "v3",
+        }[context.tool_version]
+        expected_graph = f"tool_platform.{name}.{graph_suffix}"
+        if context.operation_graph_id != expected_graph:
+            raise LookupError("Selected Stage 10 econometrics graph is invalid")
+        from .market_econometrics import invoke_stage10_market_econometric
+
+        return invoke_stage10_market_econometric(name, arguments, context)
     if name == "macro.get_intraday_releases":
         context.capabilities.require("macro_intraday_live")
+
+    if versioned_research_analytic and context.operation_graph_id != (
+        f"tool_platform.{name}.v2"
+    ):
+        raise LookupError("Selected Stage 10 research analytic graph is invalid")
 
     try:
         from .analytic_adapter import ANALYTIC_OPERATION_NAMES, invoke_analytic

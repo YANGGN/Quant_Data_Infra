@@ -1,0 +1,20 @@
+[Unit]
+Description=Quant Data selected earnings, statements, estimates, ratings, targets and segments
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/company.sqlite
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/.operations/collection/company-selected/live-activation.json
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m quant_data.operations.selected_company_refresh
+TimeoutStartSec=12h5min
+Restart=no
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/data

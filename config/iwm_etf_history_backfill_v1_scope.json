@@ -1,0 +1,38 @@
+{
+  "bounds": {
+    "max_price_response_bytes": 16777216,
+    "max_price_rows": 30000,
+    "max_requests": 1,
+    "max_seconds_per_request": 45
+  },
+  "contract": "quant_data.iwm_etf_history_backfill_scope",
+  "existing_history": {
+    "first_retained_trade_date": "2021-08-30",
+    "prior_price_row_count": 1254
+  },
+  "iwm_scope_manifest_sha256": "6721ad6b8607a8aa6aca91f467b792ee76f91e2957ed06ae5402b05a99091e93",
+  "price_history": {
+    "currency_policy": "provider_declared_no_conversion",
+    "endpoint_path": "/stable/historical-price-eod/full",
+    "from": "2000-05-22",
+    "history_policy": "fixed_missing_interval_before_retained_history",
+    "interval": "daily",
+    "price_variant": "fmp_full_eod_v1",
+    "query_fields": ["symbol", "from", "to"],
+    "symbol": "IWM",
+    "to": "2021-08-29",
+    "volume_policy": "provider_value_nonnegative_zero_allowed"
+  },
+  "prior_completion": {
+    "base_scope_manifest_sha256": "0782e0fdf39c3113f3c9537238200c9c73495f2fc2462637792d723cf33e68fd",
+    "normalized_complete_history_sha256": "6338a0330718a22e17f094c956205986cc4a715dd8e7b2ca3abf92d11efc82c6",
+    "response_sha256": "dfc44adb7cadbf650eedf6a615442cbe045be2b714a41540aa1b629432a65e69",
+    "successor_membership_sha256": "c0d84f5ff2c35dc13d44da136b04a84687dad7242527b86abcb555f99c7f67b1"
+  },
+  "provider": "fmp",
+  "retry_policy": {
+    "max_attempts": 1,
+    "mode": "none"
+  },
+  "version": "1.0.0"
+}

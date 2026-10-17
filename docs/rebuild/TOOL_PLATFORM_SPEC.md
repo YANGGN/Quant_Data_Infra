@@ -27,7 +27,7 @@ Related documents:
 
 This document specifies:
 
-- the accepted 57-name compatibility surface;
+- the accepted 57-name compatibility surface and additive native tools;
 - the internal typed primitive boundary;
 - registry, schema generation, and validation requirements;
 - host-controlled read-only store routing;
@@ -40,6 +40,59 @@ This document specifies:
 It does not specify collectors, schema migrations, arbitrary SQL access,
 browser-triggered ingestion, or deployment.
 
+## FMP classification lookup — 2026-10-10
+
+Registry `2.97.0` / catalog `2.40.0` adds the local read-only
+`market.get_classifications@1.0.0`. It returns canonical FMP labels for explicit
+ticker batches or the complete retained classification universe, with exact
+sector/industry filters and a local publication cutoff. Earlier public contracts
+and defaults remain unchanged. No migration, ingestion, fallback provider or
+network exposure is added. See the [classification contract](FMP_CLASSIFICATIONS_2026-10-09.md#local-agent-reader--october-10-2026)
+and [agent guide](../LOCAL_AGENT_TOOLS.md#fmp-sector-and-industry-classifications--october-10-2026).
+
+## Research extensions and access fixes — 2026-10-10
+
+Registry `2.98.0` / catalog `2.41.0` adds `company.compare_peers@1.0.0`,
+`company.get_guidance_history@2.0.0`, `options.get_intraday_snapshot@2.0.0`
+and `options.get_intraday_history@2.0.0`: 102 names / 201 versions.
+The [agent guide](../LOCAL_AGENT_TOOLS.md#peer-comparison-cumulative-options-and-guidance-timeline--october-10-2026)
+provides explicit-version discovery, request examples and result interpretation.
+Detailed behavior is owned by the [peer comparison](RETAINED_RESEARCH_TOOLS_2026-09-28.md#peer-comparison),
+[guidance timeline](RETAINED_RESEARCH_TOOLS_2026-09-28.md#management-guidance-timeline)
+and [cumulative options](OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md#cumulative-activity-v2--october-10-2026)
+contracts. Older defaults and schemas remain frozen; their standard version
+advisory has no scheduled removal. The exact predecessor projection restores
+registry `2.97.0` and its catalog hash. No migration, store declaration, provider call, collection
+change or external exposure is introduced. Monitor leader labels normalize at
+the read boundary; macro catalog selection avoids unrelated statistics for
+narrow searches and descriptions without changing counts or receipt semantics.
+
+Historical compatibility maintenance on 2026-10-11 excludes the later
+classification/peer names and guidance/monitor v2 policies when reconstructing
+older registries. Frozen hashes, release inventories and generated catalog bytes
+remain unchanged. Current manifest checks compare the registered tool names;
+historical assertions retain their original counts.
+
+## Intraday monitor additions — 2026-09-29
+
+Registry `2.95.0` / catalog `2.39.0` adds `options.get_intraday_snapshot@1.0.0`
+and `options.get_intraday_history@1.0.0`: 100 logical tools / 196 versioned
+contracts. These expose the existing fixed derived monitor through bounded
+immutable reads, with capture cutoffs, age, quality and observation hashes.
+They do not change collection or prior contracts. See the
+[intraday tool contract](OPTIONS_MONITOR_AGENT_TOOLS_2026-09-29.md).
+
+## Retained research additions — 2026-09-28
+
+Registry `2.94.0` / catalog `2.38.0` adds the retained-data research contracts
+listed in [Retained research tools](RETAINED_RESEARCH_TOOLS_2026-09-28.md):
+eight additive names and four explicit company `2.0.0` successors, yielding
+98 logical tools / 194 versioned contracts. Defaults and prior version bytes
+remain unchanged. These tools compose bounded immutable readers and saved
+state; they add no collector, scheduler action, migration, or external exposure.
+The source/identity, cutoff, missingness and interpretation limits in the
+focused contract apply in addition to this specification.
+
 ## Normative language
 
 The terms MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are normative. A public
@@ -50,13 +103,61 @@ recorded.
 ## Compatibility decision
 
 The user accepted 57-name compatibility on 2026-08-09. All names in this
-document are reserved under eventual API version `1.0`, subject to recovered
-contract fixtures and the versioning rules below. Stage 1 validates only
-`macro.get_series` and `timeseries.describe`; that registry is explicitly a
-milestone subset and MUST NOT claim full 57-tool restoration or reuse any
-reserved name with different semantics.
+document are reserved under API version `1.0`, subject to recovered contract
+fixtures and the versioning rules below. The original Stage 1 milestone
+validated only `macro.get_series` and `timeseries.describe`; that historical
+registry was explicitly a milestone subset and did not claim full 57-tool
+restoration or reuse any reserved name with different semantics.
 
-The accepted public names are:
+Registry `2.41.0` adds `market.get_price_series` as one native, additive
+API `1.0` tool outside that recovered compatibility set. Registry `2.42.0`
+adds `market.get_available_ticker` as a second native additive tool. Registry
+`2.46.0` adds `market.get_volume_series` and
+`macro.get_release_calendar` as the third and fourth native additive tools and
+adds explicit `2.0.0` variants for the three existing macro catalog/series
+names. The reserved compatibility inventory remains exactly 57 names; the
+current active manifest builds on that increment. Registry `2.47.0` adds four
+more native tools: `stats.distribution_diagnostics`,
+`stats.covariance_matrix`, `stats.bootstrap_confidence_interval`, and
+`stats.principal_components`. It also adds explicit `2.0.0` successors for
+the reserved `data.quality_audit` and `timeseries.transform` names. The current
+manifest therefore has 65 logical names. None of the eight additive tools
+claims recovered behavior, and the two successors do not mutate their frozen
+v1 contracts. Registry `2.48.0` additionally provides an explicit `2.0.0`
+successor for reserved `market.technical_indicators`; the logical-name count
+therefore remains 65 and the frozen v1 contract is unchanged. Registry
+`2.51.0` retains catalog `2.11.0`. Registry `2.52.0` advances the catalog
+to `2.12.0` with seven explicit analytical successors for the Stage 10
+return-series schema. Registry `2.53.0` advances it to `2.13.0` with
+`company.search_filings@2.0.0`. Registry `2.54.0` advances it to `2.14.0`
+with `market.search_instruments@2.0.0` and
+`company.get_share_count_history@2.0.0`. Registry `2.55.0` advances it to
+`2.15.0` with `market.technical_indicators@2.1.0`, and registry `2.56.0`
+advances it to `2.16.0` with `market.technical_indicators@2.2.0`. Registry
+`2.57.0` advances it to `2.17.0` with fifteen explicit source-native
+investment-analysis v2 successors. Registry `2.58.0` advances it to `2.18.0`
+with `market.technical_indicators@2.3.0`. Registry `2.59.0` advances it to
+`2.19.0` with Williams Vix Fix v2.4 and v2.1 market breadth/risk, energy
+seasonality, and normalized company-ratio successors. Registry `2.60.0`
+advances it to `2.20.0` with WaveTrend with Crosses v2.5. Registry `2.61.0`
+advances it to `2.21.0` with Parabolic SAR v2.6. Registry `2.62.0` advances
+it to `2.22.0` with rolling regression line v2.7. Registry `2.63.0` advances
+it to `2.23.0` with the current FMP `news.search@2.0.0` successor. Registry
+`2.64.0` advances it to `2.24.0` with multi-source `news.search@2.1.0`.
+Registry `2.65.0` leaves that catalog unchanged. Registry `2.66.0` advances
+the catalog to `2.25.0` with cursor-paginated `news.search@2.2.0`, seven
+additive news names, and `research.news_event_impact@1.0.0`. The current
+inventory at that checkpoint is 73 logical names, 41 version policies, 58
+variants, and 148 contracts. Registry `2.67.0` advances catalog `2.26.0` with
+`data.get_dataset_status@1.0.0` and three options-access v2 successors. The
+current inventory is 74 logical names, 44 version policies, 61 variants, and
+156 contracts. Frozen v1 defaults remain; every omitted selector for a versioned
+name retains its frozen v1 default.
+Registry `2.68.0` leaves this public catalog unchanged: its six private macro
+collectors add no tools or contracts, so catalog `2.26.0` remains at 74 logical
+names, 44 version policies, 61 variants, and 156 contracts.
+
+The recovered compatibility names are:
 
 | Family | Count | Public names |
 | --- | ---: | --- |
@@ -68,11 +169,192 @@ The accepted public names are:
 | Market | 5 | `market.search_instruments`, `market.get_returns`, `market.get_forward_returns`, `market.technical_indicators`, `market.cross_sectional_performance` |
 | Rates | 3 | `rates.get_funding_conditions`, `rates.get_repo_facility_usage`, `rates.curve_analytics` |
 | Options | 6 | `options.search_captures`, `options.search_contracts`, `options.get_surface_snapshot`, `options.surface_diagnostics`, `options.screen_contracts`, `options.strategy_scenario` |
-| Research, diagnostics, forecast, and news | 10 | `research.point_in_time_panel`, `data.quality_audit`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate`, `news.search`, `research.liquidity_credit_state` |
+| Research, diagnostics, forecast, and news | 19 | `research.point_in_time_panel`, `data.get_dataset_status`, `data.quality_audit`, `research.event_study`, `alpha.signal_diagnostics`, `research.walk_forward_backtest`, `research.robustness_suite`, `stats.multiple_testing`, `forecast.evaluate`, `news.search`, `news.get_source_status`, `news.get_item_history`, `news.story_clusters`, `news.entity_coverage`, `news.attention_metrics`, `news.classify_events`, `news.headline_sentiment`, `research.news_event_impact`, `research.liquidity_credit_state` |
 
-The manifest endpoint and call endpoint are `GET /api/agent-tools`
-and `POST /api/agent-tools/call`. Route restoration remains subject to route
-fixtures; this document does not claim that either endpoint currently exists.
+The current active family counts are macro 13, time series 4, econometrics 5,
+company 10, energy 2, market 8, rates 3, options 6, and research 23. Versioned
+variants do not create additional logical names.
+
+The additive `market.get_price_series` contract accepts a server-resolved
+ticker plus explicit mode, cutoff policy, and limit. `start_date` and
+`end_date` are independently optional inclusive trade-date bounds. Its
+successful result contains exactly four typed `TimeSeries` values in
+`open`, `high`, `low`, `close` order from one coherent Stage 10 row
+selection. Prices remain raw provider-native values; adjustment and session-
+calendar semantics are explicitly not established. Callers cannot provide a
+database path, SQL, provider choice, or writable connection.
+
+The additive `market.get_available_ticker` contract accepts an optional
+`limit` only; omission defaults to the 10,000-record hard bound, so `{}` is
+the normal full-list request. It returns deterministic typed records for
+FMP/provider-native Stage 10 instruments only when a current price pointer,
+immutable version, and capture are retrievable through the latest read model.
+It is current retained-data discovery, not a live or historical point-in-time
+universe. Callers cannot provide dates, an as-of cutoff, a provider, path, SQL,
+or writable connection.
+
+The additive `market.get_volume_series` contract uses the same fixed Stage 10
+instrument identity and immutable row selection as the verified price reader.
+It returns one provider-native daily volume series, permits independently
+optional inclusive start/end bounds, preserves zero volume, and explicitly
+declares that unit normalization and adjustment semantics are not established.
+
+
+`market.search_instruments@2.0.0` searches retained current Stage 10 FMP
+identities by a literal provider-symbol or display-name substring, supports an
+optional exact asset-type filter, and uses an opaque cursor bound to the query
+and filter. Empty query lists the bounded retained identity universe. Identity
+does not imply price coverage, and historical point-in-time universe search is
+not established.
+
+`company.search_filings@2.0.0` requires one exact ten-digit CIK and orders
+filings by filing date then accession. Its opaque keyset cursor is bound to the
+CIK and optional cutoff, so histories longer than 500 records can be consumed
+without an unbounded total-count query. Version 1 remains frozen and bounded.
+
+`company.get_share_count_history@2.0.0` requires one exact ten-digit CIK and
+returns only reviewed SEC outstanding, weighted-average basic, and
+weighted-average diluted share-count facts. Instant and weighted-average
+semantics remain distinct. The tool applies no split adjustment and infers no
+missing metric.
+The explicit `2.0.0` variants of `macro.search_series`,
+`macro.describe_series`, and `macro.get_series` read the current canonical
+macro catalog. Exact describe lookup is not implemented as a bounded search.
+The ten official-vintage identifiers use only the official-vintage model; all
+other identifiers use only the generic canonical version core, with no
+cross-model fallback. `latest`, `as_of`, and `first_release` selection report
+requested and actual mode, cutoff precision, date-only policy, availability
+basis, selected versions, truncation, and point-in-time status. First release
+requires both the explicit flag and its evidence. An explicitly inclusive
+same-day date-only observation at an intraday cutoff is returned as unsafe with
+the deterministic safety warning; no timestamp is invented. Every canonical
+macro read first reconciles the store's complete macro migration ledger and the
+required dataset identity declarations against the reviewed registry.
+
+The additive `macro.get_release_calendar` contract composes immutable migration
+0016 wholesale captures with migration 0018 incremental event versions. It
+reconciles the exact provider/country/event-time/event-name/currency identity,
+ranks exact capture instants first and stored correction sequence before the
+version identifier, preserves provider JSON scalars as text, and reports the
+complete temporal request audit in deterministic diagnostics. First-release is
+not a calendar mode.
+
+### Investment-analysis v2 successors
+
+The explicit `macro.get_release_calendar@2.0.0` successor adds opaque
+keyset pagination. Its cursor is bound to the full calendar query and declared
+availability cutoff; callers continue only with the returned cursor and the
+same query fields. It does not alter the source-native event values or create
+a first-release calendar mode.
+
+`market.cross_sectional_performance@2.0.0` accepts two through fifty
+explicit retained Stage 10 symbols and returns each endpoint close-to-close
+simple return, rank, percentile, and coverage status. Incomplete symbols are
+reported rather than ranked. It does not infer a universe, create weights, or
+introduce portfolio or position semantics.
+
+`macro.revision_analysis@2.0.0` compares retained evidenced first and latest
+official-vintage values for one reviewed series. It is a current retained
+first-versus-latest comparison, not a historical as-of replay.
+`macro.standardize_surprises@2.0.0` applies an ex-post population z-score to
+one reviewed retained surprise kind and unit; it is not a real-time signal.
+
+`rates.get_funding_conditions@2.0.0`,
+`rates.get_repo_facility_usage@2.0.0`, and
+`rates.curve_analytics@2.0.0` return direct retained observed components.
+The funding and curve tools may add one same-date, same-unit left-minus-right
+spread. They do not interpolate a curve, infer policy, or issue a funding
+score.
+
+`macro.get_liquidity_snapshot@2.0.0`,
+`macro.get_liquidity_impulse@2.0.0`, and
+`macro.get_credit_conditions@2.0.0` return raw retained components.
+Liquidity impulse is a comparable component end-minus-start change, not an
+aggregate. `macro.regime_snapshot@2.0.0` returns the direct retained NBER
+indicator with optional raw context, while
+`research.liquidity_credit_state@2.0.0` returns a raw research vector. None
+of these tools applies opaque weights, emits a composite score or classifier,
+or makes an investment recommendation.
+
+`energy.get_electricity_retail_sales@2.0.0` reads one retained Stage 11 U.S.
+all-sector electricity-retail metric, and
+`energy.get_weekly_fundamentals@2.0.0` reads retained Stage 11 U.S.
+petroleum-fundamentals history. They preserve source-native units and do not
+interpolate or convert units. `company.get_fundamentals@2.0.0` reads
+normalized reviewed SEC facts for one exact ten-digit CIK and preserves
+period, unit, mapping, and source semantics; it computes no ratios, TTM
+values, calendarization, or inferred adjustments.
+
+All fifteen successors are host-routed, read-only, and input-bounded. They may
+validly return an empty or not-established result when retained evidence does
+not cover the requested selection. They add no provider request, canonical
+write, migration, scheduler, export, hosting, or deployment authority.
+
+Registry `2.57.0` and catalog `2.17.0` bind this batch at SHA-256
+`1d36ddd20494cfc0ae9e6172f662c5dfe04b905319c0f83b439446f44fd29b5e`
+and `5c0ea96b9aba9d73f8f89aea20a052c858691e10a1047f22594f027d8f893101`.
+Its exact predecessor projection removes only this batch and restores registry
+`2.56.0`, catalog `2.16.0`, and registry SHA-256
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`.
+
+### Current news search v2
+
+`news.search@2.0.0` is a host-routed, read-only selection over the separate
+current FMP stock-latest relations. It accepts optional `query`, up to 50
+distinct `symbols`, optional inclusive `start_date` and `end_date`, `latest` or
+`as_of` mode, the required `as_of` cutoff for the latter, `date_only_policy`,
+and a bounded `limit` from 1 through 500. It uses local capture availability
+for cutoff selection and publication dates only for date filtering.
+
+`news.search@2.1.0` uses the same filters and adds optional `source_ids` to
+select from the fixed current feeds: FMP stock latest, press releases, and
+general news; Federal Reserve, ECB, BEA, EIA; and Alpaca/Benzinga. It reads
+the generic current multi-source relations; source IDs cannot supply arbitrary
+endpoints. Current coverage uses the retained market equity/ETF/index set,
+with Alpaca limited to equity and ETF symbols.
+
+Both versions return only retained headline metadata, lineage, warnings, and
+truncation; raw provider bytes and article bodies are private. The tools make
+no provider request. The inactive legacy `fmp_news_articles` relation is not a
+source ID or input for either public version. For a source with no retained
+capture, `unavailable` or no records remains valid. Version 1 remains the
+frozen fixture contract.
+
+The multi-source reader loads symbols for the already selected article versions
+in parameterized batches of at most 500 IDs, within the same immutable read
+connection. It does not issue a separate symbol query for every article. Binary
+symbol ordering, empty symbol sets and stored-symbol validation are preserved.
+This implementation optimization leaves version/cutoff selection, source and
+text filters, exact counts, keyset pagination, warnings and receipt hashes
+unchanged. The host's five-second execution limit is unchanged.
+
+Validation on 2026-09-06 passed 20 focused and adjacent tests. A 603-article
+fixture requires two symbol queries, with unchanged store fingerprints; legacy
+per-article lookup comparisons preserve complete selections and receipt hashes
+across corrections, cutoff dates, symbol/text/source filters and cursor pages.
+Before/after profiling of the retained news page counted 8,463 versus 69 SQLite
+statements. The original exceeded its deadline under profiling while the
+optimized reader returned headlines. Without profiling, paired pages were
+byte-identical and completed in 1.476 versus 1.169 seconds; these are local
+observations, not latency guarantees. The reloaded Inspector returned the news
+page successfully in 1.338 seconds. No provider, timer, registry, schema or
+canonical-data change was required.
+Thirteen browser checks passed for the default page, native Next navigation
+and Finviz filtering: each returned HTTP 200 with 25 headlines and no error
+banner. Both desktop screenshots were visually checked; no JavaScript errors
+or outside requests occurred. The temporary browser was closed.
+
+
+The supported cross-project boundary is the fixed
+`bin/quant-data-tools` subprocess documented in
+[Local Agent Tools](../LOCAL_AGENT_TOOLS.md). It exposes `list`, `describe`,
+`manifest`, and strict-JSON stdin/stdout `call`; it derives the project root,
+registry, and store routes host-side and starts no URL or service.
+
+The loopback manifest endpoint and call endpoint are `GET /api/agent-tools`
+and `POST /api/agent-tools/call`; direct/HTTP parity is executable acceptance
+evidence. Cross-project agents on the same computer use the local subprocess
+boundary above and require no URL.
 
 ## Architectural boundaries
 
@@ -292,6 +574,19 @@ Every SQLite read connection MUST:
 - use bounded busy and statement timeouts; and
 - validate a domain anchor before serving a query.
 
+Canonical public tool reads MUST additionally use the shared quiet immutable
+gateway. That gateway MUST:
+
+- pin an `O_RDONLY|O_CLOEXEC|O_NOFOLLOW` descriptor for the complete read;
+- require the WAL and rollback journal to be absent or zero-byte;
+- connect only through `/proc/self/fd/<fd>` with `mode=ro&immutable=1`;
+- verify `query_only=1` plus the requested anchor and store role; and
+- prove that the held file, configured path, WAL, SHM, and rollback-journal
+  stamps are identical before and after the read.
+
+Operational readers used by writers, health checks, backup, and fingerprints
+remain WAL-aware and MUST NOT be silently routed through the quiet gateway.
+
 Composed analyses MUST close or release all store readers deterministically.
 When one cutoff must govern several company or cross-store components, the
 operation graph MUST bind that cutoff once and preserve each store's observed
@@ -439,9 +734,794 @@ For the accepted 57-name compatibility surface:
 - deprecation warnings MUST be machine-readable and deterministic; and
 - a public name MUST NOT be silently rebound to a different primitive meaning.
 
+Registry `2.32.0` applies this rule to the two market-return names. The HTTP
+call envelope accepts the legacy three fields or one additional controlled
+`tool_version` string. Omitted selection and explicit `1.0.0` resolve the
+unchanged legacy result; explicit `2.0.0` resolves the typed Stage 10 contract.
+An unknown version fails before argument decoding or store access. Discovery
+keeps exactly 57 top-level names and publishes ordered variants, replacement
+metadata, and the currently unscheduled removal state. Deprecation warnings
+are receipt/manifest metadata and do not mutate the frozen v1 result schema.
+
+Registry `2.33.0` applies the same selection rule to `timeseries.describe`,
+`timeseries.align`, and `timeseries.correlation`. Their explicit `2.0.0`
+variants consume the series element from a Stage 10 return v2 result, perform
+no store access, and require compatible return, point-in-time, unit, frequency,
+and registry-revision contracts. A composition-only schema tightens capture
+timing and date fields without changing the frozen market-return v2 output
+schema. Typed validation independently checks the fixed Stage 10 dimensions,
+reapplies every `as_of` cutoff to instrument and observation availability, and
+rejects contradictory timing even when a caller recomputes its lineage digest.
+Diagnostics retain the complete cutoff policy and indexed input series/lineage
+mapping. Alignment preserves explicit missing cells; correlation uses complete
+pairs after outer alignment and refuses truncated inputs. Omitted or explicit
+`1.0.0` selection remains byte-compatible with the legacy behavior.
+
+Registry `2.34.0` applies the same explicit-selection rule to
+`econometrics.regression`, `econometrics.rolling_regression`, and
+`econometrics.stationarity`. Their `2.0.0` variants accept only compatible,
+non-truncated trailing Stage 10 v2 return series and never open a store. OLS
+uses an intercept by explicit request and publishes classical homoskedastic
+covariance, Student-t inference, 95% confidence intervals, fit diagnostics,
+and the numerical inference backend. Rolling OLS reuses the same kernel over
+every fixed contiguous complete window and does not shrink or fill a window.
+Stationarity is a constant-only augmented Dickey-Fuller regression with an
+explicit fixed lag, MacKinnon 2010 finite-sample critical values, decisions at
+1%, 5%, and 10%, and an explicit unavailable p-value. Forward-return, truncated,
+rank-deficient, undersized, and incomplete-window inputs fail closed or return
+a typed not-established result. Omitted or explicit `1.0.0` selection remains
+byte-compatible with legacy behavior. Exact projection restores registry
+`2.33.0`; the frozen v1 catalog remains byte-identical.
+
+Registry `2.36.0` adds explicit `2.1.0` selection only for
+`econometrics.regression` and `econometrics.rolling_regression`; their
+existing `2.0.0` contracts and all omitted-v1 behavior remain unchanged.
+The `2.1.0` request requires a 95% confidence level, covariance selection,
+`hac_lag` from 0 through 18, and `diagnostic_lag` from 1 through 18. HC1
+uses the `n/(n-k)` finite-sample correction; HC3 divides each score by
+`1-h_i`; fixed-lag Newey-West uses Bartlett weights and the same
+`n/(n-k)` correction. Robust coefficient tests and intervals use the fixed
+asymptotic-normal reference and label the standardized statistic `z`, not
+`t`.
+
+Residual diagnostics are ordered Ljung-Box, Koenker-Breusch-Pagan, and
+Jarque-Bera. Ljung-Box uses centered residuals, a caller-fixed lag,
+model degrees-of-freedom zero, and requires a contiguous sample of at least
+`max(8, 2*lag+1)`. Koenker-Breusch-Pagan uses `n*R-squared` from a
+forced-intercept auxiliary regression on nonconstant original predictors.
+Jarque-Bera uses population skewness and excess kurtosis. Each test has a
+chi-square asymptotic reference, a fixed 5% decision, and its own explicit
+not-established status; an unavailable diagnostic does not silently change
+the coefficient fit. HAC inference is not established across a missing-data
+gap or when its lag is not below the complete sample. HC3 inference is not
+established at unit leverage.
+
+Rolling `2.1.0` reuses the exact standalone kernel in every fixed contiguous
+window. A rolling window is at least 8, at least `2*diagnostic_lag+1`, and
+strictly greater than `hac_lag`; no incomplete window is shrunk or filled.
+The research contract records model version `2.1.0`, covariance, lag,
+inference distribution, diagnostic reference, exclusions, and lineage. The v2
+catalog is version `2.3.0` with 20 contracts at SHA-256
+`7de5126d50c438d0bb35cb82a9a0dd282251de3acceeb850d69ca20f894ef7b9`.
+The variants consume only caller-supplied typed values and add no store,
+provider, credential, migration, scheduler, export, hosting, or deployment.
+Exact projection restores byte-exact registry `2.35.0`; the frozen v1
+catalog remains byte-identical.
+
+Registry `2.37.0` adds explicit `2.1.0` selection for
+`econometrics.stationarity` while preserving its ADF-only `2.0.0` bytes.
+The request declares separate `adf_lag` and `kpss_lag` values from 0 through
+18, a constant deterministic term, and one significance level. Level KPSS
+demeans the complete contiguous sample, forms residual partial sums, and uses
+a caller-fixed Bartlett long-run variance. Decisions use the published 1992
+level critical values at 1%, 2.5%, 5%, and 10%; p-values remain explicitly
+unavailable. The joint record distinguishes evidence consistent with level
+stationarity, evidence consistent with nonstationarity, inconclusive evidence,
+and conflicting evidence. Missing values, zero demeaned variance, invalid
+bandwidth, or nonpositive long-run variance produce typed not-established
+results rather than implicit row deletion or bandwidth selection. Catalog
+`2.4.0` has 22 contracts and projects exactly to registry `2.36.0`.
+
+Registry `2.38.0` adds explicit `2.0.0` selection for
+`econometrics.structural_breaks`. The request provides 2 through 20 compatible
+trailing return series, an intercept flag, significance, limit, and
+`break_index`; the index is zero-based and names the first post-break aligned
+row. Outer alignment is preserved and every row must be complete. The kernel
+fits the exact classical OLS implementation to the pooled, pre-break, and
+post-break samples. Each segment must have more rows than fitted parameters and
+must be full rank. With `k` fitted parameters and `n` complete rows, the
+reported statistic is
+`((RSS_pooled - RSS_split) / k) / (RSS_split / (n - 2*k))` and its tail uses
+an F distribution with `k` and `n - 2*k` degrees of freedom.
+The F reference is exact in finite samples only under Gaussian,
+homoskedastic, independent errors and the standard exogenous fixed-design
+linear-model conditions. Zero split RSS, materially negative RSS reduction,
+missingness, invalid segment degrees of
+freedom, and rank deficiency fail closed. The result includes one test summary,
+three fit summaries, and a pooled/pre/post coefficient matrix. This is one
+caller-declared break only: there is no automatic search, sup-Wald procedure,
+multiple-testing adjustment, or multiple-break claim. Catalog `2.5.0` has 24
+contracts and projects exactly to registry `2.37.0`.
+
+Registry `2.39.0` adds an explicit `3.0.0` variant of
+`econometrics.regression` without changing its v1, `2.0.0`, or `2.1.0`
+contracts. The strict request contains two through five compatible Stage 10
+horizon-one trailing return series, one `analysis` enum, constant
+deterministic specification, fixed `lag_order` from zero through four, a
+declared significance, explicit source/target index sentinels, and a limit no
+greater than 5,000. The three mutually exclusive analyses are:
+
+- `engle_granger_cointegration`: exactly two ordered series. Compatible log
+  returns are cumulatively summed and compatible simple returns use
+  `ln(1+r)`; nonpositive factors fail closed. The first stage is
+  `level_0 = intercept + slope * level_1 + residual`. Its residual ADF has
+  no deterministic term and a caller-fixed augmentation lag. The decision uses
+  MacKinnon 2010 `tau_c`, N=2, finite-sample polynomial critical values at
+  1%, 5%, and 10%. No p-value is reported, and I(1) integration order remains
+  an explicit unverified assumption.
+- `vector_autoregression`: two through five ordered return series and a
+  caller-fixed lag from one through four. Each equation has a constant and all
+  lagged system values. Results expose equation OLS summaries, intercepts,
+  coefficient names, one target-by-source matrix per lag, and the
+  degrees-of-freedom-adjusted residual covariance. No automatic lag selection,
+  impulse response, stability claim, or forecasting claim is made.
+- `granger_causality`: the same fixed VAR plus distinct source and target
+  indices. It compares the unrestricted target equation with a restricted
+  equation that removes every lag of the selected source. The reported exact
+  finite-sample F tail requires the classical Gaussian, homoskedastic,
+  independent-error, exogenous fixed-design conditions. The result describes
+  conditional predictive precedence, never structural causality.
+
+Common incomplete leading and trailing rows may be trimmed and reported;
+interior incomplete rows are retained and force a typed not-established result.
+Rows are aligned observations, not asserted calendar adjacency. Catalog
+`2.6.0` has 26 contracts and projects exactly to registry `2.38.0`.
+The registry keeps the 57 logical names, 9 versioned policies, and 13 variants.
+
+These additions consume only caller-supplied typed values and add no store,
+provider, credential, migration, scheduler, export, hosting, or deployment.
+Their frozen independent vectors, hostile-boundary checks, direct/HTTP parity,
+and legacy-version isolation are executable acceptance evidence. The frozen v1
+catalog remains byte-identical.
+
+Registry `2.46.0` completes the first canonical-access tool increment. It keeps
+the recovered 57-name compatibility inventory intact, exposes 61 active
+logical names, 12 version-selection policies, and 16 explicit variants. The
+three existing macro catalog/series names gain explicit `2.0.0` variants;
+`market.get_volume_series` and `macro.get_release_calendar` are additive native
+names. The frozen v1 catalog remains byte-identical. The v2 catalog is version
+`2.9.0` with 40 contracts at SHA-256
+`e6fa88fa63856247ab00073a14ff1321cfafa05d5323a22c26008e81d0b1eb5c`.
+Exact projection removes only this increment and restores registry `2.45.0`.
+
+Registry `2.47.0` completes the next three store-free analytical increments.
+It exposes 65 active logical names, 14 version-selection policies, and 18
+explicit variants. The v2 catalog is version `2.10.0` with 52 contracts at
+SHA-256 `381a78aa59682fbf36cc90acc146d2cfa5b43ea90537b7356eca701df0794fbf`.
+Exact projection removes only this increment and restores byte-exact registry
+`2.46.0` and catalog `2.9.0`; the generated v1 catalog remains byte-identical.
+
+Registry `2.48.0` adds the store-free
+`market.technical_indicators@2.0.0` successor. It exposes 65 logical names,
+15 version-selection policies, and 19 explicit variants. The v2 catalog is
+version `2.11.0` with 54 contracts at SHA-256
+`864a4d07afbf2558a331d30275cf21f4e31521142ee2d9d010dc26cc5680a757`.
+Exact projection removes only this policy and restores byte-exact registry
+`2.47.0` and catalog `2.10.0`; the generated v1 catalog remains
+byte-identical.
+
+The v2 indicator operation accepts one through five unmodified scalar series
+from `market.get_price_series` and `market.get_volume_series`. Every call
+contains one explicit indicator and only its relevant parameters. Close is
+always required; high/low and provider-native volume are required where the
+formula needs them. Inputs must share one instrument, period grid, capture
+identity, selection mode, cutoff, and retained-availability contract.
+Truncated or raw-missing input fails closed. Outputs preserve the bar grid,
+carry conservative source-derived availability and path-free lineage, and
+represent warm-up or undefined values with an explicit missing reason.
+Rolling dispersion uses sample standard deviation; EMA and MACD use SMA
+seeds; ATR, RSI, and ADX use Wilder smoothing. The outputs are descriptive
+transformations and establish no trading signal, portfolio, or position
+semantics.
+
+The explicit `market.technical_indicators@2.1.0` successor preserves all
+fifteen v2.0 calculations and adds `supertrend_ai`. That calculation requires
+compatible high, low, and close series plus `window`, `minimum_factor`,
+`maximum_factor`, `factor_step`, `performance_memory`, and `cluster`. The
+factor grid includes each step from the minimum without crossing the maximum
+and MUST contain 3 through 101 candidates. `cluster` is exactly `best`,
+`average`, or `worst`.
+
+For every bar, v2.1 updates all candidate SuperTrend states, clusters their
+smoothed performance with deterministic one-dimensional Lloyd assignments
+seeded by the 25th, 50th, and 75th percentiles, and averages the factors in the
+selected cluster. Ties select the first centroid; an empty cluster retains its
+prior centroid. The selected factor drives a second adaptive SuperTrend whose
+trend tests the newly updated bands. Its five aligned components are
+`trailing_stop`, `adaptive_moving_average`, `trend`, `performance_index`, and
+`target_factor`. ATR uses Wilder smoothing, recursive state resets after a
+missing input, and each prefix result is independent of future bars.
+
+The Pine `maxData` control is intentionally replaced by the public input
+`limit`: all supplied bars are processed causally, with the existing workload
+preflight rejecting an excessive factor/bar combination. Pine's default
+inclusive `0..1000` clustering loop is retained as a fixed 1,001-assignment
+cap rather than a caller control. TradingView colors, candle gradients,
+labels, signals, tables, and dashboard placement are presentation behavior and
+are not public tool outputs. This successor opens no store and establishes no
+execution, position, or recommendation semantics.
+
+Registry `2.55.0` and catalog `2.15.0` bind the v2.1 successor at SHA-256
+`cec35d5cfed9f25c40f5adfa2f2581b0de8d442a75202e687f791b3a16dc3d7f`
+and `65311bb28efe62651ecb3420f0be13fd413df468487141cca0972d45e7684c85`,
+respectively.
+
+The explicit `market.technical_indicators@2.2.0` successor preserves v2.0
+and v2.1 and adds `swing_structure_forecast`. It requires compatible high,
+low, and close series, `window` from 10 through 5,000, `sample_count` from 3
+through 20, and `aggregation_method` exactly `weighted`, `average`, or
+`median`. The calculation retains the source's rolling-extreme direction
+state, including the low-test win when both current extremes match; confirms
+a pivot one bar after its extreme; retains the newest completed-leg samples;
+and uses fixed Wilder ATR(200) for the minimum forecast-band width. The pure
+calculation resets recursive state on missing OHLC, but the public adapter
+inherits v2's stricter contract and rejects missing input observations before
+the calculation runs.
+
+Its ten causal, source-grid-aligned components are `confirmed_swing_high`,
+`confirmed_swing_low`, `swing_direction`, `forecast_origin`,
+`forecast_target`, `forecast_percent`, `forecast_duration_bars`,
+`forecast_standard_deviation`, `forecast_band_half`, and
+`forecast_origin_age_bars`. The Pine source computes the forecast only on the
+latest chart bar; the public tool causally unrolls that calculation so each
+row is the result for exactly that input prefix. It does not invent a future
+trading date. Forward chart coordinates, beams, boxes, path markers,
+Fibonacci lines, support/resistance object lifecycle, alerts, colors, and
+labels remain excluded presentation behavior.
+
+Registry `2.56.0` and catalog `2.16.0` bind v2.2 at SHA-256
+`9782e77c530251401e9b5e42b33115949ce8bb28753f0a0471fa2e8353dd8802`
+and `cb1c6965582b90eaeec27054eda0d66e7a4c603aefa69f9b453ae342d779302b`,
+respectively. Exact projection removes only v2.2 and restores byte-identical
+registry `2.55.0` and catalog `2.15.0`; that predecessor removes only v2.1
+and restores byte-identical registry `2.54.0`, catalog `2.14.0`, and the sole
+v2.0 indicator variant.
+
+The explicit `market.technical_indicators@2.3.0` successor preserves v2.0
+through v2.2 and adds `kdj`. It requires compatible high, low, and close
+series plus `window` and `signal_window`. RSV is 100 times close minus the
+rolling low divided by rolling high minus rolling low. K and D each use the
+Pine BCWSMA recurrence with weight 1 and an `nz` previous value of zero; J is
+`3 * K - 2 * D` and is not clamped. Its three aligned components are
+`percent_k`, `percent_d`, and `percent_j`. A flat rolling price range is
+explicit `zero_price_range` missingness, and recursive state restarts from
+zero after missing input. Plot colors, background shading, and the 20/80 guide
+lines are excluded presentation behavior.
+
+Registry `2.58.0` and catalog `2.18.0` bind v2.3 at SHA-256
+`02a4aeb34632c5ae194622b7de77ec31145135bdf399620e45af461132134d43`
+and `4803071d5cb2ababa2710ac4c0e3eb1e1640b06aa0b6071e14c2f40be68fec72`,
+respectively. Exact projection removes only v2.3 and restores byte-identical
+registry `2.57.0` and catalog `2.17.0`.
+Registry `2.59.0` and catalog `2.19.0` add five variants without adding a
+logical name. `market.technical_indicators@2.4.0` adds Williams Vix Fix over
+typed high, low, and close input. `market.cross_sectional_performance@2.1.0`
+adds equal-observation breadth, annualized sample realized volatility,
+benchmark-relative cumulative return, and rolling beta over explicit bounded
+tickers. The two energy v2.1 variants add exact retained-observation lags of 12
+monthly or 52 weekly observations. `company.get_fundamentals@2.1.0` exposes
+only same-period, same-unit net margin and liabilities-to-assets ratios.
+Stationarity and declared-break adapters trim only contiguous incomplete
+return edges; interior gaps remain invalid. Exact projection removes only the
+five variants and restores byte-identical registry `2.58.0` and catalog
+`2.18.0`.
+
+The explicit `market.technical_indicators@2.5.0` successor preserves v2.0
+through v2.4 and adds `wavetrend_crosses`. It requires compatible high, low,
+and close series plus `window` for the Pine channel length and
+`signal_window` for the Pine average length. The calculation uses HLC3,
+SMA-seeded EMAs, fixed `0.015` channel scaling, and a fixed four-observation
+SMA signal. Its aligned components are `wavetrend`, `wavetrend_signal`,
+`wavetrend_difference`, and `wavetrend_cross_signal`; the cross component is
+`1` for bullish, `-1` for bearish, and `0` otherwise. Zero smoothed channel
+deviation is explicit `zero_channel_deviation` missingness. Overbought and
+oversold guide levels, colors, area fills, cross markers, and bar colors are
+excluded presentation behavior.
+
+Registry `2.60.0` and catalog `2.20.0` bind v2.5 at SHA-256
+`563c4294c47d534754014dc77a4a1b39e84749cc4d8165636bafd82feff679b0`
+and `cebc1ca58257fed167db36973be1ce37e6e01162c2bc072c24591a673b0aedb4`,
+respectively. Exact projection removes only v2.5 and restores byte-identical
+registry `2.59.0` and catalog `2.19.0`.
+
+The explicit `market.technical_indicators@2.6.0` successor preserves v2.0
+through v2.5 and adds `parabolic_sar`. It requires compatible high, low, and
+close series plus finite `start`, `increment`, and `maximum` acceleration
+parameters. The causal recurrence establishes its initial direction from two
+consecutive closes, advances the stop toward the current extreme, increments
+acceleration at new extremes up to the supplied maximum, resets acceleration
+and the extreme on reversal, and clamps the stop against the prior two lows or
+highs. Missing OHLC resets recursive state. Its one aligned component is
+`parabolic_sar`; the first bar is explicit `insufficient_sar_history`
+missingness. Plot crosses, colors, timeframe controls, and chart-gap behavior
+are excluded presentation behavior.
+
+Registry `2.61.0` and catalog `2.21.0` bind v2.6 at SHA-256
+`0f43045c1dcc46b0f9d5ecb0aaf98aa3e9ad61a43e250afc389408602a8615ea`
+and `b70798594de6149b7710b36d3b735b3d24ff81eb23277ba54dfdc697aceb0efc`,
+respectively. Exact projection removes only v2.6 and restores byte-identical
+registry `2.60.0` and catalog `2.20.0`.
+
+The explicit `market.technical_indicators@2.7.0` successor preserves v2.0
+through v2.6 and adds `rolling_regression_line`. It accepts one compatible
+close series and a caller-supplied integer `window` from 2 through 10,000;
+all other nullable indicator parameters are inapplicable. At each bar it fits
+ordinary least squares over exactly the trailing complete window, including
+the current close, using x = 0 through `window - 1`, and emits the fitted
+value at x = `window - 1`. The one aligned price component is
+`rolling_regression_line`. It is full-grid and causal: warm-up rows are
+`insufficient_history`, any null close in the trailing window is
+`rolling_window_input_missing`, and the next complete trailing window
+recovers immediately. Presentation behavior is excluded.
+
+Registry `2.62.0` and catalog `2.22.0` bind v2.7 at SHA-256
+`59db17edd70d8ae9aa77f1468cf7c459338e3d1dff0015b3c99853b2e1e12fd2`
+and `18e86daf6ef3291407ab794d7f53015c80bb90c88f2518891f7b904002f515a1`.
+Exact projection removes only v2.7 and restores byte-identical registry
+`2.61.0` and catalog `2.21.0`.
+
+
+
+`data.quality_audit@2.0.0` accepts one through twenty supplied typed Stage 10
+return series. It validates lineage, reports requested and observed coverage,
+explicit missing values, absent calendar dates, duplicates, out-of-order rows,
+availability/cutoff metadata, and source truncation. Calendar discontinuities
+are observations only: the tool does not claim an exchange-session calendar or
+repair the input. A truncated input remains auditable but cannot establish
+complete coverage.
+
+`timeseries.transform@2.0.0` accepts one compatible, non-truncated trailing
+return series and one explicit operation. It supports fixed-window rolling
+mean, sample standard deviation, minimum, or maximum; full-sample-centered ACF;
+Durbin-Levinson PACF; fixed-lag Ljung-Box with zero fitted-model degrees of
+freedom; and simple- or log-return drawdown episodes inferred from the typed
+return definition. Operation-specific parameters are required and extraneous
+parameters are rejected. Terminal missingness may be trimmed and reported;
+an interior gap is never bridged or silently filled.
+
+The four native `stats.*` tools are version `1.0.0`, store-free, and accept
+only compatible, non-truncated Stage 10 trailing-return series.
+`stats.distribution_diagnostics` uses type-7 sample quantiles and declared
+population central moments. `stats.covariance_matrix` outer-aligns two through
+twenty inputs and then uses one joint-complete sample with the `n-1` sample
+denominator for covariance and correlation.
+`stats.bootstrap_confidence_interval` requires an unsigned 32-bit seed, 100
+through 5,000 IID resamples, a mean or median statistic, and a declared 90%,
+95%, or 99% type-7 percentile interval; the result echoes the seed and
+deterministic generator metadata. `stats.principal_components` uses the same
+joint-complete sample, an explicit covariance or correlation basis, and a
+bounded requested component count. Eigenvalues are descending with
+deterministic tie handling, and each eigenvector sign is canonicalized by
+making its largest-absolute loading positive. Scores are optional and bounded
+by the common workload budget.
+
+All six operations inherit and revalidate point-in-time and return-definition
+metadata from their typed inputs. They add no store, provider, credential,
+migration, scheduler, export, hosting, or deployment surface.
+
+
 Retirement requires roadmap approval, contract-fixture updates, a migration
 guide, and evidence that the local portal and other registered consumers have
 moved. No deprecation process authorizes removal of stored data.
+
+
+## Fixed local Calendar Inspector
+
+The loopback-only Canonical Data Inspector is not a public composable tool and
+does not broaden the tool manifest. Its fixed FMP economic-calendar view
+accepts only bounded filters plus `mode=current|history`. Current is the
+default: it validates and parses the singleton latest-response cache and, before
+that cache exists, falls back to the newest validated legacy row per
+conservative event identity. History combines consecutive material legacy
+changes with append-only migration-0018 event versions. Both modes retain the
+existing bounded pagination and columns, expose no response body or writable
+connection, and use the fixed macro-store read path.
+
+The same loopback-only Inspector has an additive `options-surfaces` view over
+the existing market option relations. It accepts only the fixed 15-ETF
+universe, target DTEs `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and
+`365`, exact expiration, `call|put`, `present|missing|excluded`, direction,
+and bounded pagination. It chooses the latest paper/indicative capture for
+each underlying and selected-expiration cohort, supports the legacy singleton
+`target_dte` scope and the broad sorted `target_dtes` scope, and exposes
+contract, quote/Greek, open-interest, close-price, underlying-quote, and
+explicit synchronized-input missingness fields. Open interest, close price,
+underlying quote, rate curve, dividend set, and expiry-model inputs each expose
+their persisted state and missing reason rather than making nulls ambiguous.
+It exposes no SQL, caller
+path, provider request, credential, writable connection, or ingestion action.
+The legacy `spy-options` view remains unchanged.
+
+The Inspector exposes retained-data status within the unified `/status`
+workspace, backed by the public retained-only dataset-status contract.
+The former `/data-status` URL is a compatibility alias. `/healthz` is a
+zero-store process-liveness response. Stored-data status MUST NOT be labelled
+live provider or credential health and MUST NOT infer a source-period timestamp
+from generic ingestion metadata. `/healthz` MUST NOT open a store or perform
+a provider call.
+
+### Unified Status workspace — September 8 user decision
+
+The user's later request to integrate Status and Data Status supersedes the
+separate-page, duplicate schedule-column and two-table presentation described
+below. Those descriptions retain their historical scope; public data contracts
+and the existing read-only boundaries are unchanged.
+
+One sidebar entry, **Status**, leads to a shared overview of selected-day run
+outcomes and current retained-data coverage. Run activity, stored data and
+backfill progress share local section navigation. A historical day changes only
+the run calendar/focus; current data and backfill snapshots are explicitly
+labelled. Each expanded run links to its batch's dataset inventory. Summary
+cards link to the relevant run focus or retained-data filter.
+
+The inventory defaults to active datasets, with collection, batch, data-state
+and text filters. Dataset/source identity, display status, source date and last
+stored capture are primary columns; record inspection preserves all 19 returned
+and supplemental fields. Source-specific news rows map to their owning dataset's
+batch. Filtering closes obsolete record details, announces the match count and
+preserves keyboard access. Without JavaScript, all collections and supporting
+fields remain readable. Small screens initially collapse the native calendar
+disclosure; native run disclosures and month links continue to work.
+
+The HTML route combines the existing fetch-status snapshot, public dataset-status
+result and private retention metadata. It does not make a second scheduler
+snapshot for inventory columns. A retained-data error shows unavailable values
+and a reload link while keeping run history visible; it neither fabricates
+zero counts nor automatically retries. The five-second public tool deadline is
+unchanged. `/api/data-status` remains retained-only. The legacy HTML URL renders
+the same workspace, with browser enhancement replacing its URL with
+`/status#status-datasets`. Legacy query rejection remains unchanged.
+
+The integrated change passed 86 focused offline tests. Chromium checks at
+1440, 1024, 390 and 320 pixels covered linked batch filters and keyboard focus,
+record inspection, search/empty states, collection selection, contained tables,
+legacy bookmarks, independent read errors and the no-JavaScript fallback.
+The first complete live render returned all 68 records in 2.363 seconds; the
+public records and canonical file stamps matched before and after the reload.
+One later browser read hit the existing host deadline and succeeded on an
+explicit reload; this integration does not claim to eliminate that intermittent
+reader timeout. Local evidence is in `.local/unified-status-20260909/`.
+
+Dataset Status reads only the latest outcome and successful capture for current
+news sources; lifetime article/version totals remain exclusive to the full news
+source-status tool. This avoids unnecessary history scans without changing the
+public dataset-status fields or the host's five-second execution deadline.
+The public dataset-status adapter applies store and dataset-ID predicates to
+registry targets before opening stores. When no status predicate is requested,
+the complete match count is known from those targets, so only the returned
+prefix is materialized. The exact total, truncation, ordering, aliases, warnings
+and retained-data meaning are preserved. A status predicate still evaluates all
+metadata-matching targets before limiting output, because its exact count depends
+on retained status. Operation-budget checks cover the targets actually evaluated;
+this optimization changes no registry, schema, provider call or timeout setting.
+
+If the retained-status read fails, the HTML page shows an explicit unavailable
+state and a reload link. It does not display zero dataset counts or run the
+supplemental schedule/retention reads for an absent result.
+
+The September 8 correction passed 35 focused tests after updating the timestamp
+fixture to use the narrower reader. Chromium checks at 1440, 360 and 320 pixels
+covered keyboard record inspection, dataset-group selection, timeout recovery,
+and the no-JavaScript tables. The first HTML request after the Inspector reload
+returned all 68 records in 0.693 seconds; the public records and canonical file
+stamps matched before and after. Local evidence is in
+.local/data-status-fix-20260909/.
+
+The user-approved Inspector schedule columns add a separate HTML-only local
+timer snapshot. Refresh Cadence is taken from loaded calendar properties, not
+freshness thresholds or historical unit activation receipts. Next Scheduled
+Fetch is the next future timer trigger in UTC; for datasets served by multiple
+timers it is the earliest known trigger, with incomplete timer status disclosed.
+A trigger is a batch start, not a promise of provider access, success, or new data.
+Inactive or unmapped timers yield no scheduled fetch; unavailable status stays
+explicit. The fixed dataset-to-wrapper bindings are in
+`quant_data/inspector_schedules.py` and correspond to the nine reviewed per-user
+units in the scheduling specification. Browser input cannot choose a unit.
+One HTML request makes at most one three-second read-only `systemctl --user show`
+call for those units, with no shell, service execution, credential access, or
+unit mutation. The public `data.get_dataset_status@1.0.0` contract and
+`/api/data-status` remain retained-only and do not inspect schedulers. This
+presentation change grants no provider-fetch or scheduler-mutation authority.
+
+The user-approved source/fetch overlay adds `As-of Date` only from fixed,
+read-only source-specific projections. SOMA uses the holdings date, petroleum
+uses the week-ending observation date, and historical NIPA uses its source
+quarter. Calendar event dates are not dataset as-of dates. Missing projections
+remain unavailable; storage capture timestamps never fill this column.
+
+`Latest Successful Fetch` comes from bounded private operational receipts for
+the FMP calendar and aggregate macro-current collectors. FMP uses successful
+HTTP-response completion; aggregate sources use successful collector completion.
+Unchanged successful polls advance the receipt without changing canonical data.
+A later processing failure is separately visible and does not erase prior
+successful fetch evidence. Older unrecorded polls remain `Not recorded`.
+Fetch and stored-capture timestamps use America/New_York (EST/EDT); date-only
+and quarter precision remain unchanged. Original UTC instants stay in markup.
+
+The legacy wholesale calendar evidence is labelled and muted, with its compact
+incremental successor identified. The old NIPA GDP snapshot is labelled
+historical, with current official GDP vintages identified separately. Weekly
+source frequency is distinct from weekday polling; source dates over fourteen days
+old receive a caution rather than an unconditional expected-age label.
+The HTML retention overlay resolves successful captures through exact dataset
+snapshots or explicit `ingestion_run_outputs` membership in the run's primary
+snapshot. Official vintages use their native capture ledger with validated
+observation membership; no generic run is fabricated. Reads use the established
+quiet immutable store procedure, fixed registry targets, and a three-second SQL
+budget per store. Busy, changed, invalid, or unavailable evidence stays unknown;
+a missing capture record alone does not prove that data tables are empty.
+
+The private capture lookup keeps direct dataset snapshots and explicitly linked
+primary snapshots in separate query branches. Direct reads use the existing
+dataset index; shared reads filter output membership before primary-key lookups.
+A direct primary snapshot is not scanned again as a shared candidate. Both
+branches retain the same latest-capture ordering, including binary snapshot-ID
+tie-breaking. No cache, schema/index migration, public status payload, or reader
+budget change is introduced.
+
+Explicit reviewed lifecycle annotations distinguish active, fixture-only,
+historical/candidate, superseded, and planned datasets. Names alone, including
+the `fixture.` prefix, never determine lifecycle. Sector/industry classifications
+are labelled `Not yet live` because their live collector remains unimplemented.
+Frozen original news outcomes remain historical evidence rather than active
+refresh failures. Non-live rows are muted and identify their successors where
+known; successors do not imply feature parity with older tools.
+
+Five exclusive summary categories use the same evidence classification as the
+rows: data retained, needs attention, not yet live, legacy/fixtures, and status
+unknown. Active failed refreshes, old source dates/captures, and missing captures
+remain attention items; a successful fetch never implies retained data. Stored
+capture timestamps, shared/native provenance, linked dataset IDs, original public
+status and outcomes, and other supporting fields remain in record details and
+the full no-JavaScript table. The public status tool and JSON route retain their
+existing payloads, including their original generic attribution limitations.
+This UI correction neither populates old tables nor activates collectors.
+
+The user-requested table selector separates active datasets into `Live data`
+and fixture-only, historical, legacy, and planned datasets into a second table.
+Active missing, stale, failed, or unavailable records remain in the live group;
+table membership depends on reviewed lifecycle rather than freshness, timer
+availability, or the `fixture.` name prefix. A labelled dropdown defaults to the
+live table and switches locally without another request. Summaries are scoped
+to their table: retained/attention/unknown for live data, and legacy/fixtures
+plus planned coverage for the second table. Each record occurs in exactly one
+table, with all supporting fields retained. Without JavaScript, both
+labelled tables remain readable. Switching tables closes the previous record
+details and preserves usable keyboard focus. The selector changes presentation
+only; no provider, scheduler, storage, or public JSON behavior changes.
+
+### Live fetch Status calendar
+
+The run-activity portion of `GET /status` shows a monthly calendar and a
+selected day's chronological focus. The only accepted query field is an ISO
+`date`; it is validated before reading host metadata. Today is the default.
+Month navigation and native run-detail disclosures work without JavaScript.
+At desktop widths of 1440px and above, the month sits on the left and the
+selected-day focus on the right in a 70/30 split, with at least 320px for the
+focus. Narrower screens stack the focus below the calendar. Calendar badges
+adapt to their available width; the current backfill panel follows both views.
+The calendar now belongs to the unified workspace described above.
+`/api/data-status` and `/healthz` keep their existing contracts.
+
+Schedules come from the currently loaded calendars of the same nine fixed
+timers. Weekdays, first-Friday employment and hourly UTC news rules expand
+into Eastern dates and labelled EST/EDT times, including 23/25-hour DST days.
+Inactive, unavailable or unsupported schedules are explicit; this calendar
+never invents a schedule from a dataset's freshness threshold. Historical
+months project current rules and do not assert historical timer activation.
+
+Each request makes at most one three-second `systemctl --user show` call for
+those nine timers and their nine matching services, plus one three-second
+`journalctl --user` call limited to the selected calendar month through the observation
+time and the latest 2,000 matching records. Future months need no journal call.
+Accepted outputs are capped at 128 KiB and 2 MiB respectively. Both commands
+use fixed absolute executables, a minimal environment and no shell. The journal
+projection contains structured job identity, outcome, invocation, timestamp
+and trusted systemd provenance only; it excludes log messages and command lines.
+Callers cannot choose commands, units, fields, paths or SQL. The reader opens
+no stores, reads no credentials and makes no provider request or mutation.
+Explicit fixture construction disables all host probes by default.
+
+The production builder also supplies the fixed private
+`data/.operations/fetch-run-history` root. Each of the nine existing recurring
+CLI forms atomically saves one start receipt, then replaces it with a complete
+receipt containing start/finish timestamps and its original exit outcome.
+Receipts use separate UUID directories grouped by UTC start month, mode 0700
+for directories and 0600 for JSON. Collector outputs, provider errors, URLs and
+credentials are excluded. Logging errors emit only a fixed warning and do not
+replace the collector result or retry its work. Imports, help, rejected
+arguments and historical/backfill CLI forms do not create run history.
+Within a recorded run, a rejected numeric summary emits the fixed stderr warning
+`[fetch-status] Unable to validate run summary; counts were not recorded.`
+The warning includes no report values, batch argument, or exception text.
+Failure to write the warning cannot change the collector's return value or
+exception. The original exit receipt remains usable without invented counts;
+summary and public response schemas are unchanged.
+
+The read-only scan follows opened directory descriptors without following
+symlinks; only fixed-schema, known-batch records are accepted. A selected month
+reads at most 2,048 entries, 4 KiB per receipt and 4 MiB total, with a three-second
+scan deadline and explicit incomplete-history notices. UTC month partitions
+include the full Eastern month. Starts or completions later than the observation
+time cannot confirm an outcome. Completed receipts survive process restarts.
+A start without a completion is Running only while the original boot ID, PID
+and process-start identity are still live; otherwise it is Unconfirmed.
+Read-only fixture construction supplies its own temporary history root, or
+omits it to disable all history filesystem access.
+
+A slot is green only when a recorded oneshot batch completed successfully,
+red when a completed batch failed, and amber when scheduled, running or
+unconfirmed. Labels accompany every color. A complete saved collector receipt,
+paired systemd start/completion job metadata or a complete latest service
+result can establish an outcome; a service's default success value alone cannot. Matching uses the same fixed
+service starting within five minutes after a slot. This association is
+shown explicitly and does not prove timer versus manual origin. Saved and
+systemd evidence with the same nonempty invocation ID is counted once. An
+orphan saved start may use a terminal systemd result for that exact invocation,
+with its provenance stated. Distinct matching attempts, ambiguous duplicates
+and contradictory completed outcomes remain unconfirmed. Missing or truncated history never implies
+success or failure. Run details preserve scheduled, recorded-start and
+recorded-finish times, outcome context and the fixed datasets in the batch.
+
+The month grid contains every date in the selected month with Monday-first
+weekday alignment and blank cells outside the month. Month navigation keeps
+the selected day where possible and clamps it for shorter months. A compact
+shared key explains the batch codes and state indicators. Each batch has one
+marker per day: any recorded failed run greys that marker and adds a red
+failure indicator, even if another run later succeeds. Other batches retain
+their independent state. Without failures, running, unconfirmed and scheduled
+slots remain amber; only a day with all that batch's slots completed is green.
+Accessible descriptions retain all five outcome counts. Selecting a day shows
+every exact slot and its original outcome in the daily focus; aggregation does
+not rewrite run evidence or assign a batch failure to individual data sources.
+
+Batch completion is distinct from individual-source success, retained capture
+freshness and source as-of dates. A successful batch may skip a holiday or find
+unchanged data; a failed batch may have stored some sources. Refreshing the
+page obtains another read-only snapshot and does not trigger a fetch. No new
+public tool, timer, scheduler mutation or live-fetch authority is introduced.
+Structured history follows the upstream [journalctl field projection](https://www.freedesktop.org/software/systemd/man/255/journalctl.html)
+and [systemd job start/completion metadata](https://raw.githubusercontent.com/systemd/systemd/v255/src/core/job.c).
+
+#### Partial Success and recorded work counts — September 8, 2026
+
+The requested extension adds **Partial Success** to the Status calendar, daily
+focus, hourly news group and legend. It is an amber terminal outcome with a
+distinct half-circle indicator. A failed exit is displayed as Partial Success
+only when a matching, completed numeric summary proves some successful or
+partially completed work. The original saved outcome and exit code stay intact;
+systemd disagreement and ambiguous attempts still remain Unconfirmed.
+A complete failure takes priority over partial runs in daily aggregation, and
+a partial run stays visible alongside later successful or scheduled slots.
+Partial counts are separate from pending slots in the selected-day summary.
+
+Expanded run details show Successful and Failed counts in the recorded unit
+(sources, issuers, ETFs, symbols or source steps). Incomplete, skipped/no-coverage
+and not-attempted counts are separate when present; they are not double-counted
+as successful or failed. Successful includes unchanged data. Dataset counts
+remain a description of batch outputs, not a measure of completed work.
+Absent, malformed, contradictory or unavailable summaries show “counts were
+not recorded”, never invented zeroes.
+
+Nine collector report hooks retain only closed numeric fields, without changing
+requests, CLI output, exit codes, publication or scheduling. Equibles retains its
+separate progress panel; cumulative transcript totals are not treated as per-run
+success counts. Completed hooks save a private summary.json alongside the
+unchanged version-1 run.json. Its exact run ID, batch ID, start, finish and
+exit code must match the original receipt. Schema/version, provenance, evidence
+hash, recorded time, units and bounded integer counts are validated. Summary
+reads use the same pinned directory descriptors, no-follow regular-file checks,
+4 KiB per-file bound, 4 MiB aggregate byte budget and three-second scan deadline.
+A summary recorded after the observation cutoff cannot supply counts.
+
+The user's requested update also permits attaching summaries to the September 8
+runs investigated in this task using their existing, exactly matched journal
+reports or checksum-validated market result receipts. These supplements retain
+an evidence digest and their actual recording time; original receipts remain
+byte-identical. The HTML request does not parse provider logs, import history,
+open a canonical store, fetch data or write either file.
+
+Partial-status validation: 73 focused receipt, Status presentation and Inspector
+integration tests passed; the final affected 50-test recheck also passed.
+Chromium checks at 1440, 360 and 320 pixels verified the five daily partial
+batches, count details, container bounds, keyboard disclosure, and native
+disclosure with page JavaScript disabled. Desktop/mobile screenshots were
+reviewed. Thirty September 8 summaries were attached with all original receipt
+hashes preserved. Only the loopback Inspector was reloaded on its existing
+port 8766; Status and health returned HTTP 200. No collector was triggered.
+The full suite was not required for this bounded Status extension. Private
+evidence is under .local/partial-fetch-status-20260909/.
+
+Initial weekly implementation evidence, 2026-09-06: the six focused Inspector test modules
+covered 58 unique tests. The initial run passed 57 and exposed a missing
+`/status` entry in the existing POST method-denial list; after correction,
+that route test and the adjacent method-boundary test passed. The 35 isolated
+browser assertions passed at 1440, 360 and 320 pixels, including keyboard,
+no-JavaScript, escaping, unavailable history and unchanged fixture-store
+fingerprints. Desktop/calendar/focus/detail screenshots were visually reviewed.
+The verified local Inspector was reloaded on port 8766: Status, selected-day,
+Data status and health pages returned 200; invalid date/unit input returned
+400 and POST returned 405. No provider call or recurring-unit mutation was
+performed. The full offline suite was not required for this bounded local page.
+
+Durable-history validation, 2026-09-06: 34 unique focused tests passed:
+12 receipt/CLI tests, 19 calendar/history integration tests and three adjacent
+Inspector route/fixture/health checks. Coverage includes the actual nine
+entrypoint call shapes with mocked collector bodies, original exit and output
+behavior, interrupted processes, concurrent receipts, directory-swap rejection,
+malformed-byte scan limits, observation cutoffs and contradictory evidence.
+Tests used explicit temporary history roots; no live collector was invoked.
+The full offline suite was not required for this observational change. The
+[first clock-driven receipt observation](CURRENT_OPERATING_ENVELOPE.md#inspector-durable-fetch-outcomes--2026-09-06)
+is recorded separately in the operating envelope.
+Twelve isolated browser checks also passed: saved success/failure details,
+keyboard disclosure, exact Eastern timestamps with retained UTC values, grey
+failed markers with red indicators and the restarted production page. Fixture
+and production screenshots were visually reviewed; no JavaScript errors or
+outside page requests occurred. Six temporary store/receipt fingerprints
+remained unchanged, and the fixture server and stores were cleaned up.
+
+
+### Equibles Inspector integration and grouped daily news — 2026-09-07
+
+The user requested Equibles in both the Data Inspector and Status. The existing
+fixed schedule list now also includes `quant-data-equibles-transcripts.timer`
+and its company-owned `company.equibles.transcripts` dataset: ten timers and
+matching services, with the same bounded metadata-only command shapes. The
+exact loaded daily `*-*-* 00:10:00 UTC` calendar expands into Eastern dates,
+including DST. It is not inferred from registry freshness. Equibles also uses
+the established observational run recorder for its zero-argument entrypoint;
+logging preserves its original result and invokes the collector exactly once.
+No timer, quota, provider request, retry policy or canonical publisher changes.
+
+A host-injected, read-only checkpoint projection reads only `status.json` under
+`data/.operations/equibles-transcripts`, up to 16 KiB through an opened directory
+and non-following, nonblocking regular-file descriptor. Missing, invalid, oversized,
+future-dated or changing records remain unavailable; tests omit the root to
+disable file access. Only validated counts, the current ticker, fixed outcome
+labels and recorded quota fields reach HTML. Provider errors, source URLs,
+credentials and raw checkpoint structures are excluded. The file modification
+time is labelled Last record, never a provider fetch or source availability time.
+Current progress is explicitly independent of the selected historical day.
+Recorded quota is not a live account query. A successful daily run is distinct
+from completing the finite backfill; quota deferral is shown separately.
+The Data status HTML overlay includes the finite-population note and schedule;
+its retained-only public JSON route and dataset-status tool are unchanged.
+
+The additive `company-transcripts` Inspector view uses the existing immutable
+company reader and fixed, parameterized queries. The catalog accepts exact
+symbol, fiscal year (1900–2200), quarter (1–4), direction and existing bounded
+pagination. It lists stored captures without inventing historical revisions or
+source availability. A fixed local capture link opens source-ordered speaker
+turns, up to 100 rows per page and 8 MiB of selected raw-page input. Content
+hashes and complete selected turn coverage are checked. Missing speakers/times
+remain null; raw text is escaped. Caller SQL, database paths and malformed
+capture IDs are rejected before reading a store. No transcript is refetched.
+
+Daily focus groups only the current-news batch into one closed native disclosure
+at its first chronological position. The summary preserves every outcome count
+and prominently signals any failure. Expanding reveals each exact hourly slot
+and its original nested run details. The monthly markers and daily summary
+counts are unchanged, including 23/25-hour DST days. Mouse, keyboard and
+no-JavaScript interactions use the same native disclosure.
+
+Verification: 75 unique focused cases passed across the original run and targeted
+correction rechecks; 19 fixture and 19 live browser assertions passed. Desktop,
+320/360-pixel, mouse, Enter/Space, no-script, escaping, no-outside-request,
+original-value and immutable-store checks completed. The UI owner visually
+reviewed actual long transcript paragraphs and mobile details. No full offline
+suite was required for this additive local UI integration. Dated live observations
+are indexed in the operating envelope; evidence is under `.local/equibles-ui-20260907/`.
 
 ## Security requirements
 
@@ -461,9 +1541,10 @@ until its applicable evidence is recorded.
 
 ### Registry and compatibility
 
-- The final canonical manifest test proves exactly 57 unique names and the
-  family counts above. The Stage 1 manifest separately proves exactly its two
-  declared milestone names and reports a non-active milestone status.
+- The canonical manifest test proves exactly 57 reserved compatibility names,
+  65 current active logical names, and the current active family counts above.
+  The historical Stage 1 projection separately proves exactly its two declared
+  milestone names and reports a non-active milestone status.
 - Every entry has generated input/output schemas, examples, limits, versions,
   store ownership, and one resolvable operation graph.
 - Recovered request/response fixtures pass, or each conflict is recorded and
@@ -521,3 +1602,101 @@ statistical definitions, resource ceilings, or live capabilities require
 integration-owner review. Changes to a primitive require impact analysis of
 every registry entry bound to it. The registry digest and acceptance evidence
 MUST be updated in the same reviewed change.
+
+
+## Additive personal ETF snapshot (registry 2.70.0)
+
+The user-requested `portfolio.get_etf_allocator_snapshot@1.0.0` uses the
+existing local public launcher, generated typed input and QueryResultV1 output,
+standard receipts, and one immutable market transaction. Catalog 2.27.0 has
+158 contracts and the active manifest has 75 logical names. Its exact
+predecessor is registry 2.69.0; no recovered default changes.
+
+The [local-agent ETF contract](../LOCAL_AGENT_TOOLS.md#etf-allocator-snapshot)
+defines the fixed 25-symbol scope, bounded cash-equity calendar, split-only
+price feature conventions, null/missingness rules, and consumer adjustments.
+Version 1 did not bind the retained provider fields to split-only semantics:
+its September 5 public request returned all 25 identities with blocked
+feature readiness and unchanged store stamps. This describes the frozen
+version 1 behavior, not an assertion that FMP close is unadjusted.
+This tool adds no provider, credential, ingestion, migration, scheduler,
+public network route, investment approval, or app-project modification.
+
+
+## September 6 additive FMP research and quote lane
+
+The [FMP contract](FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md) adds retained
+`company.get_research_inputs@1.0.0` and the explicitly owner-authorized
+local `price_realtime@1.0.0` capability. This is an additional live exception
+to the earlier intraday-release-only scope. Generic hosts remain disabled;
+only the local launcher supplies the quote capability. Discovery is offline.
+Host registry metadata has a separate 16 MiB bound; public JSON bounds
+remain unchanged.
+
+## September 13 ETF source binding (registry 2.84.0)
+
+The user-requested `portfolio.get_etf_allocator_snapshot@2.0.0` binds
+retained FMP full-EOD `close` to its documented split-adjusted,
+dividend-excluding meaning and passes the stored values directly to the
+existing feature kernel. It never applies another split factor or substitutes
+`adjClose`. Version 1, the default, and existing shared series contracts
+remain unchanged.
+
+The [version 2 contract](../LOCAL_AGENT_TOOLS.md#etf-version-2-provider-adjusted-close)
+defines source checks, independent feature readiness, explicit mixed-capture
+adjustment vintages and unchanged capture cutoffs. Missing historical
+publication/action reconstruction no longer suppresses supported current
+research features; historical certification remains unestablished.
+This change adds no collection, migration, provider call, scheduler change,
+metadata approval or investment policy.
+
+## 2026-09-13 close-metadata propagation
+
+Registry `2.85.0` / tool catalog `2.31.0` adds 26 explicit successors for
+price access, returns, indicators, cross-sectional/news-event calculations and
+their strict analytical consumers. The complete consumer version table and
+public verification are in [Local Agent Tools](../LOCAL_AGENT_TOOLS.md#fmp-close-metadata-successors-september-13-2026).
+The additive projection reproduces registry `2.84.0` exactly, including every
+old declaration and default. The frozen v1 catalog is unchanged.
+
+`ProviderClosePriceRepository` specializes the existing Stage 10 immutable
+reader. It checks bounded capture evidence on the same connection and changes
+metadata/quality flags only. Provider `fmp`, full-EOD endpoint, normalization,
+price variant, currency segment and instrument identity must all match before
+nonempty close rows receive `split_adjusted_excluding_distributions`.
+The provider close is used as stored; corporate-action factors and dividend-
+adjusted fields are never applied. Open/high/low/volume receive no inferred
+close-basis certification.
+
+Successor schemas accept the explicit close binding while preserving all
+existing time, identity, missingness, store and lineage validation. Original
+publication time stays null; retained local capture availability and mixed
+provider adjustment vintages remain explicit. A metadata successor reuses
+its predecessor's numerical kernel and transformation versions. Historical
+reconstruction and total-return semantics are not established by this change.
+
+## 2026-09-13 retained transcript tools
+
+Registry `2.86.0` / catalog `2.32.0` adds
+`company.search_transcripts@1.0.0`, `company.get_transcript@1.0.0` and
+`company.get_transcript_extraction@1.0.0`. They use the existing local
+dispatcher and standard receipt/QueryResult contract, with typed closed
+arguments and the host-selected immutable company store. The manifest has
+80 logical tools and 169 callable versioned contracts. Removing just these
+three declarations and reciprocal dataset references reproduces registry
+`2.85.0` exactly; all prior defaults and the frozen v1 catalog are unchanged.
+
+The [consumer contract](../LOCAL_AGENT_TOOLS.md#retained-transcripts-and-structured-extractions)
+defines capture-ID linkage, keyset pagination, byte/page bounds, original
+JSON fields, separate assessment outcomes, and missing-data behavior.
+Search and raw retrieval page captures and speaker turns respectively.
+Structured retrieval selects the latest eligible original draft; its cursor
+pins that analysis while paging assessments. This preserves blocked drafts
+and failed reviews without turning an assessment into approval.
+
+Availability reuses the existing raw-capture and model/assessment completion
+cutoffs. Provider fiscal/call dates do not certify historical publication.
+The readers coordinate with the existing physical store lock, check raw-page
+hashes and turn coverage, and retain the host deadline. This additive local
+boundary creates no provider/model request, migration, scheduler change,
+network listener or writable store interface.

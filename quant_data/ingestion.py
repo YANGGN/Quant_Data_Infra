@@ -11,7 +11,7 @@ from pathlib import PurePosixPath
 from typing import Callable, Iterable
 
 from .contracts import IngestionReceipt
-from .errors import ConflictError, ValidationError
+from .errors import ConflictError, ValidationError, ResourceLimitError
 from .json_codec import dumps_strict
 from .stores import (
     HeldWriteLocks,
@@ -25,6 +25,14 @@ from .temporal import TemporalPrecision, TemporalValue
 
 
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+
+
+class PublicationDeferred(ResourceLimitError):
+    """A trusted publisher's invocation deadline expired; retain work privately.
+
+    The coordinator rolls back this expected deferral without consuming its run
+    identity. Ordinary resource/validation failures keep their failure receipts.
+    """
 
 
 class _RejectedPublication(ValidationError):
@@ -601,6 +609,9 @@ class IngestionCoordinator:
                     written_count=result.written_count,
                     warnings=result.warnings,
                 )
+            except PublicationDeferred:
+                connection.rollback()
+                raise
             except Exception as exc:
                 connection.rollback()
                 if run_started:

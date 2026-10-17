@@ -1,0 +1,709 @@
+{
+  "contract": "sharadar_direct_to_sf1.v1",
+  "direct_schema_sha256": "82b5187aeec641bc8a855c5d69870b6fe4b7e2307935b5587dc46a73458d6e15",
+  "nasdaq_metadata_sha256": "53692594e6ebb52797dd273246f3672d21b9afb407fa5f92543945bc379ad009",
+  "columns": [
+    {
+      "direct_name": "ticker",
+      "canonical_name": "ticker",
+      "canonical_type": "text",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "dimension",
+      "canonical_name": "dimension",
+      "canonical_type": "text",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "calendardate",
+      "canonical_name": "calendardate",
+      "canonical_type": "Date",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "date",
+      "canonical_name": "datekey",
+      "canonical_type": "Date",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "reportperiod",
+      "canonical_name": "reportperiod",
+      "canonical_type": "Date",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "fiscalperiod",
+      "canonical_name": "fiscalperiod",
+      "canonical_type": "text",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "lastupdated",
+      "canonical_name": "lastupdated",
+      "canonical_type": "Date",
+      "direct_sqlite_type": "TEXT"
+    },
+    {
+      "direct_name": "accoci",
+      "canonical_name": "accoci",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "assets",
+      "canonical_name": "assets",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "assetsavg",
+      "canonical_name": "assetsavg",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "assetsc",
+      "canonical_name": "assetsc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "assetsnc",
+      "canonical_name": "assetsnc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "assetturnover",
+      "canonical_name": "assetturnover",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "bvps",
+      "canonical_name": "bvps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "capex",
+      "canonical_name": "capex",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "cashneq",
+      "canonical_name": "cashneq",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "cashnequsd",
+      "canonical_name": "cashnequsd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "cor",
+      "canonical_name": "cor",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "consolinc",
+      "canonical_name": "consolinc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "currentratio",
+      "canonical_name": "currentratio",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "de",
+      "canonical_name": "de",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "debt",
+      "canonical_name": "debt",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "debtc",
+      "canonical_name": "debtc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "debtnc",
+      "canonical_name": "debtnc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "debtusd",
+      "canonical_name": "debtusd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "deferredrev",
+      "canonical_name": "deferredrev",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "depamor",
+      "canonical_name": "depamor",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "deposits",
+      "canonical_name": "deposits",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "divyield",
+      "canonical_name": "divyield",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "dps",
+      "canonical_name": "dps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "ebit",
+      "canonical_name": "ebit",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ebitda",
+      "canonical_name": "ebitda",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ebitdamargin",
+      "canonical_name": "ebitdamargin",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "ebitdausd",
+      "canonical_name": "ebitdausd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ebitusd",
+      "canonical_name": "ebitusd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ebt",
+      "canonical_name": "ebt",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "eps",
+      "canonical_name": "eps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "epsdil",
+      "canonical_name": "epsdil",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "epsusd",
+      "canonical_name": "epsusd",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "equity",
+      "canonical_name": "equity",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "equityavg",
+      "canonical_name": "equityavg",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "equityusd",
+      "canonical_name": "equityusd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ev",
+      "canonical_name": "ev",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "evebit",
+      "canonical_name": "evebit",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "evebitda",
+      "canonical_name": "evebitda",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "fcf",
+      "canonical_name": "fcf",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "fcfps",
+      "canonical_name": "fcfps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "fxusd",
+      "canonical_name": "fxusd",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "gp",
+      "canonical_name": "gp",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "grossmargin",
+      "canonical_name": "grossmargin",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "intangibles",
+      "canonical_name": "intangibles",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "intexp",
+      "canonical_name": "intexp",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "invcap",
+      "canonical_name": "invcap",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "invcapavg",
+      "canonical_name": "invcapavg",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "inventory",
+      "canonical_name": "inventory",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "investments",
+      "canonical_name": "investments",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "investmentsc",
+      "canonical_name": "investmentsc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "investmentsnc",
+      "canonical_name": "investmentsnc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "liabilities",
+      "canonical_name": "liabilities",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "liabilitiesc",
+      "canonical_name": "liabilitiesc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "liabilitiesnc",
+      "canonical_name": "liabilitiesnc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "marketcap",
+      "canonical_name": "marketcap",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncf",
+      "canonical_name": "ncf",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfbus",
+      "canonical_name": "ncfbus",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfcommon",
+      "canonical_name": "ncfcommon",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfdebt",
+      "canonical_name": "ncfdebt",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfdiv",
+      "canonical_name": "ncfdiv",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncff",
+      "canonical_name": "ncff",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfi",
+      "canonical_name": "ncfi",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfinv",
+      "canonical_name": "ncfinv",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfo",
+      "canonical_name": "ncfo",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "ncfx",
+      "canonical_name": "ncfx",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "netinc",
+      "canonical_name": "netinc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "netinccmn",
+      "canonical_name": "netinccmn",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "netinccmnusd",
+      "canonical_name": "netinccmnusd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "netincdis",
+      "canonical_name": "netincdis",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "netincnci",
+      "canonical_name": "netincnci",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "netmargin",
+      "canonical_name": "netmargin",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "opex",
+      "canonical_name": "opex",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "opinc",
+      "canonical_name": "opinc",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "payables",
+      "canonical_name": "payables",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "payoutratio",
+      "canonical_name": "payoutratio",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "pb",
+      "canonical_name": "pb",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "pe",
+      "canonical_name": "pe",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "pe1",
+      "canonical_name": "pe1",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "ppnenet",
+      "canonical_name": "ppnenet",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "prefdivis",
+      "canonical_name": "prefdivis",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "price",
+      "canonical_name": "price",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "ps",
+      "canonical_name": "ps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "ps1",
+      "canonical_name": "ps1",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "receivables",
+      "canonical_name": "receivables",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "retearn",
+      "canonical_name": "retearn",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "revenue",
+      "canonical_name": "revenue",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "revenueusd",
+      "canonical_name": "revenueusd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "rnd",
+      "canonical_name": "rnd",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "roa",
+      "canonical_name": "roa",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "roe",
+      "canonical_name": "roe",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "roic",
+      "canonical_name": "roic",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "ros",
+      "canonical_name": "ros",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "sbcomp",
+      "canonical_name": "sbcomp",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "sgna",
+      "canonical_name": "sgna",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "sharefactor",
+      "canonical_name": "sharefactor",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "sharesbas",
+      "canonical_name": "sharesbas",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "shareswa",
+      "canonical_name": "shareswa",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "shareswadil",
+      "canonical_name": "shareswadil",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "sps",
+      "canonical_name": "sps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "tangibles",
+      "canonical_name": "tangibles",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "taxassets",
+      "canonical_name": "taxassets",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "taxexp",
+      "canonical_name": "taxexp",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "taxliabilities",
+      "canonical_name": "taxliabilities",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    },
+    {
+      "direct_name": "tbvps",
+      "canonical_name": "tbvps",
+      "canonical_type": "double",
+      "direct_sqlite_type": "REAL"
+    },
+    {
+      "direct_name": "workingcapital",
+      "canonical_name": "workingcapital",
+      "canonical_type": "Integer",
+      "direct_sqlite_type": "INTEGER"
+    }
+  ],
+  "definition_columns": [
+    {
+      "name": "table",
+      "type": "text"
+    },
+    {
+      "name": "indicator",
+      "type": "text"
+    },
+    {
+      "name": "isfilter",
+      "type": "text"
+    },
+    {
+      "name": "isprimarykey",
+      "type": "text"
+    },
+    {
+      "name": "title",
+      "type": "text"
+    },
+    {
+      "name": "description",
+      "type": "text"
+    },
+    {
+      "name": "unittype",
+      "type": "text"
+    }
+  ]
+}

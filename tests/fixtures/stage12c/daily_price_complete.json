@@ -1,0 +1,26 @@
+[
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-13",
+    "open": 200,
+    "high": 205,
+    "low": 199,
+    "close": 202,
+    "volume": 1000,
+    "change": 2,
+    "changePercent": 1,
+    "vwap": 202
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-14",
+    "open": 201,
+    "high": 206,
+    "low": 200,
+    "close": 203,
+    "volume": 1001,
+    "change": 2,
+    "changePercent": 1,
+    "vwap": 203
+  }
+]

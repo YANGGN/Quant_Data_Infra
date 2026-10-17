@@ -1,14 +1,22 @@
 # Migration Reconstruction Map
 
-Status: Stage 1 through bounded Stage 4 resources are fixture-validated and independently verified; the one explicitly authorized Stage 9 resource is `fixture_validated` after primary and independent offline gates; 31 resources allocated
+Status: 38 resources allocated; the bounded Stage 1 through Stage 4 and
+explicitly authorized Stage 9, Stage 10, and Stage 11 resources are
+`fixture_validated`. Stage 10 retained population receipts are complete; the
+Stage 11 private population and completion receipt are complete; and the
+official GDP/CPI, employment-vintage, and FMP wholesale-evidence migrations
+are populated in the canonical macro store. The proposed BLS CPI
+original-release archive is rejected and has no allocation in this map.
 Decision date: 2026-08-09
 Authority: [ADR 0008](../adr/0008-fresh-store-local-reconstruction-migrations.md)
 
 Evidence: [Stage 1 acceptance evidence](STAGE1_EVIDENCE.md),
 [Stage 2 acceptance evidence](STAGE2_EVIDENCE.md),
 [Stage 3 acceptance evidence](STAGE3_EVIDENCE.md),
-[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md), and
-[Stage 9 primary evidence](STAGE9_EVIDENCE.md)
+[Stage 4 acceptance evidence](STAGE4_EVIDENCE.md),
+[Stage 9 primary evidence](STAGE9_EVIDENCE.md),
+[Stage 10 evidence](STAGE10_EVIDENCE.md), and
+[Stage 11 evidence](STAGE11_EVIDENCE.md)
 
 ## Purpose
 
@@ -131,6 +139,232 @@ Independent re-verification passed after this allocation correction.
 This row does not claim a live FMP response/data population, operational
 promotion, or old-store retirement.
 
+## Fixture-validated Stage 10 allocation
+
+The user subsequently authorized a distinct, market-only Stage 10 profile for
+current S&P 500, Nasdaq-100, and Dow 30 constituents, a reviewed ETF/index
+roster, and the full daily OHLCV history returned per provider symbol. Russell
+2000 constituents are explicitly excluded. The allocation is deliberately
+separate from the frozen Stage 9 `SPY` relations and does not authorize an
+operational promotion, scheduler, public export, tool, dashboard, or store
+retirement.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `market:0010_stage10_market_history` | market | 10 | `quant_data/migrations/market/0010_stage10_market_history.sql` | `a7703655f6fe8089431eacdc78600582d6f5582589c0c38b531a2b93c7dc041a` | `fixture_validated` | Offline migration and hostile gates passed; retained base and extension candidate receipts recorded |
+
+This reviewed allocation freezes the store, ordinal, resource name, bounded
+semantic purpose, and exact UTF-8/LF resource digest. The canonical registry
+declares the same values. Population evidence and its historical sequencing
+qualification are recorded separately in
+[Stage 10 evidence](STAGE10_EVIDENCE.md).
+
+## Private Alpaca option raw-evidence allocation
+
+Registry `2.65.0` allocates one forward market migration for exact Alpaca
+option response bytes, capture membership, and the narrowly proven correction
+of explicit ordinary 100-share deliverables. It does not alter the applied
+Stage 4 option migration bytes or expose raw evidence through a tool,
+dashboard, export, or public route. Historical quote values that were not
+retained are not reconstructed.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `market:0011_option_raw_evidence` | market | 11 | `quant_data/migrations/market/0011_option_raw_evidence.sql` | `f6a4685963e1eddffb7fd92944e19e4bbeda0c89bc196d85a2308f1f408d8129` | `fixture_validated` | Applied to `data/market.sqlite` at `2026-08-31T01:42:58.896154Z`; 294 contracts corrected, 1,162 historical surfaces explicitly missing, raw relations empty pending a future capture |
+
+The migration owns `option_raw_responses` and
+`option_capture_raw_responses`. The first is content-addressed exact response
+evidence; the second binds a canonical option capture to each named response
+in source order. Both are immutable. The corrective statements match only an
+Alpaca, 100-multiplier contract with one 100-share, 100%-allocation equity
+delivery whose root and delivery symbol equal the stored canonical underlying.
+All other contracts remain untouched.
+
+## Fixture-validated Stage 11 allocation
+
+The user has authorized one additive macro-store allocation for the bounded
+BEA/EIA population that follows a completed Stage 10 candidate. It uses
+dedicated non-fixture evidence and canonical relations; it does not reinterpret
+or write the frozen Stage 3 fixture relations. The immutable resource digest
+was recorded after byte review and before registry activation.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0012_stage11_bea_eia_live_history` | macro | 12 | `quant_data/migrations/macro/0012_stage11_bea_eia_live_history.sql` | `4f29eed2d73fcb1aa6f3c519a3360c132658cf152341261a18d4332e140fd0a5` | `fixture_validated` | Schema, syntax, hostile migration, and offline gates passed; private Stage 11 population and receipt complete |
+
+This allocation is limited to the two reviewed BEA NIPA table/series pairs,
+the complete paginated U.S./all-sector EIA retail scope, and weekly series
+`PET.WCESTUS1.W`. It grants no generic BEA/EIA discovery, scheduler,
+operational promotion, public consumer, or store-retirement authority.
+
+## Official GDP/CPI vintage allocation
+
+The user authorized one isolated canonical macro-store allocation for official
+BEA GDP release history and BLS CPI revision snapshots. It does not reinterpret
+the Stage 3 fixture model or the retained Stage 11 candidate relations.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0013_live_gdp_cpi_vintages` | macro | 13 | `quant_data/migrations/macro/0013_live_gdp_cpi_vintages.sql` | `9eab5c35c6377e6f22a927dbc4602e982ff3c8ae6095e782de546a05de58f5bc` | `fixture_validated` | Parser, migration, publisher, registry, and operation gates passed; 16 official captures populated and current-only refresh scheduled |
+
+The allocation owns seven dedicated relations for raw evidence, four fixed
+series, source-vintage releases, immutable versions, current pointers,
+capture membership, and GDP provenance. It grants no broader macro discovery,
+credential, public consumer, caller-selected path, or repeat of the completed
+14-file CPI archive backfill.
+
+## Official employment-vintage allocation
+
+The user authorized one isolated successor allocation for Philadelphia Fed
+RTDSM payroll/unemployment history and the two exact BLS current employment
+series. It extends only the dedicated official-vintage relations created by
+macro ordinal 13.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0014_live_employment_vintages` | macro | 14 | `quant_data/migrations/macro/0014_live_employment_vintages.sql` | `79d1ed0a0ee7e059109bcd3238f1c7ab79148924b69c8eda282b09c0af245ee8` | `fixture_validated` | Parser, migration, publisher, registry, operation, lineage, and independent gates passed; three official captures populated and current-only BLS refresh scheduled |
+
+The migration preserves all ordinal-13 rows and triggers while adding only the
+Philadelphia Fed provider and the exact payroll/unemployment series aliases.
+Provider-safe release, version, and membership triggers reject Philadelphia
+Fed lineage for non-employment BLS series while preserving semantic replay.
+It grants no broader RTDSM/BLS discovery, credential, public consumer,
+caller-selected path, or repeat of the completed two-workbook backfill.
+
+## Official macro-history extension allocation
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0015_live_macro_history_extension` | macro | 15 | `quant_data/migrations/macro/0015_live_macro_history_extension.sql` | `31153005b135f6bb03d0c228488bee73b6c50051afaaf4b7f2a9252f957158b9` | `fixture_validated` | One-time deep CPI and Philadelphia Fed output/CPI history completed; no recurring collector or public exposure added |
+
+Macro ordinal 15 preserves all ordinal-13/14 rows while adding only the two
+source-native Philadelphia Fed output series and the narrow Philadelphia Fed
+CPI evidence aliases. The completed manual operation reused five sealed
+responses, made six BLS requests, and added 14,577 immutable versions. It does
+not reinterpret the BEA GDP series, add a scheduler, or authorize a repeat.
+The exact registry projection removes this migration and its two collectors to
+restore byte-exact registry `2.17.0`.
+
+## FMP wholesale calendar evidence allocation
+
+Registry `2.21.0` adds one forward macro allocation for immutable wholesale
+FMP U.S. economic-calendar response bytes and raw-row lineage. It follows the
+official macro-history extension and supports local replay of reviewed
+consensus aliases without a second provider request.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0016_fmp_calendar_wholesale_evidence` | macro | 16 | `quant_data/migrations/macro/0016_fmp_calendar_wholesale_evidence.sql` | `78dc02d34c0489c3f1fe4b7847870a18955606b1f47a3309ed8464ee9f3bbb4d` | `fixture_validated` | One-time wholesale calendar history and zero-network local replays complete; no public consumer or new timer |
+
+Macro ordinal 16 preserves ordinal-13 through ordinal-15 relations while
+adding only raw FMP calendar capture and row evidence. It does not add a BLS
+original-release archive, surprise table, public consumer, scheduler, or
+authority to repeat completed history.
+
+
+## Forward macro allocations after wholesale history
+
+The accepted GDI extension occupies ordinal 17. ADR 0012 then allocates
+ordinal 18 for future compact FMP calendar persistence; it does not alter the
+bytes, checksum, relations, or completed evidence of ordinal 16.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `macro:0017_live_gdi_vintages` | macro | 17 | `quant_data/migrations/macro/0017_live_gdi_vintages.sql` | `e92da1620b2da10e15d76ee9a3817fc081d0363f6cd7b87653f2340a8f756e71` | `fixture_validated` | Current BEA GDP/GDI refresh population is complete under its retained evidence |
+| `macro:0018_fmp_calendar_incremental_events` | macro | 18 | `quant_data/migrations/macro/0018_fmp_calendar_incremental_events.sql` | `078cfd62e7cd7a314e6b828b19414023f60fa81c760c89a31b3398f1b7e41a3e` | `fixture_validated` | Canonically applied at `2026-08-25T01:31:39.017401Z`; new relations empty and no provider operation |
+
+Migration 0018 adds immutable changed-batch receipts, stable raw event
+identities, append-only event corrections, and one replaceable
+non-authoritative latest-response cache. It neither copies legacy rows into
+the new relations nor authorizes deletion or compaction of migration 0016.
+
+The user explicitly authorized the canonical application on 2026-08-24. The
+reviewed one-store runner applied only the pending macro migration and
+registered the two successor datasets. The bounded post-check confirmed the
+exact ordinal/resource/checksum, four empty new tables, three indexes, twelve
+triggers, clean integrity and foreign keys, and unchanged legacy counts of 62
+captures and 47,754 rows. It made no provider, credential, history-repeat,
+scheduler, or cleanup action.
+## Rejected BLS CPI original-release archive candidate
+
+The working `2.22.0` candidate declared
+`macro:0017_bls_cpi_release_archive` at macro ordinal 17 with resource
+`quant_data/migrations/macro/0017_bls_cpi_release_archive.sql`. It was never
+allocated by this map or supported by an accepted completion record. Under
+[ADR 0011](../adr/0011-retire-proposed-bls-cpi-release-archive.md), it is a
+rejected candidate rather than an outstanding future allocation. It must not
+be applied, assigned a later ordinal, retained as a fallback, or revived under
+a renamed resource without a new explicit user decision. This does not alter
+the completed `2.16.0` BLS annual-revision snapshots or their current refresh.
+
+The explicitly authorized 2026-08-21 immutable read-only canonical check found
+the exact accepted `0016` row as the macro-store head and found no `0017` ID,
+ordinal, or resource collision and no archive capture, release, fact, trigger,
+or index relation. Main/WAL/SHM/journal physical stamps were identical before
+and after, with all sidecars absent. Ignored scratch captures and a
+pre-publication backup show that the abandoned workflow was invoked, but they
+do not supersede the canonical ledger result or constitute an accepted
+allocation/completion record.
+
+## Bounded FMP stock-news allocation
+
+The user has authorized one deliberate forward reconstruction for a
+manual-only FMP stock-latest news page. It is a private news-store population
+contract, not recovered provider history or public news coverage. The reviewed
+resource follows `news:0004_search_index`; its offline fixture gate and every
+live gate remain pending.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `news:0005_fmp_stock_latest` | news | 5 | `quant_data/migrations/news/0005_fmp_stock_latest.sql` | `f2565061f5b908255838be875c05112b8bf91033295b87a5b955f9de2d142217` | `fixture_validated` | Focused offline fixture gate passed; live gate pending |
+
+The allocation retains an immutable pre-request intent, at most one terminal
+outcome, and exact raw response bytes before private article/version and
+capture-membership rows. It grants no scheduler, retry, fallback endpoint,
+second page, public consumer, promotion, or store-retirement authority.
+
+## Repeatable FMP current-news allocation
+
+Registry `2.63.0` adds a separate, forward-only successor for retained current
+FMP stock-news headlines.  It follows the frozen `news:0005_fmp_stock_latest`
+resource without changing its one-shot scope or history.  The new migration
+owns immutable hourly-slot attempt/outcome/capture evidence plus article,
+version, and capture-membership lineage.  It grants no historical-completeness
+claim, tombstone inference, scheduler, provider retry, or public body/raw
+evidence exposure.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `news:0006_fmp_stock_latest_current` | news | 6 | `quant_data/migrations/news/0006_fmp_stock_latest_current.sql` | `bf8757bcc7679d1bd57408978eed996c9f4dad9c89339a52ca8adbeedbf83d30` | `fixture_validated` | Applied; one successful 2026-08-30 bounded request retained 229 articles; no timer |
+
+The current collector remains manual-only until a separately authorized
+recurring schedule exists.
+
+## Current multi-source news allocation
+
+Registry `2.64.0` adds a forward current-news successor without reopening the
+frozen one-shot 0005 scope. Migration 0007 owns the generic immutable evidence,
+article-version, symbol, and capture-membership relations for the fixed FMP
+press/general, Federal Reserve, ECB, BEA, EIA, and Alpaca/Benzinga sources.
+Migration 0008 adopts the pre-registry `fmp_news_articles` table without
+rewriting its 22,910 rows. The corresponding dataset is inactive private
+evidence; a fail-closed schema guard verifies its exact columns before
+registration, and no collector or public consumer binds to it.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `news:0007_current_multi_source` | news | 7 | `quant_data/migrations/news/0007_current_multi_source.sql` | `df58936c73045ba8a382bf0a24743db5e314246e0f81d8943872b6d3e6c010c3` | `fixture_validated` | Applied; all 20 bounded requests succeeded at 2026-08-30 16:00 UTC, retaining 1,069 generic-source articles |
+| `news:0008_adopt_fmp_news_legacy` | news | 8 | `quant_data/migrations/news/0008_adopt_fmp_news_legacy.sql` | `ea5302726758ab2bb987a525c3094885e016e4596689d26c8290808523f8327f` | `fixture_validated` | Applied; existing rows preserved; inactive/private/no consumer |
+
+Coverage derives from retained market equity, ETF, and index symbols. Alpaca
+receives only equity and ETF symbols. FMP uses `FMP_API_KEY`; Alpaca uses
+`ALPACA_API_KEY` and `ALPACA_API_SECRET`. A future missing credential yields
+source-local `unavailable`. The manual batch is
+`scripts/refresh_current_news.py`. On 2026-08-30 its reviewed hourly per-user
+service/timer units were linked, enabled, and started. The timer is
+active/waiting for its first normal `:10` UTC trigger; activation did not run
+the service or write a store.
+
 ## Legacy semantic cross-reference
 
 | New resource | Recovered evidence used | Deliberate stage boundary |
@@ -157,12 +391,24 @@ promotion, or old-store retirement.
 | `macro:0010_eia_weekly_fundamentals` | `0022` EIA weekly semantics | Content identity, versions, and snapshot-membership fixture contract only |
 | `macro:0011_us_recession_periods` | `0027` U.S. recession chronology | Completed-period chronology fixture contract only |
 | `market:0009_fmp_daily_price_backfill` | [plan.md](../../plan.md) 7.1 FMP daily OHLCV provider evidence; no recovered migration SQL, checksum, or ordinal | Exact Stage 9 `SPY` 2026-07-01 through 2026-07-31 candidate-only non-production slice only; no general FMP backfill |
+| `market:0010_stage10_market_history` | Explicit Stage 10 user authorization plus the accepted market identity, universe-snapshot, evidence, correction, and physical-lock contracts | Current S&P 500/Nasdaq-100/Dow 30 members plus the reviewed ETF/index roster and provider-returned daily OHLCV history; no Russell 2000 constituents or historical-membership claim |
+| `macro:0012_stage11_bea_eia_live_history` | Explicit Stage 11 user authorization plus the accepted macro evidence, local-capture availability, correction, pagination, and physical-lock contracts | Dedicated BEA NIPA and EIA retail/weekly candidate-only history; no fixture-table reinterpretation, vintage invention, or broader macro discovery |
+| `macro:0013_live_gdp_cpi_vintages` | Explicit GDP/CPI vintage authorization plus accepted immutable evidence, source-vintage availability, version, no-write replay, and physical-lock contracts | Four fixed official BEA/BLS series with bounded historical archives and current-only refresh; no Stage 11 reinterpretation or broader macro discovery |
+| `macro:0014_live_employment_vintages` | Explicit employment-vintage authorization plus accepted immutable evidence, provider-alias lineage, source-vintage identity, no-write replay, and physical-lock contracts | Philadelphia Fed payroll/unemployment matrices plus exact BLS current payroll/unemployment series; no invented release dates, historical refetch, or broader macro discovery |
+| `macro:0015_live_macro_history_extension` | Explicit one-time macro-history authorization plus sealed-response adoption, source-native series, provider-alias lineage, and exact registry projection | Seven fixed BLS CPI windows and four Philadelphia Fed GDP/GNP/CPI matrices; no repeat, scheduler, public consumer, or BEA-series reinterpretation |
+| `macro:0016_fmp_calendar_wholesale_evidence` | Explicit `2.21.0` FMP wholesale-calendar authorization plus immutable raw-evidence, local-replay, no-write, and physical-lock contracts | One-time retained FMP calendar response/row evidence supporting local replays; no original-release archive, public consumer, scheduler, or repeat provider request |
+| `news:0005_fmp_stock_latest` | Explicit bounded FMP stock-news authorization plus accepted news evidence, version, and physical-lock contracts | One private page-zero/page-limit-1000 capture only; no historical completeness, tombstone inference, public consumer, or live-success claim |
+| `news:0006_fmp_stock_latest_current` | Separate forward current-feed migration, immutable local-capture availability, article-version lineage, and physical-lock contracts | Applied repeatable UTC-hour-slot capture; first bounded request retained 229 articles; no timer or public raw/body exposure |
+| `news:0007_current_multi_source` | Forward current multi-source evidence/article migration, fixed feed identities, local-capture availability, and private body/raw boundary | Applied manual batch; all 20 bounded requests succeeded; no timer or public raw/body exposure |
+| `news:0008_adopt_fmp_news_legacy` | Tracked pre-registry FMP table schema plus explicit inactive private ownership | Existing 22,910 rows preserved behind an exact schema guard; no collector, tool, dashboard, export, or source ID |
 
-Except for the explicitly authorized Stage 9 row above, all other recovered
-and future migration scopes remain unallocated. The exact market options
-ownership at `0029`/`0030` and the filing-issuer derived-view invariants at
-`0031` are represented by the frozen Stage 4 resources above, without
-asserting historical SQL parity.
+Except for the explicitly authorized Stage 9, Stage 10, Stage 11, official
+macro-vintage, FMP wholesale-evidence, and bounded FMP stock-news rows above,
+all other recovered and future migration scopes remain unallocated. The
+rejected `macro:0017_bls_cpi_release_archive` candidate is not an unallocated
+future scope. The exact market options ownership at `0029`/`0030` and the
+filing-issuer derived-view invariants at `0031` are represented by the frozen
+Stage 4 resources above, without asserting historical SQL parity.
 
 ## Activation checklist
 
@@ -170,21 +416,368 @@ asserting historical SQL parity.
 2. Declare the same reviewed value in `config/system_registry.json`.
 3. Verify registry/resource/order integrity before opening a writer.
 4. Apply Stage 1 through Stage 4 resources only to four explicit temporary
-   paths during their fixture gates. `market:0009_fmp_daily_price_backfill` is
-   the sole later allocation and is only eligible under the exact Stage 9
-   manual candidate-only path after its remaining gates; it is not a general
-   live-provider or migration authorization.
+   paths during their fixture gates. The Stage 9 through Stage 11 resources are
+   eligible only inside their exact authorized non-production candidate paths
+   after their applicable offline gates. No allocation is generic
+   live-provider authorization.
 5. Run initialization, rerun, tamper, wrong-store, partial-failure, and
    source/backup/restored evidence tests.
 6. During a forward-preserving table rebuild, temporarily disable foreign-key
    enforcement only inside the atomic rebuild and require `foreign_key_check`
    before the migration ledger advances.
 7. Promote reconstruction state to `fixture_validated` only with the complete
-   applicable stage evidence. The 30 Stage 1 through Stage 4 resources have
-   passed their applicable primary fixture gates; `market:0009_fmp_daily_price_backfill`
-   is `fixture_validated` in the canonical registry after the primary Stage 9
-   offline gate. None can be relabeled `recovered_exact`.
-8. Stage 4 independent verification completed `G4`. Independent Stage 9
-   re-verification passed after this correction; every other future
-   migration allocation remains serialized under the next applicable roadmap
-   gate.
+   applicable stage evidence. The 30 Stage 1 through Stage 4 resources and the
+   Stage 9 through Stage 11 resources are `fixture_validated` in the canonical
+   registry after their applicable offline gates. None can be relabeled
+   `recovered_exact`.
+8. Stage 4 and Stage 9 independent verification passed. Stage 10 retained
+   candidate receipts were independently re-inspected. The Stage 11 private
+   candidate population and receipt are complete. Every
+   future migration allocation remains serialized under the next applicable
+   roadmap gate.
+
+## FMP company research-input allocation — 2026-09-06
+
+The user authorized the bounded FMP repair for MSFT and AAPL research inputs.
+This forward-only company allocation preserves all applied company migrations.
+
+| ID | Store | Local ordinal | Immutable resource | SHA-256 | Reconstruction state | Activation status |
+| --- | --- | ---: | --- | --- | --- | --- |
+| `company:0008_fmp_research_inputs` | company | 8 | `quant_data/migrations/company/0008_fmp_research_inputs.sql` | `17b35efa1ba21b3526e6b0fda361736ac6a11b79cfd7109c92ea6b75dfee2831` | `fixture_validated` | Applied at 2026-09-06T18:28:16.997079Z after full offline coverage and independent review; immutable ledger/checksum and new-table integrity verified |
+
+The allocation owns `company_fmp_research_snapshots` and
+`company_fmp_research_rows`: immutable retained-response lineage and versioned
+source rows, with separate annual/quarter identities and local capture cutoffs.
+It does not redefine SEC fundamentals, establish historical consensus, infer
+accounting basis or currency, change other store ownership, or add a recurring
+collector. The exact provider scope and request cap are recorded in the
+[FMP research-input contract](FMP_RESEARCH_INPUTS_CONTRACT_2026-09-06.md).
+
+## Shared website-source extension — 2026-09-06
+
+The user explicitly approved extending the shared multi-source news tables for
+Finviz and FinancialJuice and wiring them into the existing hourly fetcher.
+Allocate `news:0009_website_source_extension`, news ordinal 9, resource
+`quant_data/migrations/news/0009_website_source_extension.sql`.
+Only the source/provider allowlists in attempts, captures, and articles expand.
+The established atomic runner rebuilds those three tables, preserving every
+column value and recreating the existing indexes and immutable/lineage guards.
+No new dataset, store, table family, or historical population is introduced.
+Applied migrations 0001–0008 remain byte-identical. The immutable SQL SHA-256 is
+`992f83f7c9fdd49eade78ab52fc01221746e78f4abe1e851641c75be184f860b`.
+Populated preservation, rollback, immutable guards, foreign keys, correction
+history, and exact replay passed temporary-store checks and independent review.
+The required full offline gate passed all 1,625 unique cases across retained
+and resumed runs, including all affected historical rechecks. No golden changed.
+The canonical migration was applied at `2026-09-06T18:53:43.905856Z` under
+registry `2.72.0`. Immutable before/after checks preserved every prior row,
+trigger definition, and migration ledger entry; integrity and foreign keys
+passed. The retained-response publication then added 180 Finviz and 100
+FinancialJuice articles with no new HTTP request. See the
+[operating envelope](CURRENT_OPERATING_ENVELOPE.md#september-6-2026--shared-finviz-and-financialjuice-activation)
+and private `.local/news-website-activation-20260906.json` receipt.
+
+## FMP analyst history allocation — 2026-09-07
+
+The current user decision authorizes the two-company pilot followed by the existing
+single-name universe population. Allocate `company:0009_fmp_analyst_history`,
+company ordinal 9, resource `quant_data/migrations/company/0009_fmp_analyst_history.sql`,
+depending on company 0008. This allocation is recorded before resource creation.
+It owns analyst captures, observation versions and capture membership, preserving
+applied migration bytes and all other store ownership. See the
+[FMP analyst history contract](FMP_ANALYST_HISTORY_2026-09-07.md).
+The allocation passed the independently verified combined 1,668-case offline gate.
+Company 0009 was applied at `2026-09-07T06:50:51.596529Z` under its exact
+registry 2.73 projection before the 26-capture pilot and no-change/cutoff audit.
+
+The allocated analyst migration resource SHA-256 is
+`a9a2bd45d22ef17a4c2af3ca24b89c4cc95bcbb574fa43f4a942bd4e77453dc4`.
+The applied ledger checksum matches this reviewed resource. Capture availability uses
+fixed-microsecond UTC text ordering, avoiding SQLite Julian-day rounding.
+The subsequent retained-only universe publication completed after the audited
+company 0010 handoff, with no additional migration invocation. It populated
+516 symbols and 397,299 observation versions, preserving the full company
+0001–0010 ledger and every non-analyst company-table count. Final integrity,
+foreign keys, and exact replay passed; explicit identity/provider gaps are recorded
+in the focused analyst receipt.
+
+## Equibles raw transcript allocation — 2026-09-07
+
+The user-requested transcript backfill allocates company ordinal 10 only:
+`company:0010_equibles_transcripts`, resource
+`quant_data/migrations/company/0010_equibles_transcripts.sql`, SHA-256
+`600358ba2c8c3196ef4c421f42444fe2955222fbdcb26a75c41e7aa1e6a74e62`.
+It depends on company 0009 without changing any predecessor bytes.
+The two append-only relations retain complete-call metadata and exact raw page
+BLOBs with ingestion-artifact lineage and local capture availability.
+The [contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md) records gates;
+the operating envelope records dated application evidence.
+
+Company 0010 was applied at `2026-09-07T07:01:09.081284+00:00` under registry
+2.74.0 after the independent 1,668-case gate and the company 0009 pilot handoff.
+All nine predecessor ledger rows were preserved; schema, dataset registration,
+and foreign keys verified. The first 60-call publication passed raw-byte,
+complete-bundle, lineage, and pre-existing company-table preservation checks.
+See the [dated operating evidence](CURRENT_OPERATING_ENVELOPE.md#september-7-2026--equibles-activation-evidence)
+and `.local/equibles-activation.json`.
+
+## Transcript analysis allocation — 2026-09-08
+
+The user's implementation decision allocates company ordinal 11 only:
+`company:0011_transcript_analysis`, resource
+`quant_data/migrations/company/0011_transcript_analysis.sql`, SHA-256
+`199db61444e8a6ad78f7696b52121725794a67dfc46cb56ae1f79283ff975a73`.
+It depends on company 0010 and changes no applied predecessor bytes. Registry
+2.75.0 adds the private derived dataset `company.transcript.analysis` and manual
+OpenAI collector. Six append-only tables retain Terra analyses, typed guidance,
+analyst blocks/topics, management tone, and Sol reviews with source/run lineage
+and separate local availability. Exact projection restores registry 2.74.0.
+This is an implementation allocation, not operational application evidence.
+See the [analysis contract](TRANSCRIPT_ANALYSIS_CONTRACT_2026-09-08.md).
+
+
+## Transcript-analysis subscription activation — 2026-09-09 UTC
+
+The later explicit request to implement Codex subscription execution and run
+ADM's completed transcript history included activation of the already-reviewed
+`company:0011_transcript_analysis`. The existing migration was applied to the
+fixed company store at `2026-09-09T02:05:45.715315Z`; SHA-256 remains
+`199db61444e8a6ad78f7696b52121725794a67dfc46cb56ae1f79283ff975a73`.
+Registry 2.75.0, ordinal 11 and the six-table allocation are unchanged. The
+prior ten ledger rows and all prior company data were preserved.
+
+The first model attempt subsequently timed out; this does not roll back the
+successful schema activation or establish analysis-population success. All six
+analysis tables remain empty. The [operating envelope](CURRENT_OPERATING_ENVELOPE.md#september-9-2026-utc--codex-subscription-transcript-pilot)
+records the finite scope and actual result. Private activation and immutable
+audit receipts are under `.local/transcript-codex-pilot-20260909/`.
+
+## Shared collection-universe allocation — September 9, 2026
+
+Implementation of the user-selected 2,248-ticker expansion allocates
+market:0012_collection_universes at local market ordinal 12, after
+market:0011_option_raw_evidence. Resource:
+quant_data/migrations/market/0012_collection_universes.sql. This forward
+addition preserves immutable source manifests, membership snapshots and
+observed transitions without changing fixture-era or Stage10 relations.
+The SQL is newly authored and remains unapplied to canonical stores. Current
+fixture-validated SHA-256 is
+83c17b85175b9b3a3ecaf0a98251804eac968601be1f08887b846cb8b55cad73.
+It also retains independent provider mapping snapshots and immutable acquisition
+evidence, distinguishing provider/capture identity from raw response content.
+Independent verification and the full offline gate remain pending. Company
+migration 0011 and all applied resources are unchanged.
+
+
+## SEC completion index allocation — September 9, 2026
+
+The selected-universe rollout exposed repeated scans in the existing SEC
+completion guard. Allocate company ordinal 15:
+`company:0015_sec_completion_indexes`, after company 0014, resource
+`quant_data/migrations/company/0015_sec_completion_indexes.sql`.
+The candidate adds only three indexes: SEC fact versions by run, SEC filings by
+run, and fact membership by fact version and run. Rows, keys, triggers, validation,
+availability and dataset ownership remain unchanged.
+
+The exact immutable query plan records a full fact scan and a correlated full
+membership scan. Initial canonical publications took roughly a minute per issuer,
+while the same retained issuer published in 0.908 seconds in a fresh temporary
+store. Nine issuer publications are retained. The one-off publisher is paused;
+the interrupted transaction left zero running ingestion rows.
+
+Implementation and the required full offline gate run in an isolated candidate
+under `.local/universe-rollout-20260909/sec-index-candidate`. The live registry
+remains at its reviewed 2.79.0 until the migration passes full and independent
+validation, preventing automatic migration by a normal clock-driven collector.
+No applied migration bytes may change. This is allocation, not application
+evidence; final checksum and actual activation are recorded after verification.
+
+### SEC completion index application — September 10, 2026 UTC
+
+The allocated company 0015 resource has SHA-256
+de41c29e4cab863945d1575df6c69642514889dc22a36be6d0440713c88aac3e.
+All 53 predecessor migration resources were independently checked unchanged.
+Registry 2.80.0 has SHA-256
+da3e31a19f62016e34fa201b73b49f72d43ba9bbea715b1aa482382fc1490246.
+After the complete reconciled 2,076-unique-case gate and independent review,
+the migration was applied at 02:56:58 UTC and verified at 02:58:29 UTC. All prior
+company ledger rows, table counts and trigger bodies were preserved; the three
+nonunique indexes match their exact columns and foreign keys have zero violations.
+Private evidence: .local/universe-rollout-20260909/sec-index-canonical-activation-result.json.
+The earlier shared market 0012 and company 0012–0014 activations are recorded in
+the selected-universe rollout receipt and its immutable activation evidence.
+
+
+## FMP research lookup-index allocation — September 11, 2026
+
+The authorized six-group selected-universe backfill exposed repeated full-table
+scans in statement publication and its unchanged revision guard. Allocate
+company ordinal 16, `company:0016_fmp_research_lookup_indexes`, after company
+0015, at `quant_data/migrations/company/0016_fmp_research_lookup_indexes.sql`.
+The isolated candidate adds nonunique lookup indexes for existing natural
+identity/capture and issuer predicates. It changes no fact, key, trigger,
+identity, timestamp, ownership, endpoint or prior migration bytes. The main
+registry remains at 2.80.0 until full offline and independent migration gates
+pass; allocation is not evidence of canonical application. Candidate and
+source preimages live under `.local/company-collectors-expansion-20260911/performance-candidate-20260911`.
+
+
+## Sharadar direct allocation — September 12, 2026
+
+The user approved the direct-delivery migration. Allocate company ordinal 17,
+`company:0017_sharadar_direct`, after company 0016. It preserves retained
+observations and evidence while adding direct normalization and native membership
+pointers through the reviewed date-to-datekey identity bridge. Resource SHA-256:
+`aa6608958ce9410d0bb633618756ca29893d1e4f0a59fd8d7b96f365f20ed429`.
+Registry 2.82 SHA-256: `1d541b532e535124ea45d2af991541348319f7d7ced937114c39aaffc2ccdfc2`.
+See [the implementation and validation record](SHARADAR_DIRECT_MIGRATION_2026-09-12.md).
+This allocation does not by itself prove canonical application.
+
+
+### Sharadar direct application — September 12, 2026 UTC
+
+The allocated company 0017 resource was applied once after the reconciled
+2,316-unique-case offline gate and independent verification. Application began
+at 15:47:18 UTC; verification completed at 15:55:27 UTC. The resource and registry
+checksums remain exactly those recorded in the allocation above.
+
+All 15 Sharadar table hashes and counts (1,459,244 rows), all 16 prior company
+migration rows, and all 276 prior trigger bodies were preserved. Exactly two
+reviewed channel-origin guards were added. The existing runner completed its
+transactional foreign-key check. No provider, backfill or scheduler operation
+was performed. Receipt: `.local/sharadar-direct-implementation-20260912/canonical-result.json`.
+
+
+### Structured transcript storage allocation - September 13, 2026 UTC
+
+The user requested database storage of the existing structured outputs. Allocate company ordinal 18 after company 0017, preserving all existing migration bytes and legacy analysis semantics.
+
+Migration: company:0018_structured_transcripts. SHA-256: 22d587532a4f5ecffbc76e2e16b793b312fc9f116815474328ec4e2ba05d9111. Registry 2.83 SHA-256: 6080f543f920d44750eebf36ee7f6de54ecb34681b5352269454d6da7c69fc97.
+
+Two new immutable tables retain original structured drafts and separate assessments. Full-suite and fresh independent gates precede canonical application. Candidate evidence is .local/transcript-db-publication-20260913/; allocation does not prove application.
+
+
+### Structured transcript storage completion - September 13, 2026 UTC
+
+The authorized existing-batch import completed at 2026-09-13T05:03:17.263570Z: 234 original
+Terra/high structured outputs and 249 separate assessments (234 automatic,
+10 Sol reviews, 5 Astra adjudications) are stored in data/company.sqlite.
+Storing drafts preserves their original quality status; it does not assert
+acceptance or replace them with reviewer revisions. No extraction/review pipeline
+model calls, provider requests, recurring-unit changes, source rewrites or public
+exposure were performed.
+
+Company migration company:0018_structured_transcripts was applied with
+SHA-256 22d587532a4f5ecffbc76e2e16b793b312fc9f116815474328ec4e2ba05d9111.
+Actual migration registry provenance: 2.83.0.
+All prior company migration rows and existing SQL definitions were preserved.
+All 234 canonical source records and original extraction bytes, plus all 249
+assessment payloads and evidence bytes, matched the prepared batch after import.
+The new tables passed foreign-key checks. Exact replay wrote zero records,
+created no new ingestion run, and left the dataset's stored state unchanged.
+
+The complete reconciled offline gate covered 2381 unique cases
+with 0 skips and zero unresolved failures/errors. Required
+correction cases passed actual reruns. Fresh independent review cleared the
+implementation, frozen-runtime harness and evidence reconciliation methods.
+No full-suite certification of unrelated shared-runtime changes is claimed.
+
+During validation, unrelated work advanced the shared active registry beyond
+the initial 2.82 development baseline. The company declarations remained exactly
+compatible. This import used the hash-verified frozen 2.83 runtime and preserved
+the active registry, which was 2.84.0 at final verification.
+This supersedes only the earlier prospective registry-activation sequence;
+the authorized population, storage semantics and gates did not broaden.
+
+Evidence: .local/transcript-db-publication-20260913/completion-receipt.json,
+canonical-schema-audit.json, canonical-final-audit.json, full-suite-result.json,
+frozen-runtime-verification.json and DB_STORAGE_RESULT.md. Future extraction
+auto-publication was not enabled by this existing-batch import.
+
+## Company short-description allocation and population - September 22, 2026
+
+The user's explicit request for short descriptions across the existing selected
+universe allocates and applies company ordinal 19 after company 0018:
+company:0019_short_descriptions,
+resource quant_data/migrations/company/0019_short_descriptions.sql,
+SHA-256 7c734a408c2407e86cac7fc1baac12726cb6839112d9d10cd70339b3902701d3, registry 2.91.0,
+reconstruction state fixture_validated. All earlier migration bytes, ledger rows
+and SQL definitions were preserved. The existing migration engine's full
+foreign-key gate passed.
+
+The private company.profile_evidence dataset owns company_profile_evidence.
+The derived company.short_descriptions dataset owns
+company_short_description_versions and the current company_short_descriptions
+view. The short_description field is populated for all 2,248 selected securities;
+source profiles, instrument identity, input snapshots, source timing and
+publication timing are retained. Exact semantic replay writes zero rows.
+The full contract, focused and independent checks, finite provider scope and
+completion receipts are recorded in
+[Company short descriptions](COMPANY_SHORT_DESCRIPTIONS_2026-09-22.md).
+
+
+## Retained-news capture lookup — September 23, 2026
+
+| ID | Store | Ordinal | Resource | SHA-256 | State |
+| --- | --- | --- | --- | --- | --- |
+| news:0010_current_news_capture_lookup | news | 10 | quant_data/migrations/news/0010_current_news_capture_lookup.sql | 63cf675540c6a89c19ecfce4ffc71910d8f5bde649842726caf725bef32794c2 | fixture_validated; applied 2026-09-23 |
+
+A single metadata index on existing feed, capture-time and capture-ID fields.
+No article, capture, publication/availability timestamp, raw evidence or source
+identity changes. Earlier SQL resources remain byte-identical. The user requested
+efficient retained-news search and source-status reads; this allocation adds no
+provider workload or recurring unit. Registry 2.92.0 is active. The exact
+predecessor is preserved; focused tests, independent verification, atomic
+rollback/replay tests and canonical foreign-key validation passed. One index
+and ledger row were added; prior schema/ledger and all fact counts were
+unchanged. See [the repair receipt](RETAINED_NEWS_READ_REPAIR_2026-09-23.md).
+
+## Optional options migration   2026-09-24
+
+The new, independent options domain starts at
+`quant_data/migrations/options/0001_theta_compact.sql`; checksum
+`63691b621c0a4ea0b5e03beb32028dfeea646260be5147c067b287fa914ddbff`.
+Its sole declaration is `config/options_registry.json` under ADR 0013.
+No existing migration bytes, ordinals or store ownership change. This migration
+creates the options anchor/ledger, layered dataset declarations, immutable
+captures/details/summaries/leaders/receipts and mutable current pointers.
+Temporary-store rollback, replay, backup and restore tests cover its boundary.
+
+## Options ordinal 0002 - Tier-1 root expansion, 2026-09-24
+
+Allocated resource: quant_data/migrations/options/0002_tier1_etf_roots.sql;
+SHA-256 ae6a5b7b81429b720cd5cfef4c6e65722e0921f785bd88dee3e02ab60d8d1e2d.
+Scope: optional options store only; atomic replacement of two restricted parent
+tables with exact row copies, unchanged child tables/IDs and restored immutable
+triggers/indexes. Ordinal 0001 is unchanged. The companion registry 1.1.0 owns
+the migration chain; validated older prefixes support the existing SPY backup.
+Applied-state evidence belongs in the [expansion receipt](THETA_ETF_EXPANSION_2026-09-24.md).
+
+## Options ordinal 0003 — cross-asset roots, October 13, 2026
+
+Resource `quant_data/migrations/options/0003_cross_asset_etf_roots.sql`, SHA-256
+`c82c56f985fb136a22f48c2a1b0701292af18c637405a8b17db561d3ef604776`,
+adds the 12 explicitly requested cross-asset ETFs to the two parent-table root
+constraints. Companion registry 1.2.0 owns the contiguous three-migration chain.
+Earlier migration bytes, all copied parent values, child tables, identifiers,
+indexes and immutable triggers retain their contracts. Applied October 13 at
+14:13 UTC after a verified current backup and independent offline review;
+before/after parent and current-pointer digests matched. See the
+[cross-asset receipt](THETA_CROSS_ASSET_EXPANSION_2026-10-13.md).
+
+
+## FMP-only instrument classifications — October 9, 2026
+
+The user authorized a complete classification mapping from saved FMP profiles
+for all 2,248 selected names. This allocates market ordinal 13 after ordinal 12:
+`market:0013_fmp_classifications`, resource
+`quant_data/migrations/market/0013_fmp_classifications.sql`,
+SHA-256 `658c3a409b0350aa0b8ce38c74411484edd2499703ff87784f71fd8b9aa66810`, registry `2.96.0`,
+reconstruction state `fixture_validated`; applied October 9, 2026
+(America/Toronto), with committed state verified at `2026-10-10T03:29:33.576376Z`.
+The market-owned canonical dataset `market.instrument_classifications` owns
+`market_classification_versions` and the `market_instrument_classifications`
+current view. This preserves the old Stage 3 fixture classification contract,
+earlier SQL bytes and all company profile evidence. No ownership transfer or
+new shared identity/time convention occurs. Completion evidence and the
+finite operation are in [the classification contract](FMP_CLASSIFICATIONS_2026-10-09.md).

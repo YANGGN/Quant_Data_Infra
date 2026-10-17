@@ -1,0 +1,47 @@
+{
+  "pd": {
+    "timeseries": [
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDPOS-EMPTY",
+        "description": "",
+        "category": "",
+        "maturity": null
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDTR-MISSING",
+        "category": null,
+        "maturity": ""
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDSORA-NULL",
+        "description": null,
+        "seriescategory": "",
+        "maturitybucket": null
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDFT-DESCRIBED",
+        "description": "Settlement fails to deliver",
+        "category": "Fails",
+        "maturity": "All maturities"
+      },
+      {
+        "seriesbreak": "SBN2022",
+        "keyid": "PDPOS-UNSELECTED",
+        "description": "",
+        "category": "",
+        "maturity": ""
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDSI-UNKNOWN",
+        "description": null,
+        "category": null,
+        "maturity": null
+      }
+    ]
+  }
+}

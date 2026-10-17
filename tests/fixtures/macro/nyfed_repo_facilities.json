@@ -1,0 +1,58 @@
+{
+  "repo": {
+    "operations": [
+      {
+        "operationId": "rrp-2026-08-20",
+        "operationDate": "2026-08-20",
+        "auctionStatus": "Results",
+        "operationType": "Reverse Repo",
+        "operationMethod": "Fixed-Rate",
+        "termCalenderDays": 1,
+        "totalAmtAccepted": 25000000000,
+        "note": null
+      },
+      {
+        "operationId": "srf-2026-08-20-a",
+        "operationDate": "2026-08-20",
+        "auctionStatus": "Results",
+        "operationType": "Repo",
+        "operationMethod": "Fixed-Rate",
+        "termCalenderDays": 1,
+        "totalAmtAccepted": 1000000,
+        "note": null
+      },
+      {
+        "operationId": "srf-2026-08-20-b",
+        "operationDate": "2026-08-20",
+        "auctionStatus": "Results",
+        "operationType": "Repo",
+        "operationMethod": "Fixed-Rate",
+        "termCalenderDays": 1,
+        "totalAmtAccepted": 2000000,
+        "note": null
+      },
+      {
+        "operationId": "rrp-small-value",
+        "operationDate": "2026-08-20",
+        "auctionStatus": "Results",
+        "operationType": "Reverse Repo",
+        "totalAmtAccepted": 999,
+        "note": "Small value exercise"
+      },
+      {
+        "operationId": "repo-before-srf",
+        "operationDate": "2020-01-02",
+        "auctionStatus": "Results",
+        "operationType": "Repo",
+        "totalAmtAccepted": 7000000,
+        "note": null
+      },
+      {
+        "operationId": "future-announcement",
+        "operationDate": "2026-08-21",
+        "auctionStatus": "Announcement",
+        "operationType": "Repo"
+      }
+    ]
+  }
+}

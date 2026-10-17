@@ -1,6 +1,7 @@
 # Rebuild Test Strategy
 
 Status: Accepted
+Revised: 2026-09-15 — user-directed component impact and escalation rules
 
 ## 1. Purpose
 
@@ -67,8 +68,10 @@ Before initialization, the harness:
   exists.
 
 After the test, it asserts that every created filesystem object resolves inside
-the test root. A test that creates `data/market_data.sqlite` or another default
+the test root. A test that creates `data/market.sqlite` or another default
 path fails even if its value assertions pass.
+Tests also prove that the superseded `data/market_data.sqlite` name is never
+used as a silent fallback or compatibility alias.
 
 Parallel tests receive separate roots. Tests that exercise writer locking use
 separate connections/processes against one explicitly named temporary store;
@@ -76,21 +79,282 @@ they never share a default fixture database.
 
 ## 4. Test layers
 
-| Layer | Primary evidence | Runs |
-| --- | --- | --- |
-| Unit | Parsers, canonicalizers, identity functions, time comparisons, validators, JSON sanitation | Every change |
-| Migration | Clean initialization, order, checksum, rerun, tamper, rollback, split ownership | Every change |
-| Contract | Registry schemas, strict inputs/outputs, bounds, error codes, lineage envelope | Every change |
-| Repository | Latest/as-of/first-release selection, ordering, limits, read-only enforcement | Every change |
-| Ingestion integration | Evidence-to-canonical transaction, replay, correction, partial/failure, checkpoint | Every change |
-| Golden | Exact fixture query/tool/audit JSON and logical rebuild manifest | Every change |
-| Property/invariant | Generated valid/invalid data, version graph, cross-store and SQLite integrity | Every change, bounded seed set |
-| API/UI | Endpoint validation, security headers, structural rendering, no writes | Every change to public surface |
-| Performance/resource | Hard bounds, query plans, pagination, busy timeout, response size | Main branch and release candidate |
-| Live-provider smoke | Minimal current request, secret-safe diagnostics, no persistence unless explicitly testing an adapter | Manual/optional, never offline CI |
+Select checks from the actual changed behavior and its consumers before
+implementation. This user-approved revision replaces the former blanket
+every-change/public-schema/registry suite rules. Specific accepted milestone,
+release, and promotion exit gates and explicit user requests still apply.
+Historical evidence and frozen golden contracts are not rewritten by this policy.
 
-Focused suites must be runnable independently. A public schema, migration, or
-cross-store change also runs the complete offline suite.
+| Change | Required completion evidence |
+| --- | --- |
+| Documentation or workflow prose only | Local links, targeted content/consistency review, and diff checks |
+| Local fix, calculation, or established private binding | Focused behavior/boundary tests and affected adjacent consumers |
+| Additive bounded local read-only tool or explicit version | Domain tests; strict public schemas/examples, manifest/describe/call and receipt compatibility; generated-output check; frozen/default and exact predecessor checks; cutoff, missingness, bounds and read-only failure cases |
+| Authorized bounded provider/store operation through established mechanisms | Applicable focused offline checks, exact finite preflight, and bounded post-operation integrity/lineage/replay evidence |
+| Component-scoped ingestion/publication policy or domain-only schema/migration with unchanged shared contracts | Domain behavior and persisted invariants; affected callers/readers; migration order/checksum/replay/rollback when applicable; independent review where the affected safety contract requires it |
+| Cross-domain/core identity/time/missingness/selection, physical-store locking engine, shared migration engine, registry-wide schema/ownership, security/host access, or cross-store atomicity semantics | Full offline suite, applicable accepted contract, and independent verification; identify the changed invariant and affected consumers |
+| Shared generator algorithm, validator, or contract-core semantics | Full offline suite and independent compatibility verification |
+| Explicit exhaustive request or an accepted stage/release/promotion gate naming it | The named full-suite gate must pass |
+
+The additive-tool lane requires unchanged existing contracts/defaults and shared
+store, identity, time, lock, and access semantics. Local registration and its
+generated output qualify only with bounded impact and exact compatibility
+evidence; changing how the shared generator or validator behaves takes the
+full-suite lane. A new endpoint must retain the existing host-selected,
+bounded, read-only execution boundary. Hosting or new external network access
+also needs explicit operational authority and its applicable gate.
+
+Using a shared primitive is not itself a change to its semantics. Inspect
+affected interfaces to choose adjacent consumers rather than treating uncertain
+test selection as an automatic full-suite requirement. A real request against
+retained data is required when the user or accepted contract calls for it, and
+still needs the approved immutable reader procedure. Fixtures do not establish
+live readiness.
+
+| Layer | Evidence to select when affected |
+| --- | --- |
+| Unit | Parsers, canonicalizers, identity/time comparisons, formulas, validators, JSON sanitation |
+| Migration | Initialization, order, checksum, rerun, tamper, rollback, split ownership |
+| Contract | Name/version inventory, strict inputs/outputs, examples, bounds, errors, lineage |
+| Repository | Latest/as-of/first-release selection, ordering, limits, read-only enforcement |
+| Ingestion integration | Transaction, replay, correction, partial/failure, checkpoint |
+| Golden | Exact fixture query/tool/audit JSON and logical rebuild manifests |
+| Property/invariant | Bounded deterministic seeds for affected version/store invariants |
+| API/UI | Endpoint validation, security headers, rendering, browser smoke and no-write behavior |
+| Performance/resource | Affected bounds and query plans; broader checks at the applicable main/release gate |
+| Live-provider smoke | Separately authorized finite manual scope; never part of offline CI |
+
+Focused suites must run independently. Once required checks and final review
+pass, finish; broaden or repeat only for a concrete failure, changed code, or
+unresolved concern. Supplementary exhaustive work must report its own outcome
+without blocking the completed interactive handoff.
+
+Parallel execution requires reviewed isolation of temporary roots, stores,
+locks, ports, process state, and publication paths. Keep shared-resource groups
+serial. Resumed runs must reconcile unique case IDs, retain original failures
+and their explicit successful rechecks, and report skipped or uncovered cases.
+Do not count a skip, interrupted run, or duplicate discovery as a new passing case.
+
+### 4.1 Component impact and escalation
+
+Before implementation or validation, record a short impact map:
+
+1. The behavior and component being changed.
+2. The input/output or persisted invariant that can change.
+3. The existing callers/readers that can observe that change.
+4. The named tests and operational pre/post checks that cover those boundaries.
+
+Use the smallest complete set of checks for that map. Sharing a source file,
+registry, SQLite infrastructure, or a canonical database is not evidence that
+all consumers are affected. An opt-in, component-specific publication policy
+can stay in the focused lane when default callers and shared schema, identity,
+time, locking, and access contracts remain unchanged. Test the new policy and
+the relevant default-caller regression explicitly. A domain-only migration
+covers its own schema, readers, replay, rollback, and integrity boundaries;
+it does not automatically require other domains.
+
+Before escalating to the full suite, identify the actual changed shared/core
+invariant and the independent domains that can observe it, or cite the current
+explicit full-suite gate. Uncertainty about test selection is resolved by
+inspecting callers and contracts. A label such as canonical safety, a large
+shared file, a new timer, or a generated-file diff is not sufficient by itself.
+A newer explicit user decision can revise a previous task-specific validation
+scope; preserve the old run and report that supersession accurately.
+
+A failure outside the impact map is recorded as separate maintenance. Expand
+the current map only with evidence of a causal dependency or an inability to
+establish a required invariant. Do not fix unrelated registry-version tests,
+historical reconstructions, UI behavior, or other domains merely to obtain a
+green repository-wide run. A pre-existing problem that makes the requested
+outcome unsafe or unverifiable remains a blocker for the affected action.
+
+Keep component fixtures small and independent: explicit temporary stores,
+controlled clocks, bounded provider-shape inputs, and no credentials, network,
+or live/default paths. Ordinary price-patching tests should not reconstruct
+unrelated historical registries or initialize unrelated operational datasets.
+Retain exhaustive historical/golden checks for changes to those contracts and
+for their applicable release gates. Avoid introducing a new test framework or
+large refactor merely to select existing unittest modules.
+
+### 4.2 Example: weekly historical-price repair
+
+The affected boundary is market-price repair through the existing publisher.
+Select checks for:
+
+- the previous completed Monday-Friday window, trading calendars, and Toronto
+  Saturday 02:00 scheduling, including daylight-saving transitions;
+- fetching only incomplete symbols, finite request/byte/time caps, and no
+  automatic retry or feature/provider expansion;
+- valid OHLCV inputs, missing-only insertion, preservation of existing rows,
+  exact replay, race/locking behavior, and interruption recovery;
+- the existing daily refresh/correction caller and affected fetch-status
+  receipts; and
+- unit syntax/calendar verification plus authorized bounded read-only preflight
+  and post-operation evidence when a live run is separately authorized.
+
+The existing focused module set for the September 15 repair is:
+
+- tests.operations.test_weekly_price_repair
+- tests.operations.test_collection_price_windows
+- tests.operations.test_selected_price_refresh
+- tests.operations.test_fetch_run_history
+- tests.test_inspector_fetch_status
+
+This is an impact example, not a fixed test-count target or authorization to
+fetch data, activate a timer, or repeat a completed population. Add or remove
+checks when the actual changed boundary warrants it. Company/news collection,
+unrelated tool catalogs, dashboard rendering, and full historical reconstruction
+enter this scope only when their behavior or a consumed contract changes.
+
+### 4.3 Component command groups
+
+Run from the repository root with `PYTHONDONTWRITEBYTECODE=1`. Use the
+[development profile](../../README.md#development-environments) appropriate to
+the component. These commands are starting selections for the impact map, not
+a replacement for affected-consumer checks or applicable full-suite gates.
+All listed checks use fixtures or package metadata, without provider calls or
+live/default stores. Keep database/publication groups serial.
+
+Development environment checker (core profile):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_development_environment -v
+```
+
+Historical registry compatibility touched by the September 29 cleanup (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.test_macro_database_expansion_registry \
+  tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_registry_285_preserves_reviewed_inventory_and_predecessors \
+  tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_generated_v1_is_frozen_and_v2_catalog_is_separate \
+  tests.tool_platform.test_market_return_versioning.MarketReturnVersioningTests.test_manifest_preserves_historical_contracts_and_current_version_policies \
+  tests.tool_platform.test_sharadar_company_tools -v
+```
+
+Exact historical inventory assertions must use their pinned registry profile.
+Keep frozen hashes and historical definitions intact, and separately check that
+those definitions remain compatible with the current registry. New additive
+contracts should not require rewriting old counts as today's inventory grows.
+The exhaustive predecessor test above can be slow; it is relevant when changing
+those compatibility assertions, not for every component edit.
+
+Shared queue policy and breadth calculations (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.company.test_equibles_queue_policy \
+  tests.operations.test_equibles_refresh \
+  tests.tool_platform.test_market_breadth -v
+```
+
+When their public callers change, include the saved-plan and price/breadth cases
+in `tests.tool_platform.test_retained_research_public` (calendar profile).
+Collector metadata is owned by `quant_data/collector_metadata.py`. Changes to its
+bindings or accepted arguments also select `tests.test_inspector_schedules`,
+`tests.test_inspector_fetch_status`, `tests.operations.test_fetch_run_history`,
+`tests.operations.test_theta_fetch_status` and `tests.dashboard.test_unified_status_page`.
+Those tests use fake unit output and temporary receipts; they do not inspect or
+activate live services. Retired Alpaca receipt decoding remains separate from
+current timer bindings.
+
+Saved forward P/E and forward EPS tools (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.tool_platform.test_forward_pe_tools \
+  tests.tool_platform.test_forward_pe_analysis_tools -v
+```
+
+Price repair uses the calendar profile and the named checks in
+[section 4.2](#42-example-weekly-historical-price-repair). Extend that selection
+only for boundaries changed by the specific repair.
+
+Mocked Theta transport uses the Python 3.12 Theta profile:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .local/dev/options/bin/python -m unittest \
+  tests.options.test_monitor_transport -v
+```
+
+Substitute the actual development interpreter path. Missing optional packages
+are an environment failure, not evidence that the component passed. The core
+profile supports standard-library components; it does not claim to supply every
+optional dependency required by full discovery. Calendar and Theta baselines
+currently use different interpreters; run their component groups with the
+corresponding environment and report interpreter choices, skips and any unrelated
+baseline failures separately. Do not treat a core-only run as full validation.
+
+Web Push integration uses the Python 3.12 options-monitor profile:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 .local/dev/options/bin/python -m unittest \
+  tests.options.test_monitor_push \
+  tests.options.test_monitor \
+  tests.options.test_monitor_transport -v
+```
+
+Install `requirements/options-monitor.txt` in that development environment and
+run its metadata checker first. The Web Push SDK test generates ephemeral
+fixture keys, encrypts and decrypts the payload, and checks signing, timeouts,
+redirect refusal and single-attempt failure behavior. DNS is mocked and HTTP is
+intercepted before delivery; fallback socket connections fail. Existing monitor
+fixtures cover per-subscriber opt-out and durable attempt deduplication. No live
+subscription, notification, credential or provider request is used. This optional
+profile is separate from the three core/calendar/Theta CI selections.
+
+Static collector and current-navigation consistency (core):
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest \
+  tests.test_collector_metadata \
+  tests.test_documentation_navigation \
+  tests.operations.test_fetch_run_history -v
+```
+
+These checks compare declared timer targets and command arguments with the
+checked-in units, resolve dataset IDs through the main and Theta companion
+registries, and preserve separation of retired receipt decoding. The receipt
+entrypoint regression also runs against a relocated source fixture: deployment
+paths remain fixed by the unit contract, while source lookup follows the checkout.
+
+Navigation checks cover current introductory guidance, the document map, the
+latest-decision index, and development/test instructions. They check inline local
+file links and Markdown/explicit HTML anchors, ignoring fenced examples and
+external URLs. Historical narrative bodies are outside this check. No systemd,
+provider, credential, network or database access is involved in the static checks.
+
+### 4.4 Installed component CI
+
+[Offline checks](../../.github/workflows/offline-checks.yml) defines three
+independent jobs on pushes and pull requests:
+
+| Job | Environment | Selected boundaries |
+| --- | --- | --- |
+| Core | Python 3.11, standard library | Environment checker, current documentation links, queue policy and saved plan consumers, breadth calculations, collector/unit/status consistency, historical/current registry compatibility, saved company valuation tools, cross-project CLI, classification/intraday contracts, and price-basis compatibility |
+| Calendar | Python 3.11, `requirements/calendar.txt` | Weekly price repair, price windows, daily refresh, and public composed research calls including cutoffs and read-only fingerprints |
+| Theta | Python 3.12, `requirements/theta.txt` | Mocked SDK session sharing, options publication/replay, daily/weekend collection fixtures, and public Theta tools |
+
+Core also runs the existing partial-run summary checks, including sanitized
+warnings when summary validation fails and preservation of collector outcomes.
+The CLI and domain contract modules cover discovery, explicit versions,
+read-only fixtures, cutoffs, and preserved predecessor contracts; the price-basis
+module checks unchanged values and metadata-aware composition. The monitor
+selection runs the current public-contract class, including its exact immediate
+predecessor. Deep Stage 5 reconstruction remains in the separate historical
+test class and full discovery.
+
+The workflow owns the exact test selections. Each hosted job receives a separate
+checkout and environment; database/publication tests run serially inside that
+job. Core installs no optional dependencies. Calendar and Theta installation may
+access the package index; the selected tests use temporary fixtures and no live
+provider credentials or default stores. Every job first checks its pinned runtime
+profile. No live collector, scheduler, deployment or manual provider smoke runs.
+
+These are component checks, not full discovery or a promotion gate. Web Push,
+browser/visual checks and unrelated domains retain their own impact-based
+validation. The workflow grants read-only repository permission and pins external
+actions to reviewed commit revisions. A cancelled or failed job is not a pass.
 
 ## 5. Fixtures
 
@@ -479,8 +743,13 @@ content.
 
 ### Stage E - complete offline suite
 
-Runs all restored domains and tools. This stage is required for migration,
-registry, shared-time, cross-store, public-API, or export changes.
+Runs all restored domains and tools when the selection matrix in
+[Section 4](#4-test-layers) or a specific accepted stage/release/promotion gate
+requires it. Adding a bounded local contract and regenerating its artifacts
+does not alone trigger this stage. A required exhaustive run must finish and
+resolve failures before completion is claimed; supplementary runs remain
+separately labeled. This document specifies gates, not installed CI or a new
+scheduled automation.
 
 ### Stage F - optional smoke and release rehearsal
 

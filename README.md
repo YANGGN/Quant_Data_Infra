@@ -1,5 +1,92 @@
 # Quant Data Infrastructure
 
+Local market, macro, company and news data, with a separate Theta options store,
+versioned read-only agent tools and a loopback Inspector. SQLite remains the
+source of record; research exports are derived artifacts.
+
+## Start here
+
+| Task | Current entry point |
+| --- | --- |
+| Use data from another local agent | [Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md#cross-project-quick-start); select tool versions explicitly |
+| Develop or change a component | [Fast path](docs/rebuild/FAST_PATH_DEVELOPMENT.md), then the [component test matrix](docs/rebuild/TEST_STRATEGY.md#4-test-layers) |
+| Check or prepare a development runtime | [Development environments](#development-environments) |
+| Inspect recorded operational authorization | [Operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions) and the linked latest decisions |
+| Find a contract or historical decision | [Documentation map](docs/rebuild/README.md#2-document-map) |
+
+The current registry and schema inventory are defined by
+[config/system_registry.json](config/system_registry.json) and its generated
+catalogs. Discover public contracts with `bin/quant-data-tools manifest` and
+`bin/quant-data-tools describe TOOL --tool-version VERSION`; see the agent guide
+for request examples. Current options research uses `data/options.sqlite` through
+the Theta tools. Alpaca options collection is retired; retained legacy readers
+remain explicit compatibility interfaces.
+
+## Development environments
+
+Use native Ubuntu/WSL Python from the repository directory. These are separate
+**development profiles**, captured from the working runtimes on 2026-09-29;
+provisioning one does not change installed services or authorize provider work.
+
+| Profile | Reviewed Python | Version pins | Offline check |
+| --- | --- | --- | --- |
+| Core tools and fixture tests | CPython 3.11 or 3.12 | [core.txt](requirements/core.txt), standard library only | `python3 scripts/check_environment.py --profile core` |
+| Exchange calendars / price repair | CPython 3.11 | [calendar.txt](requirements/calendar.txt) | `python3 scripts/check_environment.py --profile calendar` |
+| Theta SDK and mocked transport tests | CPython 3.12 | [theta.txt](requirements/theta.txt) | `python3.12 scripts/check_environment.py --profile theta` |
+| Theta plus Web Push | CPython 3.12 | [options-monitor.txt](requirements/options-monitor.txt) | `python3.12 scripts/check_environment.py --profile options-monitor` |
+
+Run the checker with the interpreter from the environment being checked. It reads
+package metadata only, reports missing/mismatched versions as JSON, and exits
+nonzero for a mismatch. It imports no provider SDK, reads no credentials or
+SQLite stores, and installs nothing. The pins preserve the existing calendar
+version and keep the optional SDK independent of core development.
+
+For an isolated calendar development environment:
+
+```bash
+python3.11 -m venv .local/dev/calendar
+.local/dev/calendar/bin/python -m pip install -r requirements/calendar.txt
+PYTHONDONTWRITEBYTECODE=1 .local/dev/calendar/bin/python scripts/check_environment.py --profile calendar
+```
+
+For optional monitoring development, use Python 3.12 in `.local/dev/options`
+and install `requirements/options-monitor.txt` there. Package installation may
+access a package index; the checker and fixture tests are offline. The recorded
+calendar, Theta and Web Push pins were installed successfully in fresh temporary
+environments on 2026-09-29. Web Push verification exercises real encryption and
+signing with generated fixture keys and an intercepted HTTP transport; it sends
+no notification. The [test command groups](docs/rebuild/TEST_STRATEGY.md#43-component-command-groups)
+use the existing unittest runner and explain which profile each group needs.
+
+[Offline CI](.github/workflows/offline-checks.yml) runs separate core, calendar,
+and Theta jobs on pushes and pull requests. It installs the pinned development
+dependencies, verifies each environment, then runs the named fixture groups.
+See the [CI scope](docs/rebuild/TEST_STRATEGY.md#44-installed-component-ci) for
+coverage and limits.
+
+## Workspace and source ownership
+
+- `.local/` contains host runtimes, private work receipts and recovery artifacts.
+  `exports/` contains derived research publications. Both are ignored by Git;
+  ignoring them is not a retention or deletion policy.
+- `sites/options-monitor/` is a separate Git repository. Its `origin` is the
+  private [Intraday Options Monitoring repository](https://github.com/YANGGN/Intraday_Options_Monitoring),
+  with branch `main`. Push website source from that repository; a push of this
+  parent repository does not include it. On 2026-09-29 the existing history was
+  pushed and a fresh clone verified against the same commit and source tree,
+  with Git object integrity checked. This records source recovery, not a site
+  deployment or an operational database backup.
+- Versioned schemas under `docs/rebuild/` are runtime inputs, including the
+  transcript analysis/structured-call schemas. Migrations, schemas, frozen
+  contracts and dated receipts are preserved during documentation cleanup.
+
+## Historical rebuild record
+
+The following stage narrative and stage-specific validation commands retain
+historical scope. They are not the default setup or test workflow; use the
+current entry points above and the latest operating-envelope decision for a
+new task.
+
 This repository is a clean rebuild of a personal quant-data platform. The
 Stages 1 through 5 are independently verified; the bounded Stage 6 portal is
 accepted; and the bounded Stage 7 manual rehearsal is independently verified.
@@ -10,7 +97,10 @@ primary fixture gate and independent SolUltra verification passed on
 The bounded offline Stage 8 implementation adds one fixture-only static JSON
 Atlas snapshot. It is a deliberate forward reconstruction, not a claim of
 recovered historical Atlas or 13-dataset parity. Its primary offline fixture
-gate and independent offline verification passed on 2026-08-11; browser verification remains pending.
+gate and independent offline verification passed on 2026-08-11. On 2026-08-14
+the user explicitly waived the unavailable in-app browser-automation check and
+accepted the bounded Stage 8 exit gate as complete; the waiver is not a claim
+that the unrecorded browser checks passed.
 
 The user has authorized a narrow Stage 9 preparation for one manual FMP
 end-of-day OHLCV slice: `SPY`, inclusive `2026-07-01` through `2026-07-31`,
@@ -23,6 +113,55 @@ licensing remains the operator's account-specific responsibility.
 It does not authorize a scheduler, public exposure, Atlas inclusion,
 operational promotion, or old-store retirement.
 
+The bounded Stage 10 base population and eight-window historical extension are
+complete in
+`/home/volatility/quant-data-nonprod/stage10-fmp-market-history-v1`.
+Their retained private candidate receipts have been independently re-inspected;
+the provider requests must not be repeated. Stage 11 uses the macro store in
+that same isolated cohort. Its BEA, EIA retail, and EIA weekly phases are
+published, its targeted checks passed, and its private completion receipt is
+retained. No Stage 11 provider request may be repeated. The result remains a
+private, non-production candidate with no promotion or public exposure.
+
+On 2026-08-15 the user selected `data/market.sqlite` as the canonical
+project-relative market default. Stage 12A is implemented and independently
+verified as the authority/path gate, and Stage 12B is implemented and
+independently verified as an offline fixture-only collector. The bounded
+manual no-copy Stage 12C population is now complete and independently verified
+under its [two-session contract](docs/rebuild/STAGE12C_MARKET_GAP_V1.md) and
+immutable [evidence record](docs/rebuild/STAGE12C_EVIDENCE.md). Registry
+`2.14.0`/schema `1.8.0` binds 629 one-attempt chains: 619 published
+complete, three successful-empty, and seven narrowly sealed authorized HTTP 402
+terminal outcomes. The final project-local target has 4,237,131 current rows,
+4,237,873 immutable versions, and 5,210 captures with clean invariants.
+Stage 12D is complete and independently verified under its
+[no-transfer project-local adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and immutable [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Its exact
+two canonical read-only proofs produced distinct receipts with one semantic
+proof and left the database, WAL, SHM, and journal stamps unchanged. The
+independent post-proof reconciliation did not reopen SQLite or compute a new
+full-database hash; this is not backup or recovery evidence. Stage 12D created
+no second database, copy, move, replacement, backup, migration, registry bump,
+promotion pointer, provider/network access, public exposure, or scheduler
+change within that proof. Registry `2.14.0`/schema `1.8.0` binds the historical
+Stage 12C/D evidence; `data/market.sqlite` remains the canonical market default.
+Later Stage 12E authority and dated activation evidence are indexed in the
+[current operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions).
+Those records do not constitute a fresh check of host state.
+
+### FMP credentials for future authorized runs
+
+Future FMP runners that are otherwise authorized by their focused contract use
+`quant_data.credentials.read_project_credential` automatically immediately
+before permitted transport. A nonblank process-environment `FMP_API_KEY` wins;
+only when it is absent or blank may the helper resolve that single named key
+from the exact canonical project-root `.env` file. The helper does not import
+other keys into the process environment, load arbitrary dotenv files, expand
+or interpolate variables or commands, or log or persist secrets. Do not paste
+API keys into chat, command lines, receipts, or sidecars. This credential
+delivery rule does not authorize a provider, scope, retry, scheduler, or any
+other work that the focused contract does not already authorize.
+
 The portal remains local-only with four fixed routes: Overview (`/`), GDP
 Vintages (`/gdp-vintages`), Tables (`/table-inspector`), and Agent Tools
 (`/agent-tools`). Stage 7 adds eight disabled `manual_fixture_only` job
@@ -33,14 +172,82 @@ no live provider or runtime network access, scheduler installation/start,
 exports, Atlas, promotion, hosting, credentials, default database fallback, or
 destructive operations.
 
+That Stage 6 portal remains a frozen historical projection. For current
+canonical-data and public-tool inspection, start the separate loopback-only
+Canonical Data Inspector:
+
+```bash
+bin/quant-data-inspector
+```
+
+Open the printed `http://127.0.0.1:8765/` URL. Its Data views use fixed,
+bounded read templates. Its Agent Tools section is generated from the current
+manifest, shows only the latest version of each logical tool, supports session-only
+typed-series reuse, and renders bounded nested previews plus the complete
+strict-JSON response in pages.
+The Current news page renders a bounded latest selection through the fixed
+`news.search@2.3.0` public contract, with source, symbol, date, text, and
+cursor filters. Retained raw response bytes and article bodies remain private.
+The Status workspace (`/status`) combines run activity, retained-data status,
+and current backfill progress. The former `/data-status` URL opens the same
+workspace at Stored data. Summary cards connect run outcomes to retained-data
+coverage; expand a run and select **View stored data for this batch** to inspect
+its datasets. Stored data has search, collection, batch and data-state filters.
+Active data is the default; historical, fixture and planned datasets remain
+available under Collection. Record inspection retains every supporting field,
+including source dates, capture timestamps and successful-fetch evidence.
+
+Selecting a historical run day does not rewind the current data or backfill
+snapshots; the page labels this distinction explicitly. Refresh the page to
+update the snapshots. Source periods, successful polls and retained captures
+remain separate facts. Capture timestamps use New York time, labelled EST or
+EDT, with the original timestamp retained in the markup and JSON API.
+If the stored-data read is unavailable, its section shows the error and a reload
+link while the run history stays visible. `GET /healthz` remains process
+liveness only. The Inspector has no SQL, database-path, credential,
+provider-request, ingestion, or write control.
+
+Run activity includes a monthly live-fetch calendar and the selected day's
+focus, with scheduled batch times and recorded outcomes in Eastern time.
+Compact batch markers use a shared legend: green means completed; amber marks
+Partial Success, scheduled, running or unconfirmed. Expand run details for
+successful, failed and incomplete work counts where recorded. Any recorded failure greys that
+batch's day marker and adds a red failure indicator, even if a later run
+succeeds. Select a day to inspect every exact run in its focus timeline.
+Missing history stays unconfirmed; batch results are separate from retained
+data freshness. The nine scheduled collector entrypoints save private per-run
+start, finish and exit outcomes; the page combines these durable records with
+available systemd history. New records appear from the next normal scheduled
+runs; earlier missing history stays unconfirmed. The page cannot trigger jobs.
+Refresh the page to update its snapshot.
+
+Equibles appears in Status with its daily backfill schedule and recorded
+progress. **Company transcripts** (`/?view=company-transcripts`) browses stored
+calls by symbol and fiscal period; each call opens paginated speaker text.
+**Transcript extractions** (`/transcript-extractions`) provides a formatted
+reader for saved model outputs, with ticker/fiscal-period search, source links,
+quality and review status, and full original JSON. Each stored transcript links
+to its extraction; reading a saved output does not run a model or collect data.
+Status includes an Equibles progress panel and its daily run. In Daily focus,
+Current news is one collapsed entry; click it to expand the hourly outcomes.
+
+The Inspector shares grouped navigation across Data views, Current news, Status,
+and Agent Tools. Data tables retain every returned field and its exact
+value; select a record to inspect its fields alongside the table, including
+separate availability and capture timestamps. Close the record panel to return
+keyboard focus to its row. Narrow screens use a collapsible navigation menu
+and contained table scrolling. Filters, pagination, and complete data tables
+remain available without JavaScript.
+
 The authorized Stage 8 scope is one manual, fixture-only JSON Atlas snapshot
 built from explicit synthetic store roots and query-only SQLite online-backup
 copies. It validates a bounded cohort into an immutable derived revision with a
 private receipt and atomic `current` pointer, but it cannot promote operational
 stores. It neither adopts Parquet or DuckDB nor hosts/deploys Atlas; no live
 provider, scheduler, default-path, or destructive behavior is authorized. Its
-primary fixture gate and independent offline verification passed. Browser
-verification remains pending, so the formal Stage 8 exit gate is not closed.
+primary fixture gate and independent offline verification passed. The bounded
+exit gate was accepted on 2026-08-14 with an explicit waiver for the unavailable
+in-app browser-automation check. Browser observations remain unrecorded.
 
 The target design and sequencing are documented in [ARCHITECTURE.md](ARCHITECTURE.md),
 [ROADMAP.md](ROADMAP.md), and the [rebuild documentation index](docs/rebuild/README.md).
@@ -61,10 +268,21 @@ Stage 6 receipts and accepted verification state are recorded in
 the [Stage 6 acceptance evidence](docs/rebuild/STAGE6_EVIDENCE.md). The bounded
 Stage 7 acceptance and independent-verification receipts are recorded in the
 [Stage 7 acceptance evidence](docs/rebuild/STAGE7_EVIDENCE.md).
-The Stage 8 offline evidence and pending browser status are tracked in the
+The Stage 8 offline evidence and accepted browser-automation waiver are tracked in the
 [Stage 8 evidence](docs/rebuild/STAGE8_EVIDENCE.md).
 The bounded Stage 9 population and independently verified receipt are in
 [Stage 9 evidence](docs/rebuild/STAGE9_EVIDENCE.md).
+The retained Stage 10 base and historical-extension receipts are in
+[Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md). The completed private
+Stage 11 candidate and its receipt are in
+[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md). The completed no-transfer
+adoption/freeze proofs are in
+[Stage 12D evidence](docs/rebuild/STAGE12D_EVIDENCE.md).
+
+The [Stage 12 Market v1 contract](docs/rebuild/STAGE12_MARKET_V1.md),
+[Stage 12B incremental collector contract](docs/rebuild/STAGE12B_INCREMENTAL_MARKET_V1.md),
+and [canonical-path ADR](docs/adr/0009-canonical-market-operational-path.md)
+record the current boundary; [Stage 12 evidence](docs/rebuild/STAGE12_EVIDENCE.md) remains immutable Stage 12A evidence.
 
 ## Validate Stage 1
 
@@ -203,7 +421,8 @@ for zero runtime network assets, and emits deterministic strict-JSON evidence.
 The bounded offline gate passed. The user explicitly accepted the unavailable
 automated browser check and authorized bounded offline Stage 7 work. Stage 8
 is implemented under its own bounded offline contract and its primary fixture
-gate and independent offline verification passed; browser verification remains pending.
+gate and independent offline verification passed. Its bounded exit gate was
+accepted on 2026-08-14 with the explicit browser-automation waiver.
 
 ## Validate Stage 7
 
@@ -247,8 +466,10 @@ dependency-free static Atlas. The primary gate passed 319 offline tests and
 the two-root CLI emitted evidence SHA
 `e1151f92176a6b5a9d57d18a215497baab7405187fa798537cd947be1dd80a3c`.
 Independent offline verification passed. The in-app browser client failed
-before launch, so browser observations and the formal Stage 8 exit gate remain
-pending; no alternate browser automation was substituted.
+before launch and no alternate browser automation was substituted. On
+2026-08-14 the user explicitly waived that external limitation and accepted the
+bounded exit gate as complete. Responsive, keyboard, focus, reduced-motion,
+zoom, and runtime-network browser observations remain unrecorded.
 
 ## Stage 9 status -- bounded live population independently verified
 
@@ -268,35 +489,376 @@ PYTHONDONTWRITEBYTECODE=1 TMPDIR=/tmp python3 -B -m quant_data \
   --second-store-root "$second_root"
 ```
 
-This is not a live-provider command. The primary gate records offline evidence
-SHA `1851168a239c2b3e344db77d20439a1e1a8264d0eae65c950e33f4dd06c583c4`.
-A live request remains conditional on independent review, a securely
-configured `FMP_API_KEY`,
-and the exact non-production target being empty and approved. Never paste a
-key into chat, a command line, a file, or the registry.
+This is not a live-provider command and cannot repeat the completed provider
+request. The primary gate records offline evidence SHA
+`1851168a239c2b3e344db77d20439a1e1a8264d0eae65c950e33f4dd06c583c4`.
+The bounded live receipt already passed and is recorded in
+[Stage 9 evidence](docs/rebuild/STAGE9_EVIDENCE.md).
+
+## Stage 10 status -- retained candidate populations complete
+
+The immutable base receipt covers the frozen 629-symbol roster: 621 completed
+symbols and eight retained failures. The immutable extension closes all 5,032
+planned windows as 3,970 complete, 1,004 successful empty responses, and 58
+authorized terminal outcomes across nine tickers. Read-only inspection matched
+the receipts and no provider request was repeated. These populations remain
+private, non-production, and candidate-only; see
+[Stage 10 evidence](docs/rebuild/STAGE10_EVIDENCE.md).
+
+## Stage 11 status -- retained private candidate complete
+
+The final bounded resume skipped the completed BEA and retail phases and made
+one successful weekly `PET.WCESTUS1.W` request. The retained macro candidate
+contains 635 BEA, 1,136 EIA retail, and 2,289 EIA weekly current rows with
+matching version counts. Targeted integrity, foreign-key, duplicate, and
+current-pointer checks passed and the private completion receipt was
+published. No Stage 11 request may be repeated; see
+[Stage 11 evidence](docs/rebuild/STAGE11_EVIDENCE.md).
+
+## GDP/CPI source vintages -- populated and scheduled
+
+The canonical `data/macro.sqlite` now stores the bounded official vintage
+scope for BEA real/nominal GDP and BLS all-items/core CPI. The clean backfill
+published 16 immutable captures, four series, 2,136 releases, 4,012 versions,
+and 640 current observations. GDP history begins at `2002Q1`; the BLS annual
+revision snapshots begin at `2008-01`. Raw payload hashes, integrity, foreign
+keys, duplicates, correction sequences, and current pointers were reconciled.
+
+`quant-data-macro-vintages.timer` is enabled for weekdays at 09:05
+America/New_York. Each run fetches only the current BEA workbook and current
+BLS API response, makes no retry, applies no migration, and writes nothing
+when normalized values are unchanged. It does not repeat the 14-file archive
+backfill. Installation and inspection commands are in
+[the systemd README](deploy/systemd/README.md).
+
+## Employment source vintages -- populated and scheduled
+
+The same canonical macro store now also retains Philadelphia Fed RTDSM payroll
+and unemployment vintage matrices plus the current two-series BLS response.
+The one-time backfill published three captures and added 984 release identities,
+14,449 immutable versions, and 1,993 current observations. Payroll covers
+`1939-01` through `2026-07`; unemployment covers `1948-01` through `2026-07`.
+RTDSM source-vintage labels are preserved without inventing an exact release
+date, and their availability remains the local capture time.
+
+`quant-data-employment-vintages.timer` is enabled for the first Friday of each
+month at 10:05 America/New_York. It is non-persistent and fetches only the
+current BLS payroll/unemployment response: no credential, retry, migration, or
+historical-workbook refetch. A manual outside-window service check completed
+with zero requests. The next scheduled run is `2026-09-04 10:05 EDT`.
+
+## Deep macro history and weekly crude adoption -- complete
+
+The one-time macro-history extension reused five sealed source responses and
+made exactly six new credential-free BLS requests. All-items CPI now reaches
+`1947-01`, core CPI reaches `1957-01`, and the Philadelphia Fed `NOUTPUT` and
+`ROUTPUT` matrices are stored as separate source-native GNP/GDP level series.
+The extension added 11 captures, 1,165 releases, 14,577 versions, and 1,980
+current observations. Exact source-vintage labels are retained without
+inventing release dates.
+
+The retained Stage 11 weekly crude cohort was then adopted locally with no
+provider request: one capture and 2,289 versions/current observations from
+`1982-08-20` through `2026-08-07`. No new timer was installed; the two existing
+macro timers remain the only scheduled macro collectors. The pre-change backup
+is `data/.macro-backups/macro.sqlite.pre-history-extension-20260817T1243-0400`
+with SHA-256 `5fbf583e24ad62e146c850797e39140a204e018ae029e5f39137381f3fcbd58d`.
+
+## FMP GDP/CPI release-calendar history and surprises -- complete
+
+Registry `2.19.0`/schema `1.8.0` adds one manual-only collector,
+`fmp.macro.gdp_cpi_release_calendar_history`. It reuses
+`fixture.macro.economic_calendar` and the existing `macro.official_vintages`
+tool dependency; it adds no migration, dataset, job, scheduler, or physical
+surprise table. The completed manual history used exactly 56 contiguous windows
+of at most 90 days from `2013-01-01` through `2026-08-17`, retaining 941 FMP
+events and 941 versions: 216 core MoM, 217 core YoY, 214 headline MoM, 217
+headline YoY, and 77 GDP. The reviewed target alias map is exact, with no fuzzy
+target matching, and ignores bare CPI, Cleveland-qualified CPI, CPI n.s.a. MoM, GDP Price Index, and GDP Consumer Spending labels.
+
+Historical FMP consensus uses the explicit `event_at_utc` availability
+assumption. GDP surprise is computed on demand as one best-available record per
+quarter. It prefers a BEA first release on the exact FMP event date
+(`advance`, or source-native `initial`); when that consensus is absent, it
+selects an exact-date `second`, then exact-date `third` release. Every
+selection compares FMP consensus with the BEA actual from the same release date
+and stage; FMP GDP actual is never used. Equivalent reviewed aliases on the
+same date collapse only when their values agree; conflicts fail closed.
+Later-stage selections are explicitly marked `is_fallback`. The current
+canonical read returns all 55 quarters from `2012Q4` through `2026Q2`: 10
+advance, one initial, 10 second, and 34 third. Fifty-four have numeric surprises
+and `2012Q4` is `missing_consensus`. CPI has 864 results. Ordinary CPI uses
+actual and consensus from the same FMP event version. This derived mapping adds
+no migration, physical surprise table, provider request, or scheduler.
+
+Under [ADR 0011](docs/adr/0011-retire-proposed-bls-cpi-release-archive.md),
+CPI surprise calculation is FMP-only: an ordinary result takes actual and
+consensus from one FMP event, while a narrow repair may combine complementary
+rows only when CPI kind, derived reference month, UTC event date, and unit
+match and each finite side is unique. The later event remains primary and
+source event-version lineage is retained. Same-side or incomplete rows remain
+missing, conflicts fail closed, and no BLS original-release archive may
+validate, fill, replace, or otherwise affect a CPI result. The proposed
+`2.22.0` archive candidate was never activated; its retirement does not alter
+the completed `2.16.0` BLS annual-revision snapshots or current BLS refresh.
+Before the run, `data/macro.sqlite` was backed up to
+`data/.macro-backups/macro.sqlite.pre-fmp-consensus-20260817T1507-0400` (mode
+`0600`, SHA-256
+`c257c332b83682d82dde921964a0000edb4a9250ea118831c046a1c63dfcad6d`). Integrity,
+foreign-key, lineage, and duplicate checks are clean. The manual history is
+complete and must not be repeated; no timer was installed and the two existing
+macro timers remain unchanged.
+
+The user-authorized incremental calendar refresh code reuses one FMP response
+for both GDP/CPI and employment. It is bounded to 08:15 and 08:45
+America/New_York on weekdays, one request, and no retry. The reviewed
+non-persistent `quant-data-fmp-macro-calendar.timer` is installed, enabled, and
+active under the user's explicit scheduler approval. Each family has an
+independent semantic identity, and the refresh retains wholesale raw evidence
+before local normalization. Payroll and unemployment surprises remain
+on-demand calculations. Both use the actual and consensus from the same
+reference-period FMP release row. Official employment vintages remain
+available for inspection but are not used in either surprise calculation.
+
+Registry `2.21.0` adds migration
+`macro:0016_fmp_calendar_wholesale_evidence`, a private raw-evidence dataset,
+and one manual-only wholesale collector. The completed one-time run covered all
+56 contiguous windows from `2013-01-01` through `2026-08-17` and retained
+every response byte plus all 42,890 rows in 56 immutable captures. The recovery
+backup `data/.macro-backups/macro.sqlite.pre-fmp-wholesale-20260818T1918-0400`
+has mode `0600` and SHA-256
+`44d4420cb2569f792bf19489febcf68a16c2d3916cad9893905c31aee681269b`.
+
+The original zero-network local replay normalized 323 v1 employment
+events/versions: 161 payroll and 162 unemployment. One-time additive v2 and v3
+repairs replayed the same 56 immutable captures with zero provider requests
+and wrote 162 reference-period-aware payroll plus 162 unemployment events and
+versions. It now exposes 324 on-demand employment surprises: 162 for each
+series, with 321 `ok`, two `missing_consensus`, and one `missing_actual`.
+Delayed releases now map by their explicit reference month; unemployment
+`2025-10` remains `missing_actual` because FMP supplied only consensus. An
+identical second replay of each version wrote nothing. The payroll recovery
+backup is
+`data/.macro-backups/macro.sqlite.pre-payroll-reference-replay-20260820T1740-0400`
+(mode `0600`, SHA-256
+`8bb8441440458667267a4a608b88eeab9c1f4777f1e691bb53698f60fef2093e`).
+The unemployment recovery backup is
+`data/.macro-backups/macro.sqlite.pre-unemployment-reference-replay-20260820T2001-0400`
+(mode `0600`, SHA-256
+`bfad4cf56c53c69ca3d5951ca93af6aecf582831834636c059ca941bc15f1d73`).
+Integrity and lineage checks are clean. No provider request, new timer, public
+route, physical surprise table, or caller-selected database path was added;
+the exact `2.21.0` projection restores byte-exact `2.20.0`.
+
+The never-active `2.22.0` candidate
+`macro:0017_bls_cpi_release_archive` is rejected by ADR 0011 and is not a
+registry successor. Exact `2.21.0` remains the accepted configuration; no
+archive dataset, collector, relation, migration, or archive-derived CPI
+lineage remains in scope.
 
 ## Current public boundary
 
-The canonical registry is revision `2.7.0`, schema `1.5.0`. It preserves the
+Use the versioned [local-agent interface](docs/LOCAL_AGENT_TOOLS.md) and runtime
+manifest for the current inventory. Registry/schema/catalog versions come from
+`config/system_registry.json`, not from a historical stage summary.
+
+Registry `2.98.0` / catalog `2.41.0` exposes 102 logical tools and 201 versioned
+contracts. New research workflows include
+[peer comparison](docs/LOCAL_AGENT_TOOLS.md#peer-comparison) through
+`company.compare_peers@1.0.0`,
+[cumulative intraday options activity](docs/LOCAL_AGENT_TOOLS.md#cumulative-options-activity)
+through `options.get_intraday_snapshot@2.0.0` and
+`options.get_intraday_history@2.0.0`, and a
+[management guidance timeline](docs/LOCAL_AGENT_TOOLS.md#management-guidance-timeline)
+through `company.get_guidance_history@2.0.0`. Follow the linked launcher examples
+and select versions explicitly. Existing data schemas and compatibility defaults
+are unchanged; v2 calls opt in to the additional results.
+
+### Historical public boundary at registry 2.21
+
+The following records the accepted boundary at revision `2.21.0`, schema `1.8.0`. It preserves the
 four local-private Stage 6 dashboard exposures, eight ordered disabled
 `manual_fixture_only` jobs, and the one fixture-only manual JSON export,
 `atlas.fixture_snapshot`, with reciprocal declarations on
 `fixture.market.daily_prices`, `fixture.macro.gdp_vintages`,
-`fixture.company.issuers`, and `fixture.news.items`. It adds only the isolated
-market migration `market:0009_fmp_daily_price_backfill`, three FMP daily-price
-datasets, and the manual-only `fmp.market.daily_price_backfill` collector.
-Those FMP relations are deliberately absent from public tools, dashboard
-exposures, and Atlas exports.
+`fixture.company.issuers`, and `fixture.news.items`. In addition to the
+isolated Stage 9 declarations, it contains the private Stage 10 market-history
+and Stage 11 BEA/EIA candidate declarations. None of those live-candidate
+relations is exposed through public tools, dashboards, or Atlas exports.
+The completed Stage 11 receipt remains frozen to its historical
+`2.9.0`/`1.7.0` projection. Revision `2.10.0` only made its reviewed retry
+policy canonical; revision `2.11.0` adds the bounded FMP stock-latest news
+fixture contract without proving or authorizing full live news coverage; and
+revision `2.12.0` changes only the current market default to
+`data/market.sqlite`. Exact historical projections restore
+`data/market_data.sqlite`; the former name is not a current fallback or alias.
+Revision `2.13.0` adds only the bounded Stage 12B fixture collector declaration:
+it uses the existing `0010` model in explicit temporary fixture stores, has no
+new migration or public exposure, and does not authorize a provider, API key,
+network, default or retained store, promotion, cutover, or scheduler. Its exact
+historical projection restores `2.12.0` before reproducing Stage 12A and earlier
+evidence. None of those revisions authorizes another Stage 9–11 provider run.
+
+Revision `2.14.0` adds only the bounded Stage 12C manual collector declaration;
+its exact projection restores `2.13.0` before Stage 12B and earlier evidence.
+The declaration itself is not live evidence; the completed bounded population
+is recorded in [Stage 12C evidence](docs/rebuild/STAGE12C_EVIDENCE.md). The
+named-only credential fallback was delivery policy only, not a registry or
+provider-scope expansion, and no Stage 9-11 provider work is reopened.
+
+Revision `2.15.0` changes only the remaining current store defaults to
+`data/macro.sqlite`, `data/company.sqlite`, and `data/news.sqlite`, matching
+the existing project-local files. It performs no database copy, rename, open,
+or mutation. Its exact historical projection restores `2.14.0` and the prior
+three `_data` declarations for Stage 12C/D and earlier evidence.
+
+Revision `2.16.0` adds only `macro:0013_live_gdp_cpi_vintages`, the private
+GDP/CPI evidence and canonical datasets, and their two fixed official-source
+collectors. It adds no public tool, dashboard, export, credential, or caller
+path. Its exact historical projection removes those declarations and restores
+`2.15.0`.
+
+Revision `2.17.0` adds only `macro:0014_live_employment_vintages` and the
+private Philadelphia Fed historical and BLS current employment collectors.
+It reuses the two private official-vintage datasets, adds no public consumer or
+credential, and preserves raw evidence plus version/current lineage. Its exact
+historical projection removes migration 0014 and those two collectors and
+restores byte-exact revision `2.16.0`.
+
+Revision `2.18.0` adds only `macro:0015_live_macro_history_extension` and two
+manual-only history collectors. It reuses the private official-vintage
+datasets, adds no credential, public consumer, or scheduler, and projects
+byte-exactly back to `2.17.0`.
+
+Revision `2.19.0` adds only
+`fmp.macro.gdp_cpi_release_calendar_history`, reusing the established calendar
+relation and official-vintages tool dependency. It adds no migration, dataset,
+job, scheduler, public consumer, or surprise table; its exact historical
+projection restores `2.18.0`.
+
+Revision `2.20.0` adds only
+`fmp.macro.employment_release_calendar_refresh` and its reciprocal binding to
+the existing economic-calendar dataset. It adds no migration, dataset, job,
+timer, physical surprise table, or new route; its exact historical projection
+restores byte-exact revision `2.19.0`.
+
+Revision `2.21.0` adds only
+`macro:0016_fmp_calendar_wholesale_evidence`, the private
+`macro.fmp.economic_calendar_evidence` dataset, and
+`fmp.macro.us_economic_calendar_wholesale`. Its two physical relations retain
+immutable response bytes and complete raw-row projections. It adds no public
+consumer, job, scheduler, export, or surprise table; its exact historical
+projection restores byte-exact revision `2.20.0`.
 
 The frozen Stage 7 rebuild keeps its historical `2.5.0`/`1.3.0`, zero-export
 projection; the frozen Stage 6 rebuild uses `2.4.0`/`1.2.0`, jobs-empty
 projection; and the frozen Stage 5 rebuild uses `2.3.0`/`1.1.0`. Their approved
 deterministic evidence remains reproducible.
 
-The platform still exposes all 57 reviewed public tool names through generated
-schemas and closed read-only routing. The original `macro.get_series` and
+The frozen compatibility inventory remains all 57 reviewed public tool names.
+At the historical registry `2.85.0` checkpoint, 77 read-only logical tools
+and 166 versioned contracts were exposed through catalog `2.31.0`.
+Use the current manifest and latest-contract table for today's inventory.
+Explicit successors preserve compatibility defaults and do not create additional
+logical names. For new integrations,
+select the semantic maximum in the runtime manifest's `versions` array and
+pass it explicitly to both `describe` and `call`; the top-level `version` is
+a compatibility default. The [current price workflow](docs/LOCAL_AGENT_TOOLS.md#current-price-workflow)
+uses `market.get_price_series@2.0.0`, returns `@2.1.0`, indicators `@2.8.0`,
+and `portfolio.get_etf_allocator_snapshot@2.0.0`. Bound FMP full-EOD `close`
+is already split-adjusted and excludes dividends; use it unchanged and pass
+its complete metadata to the matching analytical successors. The
+[latest contract table](docs/LOCAL_AGENT_TOOLS.md#latest-contracts) and
+[current ETF example](docs/LOCAL_AGENT_TOOLS.md#etf-allocator-snapshot) are
+the agent entry points. Registry `2.57.0` also adds the
+explicit v2 investment-analysis successors for macro release-calendar
+pagination, market cross-sectional performance, macro revisions and
+surprises, raw rates/liquidity/credit/regime views, retained EIA energy facts,
+and normalized SEC company fundamentals. The original `macro.get_series` and
 `timeseries.describe` contracts retain their Stage 1 projection; the other 55
-are explicit forward reconstructions. Unsupported fixture semantics return
+frozen tools are explicit forward reconstructions. Agents in another local
+project should use the fixed subprocess interface in
+[Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md), not direct SQLite access. The
+[current public-tool actual-data audit](docs/rebuild/CURRENT_TOOL_ACTUAL_DATA_AUDIT_2026-08-28.md)
+is the pre-v2.7, 119-route checkpoint, not an audit of the current manifest.
+It records route-by-route populated-data status. The
+[technical-indicator quick start](docs/LOCAL_AGENT_TOOLS.md#technical-indicator-quick-start)
+shows the supported typed OHLCV composition and the causal SuperTrend AI,
+Swing Structure Forecast, KDJ, Williams Vix Fix, WaveTrend, Parabolic SAR,
+and rolling regression line adaptations; agents must not extract fields into
+ad hoc arrays or open the database directly. Registry `2.63.0` adds
+the separate current FMP news path and `news.search@2.0.0`. The bounded
+2026-08-30 16:00 UTC proof applied migration 0006 and retained 229 articles
+from its one request, with no retry. Its exact projection removes only that
+successor and restores `2.62.0`.
+
+Registry `2.64.0` is at SHA-256
+`b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4`;
+catalog `2.24.0` is at SHA-256
+`6a4f7e8ce223658617512928b860f5cf5bde85e01f075070771fa019e882ed46`.
+It adds the generic current multi-source news successor: migration
+`news:0007_current_multi_source`, two private current-news datasets, and
+`news.search@2.1.0`. Forward migration
+`news:0008_adopt_fmp_news_legacy` adopts `fmp_news_articles` as an inactive
+private evidence dataset with an exact schema guard and no collector, tool,
+dashboard, export, or source ID. The fixed feeds are FMP stock latest, press
+releases, and general news; Federal Reserve, ECB, BEA, and EIA official feeds;
+and Alpaca/Benzinga company news. Credentials remain optional placeholders:
+a missing value reports `unavailable`, while raw bytes and article bodies stay
+private. The bounded 2026-08-30 16:00 UTC manual proof made 20 requests with
+no retry; all eight source steps succeeded, including 13 Alpaca/Benzinga
+batches. The batch retained 1,069 generic-source articles in addition to the
+229 FMP stock-latest articles. The manual entry point is
+`python3 scripts/refresh_current_news.py`. On 2026-08-30 the reviewed per-user
+systemd units were linked, daemon-reloaded, enabled, and started. That check
+recorded `loaded`/`enabled`/`active`/`waiting` for the first normal `:10` UTC
+trigger; activation did not start the service, contact a provider, or write a
+store. Its exact projection removes
+migrations 0007/0008, the three 2.64 datasets, its collector, and v2.1, then
+restores byte-identical `2.63.0`/`2.23.0`; that
+predecessor removes only rolling regression line v2.7 and restores byte-identical
+`2.61.0`; that predecessor removes only Parabolic SAR v2.6 and
+restores byte-identical `2.60.0`; that predecessor removes only WaveTrend v2.5
+and restores byte-identical `2.59.0`;
+that predecessor removes the five additive 2.59 variants and restores
+byte-identical `2.58.0`, which
+removes only KDJ v2.3 and
+restores byte-identical `2.57.0`. The next projection removes only the 15
+investment successors and restores byte-identical `2.56.0`; later projections
+remove only v2.2 and then v2.1, restoring `2.55.0` and `2.54.0` respectively.
+On 2026-08-30 the user explicitly authorized updating the enabled,
+legacy-named `quant-data-alpaca-spy-options.timer` in place to run the fixed
+15-ETF option grid at its then-current 15:55 America/New_York weekday cadence.
+On 2026-08-31 the user authorized moving that same fixed timer to 16:20
+America/New_York so collection begins after the latest ordinary ETF-option
+session. The operation has no retry or catch-up and is capped at 362
+single-attempt requests, 900,016 rows, 256 MiB, and 900 seconds with a
+16-minute host timeout. It retains exact response bytes before normalization;
+partial grids exit nonzero. The registry collector remains `manual_only`,
+while this host unit is the explicit recurring exception. The separate 18:00
+Stage 12E FMP market-close job remains unchanged.
+
+The current registry is `2.68.0` at SHA-256
+`9b59f6b643e4cff7390559763c8532215ac9927a1f3119870385127af3a6a27e`;
+catalog `2.26.0` is at SHA-256
+`fcfb29de2c2138995918e40c603704a0b2df4c17b6c3229312734bb46b0f2a28`.
+Registry `2.68.0` adds six private, credential-free, `manual_only` macro-history
+collectors for CFTC TFF and disaggregated futures-only history, Treasury
+securities auctions, NY Fed Primary Dealer Statistics, and Federal Reserve H.8
+and SLOOS. They reuse the existing macro evidence, canonical, and catalog
+outputs; add no migration, job, scheduler, tool, dashboard, export, or catalog
+contract; and exact projection restores byte-identical registry `2.67.0`
+while catalog `2.26.0` remains unchanged.
+
+Its immediate predecessor, registry `2.67.0`, adds
+`data.get_dataset_status@1.0.0` plus typed v2 successors for option capture
+search, contract search, and coherent surface snapshots over the fixed retained
+Alpaca ETF cohort. The inventory is 74 logical names, 44 version policies, 61
+variants, and 156 contracts. Status is retained-only; option raw responses remain
+private and missing/nonstandard states remain explicit. Exact projection removes
+only this increment and restores registry `2.66.0`/catalog `2.25.0` byte-for-byte.
+
+Unsupported fixture semantics return
 `not_established`, and the live intraday name is capability-disabled.
 Application hosts must construct `StoreMap.four_explicit(...)` and supply all
 four paths. Public callers cannot select a database path, submit SQL, or
@@ -304,7 +866,45 @@ initialize a store. Stage 7 jobs remain disabled and manual-fixture-only in
 their historical projection. The Stage 8 export has no public path, SQL,
 relation, or connection argument and no live-store/UI connection. Stage 6's
 browser-automation limitation was explicitly accepted by the user; Stage 7
-independent verification passed on 2026-08-11. Stage 8's primary offline gate and
-independent verification passed on 2026-08-11; browser verification remains pending.
+independent verification passed on 2026-08-11. Stage 8's primary offline gate
+and independent verification passed on 2026-08-11, and its bounded exit gate
+was accepted on 2026-08-14 with an explicit browser-automation waiver.
 Stage 9 is not a public boundary: its populated exact FMP slice remains
 non-production, manual-only, candidate-only, and independently verified.
+Stage 10 also remains private, non-production, and candidate-only. Stage 11 is
+complete only as a private, non-production candidate and has no public
+consumer or promotion authority. Registry declarations are not evidence of
+live completion; the retained receipt is.
+
+Stage 12A remains immutable offline authority/coverage evidence, and Stage 12B
+remains fixture-only evidence. Stage 12C is complete only as the exact private
+bounded no-copy population recorded in its
+[evidence record](docs/rebuild/STAGE12C_EVIDENCE.md); it does not create a
+general HTTP 402 rule, transfer or promote a database, expose a public
+consumer, or authorize a scheduler. The final neutral source check used
+`mode=ro&immutable=1` after a zero-WAL precondition; the disclosed earlier
+`-shm` timestamp effect was not a database mutation. Stage 12D is complete and independently verified under its
+[no-transfer adoption/freeze contract](docs/rebuild/STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and [evidence record](docs/rebuild/STAGE12D_EVIDENCE.md). Its two read-only
+proofs were filesystem-neutral and created only their immutable private
+receipts. Later Stage 12E authorization and operational evidence are indexed
+in the [operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md#recurring-exceptions),
+separately from these historical proofs.
+
+## Transcript guidance, analyst focus and management tone
+
+The private manual pipeline reads stored Equibles calls, uses Terra/high for
+extraction and optional Sol/high pilot review, and retains source-backed derived
+analysis in the company store. It has explicit request, token, time and budget
+bounds, durable attempt receipts, and replay without paid retries. See the
+[transcript analysis contract and commands](docs/rebuild/TRANSCRIPT_ANALYSIS_CONTRACT_2026-09-08.md#manual-operation-and-bounds).
+Implementation does not activate a paid pilot, scheduler or operational migration.
+
+## Reconstructed daily forward P/E
+
+The manual [forward P/E research builder](docs/FORWARD_PE_PROXY.md) stitches four
+quarterly estimates on actual earnings-announcement dates and joins daily prices.
+It writes a separate SQLite artifact with source lineage and explicit quality flags.
+Browse it in the local Inspector at **Market → Forward P/E**
+(`http://127.0.0.1:8766/forward-pe`). The same guide describes the proposed daily
+refresh pipeline; scheduling is not activated.

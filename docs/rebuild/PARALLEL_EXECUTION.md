@@ -2,7 +2,19 @@
 
 Status: Accepted  
 Planning baseline: 2026-08-09  
-Scope: dependency-aware multi-agent execution of the rebuild roadmap
+Scope: task-sized coordination and historical rebuild-wave reference
+Revised: 2026-09-05 — user-approved lightweight delegation and role-neutral routing
+
+> **Read the applicable coordination section only.** Bounded investigation and
+> disjoint implementation use Section 2 with the [fast path](FAST_PATH_DEVELOPMENT.md).
+> Delegation alone does not require a formal wave or independent certification.
+> The historical wave plans apply only when an accepted gate calls for them.
+
+Sections 1, 3, and 5 summarize completed rebuild scopes as recorded in their
+linked evidence. Their exclusions do not grant new authority or cancel later
+explicit decisions. The [operating envelope](CURRENT_OPERATING_ENVELOPE.md)
+is the sole index of recorded operational authorization and dated activation
+evidence; it is not a live host-health report.
 
 ## 1. Purpose
 
@@ -16,8 +28,9 @@ Stage 6 four-route local portal passed offline and independent verification;
 the user explicitly waived its unavailable browser-automation check. The
 bounded offline Stage 7 manual fixture rehearsal is implemented and
 independently verified. The bounded fixture-only Stage 8 JSON snapshot and
-static Atlas passed their primary and independent offline gates. Browser
-verification remains pending.
+static Atlas passed their primary and independent offline gates. On 2026-08-14
+the user explicitly waived unavailable in-app browser automation and accepted
+the bounded Stage 8 gate.
 
 The user has separately authorized one tightly bounded Stage 9 preparation:
 a manual FMP daily OHLCV backfill for `SPY`, inclusive `2026-07-01` through
@@ -25,20 +38,91 @@ a manual FMP daily OHLCV backfill for `SPY`, inclusive `2026-07-01` through
 offline gates and bounded live receipt passed; there is no authorization for
 promotion or old-store retirement.
 
+The retained Stage 10 base and historical-extension candidates are complete
+and independently re-inspected; no provider request may be repeated. Stage 11
+is complete as a private candidate in the same isolated cohort: BEA, EIA
+retail, and EIA weekly are published, targeted checks passed, and the private
+receipt is retained. No Stage 11 request may be repeated.
+
+The bounded offline Stage 12A authority/path gate is implemented and independently
+verified; see [Stage 12 evidence](STAGE12_EVIDENCE.md). Stage 12B is implemented
+and independently verified offline and fixture-only under its
+[focused collector contract](STAGE12B_INCREMENTAL_MARKET_V1.md) and
+[evidence record](STAGE12B_EVIDENCE.md). Its gate did not authorize later work.
+**Stage 12C is complete and independently verified** under
+[the focused two-session contract](STAGE12C_MARKET_GAP_V1.md) and
+[evidence record](STAGE12C_EVIDENCE.md). Stage 12D is complete and
+independently verified under its
+[no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+and [evidence record](STAGE12D_EVIDENCE.md). That proof granted no Stage 12E
+authority; subsequent decisions are indexed in the operating envelope.
+
 ## 2. Capacity and operating model
 
-The project configuration assumes one SolUltra primary plus at most three
-concurrent subagents:
+The [routing guide](../../.codex/README.md) and its linked TOML files own current
+role/model/effort choices, including UI design. The September 5 user-approved
+routing replaces the former fixed implementation/verifier pair for future work;
+historical wave evidence and named completed checks remain unchanged.
+Check effective routes; configuration edits need a fresh trusted-project session.
 
-- the primary owns decomposition, shared interfaces, integration, and gates;
-- TerraMax implementation agents own disjoint bounded lanes;
-- the SolUltra verifier independently tests and reviews an integrated wave; and
-- completed agents free capacity for the next queued lane.
+Use one integration owner and one writer by default, normally zero or one
+subagent, and no more than three concurrent subagents within configured runtime
+capacity. Role presets do not imply that every role runs on every task.
 
-Parallelism is a throughput tool, not an objective by itself. Use all available
-slots when work is genuinely independent. Queue or serialize work when two
-lanes share a file, identifier space, schema decision, database, or acceptance
-boundary.
+- The integration owner controls shared semantics, critical implementation,
+  final integration, and completion; it directly finishes small tasks.
+- Bounded and substantial implementation roles own disjoint domain-local paths
+  after shared interfaces are settled. Mechanical work needs an exact,
+  checkable transformation; extra effort grants no broader responsibility.
+- Read-only investigators return evidence for a defined question.
+- Read-only analysts challenge designs and trace concrete failure paths.
+  Adversarial test authors own only assigned tests and temporary-fixture helpers.
+- A fresh independent verifier assesses a stable integrated baseline without
+  fixing it or having authored its implementation or tests.
+- The configured UI design owner handles every UI/UX and visual decision,
+  implementation requiring design judgment, and visual review. Other workers
+  may execute a settled mechanical UI specification. Browser checks still apply.
+
+Delegate only when a bounded question or independent lane saves time or improves
+quality. A single command or search rarely needs an agent. Use task-scoped lanes
+rather than permanent domain teams. Queue work sharing files, identifiers,
+schema decisions, stores, or acceptance boundaries. Do not require a verifier
+solely because a worker helped, or automatically run both analysis and review.
+Mandatory independent gates still apply; advisory analysis is not certification.
+
+### Delegated task contract
+
+Keep the assignment compact and complete:
+
+1. Objective, intended behavior, and required output.
+2. Read-only scope, or exact owned write paths and prohibited shared edits.
+3. Current authority, fixed interfaces, relevant invariants, acceptance cases,
+   and required checks.
+4. Known risks and the boundary that returns a decision to the integration owner.
+
+Provide relevant references or a compact context package. Do not routinely
+copy the entire conversation or rebuild history into each agent.
+Code searches stay within relevant source/docs/test directories, not operational
+data roots. Investigators do not open stores, run live diagnostics, or obtain
+credentials merely to answer source questions.
+
+Parallel writers require disjoint ownership. Executors do not recursively
+delegate. A needed change outside ownership returns to the primary. Known
+shared-safety risk determines stronger ownership before implementation; an
+unresolved ambiguity or failed speculative fix returns with the failure and
+attempted approach rather than another speculative repair cycle.
+
+Each actionable analysis/review finding identifies the trigger, violated
+requirement/invariant, evidence, and smallest sufficient correction. Optional
+improvements stay separate; added infrastructure requires an accepted need.
+Preserve focused and mandatory validation gates. Batch concrete corrections,
+then repeat only affected checks and any newly required adjacent/exit checks.
+
+Return the answer or changed paths, actual commands/results, findings,
+limitations, and integration-owner actions. A formal verifier also states whether
+the required evidence passed. Authored tests and self-review do not establish
+independent verification. Do not duplicate unchanged plans or claim checks
+that were not performed.
 
 ## 3. Dependency graph
 
@@ -77,14 +161,26 @@ G6  Bounded four-route portal independently verified; browser automation waived
  |
 G7  Manual-first scheduling and operational readiness
  |
-G8  Bounded fixture JSON snapshot and dependency-free static Atlas
+G8  Bounded fixture JSON snapshot and static Atlas; accepted with browser waiver
  |
-G9  One manual FMP SPY non-production backfill; candidate-only acceptance pending
+G9  One manual FMP SPY non-production backfill; candidate receipt verified
+ |
+G10 Frozen 629-symbol market-history base and extension; receipts retained
+ |
+G11 Bounded BEA/EIA macro candidate complete; no repeat or promotion
+ |
+G12A Market v1 authority, explicit roster, and canonical-path offline gate independently verified
+ |
+G12B Fixture-only incremental collector independently verified; no live/provider/store cutover/scheduler work
+ |
+G12C Bounded no-copy two-session population complete; private receipt retained
+ |
+G12D No-transfer adoption/freeze complete; later authority indexed in operating envelope
 ```
 
-`G0` through `G9` are integration gates, not agent tasks. A later stage may
-have read-only design, test planning, or fixture preparation in progress, but
-its executable implementation cannot land before the preceding gate passes.
+`G0` through `G12D` are integration gates, not agent tasks. `G12B` remains
+within its immutable fixture-only boundary; `G12D` passed within its fixed
+no-transfer contract and immutable [evidence record](STAGE12D_EVIDENCE.md).
 
 ## 4. Hard serialized owners
 
@@ -263,7 +359,7 @@ historical Wave 7 boundary.
 ### Wave 8 — Analytical exports and Atlas
 
 Status: **Bounded offline implementation complete and independently verified;
-browser verification pending.**
+accepted with an explicit browser-automation waiver on 2026-08-14.**
 
 Wave 8 is deliberately limited to one fixture-only, manual strict-JSON snapshot
 over the four registered market, macro, company, and news projections, plus a
@@ -279,9 +375,10 @@ manifest/chunk assets; it has no API or operational-store connection.
 Parquet, DuckDB, package installation, hosting, deployment, live providers,
 scheduler operations, default paths, operational-store promotion, and
 destructive cleanup are outside Wave 8. All writers stop before independent
-verification. The completed primary correction/reseal and independent review do
-not substitute for browser verification. Current status belongs in
-[Stage 8 evidence](STAGE8_EVIDENCE.md).
+verification. The completed primary correction/reseal and independent review
+remain the executable evidence; the explicit user waiver closes the bounded
+gate without claiming unavailable browser checks passed. Current status belongs
+in [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 ### Wave 9 — Bounded FMP non-production backfill
 
@@ -301,16 +398,109 @@ The independent verifier passed the Stage 9 offline checks after corrections
 and separately verified the bounded live receipt. Provider-use rights remain
 the operator's account-specific responsibility.
 
+### Wave 10 — Bounded FMP market history
+
+Status: **Retained base and eight-window extension candidates complete and
+independently re-inspected.**
+
+The lane is frozen to 629 symbols in the exact isolated Stage 10 target. The
+base and all 5,032 extension windows have immutable receipts. No writer may
+repeat a provider request. Promotion, retirement, scheduling, public exposure,
+tools, dashboards, Atlas, exports, and destructive operations remain outside
+the wave. Evidence is recorded in
+[Stage 10 evidence](STAGE10_EVIDENCE.md).
+
+### Wave 11 — Bounded BEA/EIA macro history
+
+Status: **Private, non-production candidate complete.**
+
+The final serialized resume skipped completed BEA and retail work and completed
+one weekly `PET.WCESTUS1.W` request. Targeted integrity, duplicate, and
+current-pointer checks passed and the private candidate receipt is retained.
+The wave authorizes no additional request, promotion, scheduling, or public
+exposure. Evidence is recorded in
+[Stage 11 evidence](STAGE11_EVIDENCE.md).
+
+### Wave 12A — Market v1 authority and canonical path
+
+Status: **Implemented and independently verified.**
+
+The primary owns the path decision, registry revision `2.12.0`, historical
+projection compatibility, and integration. One isolated implementation lane
+owns the strict Market v1 manifest/loader/gate/tests. It freezes the explicit
+629-symbol retained roster and binds the source-only Stage 10 resume/scope
+digests without opening the retained SQLite stores.
+
+No lane called a provider, consulted credentials, created/opened a default
+database, copied or moved data, changed a scheduler, reopened Stage 10/11, or
+began Stages 12B through 12E. The independent SolUltra verifier checked
+deterministic evidence, hostile manifest mutations, path neutrality, historical
+registry hashes, the focused suite, and the complete dependency-free suite.
+Evidence is recorded in [the Stage 12 contract](STAGE12_MARKET_V1.md) and the
+[Stage 12 evidence record](STAGE12_EVIDENCE.md).
+
+### Wave 12B — fixture-only incremental Market v1 collector
+
+Status: **Implemented and independently verified — offline fixture-only.**
+
+The primary owns registry `2.13.0`/schema `1.8.0`, the exact `2.13.0` to
+`2.12.0` historical projection, shared contracts, and integration. Scoped
+implementation lanes may build only the collector described by the
+[Stage 12B contract](STAGE12B_INCREMENTAL_MARKET_V1.md): the frozen 629-symbol
+scope, injected response fixtures, and existing `0010` capture/version/current
+model in explicit temporary fixture stores. No lane may use a live provider,
+API key, environment configuration, network, default or retained store, new
+migration, promotion, project-local cutover, public consumer, or scheduler.
+
+The completed fixture gate, correction history, deterministic two-root
+evidence, focused compatibility checks, and full dependency-free suite are
+recorded in [Stage 12B evidence](STAGE12B_EVIDENCE.md). Completion does not
+broaden the boundary above.
+Stage 12A/B evidence remains immutable and retains its own offline boundary.
+
+### Wave 12C — bounded two-session Market v1 gap completion
+
+Status: **Implemented and independently verified — bounded manual no-copy
+completion.** The primary owns registry `2.14.0`/schema `1.8.0`, its exact
+`2.13.0` projection, and integration. The completed lane was limited to the
+[Stage 12C contract](STAGE12C_MARKET_GAP_V1.md) and its immutable
+[evidence record](STAGE12C_EVIDENCE.md): 629 one-attempt units closed as 619
+published complete, three successful-empty, and seven narrowly sealed
+authorized HTTP 402 outcomes. The exact private receipt, final counts, and
+`mode=ro&immutable=1` source-neutrality method are recorded there. The lane
+does not authorize a repeat, transfer, public consumer, or scheduler.
+
+### Wave 12D — no-transfer project-local adoption/freeze
+
+Status: **Complete and independently verified — no-transfer read-only
+adoption/freeze.**
+
+The primary owns the accepted [Stage 12D contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md),
+[immutable evidence](STAGE12D_EVIDENCE.md),
+[ADR 0010](../adr/0010-stage12d-no-transfer-market-adoption.md), fixed scope,
+and integration. The bounded and independent gates passed, exactly two
+canonical proofs produced immutable receipts with one semantic proof, and the
+target plus sidecar stamps remained unchanged. The independent reconciliation
+did not reopen SQLite or compute a new full-database hash. No copy, move,
+replacement, transfer, backup, migration, registry change, provider/network
+access, scheduler change, or consumer exposure occurred within that proof.
+Later Stage 12E decisions are indexed in the operating envelope; the Stage 12D
+contract and evidence retain their original scope.
+
 ## 6. Four-thread cadence
 
-Use the available threads in two modes:
+Use this cadence only for work requiring formal independent verification.
+Bounded investigation and ordinary implementation need no wave ceremony.
+Stop writers before a verifier establishes its baseline; otherwise explicitly
+bound review to an immutable revision or snapshot without claiming to verify
+ongoing edits.
 
 | Phase | Primary | Subagent 1 | Subagent 2 | Subagent 3 |
 | --- | --- | --- | --- | --- |
-| Build | Freeze interfaces and integrate shared files | TerraMax writer, lane A | TerraMax writer, lane B | TerraMax writer, lane C |
-| Gate | Reconcile evidence; no active writers | SolUltra verifier | Optional second read-only specialist | Idle or read-only diagnostics |
-| Correct | Integrate or assign the fix | One TerraMax correction owner | Read-only impact analysis | Idle |
-| Re-gate | Record results; no active writers | SolUltra verifier | Optional read-only regression review | Idle |
+| Build | Freeze interfaces and integrate shared files | Implementation worker, lane A | Implementation worker, lane B | Implementation worker, lane C |
+| Gate | Reconcile evidence; no active writers | Independent verifier | Optional second read-only specialist | Idle or read-only diagnostics |
+| Correct | Integrate or assign the fix | One correction owner | Read-only impact analysis | Idle |
+| Re-gate | Record results; no active writers | Independent verifier | Optional read-only regression review | Idle |
 
 Do not let a fixer modify the workspace while a verifier is still establishing
 its baseline. Verification reports return to the primary; verifiers do not
@@ -356,11 +546,16 @@ Stop the affected parallel lane when:
 
 ## 9. Worktrees and temporary roots
 
-Before a Git baseline exists, parallel writers share one workspace and must use
-strict disjoint path ownership. After the user authorizes and creates a fresh
-baseline, prefer one worktree per write-capable agent when supported. Worktrees
-reduce filesystem conflicts but do not relax semantic ownership: migrations,
-registry IDs, shared contracts, and generated artifacts still serialize.
+Before substantial edits, inspect the branch, index, uncommitted work, and
+required prerequisites. Identify dependencies on unrelated changes early;
+preserve them and obtain scope authority before including them in a task commit.
+Commit and push only when requested or already authorized for this scope.
+
+Use separate worktrees when they help independent writers, with an explicit
+known starting state. A worktree does not automatically contain uncommitted
+prerequisites. Worktrees do not relax semantic ownership: migrations, registry
+IDs, shared contracts, and generated artifacts still have one integration owner.
+Do not search for lost history or imply a recovered baseline.
 
 Every agent and test process uses an explicit unique temporary root. Tests must
 never infer or fall back to operational store paths.

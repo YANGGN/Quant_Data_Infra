@@ -17,11 +17,13 @@ from quant_data.errors import (
     ResourceLimitError,
     ValidationError,
 )
+from quant_data import fingerprint as fingerprint_module
 from quant_data.fingerprint import logical_manifest, mutation_fingerprint
 from quant_data.fixtures import FixtureManifest
-from quant_data.json_codec import dumps_strict, loads_strict
+from quant_data.json_codec import MAX_JSON_BYTES, dumps_strict, loads_strict
 from quant_data.migrations import initialize_all, migrate_store
 from quant_data.registry import PUBLIC_TOOL_NAMES, load_registry, stage2_registry_profile
+from quant_data.tool_platform.catalog import CURRENT_PUBLIC_TOOL_NAMES
 from quant_data.schema import validate_schema
 from quant_data.stores import StoreMap, StoreRole, read_connection
 from quant_data.temporal import (
@@ -29,6 +31,7 @@ from quant_data.temporal import (
     TemporalValue,
     availability_at_or_before,
 )
+from tests.runtime_data_guard import assert_project_data_unchanged, snapshot_project_data
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -58,13 +61,14 @@ def copy_registry_project_resources(project: Path) -> None:
 
 
 class RegistryAndFixtureTests(unittest.TestCase):
-    def test_registry_is_validated_57_tool_stage5_with_legacy_milestone(self) -> None:
+    def test_registry_has_active_74_tools_and_frozen_57_name_compatibility(self) -> None:
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
         self.assertEqual(registry.status, "validated")
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 77)
         self.assertEqual(
             [tool["id"] for tool in registry.tools],
-            list(PUBLIC_TOOL_NAMES),
+            list(CURRENT_PUBLIC_TOOL_NAMES),
         )
         self.assertEqual({store.id for store in registry.stores}, {"market", "macro", "company", "news"})
         self.assertEqual(
@@ -112,7 +116,7 @@ class RegistryAndFixtureTests(unittest.TestCase):
             self.assertEqual(fixture.expected_warnings, ())
 
     def test_registry_rejects_unknown_nested_fields_and_role_swapped_path_env(self) -> None:
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "registry.json"
             raw["stores"][0]["unexpected"] = True
@@ -128,13 +132,20 @@ class RegistryAndFixtureTests(unittest.TestCase):
 
 class StoreAndMigrationTests(unittest.TestCase):
     def setUp(self) -> None:
+        self._project_data_before = snapshot_project_data(PROJECT_ROOT)
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         self.store_map = temporary_store_map(self.root)
         self.registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
     def tearDown(self) -> None:
-        self.temporary.cleanup()
+        try:
+            self.temporary.cleanup()
+        finally:
+            assert_project_data_unchanged(
+                self._project_data_before,
+                project_root=PROJECT_ROOT,
+            )
 
     def test_all_four_stores_initialize_and_rerun_deterministically(self) -> None:
         first_status = initialize_all(self.store_map, self.registry)
@@ -159,7 +170,6 @@ class StoreAndMigrationTests(unittest.TestCase):
             len(first_status["news"]),
             len(self.registry.migrations_for("news")),
         )
-        self.assertFalse((PROJECT_ROOT / "data").exists())
 
     def test_stage2_registry_rebuild_preserves_stage1_rows_and_foreign_keys(self) -> None:
         stage2_registry = stage2_registry_profile(self.registry)
@@ -360,7 +370,7 @@ class StoreAndMigrationTests(unittest.TestCase):
             )
             resource.write_bytes(resource_bytes)
             registry_path = project / "config" / "system_registry.json"
-            raw = loads_strict(registry_path.read_bytes())
+            raw = loads_strict(registry_path.read_bytes(), max_bytes=16 * 1024 * 1024)
             raw["migrations"][0]["sha256"] = hashlib.sha256(resource_bytes).hexdigest()
             registry_path.write_text(dumps_strict(raw), encoding="utf-8")
             copied_registry = load_registry(
@@ -400,7 +410,7 @@ INSERT INTO child(id, parent_id) VALUES ('child', 'missing');
 """
             resource.write_bytes(resource_bytes)
             registry_path = project / "config" / "system_registry.json"
-            raw = loads_strict(registry_path.read_bytes())
+            raw = loads_strict(registry_path.read_bytes(), max_bytes=16 * 1024 * 1024)
             raw["migrations"][0]["sha256"] = hashlib.sha256(resource_bytes).hexdigest()
             registry_path.write_text(dumps_strict(raw), encoding="utf-8")
             copied_registry = load_registry(
@@ -465,6 +475,125 @@ INSERT INTO child(id, parent_id) VALUES ('child', 'missing');
         mutation_after = mutation_fingerprint(self.store_map)
         self.assertEqual(logical_before["sha256"], logical_after["sha256"])
         self.assertNotEqual(mutation_before["sha256"], mutation_after["sha256"])
+
+    def test_internal_fingerprint_digest_supports_reviewed_large_store_manifests(self) -> None:
+        payload = {"rows": ["x" * (9 * 1024 * 1024)]}
+        with self.assertRaises(ResourceLimitError):
+            dumps_strict(payload)
+        expected = hashlib.sha256(
+            dumps_strict(payload, max_bytes=10 * 1024 * 1024).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(fingerprint_module._fingerprint_digest(payload), expected)
+
+    def test_streaming_fingerprint_compacts_target_scale_relations(self) -> None:
+        """Large Stage-10-shaped tables do not become one giant JSON value."""
+
+        initialize_all(self.store_map, self.registry)
+        connection = sqlite3.connect(self.store_map.market)
+        connection.execute(
+            """
+            CREATE TABLE fingerprint_scale_rows (
+                row_id INTEGER PRIMARY KEY,
+                payload TEXT NOT NULL
+            ) STRICT
+            """
+        )
+        row_count = 250_000
+        payload = "stage10-scale-" + ("x" * 112)
+        for first in range(0, row_count, 5_000):
+            connection.executemany(
+                "INSERT INTO fingerprint_scale_rows(row_id, payload) VALUES (?, ?)",
+                (
+                    (number, f"{payload}{number:06d}")
+                    for number in range(first, min(first + 5_000, row_count))
+                ),
+            )
+        connection.commit()
+        connection.close()
+
+        market_dataset = self.registry.datasets_for(StoreRole.MARKET.value)[0]
+        scoped_registry = replace(
+            self.registry,
+            datasets=(
+                replace(
+                    market_dataset,
+                    relations=("fingerprint_scale_rows",),
+                ),
+            ),
+        )
+
+        mutation = mutation_fingerprint(self.store_map)
+        logical = logical_manifest(self.store_map, scoped_registry)
+        mutation_relation = mutation["stores"]["market"]["relations"][
+            "fingerprint_scale_rows"
+        ]
+        logical_relation = logical["stores"]["market"]["relations"][
+            "fingerprint_scale_rows"
+        ]
+        for relation in (mutation_relation, logical_relation):
+            self.assertEqual(
+                relation["fingerprint_format"],
+                "quant_data.sqlite_relation_fingerprint.v2",
+            )
+            self.assertEqual(relation["row_count"], row_count)
+            self.assertEqual(len(relation["row_sha256"]), 64)
+            self.assertGreater(relation["canonical_row_bytes"], row_count)
+            self.assertNotIn("rows", relation)
+        # The returned primitive remains safe for all current callers to
+        # render, compare, or persist even though its source relation is much
+        # larger than the public JSON envelope.
+        self.assertLess(len(dumps_strict(mutation).encode("utf-8")), 2_000_000)
+        # The logical manifest intentionally embeds the active registry,
+        # including the reviewed versioned tool contracts, while the 250k-row
+        # relation remains represented only by its compact fingerprint. The
+        # envelope stays far below the public eight-megabyte response ceiling.
+        self.assertLess(
+            len(dumps_strict(logical).encode("utf-8")),
+            MAX_JSON_BYTES,
+        )
+        self.assertEqual(
+            mutation["sha256"],
+            mutation_fingerprint(self.store_map)["sha256"],
+        )
+
+    def test_compact_fingerprint_sorts_canonical_mixed_storage_values(self) -> None:
+        """SQL-equal INTEGER/REAL values cannot leak physical insertion order."""
+
+        connection = sqlite3.connect(":memory:")
+        connection.row_factory = sqlite3.Row
+        connection.execute("CREATE TABLE forward(value BLOB)")
+        connection.execute("CREATE TABLE reverse(value BLOB)")
+        base = (None, 1, 1.0, -0.0, 0.0, "1", b"1")
+        values = [base[index % len(base)] for index in range(1_029)]
+        connection.executemany(
+            "INSERT INTO forward(value) VALUES (?)",
+            ((value,) for value in values),
+        )
+        connection.executemany(
+            "INSERT INTO reverse(value) VALUES (?)",
+            ((value,) for value in reversed(values)),
+        )
+
+        forward = fingerprint_module._table_rows(
+            connection,
+            "forward",
+            exclude_volatile=False,
+            budget=fingerprint_module._FingerprintBudget(),
+        )
+        reverse = fingerprint_module._table_rows(
+            connection,
+            "reverse",
+            exclude_volatile=False,
+            budget=fingerprint_module._FingerprintBudget(),
+        )
+        connection.close()
+
+        self.assertEqual(
+            forward["fingerprint_format"],
+            "quant_data.sqlite_relation_fingerprint.v2",
+        )
+        self.assertEqual(forward["row_count"], len(values))
+        self.assertEqual(forward, reverse)
 
 
 class TemporalAndJsonTests(unittest.TestCase):

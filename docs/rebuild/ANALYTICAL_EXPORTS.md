@@ -16,8 +16,9 @@ over those exports; it is never an operational authority.
 The current profile does not adopt Parquet or DuckDB and does not authorize
 hosting, deployment, a public release, a live database read, a scheduler
 action, or operational promotion. Its primary offline evidence and independent
-SolUltra verification are recorded; browser verification remains pending; see
-[Stage 8 evidence](STAGE8_EVIDENCE.md).
+SolUltra verification are recorded. The bounded gate was accepted on
+2026-08-14 with an explicit waiver for unavailable in-app browser automation;
+see [Stage 8 evidence](STAGE8_EVIDENCE.md).
 
 Related documents:
 
@@ -145,7 +146,7 @@ registry. It MUST contain:
 The public caller MUST NOT provide SQL, a database path, an output path, an
 arbitrary table, a partition expression, or a credential.
 
-### Bounded Stage 8 JSON Atlas profile — formal gate pending
+### Bounded Stage 8 JSON Atlas profile — accepted with browser-automation waiver
 
 The only declared Stage 8 export is
 `atlas.fixture_snapshot`/`atlas.fixture_snapshot.core_v1`, owned by
@@ -501,9 +502,11 @@ operational SQLite store.
 ## Acceptance evidence
 
 The export contract is Accepted. The bounded Stage 8 profile has primary
-offline evidence and independent SolUltra verification. Its formal exit gate
-remains pending until browser accessibility/security verification is recorded.
-The status and exact evidence are maintained in
+offline evidence and independent SolUltra verification. On 2026-08-14 the user
+explicitly waived unavailable in-app browser automation and accepted the
+bounded exit gate. Accessibility/security browser observations remain
+unrecorded and are not treated as passing evidence. The status and exact
+evidence are maintained in
 [Stage 8 evidence](STAGE8_EVIDENCE.md); this specification distinguishes a
 registry `fixture_validated` declaration and a primary test pass from independent
 acceptance.

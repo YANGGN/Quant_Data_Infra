@@ -10,12 +10,23 @@ contains no task-installation or job-start commands. Recovered cadence
 information remains evidence for parity, not evidence that a scheduler is
 installed or authorized to contact a live provider or operational store.
 
+The [operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the sole index of
+recorded recurring authorization and dated activation evidence. This document
+owns scheduling/locking mechanics and scoped decision details. Activation and
+waiting-state observations below describe their recorded dates, not current
+host health; this policy reconciliation performed no live inspection.
+
 Related documents:
 
+- [Current operating envelope](CURRENT_OPERATING_ENVELOPE.md)
 - [Architecture](../../ARCHITECTURE.md)
 - [System registry specification](SYSTEM_REGISTRY_SPEC.md)
 - [Data and time contracts](DATA_AND_TIME_CONTRACTS.md)
 - [Roadmap](../../ROADMAP.md)
+- [Stage 12B incremental Market v1 collector](STAGE12B_INCREMENTAL_MARKET_V1.md)
+- [Stage 12C two-session Market v1 gap contract](STAGE12C_MARKET_GAP_V1.md)
+- [Stage 12D no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+- [Stage 12D evidence record](STAGE12D_EVIDENCE.md)
 - [ADR 0006: Lock by resolved physical store](../adr/0006-lock-by-physical-store.md)
 
 ## Scope
@@ -34,7 +45,427 @@ This document specifies:
 It authorizes only the reviewed synthetic-fixture rehearsal against explicit
 temporary stores and private state roots. It does not authorize live/network
 collection, operational or default database paths, scheduler installation,
-update, removal or start, deployment, exports, promotion, or live diagnostics.
+update, removal or start, deployment, exports, promotion, or live diagnostics,
+except for the completed bounded Stage 12C slice recorded in its evidence.
+The completed and independently verified Stage 12D no-transfer proof had no
+provider, scheduler, or public-consumer capability. A later explicit user
+decision separately authorized the fixed GDP/CPI vintage timer described
+below. A subsequent explicit decision authorized the separate fixed
+employment-vintage timer. A further explicit decision authorized the fixed FMP
+macro-calendar timer described below. On 2026-08-23 the user separately
+authorized the fixed weekday aggregate macro-current timer described below.
+On 2026-08-25 the user separately authorized the fixed Alpaca SPY option-
+surface timer. On 2026-08-30 the user separately authorized updating that
+legacy-named timer in place to run the fixed 15-ETF option grid described
+below. On 2026-08-25 the user also authorized scheduled SEC market-
+equity CompanyFacts fetching; the implementation fixes it to the weekday timer
+described below. The original exceptions retain their documented scope. The
+Stage 12E market timer's activation was recorded on 2026-08-29; it does not
+broaden the disabled recovered job catalog.
+On 2026-09-05 the user explicitly approved the separate weekday 19:00 company
+actions and analyst-estimates timer described below.
+The [current operating envelope](CURRENT_OPERATING_ENVELOPE.md) is the
+authoritative concise list of allowed recurring units.
+
+## Authorized current multi-source news refresh
+
+`scripts/refresh_current_news.py` is the manual, zero-argument batch for the
+fixed current-news feeds. The matching
+`quant-data-current-news-refresh.service` and `.timer` run on an hourly
+`:10` UTC cadence with `Persistent=false`. On 2026-08-30 the reviewed
+per-user units were linked, daemon-reloaded, enabled, and started. That check
+recorded the timer as `loaded`/`enabled`/`active`/`waiting`, with an empty
+`LastTrigger` and the service inactive/dead without execution timestamps.
+Activation made no
+provider request or canonical-store write.
+
+The batch uses optional `FMP_API_KEY` and
+`ALPACA_API_KEY`/`ALPACA_API_SECRET`; a missing credential yields a source-local
+`unavailable` outcome without prompting. Official RSS feeds need no credential.
+The 2026-08-30 16:00 UTC proof completed all eight source steps and all 20
+requests without retry, including 13 bounded Alpaca/Benzinga batches. It has no
+retry or catch-up behavior. Future work must not manually trigger, retry,
+broaden, reinstall, disable, or repurpose the authorized unit.
+
+On September 6, 2026 the user approved extending this same batch with Finviz
+and FinancialJuice, one fixed credential-free request each per normal hourly
+invocation. Their [source contract](WEBSITE_NEWS_SOURCES_2026-09-06.md) specifies
+bounds, shared-table publication, source-local failures, and exact no-write
+replay. This later decision supersedes the earlier eight-source scope for
+these two additions only. Dated activation evidence belongs in the operating
+envelope.
+
+## Authorized GDP/CPI vintage refresh
+
+`quant-data-macro-vintages.timer` is an authorized recurring scheduling
+exception in this document. It runs the fixed zero-argument refresh wrapper at
+09:05 America/New_York, Monday through Friday, with `Persistent=false`.
+Each invocation makes exactly one BEA workbook request and one BLS current API
+request, with no retry, credential, caller path, migration, or archive fetch.
+Network parsing completes before the publisher takes the physical macro-store
+lock; publication uses a short transaction, and unchanged normalized content
+causes zero writes. The 14 BLS annual archive requests belong only to the
+completed manual backfill and must not recur through the timer.
+
+The service is fixed to
+`/home/volatility/Python_Projects/Quant_Data_Infra/data/macro.sqlite`, runs with
+`NoNewPrivileges`, `ProtectSystem=strict`, `ProtectHome=read-only`, a private
+temporary directory, and a `0077` umask. Its first service-level run completed
+as two semantic no-ops before the timer was enabled.
+
+## Authorized employment-vintage refresh
+
+`quant-data-employment-vintages.timer` is the second recurring scheduling
+exception. It runs on the first Friday of each month
+at 10:05 America/New_York with `Persistent=false`. The recurring path makes
+exactly one credential-free BLS request for `CES0000000001` and
+`LNS14000000`, with no retry or migration. It never refetches the completed
+Philadelphia Fed payroll or unemployment historical workbooks. Network and
+parsing finish before the publisher obtains the physical macro-store lock;
+unchanged normalized facts cause zero writes.
+
+The service has the same fixed `data/macro.sqlite` target and systemd hardening
+as the GDP/CPI service. A manual service invocation outside the monthly release
+window completed successfully with `requested=0`, proving that the calendar
+gate performs no provider request. The activation check recorded the timer
+enabled and waiting for `2026-09-04 10:05 EDT`.
+
+## Authorized FMP macro-calendar refresh
+
+`quant-data-fmp-macro-calendar.timer` is the third recurring scheduling
+exception. It runs at 08:15 and 08:45 America/New_York, Monday through Friday,
+with `Persistent=false`. Each invocation makes one bounded current-window FMP
+calendar request with no retry. The exact response is retained as private
+wholesale raw evidence before independent GDP/CPI and employment
+normalization.
+
+The user explicitly authorized canonical migration 0018 on 2026-08-24; it was
+applied at `2026-08-25T01:31:39.017401Z`. ADR 0012 therefore governs future
+poll persistence: a material response adds one receipt and only new/changed
+raw event versions, then replaces one singleton latest-response cache. Legacy
+migration-0016 bodies and rows remain immutable and readable. Equivalent
+replay writes nothing. The canonical publisher's exact ledger/relation gate
+passes before credential resolution or network work. The timer's two weekday
+times, one-request cap, no-retry rule, credential resolver, physical-store
+locking, and definition are unchanged. No provider request was manually
+triggered as part of migration activation.
+
+Network fetch and parsing finish before the publisher obtains the fixed
+physical macro-store lock. The two publishers retain independent semantic
+replay and lineage, and unchanged normalized content causes zero writes. The
+timer does not repeat either completed 56-window historical backfill, add a
+provider or series, change the reviewed alias mapping, or authorize a caller-
+selected path.
+
+The completed macro-history extension and retained Stage 11 weekly adoption
+are one-time manual operations. They have no timer and do not broaden either
+historical vintage collector above or the FMP calendar exception.
+
+The FMP calendar wrapper also writes private latest-attempt receipts under
+`data/.operations/refresh-status`, separately for raw evidence and normalized
+calendar results. The macro-current wrapper records one receipt per completed
+source invocation. These bounded, atomic files track successful unchanged
+polls without adding canonical rows. Their scoped bounded lock is separate
+from physical-store publication locks; receipt persistence never retries a
+provider. Readers create no files or locks. Existing unit scope, request caps,
+credential routing and timer cadence are unchanged.
+
+The nine scheduled CLI entrypoints also save private per-run history under
+`data/.operations/fetch-run-history/<UTC-month>/<run-id>/run.json` for the
+Inspector Status calendar. This observational wrapper calls the original CLI
+exactly once, preserving its stdout, stderr, return and exception behavior.
+An atomic running receipt is followed by a self-contained completion receipt
+with start, finish and exit outcome. Each UUID directory has one writer and
+needs no shared publication lock. Logging errors produce a fixed warning;
+they neither replace the collector result nor add a provider retry. These
+receipts are separate from canonical evidence and latest-per-source freshness
+receipts. They do not assert individual-source results. Existing argument
+forms, units, calendar rules, request caps and canonical locks remain unchanged;
+normal clock-driven runs load this instrumentation without a unit-file update.
+The bounded reader and incomplete-run semantics are defined by the
+[Status calendar contract](TOOL_PLATFORM_SPEC.md#live-fetch-status-calendar).
+
+## Authorized aggregate macro-current refresh
+
+`quant-data-macro-current-refresh.timer` is the fourth recurring scheduling
+exception. It runs at 18:30 America/New_York, Monday through Friday, with
+`Persistent=false`. Its zero-argument wrapper invokes twenty-nine
+established macro collector operations sequentially, without retry, and
+returns a nonzero aggregate exit when any operation fails. One invocation has
+a fixed provider-request cap of 94: NY Fed Primary Dealer Statistics is
+bounded at 33 requests, each CFTC family at eight, electricity retail at eight
+EIA pages, H.8 at seven, SLOOS at six, BIS at two, and each other operation
+at one. The September 5 repair accepted all 13 H.8/SLOOS responses through the
+corrected existing FRED transport, superseding the failed September 4 gate.
+See [the repair receipt](FETCH_REPAIRS_2026-09-05.md).
+
+The recurring scope is fixed as follows:
+
+- a 21-day inclusive window ending on the latest Friday for both CFTC
+  futures-only positioning families;
+- a stable current-quarter envelope, beginning 44 days before quarter start
+  and ending on quarter end, for FMP Treasury curve, NY Fed overnight rates
+  including SOFR distribution, volume, index, and compounded averages, NY Fed
+  repo facilities, NY Fed SOMA, Federal Reserve IORB and target bounds,
+  Federal Reserve H.4.1, Treasury Fiscal Data cash balance, Debt to the
+  Penny, Monthly Treasury Statement receipts, outlays, and deficit/surplus,
+  Treasury securities auctions, and NY Fed Primary Dealer Statistics under
+  the fixed current series break `SBN2024`;
+- the previous quarter's start through the current quarter's end for H.8/SLOOS;
+- one FRED CFNAI request from `2026-01-01` through the current quarter's end;
+- the source-native full response through that same quarter end for Chicago Fed
+  NFCI/ANFCI and the NFCI risk, credit, and leverage components from
+  `1971-01-08`, FRED INDPRO from
+  `1919-01-01`, and NY Fed CMDI from `2005-01-07`; BIS U.S. credit
+  conditions from `1961-Q1` through the current quarter; and the fixed
+  full-source EIA Lower-48 working gas-storage, EIA weekly U.S. crude-oil,
+  total-motor-gasoline, and distillate-fuel-oil stocks, EIA weekly finished-
+  motor-gasoline product supplied, EIA U.S. all-sector monthly electricity-
+  retail, and NBER recession-chronology requests; and
+- the existing current ten-year BLS request for PPI Final Demand, average
+  hourly earnings, labor productivity, and Employment Cost Index; and
+- one fixed BEA NIPA `T20600`, `Year=ALL` request retaining personal income,
+  disposable personal income, and personal consumption expenditures.
+
+The wrapper targets only `data/macro.sqlite` and reuses the existing FMP,
+EIA, and BEA credential resolvers. CFNAI, INDPRO, CFTC, Treasury auctions,
+and Primary Dealer Statistics are credential-free; their addition changes
+no schema, migration, dataset ownership, provider family, or credential
+mechanism. Each collector completes its network parsing before its
+short physical-store publication lock, and unchanged normalized content causes
+zero writes. Stable quarter bounds preserve that semantic identity between
+daily polls while retaining a 44-day overlap at each quarter boundary. This
+timer does not call the GDP/CPI vintage, employment-vintage, or FMP macro-
+calendar wrappers and therefore does not duplicate the other three
+recurring exceptions. The underlying registry collector declarations remain
+manual-only; this exact hardened host unit is the recurring exception.
+
+## Authorized in-place Alpaca ETF option-surface refresh
+
+**Retired September 26, 2026.** The user explicitly selected the new Theta
+options store and requested retirement of this Alpaca collection. Its timer
+is disabled/removed from the installed schedule; retained historical evidence
+and repository definitions remain. The operating envelope and
+[Theta agent proposal/retirement receipt](THETA_AGENT_TOOL_PROPOSAL_2026-09-26.md)
+record the current decision. The following activation history describes the
+earlier scope and no longer authorizes recurring Alpaca options execution.
+
+On 2026-08-25 the user explicitly authorized the fixed
+`quant-data-alpaca-spy-options.timer`. It was linked and enabled after the
+focused offline tests, independent verification, and host timer status check
+passed. On 2026-08-30 the user explicitly authorized updating that enabled
+legacy-named timer in place to invoke
+`quant_data.operations.alpaca_etf_options_refresh` instead of the SPY-only
+wrapper at its then-current 15:55 America/New_York weekday cadence. No
+immediate run was part of that update. The first normal trigger on 2026-08-31
+failed at registry preflight before credentials, provider access, or the store.
+A separately authorized manual run at 20:01 issued 128 requests, completed 14
+underlyings with XLE partial, retained 110 captures, materialized 12,556
+surface rows, and made 51,465 writes. It was not retried.
+
+On 2026-08-31 the user authorized moving the same fixed timer from 15:55 to
+16:20 America/New_York so collection begins after the latest ordinary
+ETF-option session. The focused unit test and
+`systemd-analyze --user verify` passed. The daemon reload made no provider
+request or store write. Restarting the active timer unexpectedly dispatched
+the already-passed same-day event at 20:29 EDT despite `Persistent=false`.
+That unplanned incomplete-universe run issued 64 requests, retained 54
+captures, materialized 8,812 surface rows, and made 27,031 writes. It completed
+SPY, QQQ, IWM, DIA, XLB, and XLC; XLE, XLF, XLI, XLK, XLP, XLRE, XLU, XLV,
+and XLY failed. It exited 75, was not retried, and its immutable captures were
+not deleted. After completion the failure flag was cleared without starting
+the service. The service is `inactive/dead` and retains its
+20:29:50-20:30:17 EDT timestamps and status 75. The timer is
+`loaded`/`enabled`/`active`/`waiting` for Tuesday 2026-09-01 16:20 EDT.
+No further service start was made.
+
+The timer is fixed at 16:20 America/New_York, Monday through Friday, with
+`Persistent=false`. An in-process OPRA calendar request gates actual trading
+days; a holiday stops after that one request. The operation has no retry or
+automatic catch-up.
+Before credentials or provider access, the option wrapper requires one
+publisher-stable registry/catalog load. The canonical generator holds one
+project-local exclusive advisory lock across generation and all three atomic
+file replacements; the option wrapper waits at most 30 seconds for the matching
+shared lock, validates the bundle once, and releases the lock before credentials
+or provider access. This synchronization makes no provider request and opens no
+database. It is not a checksum or configuration retry: an invalid bundle after
+lock acquisition fails immediately as `registry_not_ready`. Provider requests
+remain single-attempt with no retry or catch-up.
+
+
+The wrapper fixes the project root, `data/market.sqlite`, paper account,
+indicative option feed, and existing
+`ALPACA_API_KEY`/`ALPACA_API_SECRET` credential resolver. Its universe is
+exactly `SPY`, `QQQ`, `IWM`, `DIA`, `XLB`, `XLC`, `XLE`, `XLF`,
+`XLI`, `XLK`, `XLP`, `XLRE`, `XLU`, `XLV`, and `XLY`. Target DTEs
+are `1`, `2`, `3`, `7`, `14`, `30`, `60`, `90`, `180`, and
+`365`.
+
+One invocation makes at most 362 single-attempt requests and is bounded by
+900,016 rows, 256 MiB, and 900 seconds; the host timeout is 16 minutes. Exact
+provider-response bytes are retained before normalized surfaces are completed.
+A partial grid reports completed and failed underlyings, preserves completed
+captures, and exits nonzero rather than claiming full success. Network fetch
+and parsing remain outside each short physical market-store publication lock,
+and exact semantic replay writes nothing.
+
+September 22, 2026 correction: the ETF normalizer ignores a chain snapshot
+absent from the active catalog only when its OCC symbol matches the requested
+underlying, expiry and strike interval, it has a dated quote or trade, and
+all supplied quote/trade/bar timestamps precede the capture session and do not
+exceed capture completion. Current, future, undated or foreign-scope unknown
+contracts remain errors. Excluded symbols and the policy version are recorded
+in the capture scope; exact original chain bytes remain in raw evidence.
+The serialized scope must fit the option reader's 16,384-byte limit before
+publication.
+The predecessor SPY normalizer and existing capture identities are unchanged.
+This corrects the reproduced XLE/XLK December 18 stale-chain mismatch without
+raising request/page/byte limits or introducing provider retries.
+
+The registry collector declaration remains `manual_only`; this one hardened
+host unit is the explicit recurring exception. It replaces, rather than runs
+alongside, the SPY wrapper, so SPY is not requested twice. It does not enable
+the recovered `options-close` job or alter the separate 18:00 Stage 12E FMP
+market-close job. Alpaca's indicative quotes and delayed/derived trades are
+inspection evidence, not an executable price, trading signal, or valuation
+input.
+
+## Authorized Stage 12E market-close refresh
+
+On 2026-08-29 the reviewed fixed `quant-data-market-close.timer` was
+daemon-reloaded, enabled, and started. Host verification recorded
+`LoadState=loaded`, `UnitFileState=enabled`, `ActiveState=active`, and
+`SubState=waiting`; the next trigger at that check was Monday
+2026-08-31 18:00:00 EDT and `LastTrigger` was empty. The service was
+`inactive/dead` at that check, without
+`ExecMainStartTimestamp` or `ExecMainExitTimestamp`; activation made no
+state directory, provider request, or canonical write.
+
+It runs at 18:00 America/New_York on weekdays with `Persistent=false`; a
+missed window is not replayed. There is no hidden retry or manual catch-up.
+
+Before provider access, the zero-argument runner takes an immutable read-only
+snapshot of every current FMP provider-native `stage10_instruments` identity
+whose `asset_type` is `equity`, `etf`, or `index`. The 2026-08-29
+preflight contained 630 identities: 519 equities, 96 ETFs, and 15 indexes.
+The bounded snapshot remains dynamic, rejects malformed membership, limits the
+batch to 800 symbols, and places `AAPL` first. It is
+not the frozen Stage 12C historical roster.
+
+The runner requests only the current New York session's FMP daily OHLCV, once
+per selected symbol. An empty `AAPL` response is a no-market-session sentinel
+and stops the batch before other symbols are requested. The ten pinned
+historical noncoverage symbols remain eligible: valid 200 data is published if
+it becomes available, while only their exact reviewed empty or HTTP 402
+outcomes are terminal. A non-sentinel unapproved empty response or malformed
+or out-of-contract payload is retained as a per-symbol `failed_response`
+without publication, and later independent symbols continue. Version `1.4.0`
+extends that isolation to every durably received redirect, invalid media type,
+invalid status, unapproved status, and malformed approved error envelope.
+Any such result prevents completion and makes the aggregate service exit
+nonzero. Transport/no-response ambiguity and publication/store failures still
+stop immediately. There is no hidden retry or automatic catch-up.
+
+Runner versions beginning with `1.3.0` keep the full implementation
+authority on plans and receipts but use the stable v1.1 provider-request
+authority revision for
+raw-response replay protection. Code-only releases can therefore replay
+byte-identical content as unchanged; a request-defining authority change still
+changes the scope digest and fails closed.
+
+Network parsing completes before the short physical lock and transaction on
+the fixed `data/market.sqlite`; exact semantic replay writes nothing. Each
+attempted symbol has durable private evidence. The unit remains separate from
+the frozen, disabled Stage 7 `market-close` registry job and cannot repeat
+Stage 10 or Stage 12C history.
+
+## Authorized SEC market-equity fundamentals refresh
+
+The user explicitly authorized one longest-available historical population
+and scheduled fetching. The authorized implementation uses the fixed
+`quant-data-sec-company-fundamentals.timer` at 07:15 America/New_York, Monday
+through Friday, with
+`Persistent=false`. It was linked and enabled on 2026-08-25 after the bounded
+population and post-write checks passed; activation did not manually start
+the service. Its first scheduled trigger at that check was 2026-08-26 at 07:15
+America/New_York.
+
+The zero-argument wrapper reads only the 519 Stage 10 market equities through
+a descriptor-pinned immutable market-store connection, resolves the bounded
+official SEC ticker map, deduplicates shared CIKs, and then performs one
+submissions and one CompanyFacts request per issuer. Requests are sequential,
+have no retry, and are globally paced at no more than five per second. The
+aggregate limit is one discovery plus twice the 700-equity safety ceiling and
+six hours. Each issuer is isolated to 64 MiB, 50,000 selected core rows, and a
+120-second pre-write deadline. Network and parsing complete before each short
+physical company-store publication lock; exact semantic replay writes
+nothing. One issuer failure does not prevent later independent issuers from
+running, but the aggregate service exits nonzero.
+
+The unit fixes the project root plus `data/market.sqlite` and
+`data/company.sqlite`, reuses only the established SEC User-Agent credential
+resolver, and adds no migration, public route, export, deployment, or
+authority for the frozen recovered `sec-daily` job. Unit-file presence is not
+activation evidence. Link/enable status may be recorded only after the
+focused offline gate, independent review, historical population checks, and
+host verification pass.
+
+The activating population completed inside its aggregate deadline with 476
+successful issuers, 38 isolated issuer failures, 517 matched equity symbols,
+two unmatched symbols, and one ticker-confirmation mismatch. A scheduled
+invocation processes the fixed full roster again; semantic replay makes
+unchanged successful issuers zero-write, while previously failed issuers get a
+new attempt. There is still no retry within an invocation.
+
+Generic publisher version `1.4.0` allowed later submissions or CompanyFacts
+fallback records to preserve an exact same-issuer CompanyFacts placeholder.
+Its scheduled 2026-09-03 pass completed the fixed 1,027 requests but left 198
+of 513 issuers in isolated conflict.
+
+Version `1.5.0` preserves any generic filing already first-observed for the
+same issuer when a later official endpoint revises its metadata, while still
+appending the new snapshot membership. First-observed-other-issuer joint
+filings and legacy AAPL remain strict. One explicitly authorized manual pass
+from 21:35 to 22:18 EDT on 2026-09-03 completed the same 1,027 requests: 512
+issuers succeeded and only NextEra Energy retained an isolated conflict.
+Three roster symbols remained unmatched. The pass committed 404,278 writes
+across 246 new v1.5 ingestion runs; its other successes were semantic no-ops.
+Immutable post-checks returned `quick_check=ok` and zero foreign-key
+violations. The incomplete aggregate exited nonzero and was not retried. The
+timer was not changed; the 2026-09-03 post-run check recorded it enabled,
+active, and waiting for its normal 2026-09-04 07:15 EDT trigger.
+
+## Authorized company actions and analyst-estimates refresh
+
+On 2026-09-05 the user explicitly approved creating and enabling
+`quant-data-company-market-refresh.timer` for Monday-Friday at 19:00
+America/New_York. Its zero-argument service invokes
+`python3 -m quant_data.operations.company_market_refresh` from the fixed project
+root. The timer is non-persistent, has no randomized delay or catch-up, and the
+service has `Restart=no` and a 31-minute host timeout around the wrapper's
+30-minute run limit.
+
+Each run reads at most 700 retained FMP equities and existing company
+identities through the established physical-store read mechanisms, performs
+one bounded SEC ticker discovery, and requests dividends, splits, and one
+annual-estimates page for each unambiguous symbol with an existing CIK.
+The fixed aggregate limits are 2,101 requests and 128 MiB, with no retry.
+No identities are created. Publication targets only `data/company.sqlite`,
+retains raw evidence before normalization, reuses the existing physical-store
+locks and replay-safe publishers, and performs no network work under a
+database write lock or transaction. Exact semantic replay writes nothing.
+Partial coverage is reported explicitly and produces a nonzero aggregate exit.
+
+The two registry collector bindings remain manual-only. This separate host
+exception does not enable recovered `expectations` or `company-weekly` jobs,
+change ownership/schema, or authorize manual population repeats.
+The units were linked, daemon-reloaded, and the timer alone enabled/started.
+Post-activation inspection found the timer enabled and active/waiting with its
+next trigger on 2026-09-07 at 19:00 EDT; the service remained inactive/dead
+without execution timestamps. All 22 inspected store/sidecar and company
+operation-state filesystem stamps and the company state path set were unchanged.
+See the [repair and activation evidence](FETCH_REPAIRS_2026-09-05.md).
 
 ## Safety principles
 
@@ -84,6 +515,33 @@ proposal is approved.
 Progression is monotonic. Failure at a stage returns the job to that stage; it
 does not authorize skipping ahead.
 
+For Market v1, the [Stage 12 contract](STAGE12_MARKET_V1.md) applies this
+progression serially:
+
+- Stage 12A freezes authority, exact coverage, and the canonical path without
+  reaching a provider or database;
+- Stage 12B is `Implemented and independently verified — offline fixture-only`
+  under its [focused collector contract](STAGE12B_INCREMENTAL_MARKET_V1.md) and
+  [evidence record](STAGE12B_EVIDENCE.md): it uses registry `2.13.0`/schema
+  `1.8.0` and the existing `0010` model only in explicit temporary fixture
+  stores, with no live provider, API key, network, default or retained store,
+  migration, promotion, cutover, public consumer, or scheduler action;
+- Stage 12C is **implemented and independently verified** under its
+  [focused two-session contract](STAGE12C_MARKET_GAP_V1.md) and
+  [evidence record](STAGE12C_EVIDENCE.md). Its completed provider work may not
+  be repeated, and it did not authorize a scheduler;
+- Stage 12D is **complete and independently verified** under its
+  [no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+  and [evidence record](STAGE12D_EVIDENCE.md). Exactly two read-only proofs
+  produced immutable receipts and left database/WAL/SHM/journal stamps
+  unchanged; it made no copy, transfer, backup, migration, provider/network,
+  consumer, or scheduler action; and
+- Stage 12E has separately recorded authority and activation evidence indexed
+  in the operating envelope. Its scope is the eligible current-session
+  equity/ETF/index snapshot, with no historical replay or recovered Stage 7 job.
+  The 2026-08-29 activation check recorded no service execution, provider
+  request, or canonical write during activation.
+
 ### Stage 0: static registry validation
 
 Validate job names, step graphs, logical store declarations, dependencies,
@@ -127,7 +585,11 @@ backup/restore evidence before repeating the run.
 
 An operational manual run requires exact store targets, backup and rollback
 evidence, a reviewed plan digest, bounded scope, and an operator present. A
-successful run does not install a schedule.
+successful run does not install a schedule. This general transfer-oriented
+progression does not override a narrower accepted source contract: the
+[Stage 12D no-transfer adoption/freeze contract](STAGE12D_PROJECT_LOCAL_OPERATIONALIZATION.md)
+controls the already-populated project-local market target and prohibits a
+backup, transfer, or rollback operation as part of its proof.
 
 ### Stage 5: external scheduling proposal
 
@@ -478,7 +940,8 @@ Before an external schedule can be proposed:
 - exact task definitions are reconciled with the recovered cadence table;
 - user identity, WSL distribution, working directory, timezone/DST behavior,
   IgnoreNew semantics, task timeout, and exit-code propagation are reviewed;
-- backup and restore drills use only non-production copies; and
+- formal backup/restore certification is not a prerequisite for this personal
+  project; any optional recovery drill uses only non-production copies; and
 - installation, update, removal, and immediate start remain separate explicit
   approvals.
 
@@ -517,3 +980,259 @@ Stop and escalate if a job touches an undeclared store, a physical path cannot
 be resolved unambiguously, partial aliasing appears, a collector requires a
 transaction across network I/O, a retry would replay successful immutable
 captures, or validation would require live scheduler or database mutation.
+
+## Equibles finite transcript backfill — 2026-09-07
+
+The user authorized a new dedicated daily finite backfill, separate from existing
+recurring units. The [Equibles contract](EQUIBLES_TRANSCRIPT_BACKFILL_2026-09-07.md)
+owns the frozen 519-ticker scope, ticker/call/page resume order, durable shared
+100-attempt UTC-day budget, quota-only deferral, and terminal completion behavior.
+The fixed private collector remains manual-only in the generic job registry;
+the explicitly authorized host timer runs at 00:10 UTC with Persistent=true,
+Restart=no, a private non-overlap lock, and standard physical company write locks.
+Network precedes every canonical write session. The public CLI accepts zero arguments.
+Dated activation evidence is indexed in the operating envelope.
+
+
+The September 7 UI integration adds Equibles to the existing bounded Inspector
+schedule list and to the observational per-run receipt allowlist. Its unchanged
+zero-argument collector is called exactly once; recorder failures cannot replace
+its exit outcome. The daily timer, quota state, page/call checkpoint ordering,
+network/write-lock separation and terminal backfill behavior are unchanged.
+
+
+## September 11 selected dividends/splits amendment
+
+The existing weekday 19:00 company refresh now has independent legacy-estimates
+and selected-action lanes under the user's explicit dividend/split expansion.
+The action lane uses the exact audited 2,201 ready securities and both action
+endpoints: at most 4,402 requests, 512 MiB and 120 minutes, no retries. Estimates
+retain their prior roster and 30-minute bound. The shared service timeout is
+151 minutes, with the timer's cadence and nonpersistent behavior unchanged.
+A source-lane exception does not suppress the other lane.
+
+An actions-only private receipt gate authorizes this adoption without changing
+shared binding hashes. It admits only the exact canonical-evidence/source-gap
+partition; original completion failures remain nonzero. Each normal daily run
+still includes the 44 symbols whose historical dividend responses were rejected.
+The gate does not admit missing/uncertain attempts, capped responses or arbitrary
+provider/resource failures. Network work finishes before existing physical-store
+write locks are acquired; immutable audits coordinate through those same locks.
+
+Dated authorization, activation and operational limitations are recorded in the
+[operating envelope](CURRENT_OPERATING_ENVELOPE.md) and
+[rollout record](DIVIDENDS_SPLITS_EXPANSION_2026-09-11.md).
+
+## Authorized Saturday historical-price repair - September 15, 2026
+
+The user approved a separate weekly historical-price gap repair at Saturday
+02:00 America/Toronto. The [weekly repair contract](WEEKLY_PRICE_REPAIR_2026-09-15.md)
+defines the pinned existing population, most recent completed Monday-Friday
+window, 3,000-request / 256-MiB / 60-minute bounds and zero automatic retries.
+It uses existing FMP allowance, original response retention, physical market
+locks and the versioned publisher, with an explicit missing-only policy inside
+the transaction. Existing prices are preserved even if another writer fills a
+gap after planning. Exact replay still changes nothing.
+
+Persistent catch-up processes only the latest due week and reports older
+unresolved periods. A first-eligible-slot record prevents an installation-time
+backfill. It does not wake Windows or launch WSL. Dated activation evidence
+belongs in the operating envelope; this specification does not claim current
+host state.
+
+
+## Authorized derived research refresh — September 21, 2026
+
+The user approved quant-data-derived-refresh.timer at 23:30 weekdays and 06:30
+daily, America/Toronto, with Persistent=true. The service executes the fixed
+zero-argument local runner once, Restart=no, with a 46-minute hard timeout.
+It performs no network/provider work and no canonical mutations.
+
+One fixed export lock prevents overlapping derived publishers. Company and
+market inputs use existing physical-store lock ordering and quiet immutable
+read cohorts; source locks are released before derived writes. Per-ticker
+failures preserve prior data. An exclusive staging file, validation and durable
+completion receipt precede atomic pointer publication. Failed precommit work
+does not replace the last serving artifact; postcommit telemetry failure cannot
+claim rollback.
+
+The initial scope is the frozen forward-P/E roster (at most 2,500 identities),
+20 missed sessions per ticker per run, 45 minutes of refresh work, and a
+512-MiB compact overlay. Catch-up processes completed exchange sessions only.
+Current published price version identities are compared over bounded saved
+history, including late commits with old capture times. Previously published
+estimate denominators remain fixed.
+
+Windows host wake adds 23:28 weekdays and 06:28 daily to the existing
+QuantData-WSLHost task, preserving its action, settings and other triggers.
+The [derived refresh contract](../DERIVED_REFRESH_PLAN.md) owns calculation
+scope; the [operating envelope](CURRENT_OPERATING_ENVELOPE.md) records observed
+activation and initial-run outcomes.
+
+## September 22, 2026 — recurring price acquisition exclusions
+
+The active daily-price and weekly-gap wrappers exclude ATAI after its last
+trading date of September 10, 2026 and IRBO after August 9, 2024, before
+request planning. The reviewed policy is in
+quant_data/operations/price_fetch_policy.py and cites the primary exchange
+notices. Exclusions are explicit in each new report; request counts describe
+the remaining active targets. Existing histories, universe snapshots and
+provider mappings are preserved, and ARTY is not silently substituted.
+The user approved this workload reduction; timer cadence and units are unchanged.
+
+## Retained-news reader coordination — September 23, 2026
+
+Current-news search and public source status use the existing physical news
+store lock for the duration of one immutable read. A merged search reads both
+current-news families under the same lock and descriptor. Read lock acquisition
+is bounded to one second; the existing five-second tool deadline also interrupts
+long SQL work. Publishers retain their existing short publication locks, with
+network work outside them. Readers do not schedule, refresh, retry, write facts,
+or disable descriptor/sidecar/change checks. Concurrent readers serialize on
+this existing exclusive lock; long publication/migration work can produce an
+explicit lock conflict. This bounded choice avoids a new snapshot service or
+changes to the shared locking engine. See
+[consumer behavior](../LOCAL_AGENT_TOOLS.md#retained-news-reads-during-collection).
+
+
+## Daily Theta options and weekly repair
+
+The user-authorized September 26, 2026 daily and weekend routines are specified
+in [the focused options contract](THETA_DAILY_COLLECTION_2026-09-26.md).
+As repaired October 8, daily Tue-Sat 07:15 Eastern collects only the previous
+local date; Sunday 03:00 Eastern repairs
+only missing sessions in the preceding Monday-Friday window. A shared job lock
+and durable per-period admission prevent overlap and automatic repeat. The
+existing resolved-physical-store lock guards immutable audits and atomic
+missing-only publication; provider work occurs outside that lock.
+The operating envelope owns dated activation evidence.
+
+## September 30, 2026 fetch failure repairs
+
+A shared FMP reservation that exhausts its original deadline before entering
+the HTTP callback now retains its charge and a durable not-dispatched receipt,
+then clears only its pending reservation. It does not latch an account-wide
+stop. Ambiguous dispatch, authentication, quota and server responses keep
+the existing blocking behavior. The host wrapper distinguishes proven
+admission rejection from a callback failure and never retries a dispatched
+callback. A selected queue records a terminal failed unit for proven admission
+rejection, preserving its charge while allowing independent units to progress.
+
+The legacy not_dispatched stop has an explicit, lock-protected reconciliation
+method requiring the exact attempt and SHA-256 of the original ledger.
+It verifies the original reservation, policy, timestamps and charged count,
+retains the original ledger bytes in an immutable receipt, and changes only
+stopped to null. It refunds no charge and dispatches no request. This method
+requires separately authorized use; it is not automatic startup recovery.
+Unknown pending requests and HTTP-triggered stops are ineligible.
+
+News and macro wrappers report fmp_not_dispatched for this admission failure.
+Macro resource failures now use bounded categories for page, row, series,
+response byte, total byte and duration limits instead of incorrectly reporting local_io.
+No schedule, provider workload, request cap or resource cap changes.
+
+## September 30, 2026 - isolate failed FMP requests
+
+The user's later explicit decision supersedes the ambiguous-dispatch and
+server-error account-wide stop above. FMP requests with no usable response
+are flagged individually and remain charged, while unrelated requests continue.
+HTTP 5xx responses are request-local failures; HTTP 401, 403 and 429 retain the
+existing account-wide stop. Quota, pacing and original finite request, byte and
+duration limits remain enforced. No automatic retry is introduced.
+
+The shared allowance holds its existing account lock throughout dispatch.
+On an exception or invalid HTTP status, it durably saves an uncertain-attempt
+receipt with original ledger bytes and before/after hashes before clearing
+pending. A subsequent lock owner similarly retires an abandoned pending
+reservation, without resending it, before admitting independent work.
+The companion reservation must match if present; a crash before its creation
+can recover from the authoritative charged ledger. Explicit reconciliation
+requires the exact attempt and ledger hash and makes no provider request.
+Invalid accounting, policy mismatch, explicit provider stops and persistence
+failures still block the affected action.
+
+FMP acquisition queues retain a terminal per-unit failure before clearing
+pending, continue later units, and report complete_with_gaps/acquired_with_gaps.
+Reopening the same queue skips failed units without retry. Existing retained
+responses recover through the original publication path. Missing responses
+after interruption become flagged failures. Unknown response sizes reserve the
+full per-request byte bound separately from measured received bytes. Immutable
+evidence corruption, retention I/O and publication failures remain errors.
+Other providers keep their existing uncertainty and HTTP-stop behavior.
+
+Parallel FMP acquisition applies the same rule to worker-result and constructor
+failures and invalid responses: it retains bounded failure receipts, reserves
+missing bytes, drains active requests and admits later independent units.
+Unknown failures are non-retryable; the selected-company caller retains only
+its already-authorized bounded retry policy for explicitly typed transient
+failures. Abandoned parallel admissions can be retired under the account lock
+with all original reservations retained. Explicit storage-safety holds remain.
+
+
+## October 1, 2026 options monitor shared Theta admission
+
+The user-authorized finite daytime baseline extension coordinates the existing
+singleton live monitor and finite backfill owners through private flock leases.
+A live-intent lock excludes new background admissions; an exclusive session
+lease waits for active background calls and their receipts to drain before
+the live cycle can authenticate. Background requests hold shared session leases,
+plus exclusive daytime/shared off-hours capacity leases. Existing validated
+owner concurrency limits (live three, backfill at most four) keep the combined
+ceiling at four, with one historical call during weekdays 08:55-16:15 ET.
+The separate live run.lock and finite baseline.lock continue to exclude duplicate
+owners. Leases resolve under the physical project root and OS exit releases them;
+lock files are never unlinked as a recovery mechanism.
+
+A non-secret generation marker is atomically replaced under exclusive session
+ownership. Background clients whose generation is stale drain/close before
+renewing their session. Live intent, capacity and generation checks precede any
+durable historical request reservation. Network and waiting remain outside
+SQLite write transactions and physical-store locks. Waiting retains deadline,
+budget and stop checks; it does not consume a request or create an unresolved
+admission. No request is cancelled or repeated solely for priority handoff.
+
+As repaired October 8, daily Tue-Sat 07:10-07:40 and Sunday 02:55-04:05
+background guards remain around
+the separately owned daily/weekly Theta jobs. Unrelated manual sessions are
+outside this coordination scope. The monitor contract owns detailed behavior;
+dated authorization and observed activation belong in the operating envelope.
+
+
+## October 1, 2026 — date-scoped live pause and baseline priority
+
+A user-approved one-day pause is an immutable mode-0600 private marker keyed
+by the Eastern calendar date and exact finite backfill run. Its expiry is the
+next local midnight, including DST transitions. Only the matching run receives
+four-call daytime capacity. Validating the marker never extends it or changes
+the original plan/caps. Conflict or malformed current authority fails closed.
+
+Installation requires the existing live timer stopped and live service inactive
+(MainPID=0), then checks the live-owner lock before atomic marker publication.
+The timer is restored only after publication. Remaining normal ticks return
+paused with zero provider/Site work; tomorrow's date lookup restores ordinary
+collection and capacity without catch-up or a new scheduled job. The additional
+in-code owner-lock recheck only prevents provider admission after a racing
+startup; it cannot undo setup that has already happened. The operational
+installation precondition avoids that race for normal clock execution.
+
+Background priority does not bypass live intent/session leases or daily/weekly
+Theta guard windows. A graceful finite-run replacement preserves existing
+receipts and saved data. The operating envelope owns dated authorization and
+activation; the monitor contract owns detailed behavior and tests.
+
+
+## October 1, 2026 — central baseline authentication recovery
+
+The explicitly amended finite backfill authenticates once in its coordinator
+before launching worker data requests. Each login holds the existing background
+capacity and shared session lease through its immutable completion receipt.
+The store lock/transaction is released before network authentication. An auth
+failure records one global admission and pauses the workers; it does not fan out
+into contract reservations. The persistent twenty-attempt limit and cooldown
+survive owner loss/restart. Actual scope and dated activation are recorded in
+the operating envelope.
+
+Ordinary RPC backoff closes channels while preserving valid authentication.
+Live intent, a changed generation marker or a scheduled Theta guard still
+requires draining and fresh authentication under the same leases. Existing
+owner locks, four/one-call capacity, guard windows and daily pause expiry remain.

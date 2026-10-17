@@ -1,0 +1,18 @@
+[Unit]
+Description=Quant Data GDP and CPI vintage refresh
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/macro.sqlite
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 -m quant_data.operations.macro_vintage_release --mode refresh
+TimeoutStartSec=30min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/data

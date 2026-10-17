@@ -1,0 +1,97 @@
+{
+  "type": "object",
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "accepted",
+        "needs_changes",
+        "insufficient_evidence"
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": [
+              "error",
+              "warning"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "guidance",
+              "analyst_focus",
+              "management_tone",
+              "coverage"
+            ]
+          },
+          "output_pointer": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "turn_id": {
+                  "type": "string"
+                },
+                "evidence_summary": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "turn_id",
+                "evidence_summary"
+              ],
+              "additionalProperties": false,
+              "description": "Source-linked evidence summary; paraphrase is allowed. Display as a summary, not a verbatim quotation. Turn ID and source role/exchange remain validated; no character span is asserted."
+            }
+          },
+          "proposed_correction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "severity",
+          "category",
+          "output_pointer",
+          "description",
+          "evidence",
+          "proposed_correction"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "transcript.review.v2"
+      ]
+    }
+  },
+  "required": [
+    "verdict",
+    "summary",
+    "findings",
+    "schema_version"
+  ],
+  "additionalProperties": false
+}

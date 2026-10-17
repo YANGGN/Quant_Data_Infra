@@ -1,0 +1,109 @@
+{
+  "approval_status": "offline_fixture_rehearsal_validated_live_not_run",
+  "contract": "quant_data.stage12c_market_gap_offline_fixture_gate",
+  "contract_version": "1.0.0",
+  "execution": {
+    "credential_environment_reads": 0,
+    "live_provider_calls": 0,
+    "network_calls": 0,
+    "operational_sqlite_stores_opened": 0,
+    "scheduler_actions": 0,
+    "temporary_fixture_store_roles_initialized": 4
+  },
+  "fixture_rehearsal": {
+    "aapl_first": true,
+    "all_symbols_closed": 629,
+    "expected_session_dates": [
+      "2026-08-13",
+      "2026-08-14"
+    ],
+    "injected_environment_reads": 1,
+    "injected_transport_calls": 629,
+    "ordered_remaining_symbols": true,
+    "published_complete_count": 629,
+    "semantic_replay_requests": 0,
+    "semantic_replay_zero_write": true,
+    "source_neutral": true,
+    "two_sessions_per_request": true,
+    "virtual_pacing_seconds": 628
+  },
+  "sha256": "8c0d7290e28173acbb3ed1930314daf2dd26357a2b9b1cbc6ba5d220ec93d4e5",
+  "static_preflight": {
+    "authority_bindings": {
+      "stage12a_manifest_sha256": "8266f431519913879797a14ea0baa781b6c7e0dfe78365a5ff0107e386a0ad29",
+      "stage12a_roster_sha256": "a81f62a5fe3710011e1fe6eabfe7fcd483726a23f2dc9b0a7e592b4c78327fbb",
+      "stage12b_manifest_sha256": "91d202540e24d2f94a3adb10135dde0bb3ee0c787c801bf66e547d649a7a3dfb"
+    },
+    "contract": "quant_data.stage12c_static_preflight",
+    "plan": {
+      "collector": {
+        "handler": "market.stage12c_fmp_daily_incremental_manual",
+        "id": "market.stage12c.fmp_daily_incremental_manual",
+        "max_bytes": 65536,
+        "max_rows": 2,
+        "max_seconds": 45,
+        "normalization_version": "stage12c.fmp.daily_incremental.live.v1",
+        "one_attempt_per_symbol": true
+      },
+      "request": {
+        "endpoint_path": "/stable/historical-price-eod/full",
+        "from": "2026-08-13",
+        "query_parameters": [
+          "symbol",
+          "from",
+          "to"
+        ],
+        "remaining_symbol_order": "stage12a_frozen_roster_lexicographic_excluding_sentinel",
+        "sentinel_symbol": "AAPL",
+        "session_dates": [
+          "2026-08-13",
+          "2026-08-14"
+        ],
+        "symbol_count": 629,
+        "symbols_per_request": 1,
+        "to": "2026-08-14"
+      },
+      "response": {
+        "complete_row_count": 2,
+        "media_type": "application/json",
+        "row_keys": [
+          "symbol",
+          "date",
+          "open",
+          "high",
+          "low",
+          "close",
+          "volume",
+          "change",
+          "changePercent",
+          "vwap"
+        ]
+      },
+      "target": {
+        "canonical_market_default": "data/market.sqlite",
+        "private_state_root_label": "data/.stage12/market-v1/stage12c-20260813-20260814",
+        "retained_baseline_sha256": "b0ee0a02cc74e603320d0fa4f7a68a64339f8ed834229bdc480efa0351cc6f3c"
+      }
+    },
+    "registry": {
+      "schema_version": "1.8.0",
+      "source_sha256": "c24398b35bc9fe9553dd85346dd3879abd6b802e1dd255ffb186d4ed9e1ea769",
+      "version": "2.14.0"
+    },
+    "scope": {
+      "contract": "quant_data.stage12c_market_gap_v1_scope",
+      "raw_sha256": "24d8448c124cedb5deb745b50943291d955f05e7a95ac1d9747a7d51b6760226",
+      "semantic_sha256": "2c11fd5bfe99160e7949db3a87f2e3b1616a829b975424df40ec7f4fb16d5392",
+      "target_profile_id": "stage12c_market_gap_v1_project_default",
+      "version": "1.0.0"
+    },
+    "version": "1.0.0",
+    "zero_effects": {
+      "credential_environment_reads": 0,
+      "filesystem_mutations": 0,
+      "network_calls": 0,
+      "sqlite_opens": 0,
+      "subprocess_calls": 0
+    }
+  }
+}

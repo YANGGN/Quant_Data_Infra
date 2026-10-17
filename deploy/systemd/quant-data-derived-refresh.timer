@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh retained-data research calculations
+[Timer]
+OnCalendar=Mon..Fri *-*-* 23:30:00 America/Toronto
+OnCalendar=*-*-* 06:30:00 America/Toronto
+Persistent=true
+Unit=quant-data-derived-refresh.service
+[Install]
+WantedBy=timers.target

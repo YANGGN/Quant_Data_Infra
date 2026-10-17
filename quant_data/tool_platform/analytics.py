@@ -435,10 +435,20 @@ def _not_established(reason: str, **details: Any) -> dict[str, Any]:
     return {"status": "not_established", "reason": _text(reason, "reason"), "warnings": (reason,), **details}
 
 
-def correlate_series(left: TimeSeries | AnalyticsSeries, right: TimeSeries | AnalyticsSeries) -> dict[str, Any]:
-    """Return correlation only for complete, non-degenerate aligned pairs."""
+def correlate_series(
+    left: TimeSeries | AnalyticsSeries,
+    right: TimeSeries | AnalyticsSeries,
+    *,
+    join: str = "inner",
+) -> dict[str, Any]:
+    """Return correlation only for complete, non-degenerate aligned pairs.
 
-    aligned = align_series((left, right))
+    The legacy default remains inner alignment.  Explicit outer alignment lets
+    versioned callers count periods absent from either input as exclusions
+    without changing the coefficient's complete-pair sample.
+    """
+
+    aligned = align_series((left, right), join=join)
     pairs = [(row["values"][0], row["values"][1]) for row in aligned["rows"]
         if row["values"][0] is not None and row["values"][1] is not None]
     excluded = len(aligned["rows"]) - len(pairs)

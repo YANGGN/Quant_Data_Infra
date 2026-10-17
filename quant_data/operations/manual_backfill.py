@@ -32,7 +32,7 @@ from ..errors import (
 )
 from ..json_codec import dumps_strict, loads_strict
 from ..migrations import initialize_all
-from ..registry import CANONICAL_REGISTRY_PATH, Registry, load_registry
+from ..registry import CANONICAL_REGISTRY_PATH, Registry, load_registry, stage9_registry_profile
 from ..stores import StoreMap, StoreRole, read_connection
 from .backup import backup_all, restore_all
 from .repopulation import (
@@ -728,6 +728,11 @@ def main(
                 project_root=project_root,
                 environment={},
             )
+            if (
+                getattr(registry, "schema_version", None) == "1.6.0"
+                and getattr(registry, "registry_version", None) == "2.8.0"
+            ):
+                registry = stage9_registry_profile(registry)
             registry_validator(registry)
         except RegistryError:
             raise

@@ -1,262 +1,175 @@
 # Quant Data Infrastructure Agent Instructions
 
-## Scope and authority
+## Authority and autonomy
 
-This workspace began as a documentation-only recovery package. On 2026-08-09
-the user accepted the Stage 0 planning baseline, authorized a fresh Git
-baseline, and authorized the bounded offline Stage 1 vertical slice, Stage 2
-four-store foundation, and Stage 3 market/macro fixture restoration. Do not
-claim that a documented contract is implemented until its executable evidence
-passes the applicable gate, and do not invent historical behavior.
+Follow explicit user decisions, then accepted ADRs, `ARCHITECTURE.md` and
+focused specifications, `ROADMAP.md`, and finally `plan.md` as recovery context.
+A newer explicitly scoped decision supersedes an older conflicting one.
+Resolve clear precedence and note it briefly; stop only the affected action
+when authority or semantics remain unresolved. Continue independent work.
 
-Before cross-cutting work, read [the rebuild documentation index](docs/rebuild/README.md).
-Its authority order is:
+Complete ordinary reversible steps within the authorized outcome without
+reconfirming permission. Make reasonable implementation choices and explain
+material assumptions. Ask only when an unresolved decision would change
+authorized external effects, authority, or data semantics, incur material cost
+beyond approval, or materially broaden scope. Approval persists for its stated
+scope across turns; it never adds provider units, retries, or duration.
 
-1. explicit user decisions;
-2. accepted ADRs;
-3. `ARCHITECTURE.md` and the focused rebuild specifications;
-4. `ROADMAP.md`; and
-5. `plan.md` as recovery evidence and historical context.
+Historical contracts and receipts describe their own decision dates and scope.
+Preserve their evidence; do not treat an old milestone restriction as a veto
+over a later explicit decision. Do not invent history or claim implementation
+without executable evidence. The [instruction ledger](docs/rebuild/AGENT_INSTRUCTION_LEDGER_2026-08-20.md)
+is frozen audit context, not operating authority.
 
-The rebuild documents and ADRs are Accepted as the current target contracts.
-The offline Stage 1 vertical slice and Stage 2 four-store foundation are
-implemented and fixture-validated; Stage 2 has also passed independent
-verification. The bounded offline Stage 3 market/macro scope is implemented
-and fixture-validated and has passed independent SolUltra verification. The bounded offline Stage 4 company, news, and options scope and the bounded
-offline Stage 5 composable tool platform are fixture-validated and have passed
-independent SolUltra verification. The bounded offline Stage 6 local portal is
-limited to four fixed routes and was accepted after its offline executable
-verification and the user's explicit browser-automation waiver. The bounded
-offline Stage 7 manual job rehearsal is implemented, and its primary fixture
-gate and independent SolUltra verification have passed. Stage 7
-remains manual-first, disabled, and synthetic-fixture-only. The user has also
-authorized the bounded offline Stage 8 implementation. Its one declared
-fixture-only manual JSON Atlas profile is a deliberate forward reconstruction,
-not a claim of recovered historical Atlas or 13-dataset parity. Stage 8 may use
-only explicit synthetic-store roots, complete physical locks, SQLite online
-backup copies reopened query-only, and an exact derived-output root. It may
-atomically promote a fully validated immutable derived revision and its
-`current` pointer inside that output root; it may not promote an operational
-store. The bounded Stage 8 implementation has passed its primary offline fixture gate.
-Independent SolUltra verification also passed; browser verification remains pending, so
-the formal Stage 8 exit gate is not closed.
+## Read only what the task needs
 
-The user has authorized one bounded Stage 9 preparation: a manual FMP daily
-OHLCV backfill for `SPY`, inclusive `2026-07-01` through `2026-07-31`, into
-`/home/volatility/quant-data-nonprod/stage9-fmp-spy-202607`. It is an additive,
-market-only non-production slice with one request, no retry, and
-`FMP_API_KEY` supplied only through the process environment. Its primary and
-independent offline gates and bounded live population receipt have passed.
-Promotion, old-store retirement, scheduling, Atlas/tool/
-dashboard exposure, and every other live provider remain closed.
+Use relevant sections of the following documents. Reuse material already read
+in this session unless it changed or new scope requires it. The
+[rebuild index](docs/rebuild/README.md#2-document-map) is navigation; historical
+receipts and stage narratives are required only when a decision depends on them.
 
-Do not install, start, update, or remove a scheduler. Do not start a live
-provider except the exact manual Stage 9 FMP slice after its offline checks,
-credential preflight, and exact-target checks pass. That exception permits
-neither retry nor any other symbol, date range, target, provider, promotion,
-or store retirement. Do not host or deploy Atlas, connect it to operational
-stores, select default paths, run live diagnostics, or perform destructive
-operations.
+| Actual change or operation | Read |
+| --- | --- |
+| Use existing public tools or integrate a consumer | [Local Agent Tools](docs/LOCAL_AGENT_TOOLS.md#cross-project-quick-start), its [current price workflow](docs/LOCAL_AGENT_TOOLS.md#current-price-workflow), and runtime `manifest` / versioned `describe`; select versions explicitly and preserve returned metadata |
+| Routine local development | [Fast path](docs/rebuild/FAST_PATH_DEVELOPMENT.md) |
+| UI/UX design, visual implementation, or visual review | [UI design route](.codex/README.md#ui-design), fast path, and the applicable UI/export contract |
+| Additive local read-only tool or Inspector behavior | Fast path and [tool platform](docs/rebuild/TOOL_PLATFORM_SPEC.md); existing time/missingness contracts when used |
+| Provider, credential, canonical-store operation, or private collector binding | [Operating envelope](docs/rebuild/CURRENT_OPERATING_ENVELOPE.md), fast path, and the applicable existing collector/reader contract; [locking](docs/rebuild/SCHEDULING_AND_LOCKING.md) for writers or locks |
+| Migration, registry schema, dataset ownership, or changes to shared identity/time/missingness semantics | [Registry](docs/rebuild/SYSTEM_REGISTRY_SPEC.md), [data/time contracts](docs/rebuild/DATA_AND_TIME_CONTRACTS.md), applicable ADRs; [migration map](docs/rebuild/MIGRATION_RECONSTRUCTION.md) when migrations or ownership change |
+| Architecture or sequencing | Applicable ADRs and sections of `ARCHITECTURE.md` and `ROADMAP.md` |
+| Scheduler, promotion, retirement, deployment, external exposure, export, writable UI, or destructive action | Operating envelope, locking where relevant, and applicable UI/export/operational contract |
+| Delegation or independent verification | [Parallel plan](docs/rebuild/PARALLEL_EXECUTION.md#2-capacity-and-operating-model), sized to the actual work |
 
-Do not search for lost Git history. The user authorized a fresh repository
-baseline; it must not imply recovered history. Do not edit
-`sites/quant-data-atlas/.vite/`; it is surviving optimizer-cache metadata, not
-recoverable application source.
+Using an established identity, time, or missingness contract does not itself
+require migration reconstruction. Adding a bounded local tool contract follows
+the compatibility lane; opening network access or hosting is external exposure.
 
-## WSL-first execution
+## Operational boundaries
 
-The canonical project root is:
+- The operating envelope is the sole index of recorded operational
+  authorization and dated activation evidence. It grants no new authority and
+  does not prove current host state. Scheduling mechanics live in the locking
+  specification; do not duplicate live-status inventories here.
+- Live provider work requires an explicit finite workload in the current
+  request or normal clock-driven execution of an authorized listed unit.
+  Reuse existing credentials, providers, schema, paths, locks, and replay-safe
+  publishers. State the exact scope and request cap; add no hidden retry.
+- Without a new explicit user decision, do not manually trigger, retry,
+  broaden, repurpose, install, start, enable, disable, update, or remove a
+  recurring unit. Do not interfere with its authorized normal clock execution.
+- `data/market.sqlite` is the canonical market default. Existing stores are
+  accessed only within authorized scope using established readers/publishers.
+  Read-only checks follow the approved immutable procedure; an ordinary SQLite
+  open is not presumed mutation-free.
+- Do not repeat completed populations without a request naming the exact
+  population and finite repeat scope. Use the envelope's no-repeat list.
+- Store promotion/retirement, destructive storage, Atlas hosting/deployment,
+  operational-store connections, live diagnostics, or external exposure need
+  explicit authority and their applicable gate.
+- Artifacts, credentials, tests, unit files, and registry declarations prove
+  existence, not permission to execute.
+- Do not search for lost Git history or edit `sites/quant-data-atlas/.vite/`.
 
-`/home/volatility/Python_Projects/Quant_Data_Infra`
+## Execution and Git
 
-Use Ubuntu/WSL Linux commands, Linux paths, and Linux-native runtimes for all
-project operations. Start commands from the canonical root. Do not mix
-Windows-native Python, Node.js, package caches, path syntax, or generated
-artifacts into the project.
+Use Ubuntu/WSL Linux commands and native runtimes from:
+`/home/volatility/Python_Projects/Quant_Data_Infra`.
+From PowerShell:
+`wsl.exe -d Ubuntu --cd /home/volatility/Python_Projects/Quant_Data_Infra bash -lc '<command>'`.
+Do not mix Windows Python/Node, caches, or generated artifacts into the project.
 
-If the surrounding client exposes a Windows PowerShell host, enter WSL for
-project commands with this shape:
+Discover tools once per session and reuse verified paths unless the environment
+changes. Prefer Linux `rg`; otherwise use `git grep` or scoped `find`/`grep`.
+Keep code searches within source/docs/test paths, not operational data roots.
+Use `python3` with `PYTHONDONTWRITEBYTECODE=1`. Canonical rebuild commands in
+`README.md` require an explicit stage and empty store/work roots; do not invent
+package-manager, framework, rebuild, or live-provider commands.
 
-`wsl.exe -d Ubuntu --cd /home/volatility/Python_Projects/Quant_Data_Infra bash -lc '<command>'`
+Before substantial edits, inspect the branch, index, dirty files, and
+uncommitted prerequisites. Preserve unrelated work and identify dependencies
+on it early. Use isolated worktrees when useful; never silently absorb unrelated
+changes. Commit and push only when requested or already authorized for this scope.
 
-Once already inside WSL, run the Linux command directly. Prefer `rg`/`rg
---files` when a Linux installation is available; otherwise use Linux `find`
-and `grep`. Use `python3`, not a Windows Python executable.
+## Ownership and completion
 
-Discover the executable toolchain before invoking it. The current dependency-
-free validation command is
+One integration owner controls shared registry/schema declarations, migrations,
+identifiers, time/path/lock semantics, generated contracts, shared goldens,
+exports, root integration files, agent configuration, and architecture decisions.
+Never assign overlapping paths to active writers. Models and efforts live in
+[the routing configuration](.codex/README.md); select the role for the actual
+risk and disclose effective-route differences. Start a fresh trusted session
+after configuration edits before relying on new routes.
+
+`ultra` reasoning effort is allowed for this project whenever the selected
+model and runtime support it, for both single-agent and delegated work.
+Honor an explicit user selection of `ultra`; parallel execution is not a
+prerequisite. Existing routing defaults, role ownership, verification
+independence, and concurrency limits still apply.
+
+The configured design owner handles all UI/UX design, visual judgment, and its
+implementation. Other workers may make specified mechanical UI edits only
+after that design is settled. Keep applicable browser and visual checks.
+
+Keep one writer by default, normally zero or one subagent, and at most three
+concurrent subagents within runtime capacity. Use compact complete briefs and
+bounded investigation or disjoint work when useful; executors do not recursively
+delegate. Return unresolved semantics or failed speculative fixes to the primary.
+Direct failure analysis at accepted invariants, concrete evidence, and the
+smallest sufficient correction; separate optional improvements from blockers.
+Formal verification needs a fresh reviewer who did not author the work or its
+tests, a stable integrated baseline, and stopped writers.
+
+Choose the smallest coherent change and relevant checks. Planning takes minutes;
+15 minutes is a ceiling, not a target. Avoid speculative abstractions and
+unrelated refactors. Batch concrete corrections and review the final diff once.
+
+## Validation
+
+[TEST_STRATEGY.md](docs/rebuild/TEST_STRATEGY.md#4-test-layers) owns the selection
+matrix. Default to the changed component, its affected contracts, and direct
+consumers whose behavior can change. Before running tests, state a short impact
+map: changed behavior, affected boundary, and named checks. Reusing a shared
+file, writing canonical prices, or adding a timer does not by itself require
+the full suite.
+
+A component-scoped ingestion/publication policy uses focused invariant tests
+and regressions for existing callers. Domain-scoped migrations add that domain's
+migration and reader checks. Full-suite escalation requires a concrete change
+to a cross-domain/core invariant, a shared generator/validator algorithm, or an
+explicit current full-suite gate; name that trigger and affected consumers.
+Preserve applicable independent verification and operational authorization.
+
+Unrelated baseline failures are recorded separately. Do not expand this task
+to repair them or block its completion unless they demonstrably affect the
+requested outcome or prevent its required evidence. See the impact and
+escalation rules in the test strategy.
+
+Full offline command when required:
 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -t . -v`.
-The deterministic rebuild CLI requires explicit `--stage`, project, and empty
-store/work roots; see `README.md`. Do not invent unavailable package-manager,
-framework, or live-provider commands.
+Offline checks use explicit temporary roots, no credentials/network, and no
+default/live SQLite fallback. Parallel tests need proven resource isolation;
+shared database, lock, port, or publication work remains serial.
 
-## Model routing
+Once the required checks and final review pass, finish. Expand or repeat checks
+only for a concrete change, failure, or unresolved concern. Supplementary slow
+runs must not hold the handoff open; required full-suite gates must finish.
+Report actual results, skipped checks, unresolved risks, and any pending run.
 
-Project defaults and named roles are defined under `.codex/`.
+## Durable invariants and stop conditions
 
-- Primary/orchestrator: `gpt-5.6-sol` with `ultra` reasoning.
-- Default implementation subagent: `gpt-5.6-terra` with `max` reasoning.
-- Named `implementation` agent: TerraMax, write-capable only within an assigned
-  scope.
-- Named `verifier` agent: SolUltra, independent and read-only; it owns
-  adversarial review, acceptance-test analysis, and final verification.
+- Market, macro, company, and news retain distinct operational ownership.
+- Immutable evidence, versioned canonical facts, and derived research stay separate.
+- As-of results cannot see future evidence; date-only precision stays date-only.
+- Exact semantic replay causes zero canonical change.
+- Callers cannot choose database paths, submit SQL, or obtain writable connections.
+- Locks use resolved physical store identity; network work precedes write locks/transactions.
+- SQLite is authoritative; analytical exports are reproducible derivatives.
 
-Use the exact requested models and efforts when the runtime supports them. If a
-runtime override, account restriction, or unavailable model prevents the
-configured route, report the effective fallback instead of silently
-substituting it.
+Stop the affected action for unresolved authority, ownership, migration
+ordinal/bytes/checksum, unsafe live/default access, unapproved external effects,
+destructive scope, an applied-migration edit, or a silent golden change.
+Escalate once per blocker with the smallest missing decision. Preserve completed
+work and continue safe independent work; do not invent extra phases or rehearsals.
 
-Project `.codex/config.toml` is loaded only for a trusted project and normally
-at the start of a new session. CLI, composer, or live runtime overrides may
-take precedence. After these files change, use a fresh session before relying
-on the routing policy.
-
-## Primary/orchestrator responsibilities
-
-The primary is the integration owner. It must:
-
-- translate the current user request into bounded tasks and acceptance gates;
-- freeze shared interfaces before parallel writers depend on them;
-- assign every write-capable agent an explicit, disjoint path set;
-- keep architecture decisions, cross-domain semantics, and shared identifiers
-  centralized;
-- reconcile agent results and perform shared-file integration itself;
-- stop writers before independent verification begins; and
-- deliver one evidence-backed result rather than concatenated agent reports.
-
-The primary should delegate when two or more independent workstreams can
-materially improve speed or quality. It should not delegate a single coupled
-change merely to increase agent or token usage.
-
-## Subagent task contract
-
-Every delegated task must state:
-
-1. one concrete objective;
-2. whether the task is read-only or write-capable;
-3. the exact owned files or directories for a writer;
-4. authoritative specifications and fixed interfaces;
-5. required validation and evidence;
-6. what the agent must not change; and
-7. the condition for stopping and escalating.
-
-Use no more than three concurrent subagents in this project configuration.
-Read-heavy exploration, test analysis, triage, and specification review may run
-in parallel. Parallel writers require disjoint ownership. Subagents must not
-spawn additional agents unless the primary explicitly delegates that authority.
-
-## Write ownership and serialized hotspots
-
-Never assign two active writers overlapping paths. A shared file has one owner
-at a time and changes hands only through a sequential handoff.
-
-The primary or one explicitly designated integration owner is the sole writer
-for these shared semantic hotspots:
-
-- the canonical machine-readable registry and its schema;
-- migration ordering, ownership, immutable migration resources, and checksums;
-- shared identity, availability, point-in-time, and semantic no-write
-  primitives;
-- database path resolution, physical lock identity, and multi-lock ordering;
-- shared typed contracts, schema generation, public tool-name inventory, and
-  route manifests;
-- fixture manifests, golden-output approvals, and generated artifacts;
-- shared package exports and root integration files; and
-- agent configuration, ADRs, and architecture-wide contracts.
-
-Domain workers may prepare scoped fragments and proposals, but the integration
-owner merges canonical declarations. A worker that discovers a required change
-outside its ownership must stop and report it instead of editing across the
-boundary.
-
-Migration work has an additional hard gate: recovery evidence describes
-semantic ordering but does not establish byte-exact DDL or historical
-checksums. No agent may allocate, renumber, or claim recovered parity for a
-migration until a reviewed store/ordinal/resource/checksum/reconstruction map
-exists.
-
-## Parallel execution cycle
-
-Use this cycle for every implementation wave:
-
-1. **Freeze:** confirm the authorized stage, contracts, shared interfaces,
-   migration/registry ownership, and agent path ownership.
-2. **Fan out:** run independent TerraMax workers on disjoint lanes.
-3. **Reconcile:** stop writers, review their reports, and let the primary merge
-   shared integration changes.
-4. **Verify:** run the SolUltra `verifier` from the original acceptance criteria
-   and current workspace, not from worker claims.
-5. **Correct:** assign findings to one appropriate writer at a time.
-6. **Gate:** rerun verification and record evidence before the next dependency
-   stage begins.
-
-Later-stage design, fixture planning, and read-only review may happen early.
-Executable implementation must not cross an unmet roadmap exit gate. See
-[the parallel execution plan](docs/rebuild/PARALLEL_EXECUTION.md).
-
-## Testing and independent verification
-
-Implementation workers test the behavior they own, but cannot independently
-approve their own work. The `verifier` must:
-
-- derive checks from the user request, accepted ADRs, focused contracts, and
-  stage exit gate;
-- inspect the actual workspace instead of trusting summaries;
-- run available safe checks and report exact commands and results;
-- test failure behavior, boundary conditions, isolation, idempotence, and
-  regressions—not only the happy path;
-- distinguish missing test infrastructure from a passing test; and
-- return findings ordered by severity with reproducible evidence.
-
-For future executable work, offline tests must use explicit temporary roots,
-must not require credentials or network access, and must never fall back to a
-default or live SQLite path. Read-only tool and dashboard tests must fingerprint
-stores before and after requests to prove zero mutation.
-
-## Quant-data safety invariants
-
-All implementation agents must preserve these invariants:
-
-- four operational ownership boundaries: market, macro, company, and news;
-- immutable evidence, versioned canonical facts, and derived research remain
-  distinct layers;
-- no as-of result may see evidence available after its cutoff;
-- exact semantic replay causes zero canonical change;
-- date-only source precision is not converted into an invented timestamp;
-- callers cannot select database paths, submit SQL, or obtain writable public
-  read connections;
-- locks are keyed by resolved physical store identity, not logical job name;
-- no network work occurs while a database write lock or transaction is held;
-- SQLite is authoritative and analytical exports are reproducible derivatives;
-  and
-- live providers, scheduler installation, promotion, and destructive storage
-  operations require the applicable roadmap gate and explicit authorization;
-  the sole current live-provider exception is the bounded manual Stage 9 FMP
-  slice above, which remains non-production and candidate-only.
-
-## Stop and escalate
-
-Stop the affected lane and report to the primary if any of the following occurs:
-
-- authoritative documents conflict on a semantic or ownership decision;
-- two writers need the same path or shared identifier;
-- migration ownership, ordinal, bytes, or checksum status is unresolved;
-- a domain change would reinterpret shared point-in-time or missingness rules;
-- an offline test would touch a live/default path or require network/secrets;
-- a requested action would alter an applied migration or silently update a
-  golden result;
-- a tool, dashboard, scheduler, or export path would bypass the registered
-  read/write boundary; or
-- safe completion requires a destructive, external, or materially broader
-  action not authorized by the user.
-
-## Agent completion report
-
-Every subagent returns:
-
-- objective and owned scope;
-- files changed, or an explicit statement that the task was read-only;
-- validation commands and results;
-- assumptions and unresolved risks;
-- shared changes requested from the integration owner; and
-- a clear `ready for integration` or `blocked` conclusion.
+Lead the handoff with the outcome, changed files, actual validation and material
+limitations. Do not claim browser, provider, test, or safety evidence not obtained.

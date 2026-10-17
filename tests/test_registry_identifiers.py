@@ -8,7 +8,10 @@ from quant_data.errors import RegistryError
 from quant_data.json_codec import dumps_strict, loads_strict
 from quant_data.registry import (
     PUBLIC_TOOL_NAMES,
+    market_available_ticker_v1_registry_profile,
     load_registry,
+    news_research_registry_profile,
+    option_raw_evidence_registry_profile,
     stage2_registry_profile,
     stage3_registry_profile,
     stage4_registry_profile,
@@ -16,6 +19,7 @@ from quant_data.registry import (
     stage6_registry_profile,
     stage7_registry_profile,
 )
+from quant_data.tool_platform.catalog import CURRENT_PUBLIC_TOOL_NAMES
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -24,7 +28,7 @@ REGISTRY_PATH = PROJECT_ROOT / "config" / "system_registry.json"
 
 class RegistryIdentifierTests(unittest.TestCase):
     def _load_mutation(self, mutate):
-        raw = loads_strict(REGISTRY_PATH.read_bytes())
+        raw = loads_strict(REGISTRY_PATH.read_bytes(), max_bytes=16 * 1024 * 1024)
         mutate(raw)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "registry.json"
@@ -93,17 +97,49 @@ class RegistryIdentifierTests(unittest.TestCase):
         registry = load_registry(REGISTRY_PATH, project_root=PROJECT_ROOT, environment={})
 
         self.assertEqual(len(registry.stores), 4)
-        self.assertEqual(registry.schema_version, "1.5.0")
-        self.assertEqual(registry.registry_version, "2.7.0")
+        self.assertEqual(registry.schema_version, "1.9.0")
+        self.assertEqual(registry.registry_version, "2.86.0")
+        news_predecessor = news_research_registry_profile(registry)
+        self.assertEqual(news_predecessor.registry_version, "2.65.0")
+        self.assertEqual(
+            news_predecessor.source_sha256,
+            "c22d9ada8be3c3c7f9538c902bac3ef3467b9fdfa43c23fd7aa1c88200d58614",
+        )
+        raw_option_predecessor = option_raw_evidence_registry_profile(registry)
+        self.assertEqual(raw_option_predecessor.registry_version, "2.64.0")
+        self.assertEqual(
+            raw_option_predecessor.source_sha256,
+            "b47b6ad63ecaa41477388af033c7f928083ceb5e7db17bf76ff4ab99f71f3dc4",
+        )
+        predecessor = market_available_ticker_v1_registry_profile(registry)
+        self.assertEqual(predecessor.registry_version, "2.41.0")
+        self.assertEqual(len(predecessor.tools), 58)
+        self.assertNotIn(
+            "market.get_available_ticker",
+            tuple(item["id"] for item in predecessor.tools),
+        )
+        self.assertEqual(
+            predecessor.raw["tool_version_schema_catalog"]["schema_version"],
+            "2.7.0",
+        )
+        self.assertEqual(
+            {store.id: store.default_path for store in registry.stores},
+            {
+                "market": "data/market.sqlite",
+                "macro": "data/macro.sqlite",
+                "company": "data/company.sqlite",
+                "news": "data/news.sqlite",
+            },
+        )
         self.assertEqual(tuple(item.id for item in registry.exports), ("atlas.fixture_snapshot",))
         self.assertEqual(
             tuple(item["id"] for item in registry.dashboard),
             ("stage1.overview", "stage6.gdp_vintages",
              "stage6.table_inspector", "stage6.agent_tools"),
         )
-        self.assertEqual(len(registry.migrations), 31)
-        self.assertEqual(len(registry.datasets), 36)
-        self.assertEqual(len(registry.collectors), 20)
+        self.assertEqual(len(registry.migrations), 57)
+        self.assertEqual(len(registry.datasets), 73)
+        self.assertEqual(len(registry.collectors), 78)
         self.assertEqual(len(registry.jobs), 8)
         stage5 = stage5_registry_profile(registry)
         self.assertEqual(stage5.schema_version, "1.1.0")
@@ -166,7 +202,15 @@ class RegistryIdentifierTests(unittest.TestCase):
             PUBLIC_TOOL_NAMES,
         )
         self.assertEqual(len(PUBLIC_TOOL_NAMES), 57)
-        self.assertEqual([tool["id"] for tool in registry.tools], list(PUBLIC_TOOL_NAMES))
+        self.assertEqual(len(CURRENT_PUBLIC_TOOL_NAMES), 80)
+        self.assertEqual(
+            [tool["id"] for tool in registry.tools],
+            list(CURRENT_PUBLIC_TOOL_NAMES),
+        )
+        self.assertEqual(
+            [tool["id"] for tool in stage5.tools],
+            list(PUBLIC_TOOL_NAMES),
+        )
         self.assertEqual([tool["id"] for tool in stage4.tools], ["macro.get_series", "timeseries.describe"])
 
 

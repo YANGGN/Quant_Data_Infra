@@ -1,0 +1,23 @@
+[Unit]
+Description=Theta options weekly gap repair
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/options.sqlite
+ConditionPathExists=/home/volatility/Python_Projects/Quant_Data_Infra/data/.operations/theta-options/activation.json
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/volatility/Python_Projects/Quant_Data_Infra
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/home/volatility/Python_Projects/Quant_Data_Infra/.local/theta-discovery-20260924/venv/bin/python -m quant_data.operations.theta_options_refresh --mode weekly
+TimeoutStartSec=61min
+Restart=no
+MemoryHigh=1536M
+MemoryMax=2G
+OOMPolicy=stop
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/volatility/Python_Projects/Quant_Data_Infra/data

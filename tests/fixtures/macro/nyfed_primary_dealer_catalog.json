@@ -1,0 +1,48 @@
+{
+  "pd": {
+    "timeseries": [
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDPOSMBS-TOT",
+        "description": "Agency mortgage-backed securities total net positions",
+        "category": "Net Positions",
+        "maturity": "All maturities"
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDTRGS-EXTB",
+        "description": "U.S. Treasury bill transactions",
+        "category": "Transactions",
+        "maturity": "Treasury bills"
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDSORA-UTSETTOT",
+        "description": "U.S. Treasury reverse repo financing",
+        "category": "Financing",
+        "maturity": "All maturities"
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDFTD-USTET",
+        "description": "U.S. Treasury settlement fails to deliver",
+        "category": "Fails",
+        "maturity": "All maturities"
+      },
+      {
+        "seriesbreak": "SBN2022",
+        "keyid": "PDPOSMBS-TOT",
+        "description": "Prior-structure MBS positions",
+        "category": "Net Positions",
+        "maturity": "All maturities"
+      },
+      {
+        "seriesbreak": "SBN2024",
+        "keyid": "PDSI-UST",
+        "description": "Specific Treasury issues",
+        "category": "Specific Issues",
+        "maturity": "On the run"
+      }
+    ]
+  }
+}

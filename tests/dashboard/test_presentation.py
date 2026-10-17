@@ -7,6 +7,7 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from quant_data.dashboard.current_tool_page import latest_tool_version
 from quant_data.dashboard.presentation import (
     render_agent_tools_page,
     render_gdp_vintages_page,
@@ -33,6 +34,21 @@ def _contrast_ratio(first: str, second: str) -> float:
 
 
 class PresentationTests(unittest.TestCase):
+    def test_current_tool_page_selects_semantic_latest_version(self) -> None:
+        self.assertEqual(
+            latest_tool_version(
+                {
+                    "version": "1.0.0",
+                    "versions": (
+                        {"version": "2.7.0"},
+                        {"version": "1.0.0"},
+                        {"version": "2.10.0"},
+                    ),
+                }
+            ),
+            "2.10.0",
+        )
+
     def test_shell_uses_only_local_assets_and_escapes_plain_body(self) -> None:
         page = render_shell(
             title='<script>alert("title")</script>',
@@ -169,6 +185,12 @@ class PresentationTests(unittest.TestCase):
     def test_local_assets_define_accepted_tokens_and_no_remote_or_unsafe_dom_sink(self) -> None:
         css = (PROJECT_ROOT / "quant_data/dashboard/static/dashboard.css").read_text(encoding="utf-8")
         javascript = (PROJECT_ROOT / "quant_data/dashboard/static/dashboard.js").read_text(encoding="utf-8")
+        inspector_css = (
+            PROJECT_ROOT / "quant_data/dashboard/static/inspector_tools.css"
+        ).read_text(encoding="utf-8")
+        inspector_javascript = (
+            PROJECT_ROOT / "quant_data/dashboard/static/inspector_tools.js"
+        ).read_text(encoding="utf-8")
         for token in (
             "#f8f9fa",
             "#ffffff",
@@ -201,6 +223,22 @@ class PresentationTests(unittest.TestCase):
                 "/api/agent-tools/call",
             },
         )
+        self.assertNotRegex(inspector_css + inspector_javascript, r"https?://")
+        self.assertNotIn("innerHTML", inspector_javascript)
+        self.assertIn("textContent", inspector_javascript)
+        inspector_endpoints = set(
+            re.findall(r'"(/api/[^"]+)"', inspector_javascript)
+        )
+        self.assertEqual(
+            inspector_endpoints,
+            {"/api/agent-tools", "/api/agent-tools/call"},
+        )
+        self.assertIn("MAX_TREE_PREVIEW_ENTRIES = 500", inspector_javascript)
+        self.assertIn(
+            "MAX_RAW_PREVIEW_CHARACTERS = 131072",
+            inspector_javascript,
+        )
+        self.assertIn("complete paged response", inspector_javascript)
 
 
 
@@ -258,5 +296,118 @@ class PresentationTests(unittest.TestCase):
             check=False,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
+
+    @unittest.skipUnless(shutil.which("node"), "requires the WSL-native Node runtime")
+    def test_current_inspector_tool_helpers_are_strict_versioned_and_composable(
+        self,
+    ) -> None:
+        harness = textwrap.dedent(
+            r'''
+            const inspector = require(
+              "./quant_data/dashboard/static/inspector_tools.js"
+            );
+            function mustReject(source) {
+              let rejected = false;
+              try {
+                inspector.parseStrictJson(source);
+              } catch (_error) {
+                rejected = true;
+              }
+              if (!rejected) {
+                throw new Error("invalid strict JSON was accepted");
+              }
+            }
+            mustReject('{"duplicate":1,"duplicate":2}');
+            mustReject('{"value":NaN}');
+            mustReject('{"value":1e4097}');
+            mustReject('{"value":1e-4097}');
+            mustReject('{"value":1} trailing');
+            mustReject('{"value":"\\ud800"}');
+            const paddedExponent = inspector.parseStrictJson(
+              '{"value":1e0000000400}'
+            );
+            if (inspector.stringifyStrictJson(paddedExponent)
+              !== '{"value":1e0000000400}') {
+              throw new Error("valid padded exponent was not preserved");
+            }
+            const protectedObject = inspector.parseStrictJson(
+              '{"__proto__":{"polluted":true}}'
+            );
+            if (!Object.prototype.hasOwnProperty.call(protectedObject, "__proto__")
+              || ({}).polluted !== undefined) {
+              throw new Error("strict JSON object parsing allowed prototype mutation");
+            }
+            const precise = inspector.parseStrictJson(
+              '{"large":9007199254740993,'
+              + '"decimal":0.123456789012345678901234567890,'
+              + '"wide":1e400}'
+            );
+            const preciseEnvelope = inspector.buildEnvelope(
+              "1.0",
+              "market.technical_indicators",
+              "2.7.0",
+              precise
+            );
+            if (!preciseEnvelope.includes('"large":9007199254740993')
+              || !preciseEnvelope.includes(
+                '"decimal":0.123456789012345678901234567890'
+              )
+              || !preciseEnvelope.includes('"wide":1e400')) {
+              throw new Error("strict JSON numbers lost their exact lexemes");
+            }
+            if (inspector.stringifyStrictJson(precise)
+              !== '{"large":9007199254740993,'
+                + '"decimal":0.123456789012345678901234567890,'
+                + '"wide":1e400}') {
+              throw new Error("strict JSON rendering changed numeric precision");
+            }
+            const args = inspector.parseStrictJson(
+              '{"indicator":"kdj","window":9,"signal_window":3}'
+            );
+            const envelope = JSON.parse(inspector.buildEnvelope(
+              "1.0",
+              "market.technical_indicators",
+              "2.3.0",
+              args
+            ));
+            if (envelope.tool_version !== "2.3.0"
+              || envelope.arguments.indicator !== "kdj") {
+              throw new Error("explicit tool version was not preserved");
+            }
+            const latest = inspector.latestVersion({
+              version: "1.0.0",
+              versions: [
+                { version: "2.7.0" },
+                { version: "1.0.0" },
+                { version: "2.10.0" }
+              ]
+            });
+            if (latest !== "2.10.0") {
+              throw new Error("latest semantic tool version was not selected");
+            }
+            const series = {
+              contract: "quant_data.timeseries",
+              series_id: "example:close",
+              lineage_digest: "abc",
+              metadata: { observation_field: "close" },
+              observations: []
+            };
+            const found = inspector.collectSeries({
+              result: { series: [series, series] }
+            });
+            if (found.length !== 1 || found[0].value.series_id !== "example:close") {
+              throw new Error("returned typed series were not deduplicated");
+            }
+            '''
+        )
+        completed = subprocess.run(
+            ["node", "-e", harness],
+            cwd=PROJECT_ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr or completed.stdout)
+
 if __name__ == "__main__":
     unittest.main()

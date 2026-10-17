@@ -1,0 +1,12 @@
+[Unit]
+Description=Run Quant Data weekday SEC company-fundamentals refresh
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 07:15:00 America/New_York
+AccuracySec=1min
+RandomizedDelaySec=0
+Persistent=false
+Unit=quant-data-sec-company-fundamentals.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,33 @@
+{
+  "base_scope_manifest_sha256": "0782e0fdf39c3113f3c9537238200c9c73495f2fc2462637792d723cf33e68fd",
+  "bounds": {
+    "max_price_response_bytes": 16777216,
+    "max_price_rows": 30000,
+    "max_requests": 1,
+    "max_seconds_per_request": 45
+  },
+  "contract": "quant_data.iwm_etf_history_scope",
+  "etf": {
+    "category": "asset_class_equity_us",
+    "symbol": "IWM",
+    "themes": ["us_small_cap"]
+  },
+  "price_history": {
+    "currency_policy": "provider_declared_no_conversion",
+    "endpoint_path": "/stable/historical-price-eod/full",
+    "history_policy": "earliest_available_per_provider_symbol",
+    "interval": "daily",
+    "price_variant": "fmp_full_eod_v1",
+    "query_fields": ["symbol"],
+    "volume_policy": "provider_value_nonnegative_zero_allowed"
+  },
+  "provider": "fmp",
+  "retry_policy": {
+    "max_attempts": 1,
+    "mode": "none"
+  },
+  "successor_member_count": 96,
+  "target_profile_id": "stage10_fmp_market_history_v1",
+  "universe_id": "curated_etfs",
+  "version": "1.0.0"
+}

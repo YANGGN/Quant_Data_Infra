@@ -1,0 +1,12 @@
+[
+  {"symbol":"NST","date":"2035-12-31","revenueLow":100,"revenueHigh":140,"revenueAvg":120,"ebitdaLow":null,"epsLow":1.1,"epsHigh":1.5,"epsAvg":1.3,"numAnalystsRevenue":7,"numAnalystsEps":6},
+  {"symbol":"NST","date":"2034-12-31","revenueLow":90,"revenueHigh":130,"revenueAvg":110,"epsLow":1.0,"epsHigh":1.4,"epsAvg":1.2,"numAnalystsRevenue":7,"numAnalystsEps":6},
+  {"symbol":"NST","date":"2033-12-31","revenueLow":80,"revenueHigh":120,"revenueAvg":100,"epsLow":0.9,"epsHigh":1.3,"epsAvg":1.1,"numAnalystsRevenue":6,"numAnalystsEps":5},
+  {"symbol":"NST","date":"2032-12-31","revenueLow":70,"revenueHigh":110,"revenueAvg":90,"epsLow":0.8,"epsHigh":1.2,"epsAvg":1.0,"numAnalystsRevenue":6,"numAnalystsEps":5},
+  {"symbol":"NST","date":"2031-12-31","revenueLow":60,"revenueHigh":100,"revenueAvg":80,"epsLow":0.7,"epsHigh":1.1,"epsAvg":0.9,"numAnalystsRevenue":5,"numAnalystsEps":4},
+  {"symbol":"NST","date":"2030-12-31","revenueLow":50,"revenueHigh":90,"revenueAvg":70,"epsLow":0.6,"epsHigh":1.0,"epsAvg":0.8,"numAnalystsRevenue":5,"numAnalystsEps":4},
+  {"symbol":"NST","date":"2029-12-31","revenueLow":40,"revenueHigh":80,"revenueAvg":60,"epsLow":0.5,"epsHigh":0.9,"epsAvg":0.7,"numAnalystsRevenue":4,"numAnalystsEps":3},
+  {"symbol":"NST","date":"2028-12-31","revenueLow":30,"revenueHigh":70,"revenueAvg":50,"epsLow":0.4,"epsHigh":0.8,"epsAvg":0.6,"numAnalystsRevenue":4,"numAnalystsEps":3},
+  {"symbol":"NST","date":"2027-12-31","revenueLow":20,"revenueHigh":60,"revenueAvg":40,"epsLow":0.3,"epsHigh":0.7,"epsAvg":0.5,"numAnalystsRevenue":3,"numAnalystsEps":2},
+  {"symbol":"NST","date":"2026-12-31","revenueLow":10,"revenueHigh":50,"revenueAvg":30,"epsLow":0.2,"epsHigh":0.6,"epsAvg":0.4,"numAnalystsRevenue":3,"numAnalystsEps":2}
+]
