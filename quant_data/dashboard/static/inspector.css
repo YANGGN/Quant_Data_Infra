@@ -536,7 +536,9 @@ body.inspector {
 .inspector .status-data-unavailable a { display: inline-block; padding: 8px 0; color: #365579; }
 @media (min-width: 1440px) {
   .inspector .status-workspace .fetch-page { grid-template-columns: minmax(0, 7fr) minmax(330px, 3fr); column-gap: 22px; }
-  .inspector .status-workspace .fetch-focus { max-height: 850px; overflow-y: auto; scrollbar-width: thin; padding-right: 8px; }
+  .inspector .status-workspace .fetch-focus { overflow-y: auto; scrollbar-width: thin; padding-right: 8px; }
+  /* The open calendar sets the row height; long focus content scrolls within it. */
+  .inspector .status-workspace .status-calendar[open] + .fetch-focus { align-self: stretch; min-height: 0; contain: size; }
   .inspector .status-workspace .fetch-focus > .fetch-section-header { position: sticky; top: 0; z-index: 3; padding: 0 0 12px; background: #f7f8fa; }
 }
 @media (max-width: 1100px) {
