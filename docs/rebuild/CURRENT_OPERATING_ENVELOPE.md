@@ -1,5 +1,27 @@
 # Current Operating Envelope
 
+## October 17 — stored-data snapshot timeout repair
+
+The user requested investigation and repair of the local Inspector's stored-data
+snapshot timeout, preserving completed work after WSL recovery. The bounded
+repair uses existing retained metadata, additive market/company/news lookup indexes,
+the established locked migration runner, and the existing loopback Inspector.
+It includes no provider request, population repeat, recurring-unit change or
+external exposure. Company 0020 and news 0011 are verified complete; the
+completed news migration was skipped during recovery. Company 0021 is also
+verified complete with unchanged metadata counts. Fresh reads exposed further
+market/news and shared-output costs that earlier warm timings had hidden.
+Company 0022 and news 0012 are also verified complete with unchanged metadata
+counts. Registry 2.102 and market 0014 are now published and verified complete,
+with unchanged metadata counts. Capture-time indexes and bounded shared-output
+plan selection address the remaining market history cost. Final reads returned
+all 79 public records in 1.427 seconds and private capture details in 0.412 seconds
+with no unknown results. The manual loopback Inspector was restarted; browser
+acceptance confirmed registry 2.102, a populated stored-data table and zero unknown
+datasets. All 60 focused checks passed. Scope, validation,
+registry hashes and durable receipts are in the
+[snapshot repair record](STATUS_SNAPSHOT_REPAIR_2026-10-16.md).
+
 ## October 14 night — cross-asset reference repair and dashboard sync
 
 The current user explicitly requests repairing the 1,096 remaining 2016
