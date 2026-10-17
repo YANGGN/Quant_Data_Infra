@@ -49,7 +49,11 @@ from quant_data.registry_bundle_lock import (
 
 REGISTRY_RESOURCE = Path("config/system_registry.json")
 _REVIEWED_REGISTRY_SOURCE_SHA256 = {
+    ("1.9.0", "2.100.0"): "5b4148e5e0d7cb4d8d913c9fdff3cec64cf2649b7d8793ad9cc7b3f4eae573b3",
+    ("1.9.0", "2.101.0"): "0a4ec40cda7366970b9c5a7e9daada3f7701e863cffe18deeb24377d59834e62",
+    ("1.9.0", "2.102.0"): "27b2511d9b9bb7ecb68c5236ffa8175057533ff9d152c01bf1cff5326603c979",
     ("1.9.0", "2.98.0"): "b9ce7afea221dcbebbaaac4e2f8f86989762ba13522a4bf0a8f0b43e6be60db5",
+    ("1.9.0", "2.99.0"): "dadbdd6fa05eb882aec48b0709c49f4fd46df8c8e8f3bd2a303785c22c3c20b8",
     ("1.9.0", "2.97.0"): "24c27b5189319eab448204ada3db1755214afc153a805f01ed8a275895f5eb4f",
     ("1.9.0", "2.96.0"): "77ae8d98df1c90a08697655669eca68c1d28e1788370a1a587d81e07cc27be20",
     ("1.9.0", "2.95.0"): "61e06644d980ebf993ab44196c3794c457bba8cf6fe2b8fa582cc925081dc9ea",
@@ -800,7 +804,7 @@ def _add_macro_database_expansion_declarations(raw: dict[str, Any]) -> None:
 def _render(value: Any) -> bytes:
     # Registry 2.72 uses less whitespace to remain within the unchanged
     # local JSON byte bound as explicit versioned contracts accumulate.
-    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0", "2.96.0", "2.97.0", "2.98.0"} else 2
+    indent = 1 if isinstance(value, dict) and value.get("registry_version") in {"2.72.0", "2.73.0", "2.74.0", "2.75.0", "2.76.0", "2.77.0", "2.78.0", "2.79.0", "2.80.0", "2.81.0", "2.82.0", "2.83.0", "2.84.0", "2.85.0", "2.86.0", "2.87.0", "2.88.0", "2.89.0", "2.90.0", "2.91.0", "2.92.0", "2.93.0", "2.94.0", "2.95.0", "2.96.0", "2.97.0", "2.98.0", "2.99.0", "2.100.0", "2.101.0", "2.102.0"} else 2
     return (json.dumps(value, ensure_ascii=True, indent=indent, sort_keys=True) + "\n").encode(
         "utf-8"
     )
@@ -896,81 +900,88 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     additive_entries = build_additive_tool_entries()
     version_policies = build_tool_version_policies()
     catalog_version = VERSIONED_CATALOG_VERSION
-    if source_version < ("1.9.0", "2.97.0"):
+    # This reviewed index-only successor retains the exact 2.99 tool profile.
+    # Alias its catalog thresholds without changing historical profile ordering.
+    catalog_source_version = {
+        ("1.9.0", "2.100.0"): ("1.9.0", "2.99.0"),
+        ("1.9.0", "2.101.0"): ("1.9.0", "2.99.0"),
+        ("1.9.0", "2.102.0"): ("1.9.0", "2.99.0"),
+    }.get(source_version, source_version)
+    if catalog_source_version < ("1.9.0", "2.97.0"):
         from .research_extensions_contracts import PEERS
         from .research_extensions_catalog import SUCCESSORS
         entries = tuple(t for t in entries if t["id"] != PEERS)
         additive_entries = tuple(t for t in additive_entries if t["id"] != PEERS)
         version_policies = tuple(p for p in version_policies if p["tool"] not in SUCCESSORS)
         catalog_version = "2.40.0"
-    if source_version < ("1.9.0", "2.96.0"):
+    if catalog_source_version < ("1.9.0", "2.96.0"):
         from .classification_contracts import TOOL as CLASSIFICATION_TOOL
         entries = tuple(t for t in entries if t["id"] != CLASSIFICATION_TOOL)
         additive_entries = tuple(t for t in additive_entries if t["id"] != CLASSIFICATION_TOOL)
         catalog_version = "2.39.0"
-    if source_version < ("1.9.0", "2.94.0"):
+    if catalog_source_version < ("1.9.0", "2.94.0"):
         from .monitor_contracts import TOOLS as MONITOR_TOOLS
         entries = tuple(t for t in entries if t["id"] not in MONITOR_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in MONITOR_TOOLS)
         catalog_version = "2.38.0"
-    if source_version < ("1.9.0", "2.93.0"):
+    if catalog_source_version < ("1.9.0", "2.93.0"):
         from .retained_research_contracts import NEW_TOOLS as RNEW, SUCCESSORS as RSUCCESSORS
         entries = tuple(t for t in entries if t["id"] not in RNEW)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in RNEW)
         version_policies = tuple(p for p in version_policies if p["tool"] not in RSUCCESSORS)
         catalog_version = "2.37.0"
-    if source_version < ("1.9.0", "2.92.0"):
+    if catalog_source_version < ("1.9.0", "2.92.0"):
         from .theta_contracts import TOOLS as THETA_TOOLS
         entries = tuple(t for t in entries if t["id"] not in THETA_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in THETA_TOOLS)
         catalog_version = "2.36.0"
-    if source_version < ("1.9.0", "2.89.0"):
+    if catalog_source_version < ("1.9.0", "2.89.0"):
         entries = tuple(t for t in entries if t["id"] not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_TRANSCRIPT_RESEARCH_TOOLS)
         version_policies = tuple(p for p in version_policies if p["tool"] != "company.get_transcript")
         catalog_version = "2.35.0"
-    if source_version < ("1.9.0", "2.88.0"):
+    if catalog_source_version < ("1.9.0", "2.88.0"):
         entries = tuple(t for t in entries if t["id"] not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_FORWARD_PE_ANALYSIS_TOOLS)
         catalog_version = "2.34.0"
-    if source_version < ("1.9.0", "2.87.0"):
+    if catalog_source_version < ("1.9.0", "2.87.0"):
         entries = tuple(t for t in entries if t["id"] not in ADDITIVE_FORWARD_PE_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_FORWARD_PE_TOOLS)
         catalog_version = "2.33.0"
-    if source_version < ("1.9.0", "2.86.0"):
+    if catalog_source_version < ("1.9.0", "2.86.0"):
         from .sharadar_company_contracts import remove_policies
         version_policies = remove_policies(version_policies)
         catalog_version = "2.32.0"
-    if source_version < ("1.9.0", "2.85.0"):
+    if catalog_source_version < ("1.9.0", "2.85.0"):
         entries = tuple(t for t in entries if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS)
         additive_entries = tuple(t for t in additive_entries if t["id"] not in ADDITIVE_TRANSCRIPT_TOOLS)
         catalog_version = "2.31.0"
-    if source_version < ("1.9.0", "2.84.0"):
+    if catalog_source_version < ("1.9.0", "2.84.0"):
         version_policies = remove_price_basis_policies(version_policies)
         catalog_version = "2.30.0"
-    if source_version < ("1.9.0", "2.83.0"):
+    if catalog_source_version < ("1.9.0", "2.83.0"):
         version_policies = tuple(
             item
             for item in version_policies
             if item["tool"] not in VERSIONED_ETF_SNAPSHOT_TOOLS
         )
         catalog_version = "2.29.0"
-    if source_version < ("1.9.0", "2.71.0"):
+    if catalog_source_version < ("1.9.0", "2.71.0"):
         version_policies = copy.deepcopy(version_policies)
         for policy in version_policies:
             if policy["tool"] == "news.search":
                 policy["variants"] = [v for v in policy["variants"] if v["version"] != "2.3.0"]
                 policy["deprecations"][0]["replacement"]["version"] = "2.2.0"
         catalog_version = "2.28.0"
-    if source_version < ("1.9.0", "2.70.0"):
+    if catalog_source_version < ("1.9.0", "2.70.0"):
         entries = tuple(item for item in entries if item["id"] not in ADDITIVE_FMP_RESEARCH_TOOLS)
         additive_entries = tuple(item for item in additive_entries if item["id"] not in ADDITIVE_FMP_RESEARCH_TOOLS)
         catalog_version = "2.27.0"
-    if source_version < ("1.9.0", "2.69.0"):
+    if catalog_source_version < ("1.9.0", "2.69.0"):
         entries = tuple(item for item in entries if item["id"] not in ADDITIVE_ETF_TOOLS)
         additive_entries = tuple(item for item in additive_entries if item["id"] not in ADDITIVE_ETF_TOOLS)
         catalog_version = "2.26.0"
-    if source_version <= ("1.9.0", "2.65.0"):
+    if catalog_source_version <= ("1.9.0", "2.65.0"):
         entries = tuple(
             item
             for item in entries
@@ -987,7 +998,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             if item["tool"] not in _CURRENT_OPTIONS_VERSIONED_TOOL_IDS
         )
         catalog_version = "2.25.0"
-    if source_version <= ("1.9.0", "2.64.0"):
+    if catalog_source_version <= ("1.9.0", "2.64.0"):
         entries = tuple(
             item
             for item in entries
@@ -1019,7 +1030,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             projected_policies.append(projected)
         version_policies = tuple(projected_policies)
         catalog_version = "2.24.0"
-    if source_version <= ("1.9.0", "2.62.0"):
+    if catalog_source_version <= ("1.9.0", "2.62.0"):
         version_policies = tuple(
             {
                 **item,
@@ -1035,14 +1046,14 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             for item in version_policies
         )
         catalog_version = "2.23.0"
-    if source_version <= ("1.9.0", "2.61.0"):
+    if catalog_source_version <= ("1.9.0", "2.61.0"):
         version_policies = tuple(
             item
             for item in version_policies
             if item["tool"] not in _CURRENT_NEWS_VERSIONED_TOOL_IDS
         )
         catalog_version = "2.22.0"
-    if source_version <= ("1.9.0", "2.60.0"):
+    if catalog_source_version <= ("1.9.0", "2.60.0"):
         version_policies = tuple(
             {
                 **item,
@@ -1058,7 +1069,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             for item in version_policies
         )
         catalog_version = "2.21.0"
-    if source_version <= ("1.9.0", "2.59.0"):
+    if catalog_source_version <= ("1.9.0", "2.59.0"):
         version_policies = tuple(
             {
                 **item,
@@ -1074,7 +1085,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             for item in version_policies
         )
         catalog_version = "2.20.0"
-    if source_version <= ("1.9.0", "2.58.0"):
+    if catalog_source_version <= ("1.9.0", "2.58.0"):
         version_policies = tuple(
             {
                 **item,
@@ -1090,7 +1101,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             for item in version_policies
         )
         catalog_version = "2.19.0"
-    if source_version <= ("1.9.0", "2.57.0"):
+    if catalog_source_version <= ("1.9.0", "2.57.0"):
         registry_259_variants = {
             ("market.technical_indicators", "2.4.0"),
             ("market.cross_sectional_performance", "2.1.0"),
@@ -1111,7 +1122,7 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             for item in version_policies
         )
         catalog_version = "2.18.0"
-    if source_version <= ("1.9.0", "2.56.0"):
+    if catalog_source_version <= ("1.9.0", "2.56.0"):
         version_policies = tuple(
             {
                 **item,
@@ -1127,16 +1138,16 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
             for item in version_policies
         )
         catalog_version = "2.17.0"
-    if source_version <= ("1.9.0", "2.55.0"):
+    if catalog_source_version <= ("1.9.0", "2.55.0"):
         version_policies = tuple(
             item
             for item in version_policies
             if item["tool"] not in _INVESTMENT_ANALYSIS_VERSIONED_TOOL_IDS
         )
         catalog_version = "2.16.0"
-    if source_version <= ("1.9.0", "2.54.0"):
+    if catalog_source_version <= ("1.9.0", "2.54.0"):
         excluded_indicator_versions = {"2.2.0"}
-        if source_version <= ("1.9.0", "2.53.0"):
+        if catalog_source_version <= ("1.9.0", "2.53.0"):
             excluded_indicator_versions.add("2.1.0")
         version_policies = tuple(
             {
@@ -1283,6 +1294,10 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.96.0"),
         ("1.9.0", "2.97.0"),
         ("1.9.0", "2.98.0"),
+        ("1.9.0", "2.99.0"),
+        ("1.9.0", "2.100.0"),
+        ("1.9.0", "2.101.0"),
+        ("1.9.0", "2.102.0"),
     }:
         step1_additions = {
             "macro.get_release_calendar",
@@ -1389,6 +1404,10 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
         ("1.9.0", "2.96.0"): "2.97.0",
         ("1.9.0", "2.97.0"): "2.98.0",
         ("1.9.0", "2.98.0"): "2.98.0",
+        ("1.9.0", "2.99.0"): "2.99.0",
+        ("1.9.0", "2.100.0"): "2.100.0",
+        ("1.9.0", "2.101.0"): "2.101.0",
+        ("1.9.0", "2.102.0"): "2.102.0",
     }
     raw["registry_version"] = target_registry_versions[source_version]
     raw["tool_schema_catalog"] = {
@@ -1423,6 +1442,18 @@ def generated_bytes(project_root: Path) -> tuple[bytes, bytes, bytes]:
     for dataset in raw["datasets"]:
         dataset["tool_ids"] = by_dataset[dataset["id"]]
     raw["presentation_order"]["tools"] = [item["id"] for item in entries]
+    if source_version == ("1.9.0", "2.98.0"):
+        from ..status_lookup_registry import add_declarations
+        add_declarations(raw, project_root)
+    if source_version == ("1.9.0", "2.99.0"):
+        from ..status_run_lookup_registry import add_declarations
+        add_declarations(raw, project_root)
+    if source_version == ("1.9.0", "2.100.0"):
+        from ..status_evidence_lookup_registry import add_declarations
+        add_declarations(raw, project_root)
+    if source_version == ("1.9.0", "2.101.0"):
+        from ..status_market_lookup_registry import add_declarations
+        add_declarations(raw, project_root)
     return _render(raw), catalog_bytes, versioned_catalog_bytes
 
 

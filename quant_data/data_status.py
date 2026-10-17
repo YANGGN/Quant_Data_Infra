@@ -297,33 +297,61 @@ def _control_plane_state(
     capture_row = connection.execute(
         """
         SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
-               snapshot.row_count, snapshot.completeness
+               snapshot.row_count, snapshot.completeness, snapshot.run_id
         FROM ingestion_snapshots AS snapshot
-        JOIN ingestion_runs AS run ON run.run_id = snapshot.run_id
-        WHERE snapshot.dataset_id = ? AND run.status = 'succeeded'
+        WHERE snapshot.dataset_id = ?
         ORDER BY snapshot.captured_at DESC, snapshot.snapshot_id COLLATE BINARY DESC
         LIMIT 1
-        """,
-        (dataset_id,),
+        """, (dataset_id,),
     ).fetchone()
+    # If the newest capture belongs to a successful run it is also the newest
+    # eligible capture. Check only that run; older histories need no join.
+    # Otherwise retain the full eligibility query, including binary-ID ties.
+    run = None if capture_row is None else connection.execute(
+        "SELECT status FROM ingestion_runs WHERE run_id = ?", (capture_row["run_id"],),
+    ).fetchone()
+    if capture_row is not None and (run is None or run["status"] != "succeeded"):
+        capture_row = connection.execute(
+            """
+            SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
+                   snapshot.row_count, snapshot.completeness
+            FROM ingestion_snapshots AS snapshot
+            JOIN ingestion_runs AS run ON run.run_id = snapshot.run_id
+            WHERE snapshot.dataset_id = ? AND run.status = 'succeeded'
+            ORDER BY snapshot.captured_at DESC, snapshot.snapshot_id COLLATE BINARY DESC
+            LIMIT 1
+            """,
+            (dataset_id,),
+        ).fetchone()
+    # Each branch needs only its winner. Applying LIMIT before the union lets
+    # the existing dataset/completion index stop at the latest success instead
+    # of loading and sorting the dataset's entire retained run history.
     outcome_row = connection.execute(
         """
         SELECT run_id, outcome_kind, recorded_at, recorded_precision,
                fetched_count, written_count
         FROM (
-            SELECT run_id, 'succeeded' AS outcome_kind,
-                   completed_at AS recorded_at, 'datetime' AS recorded_precision,
-                   fetched_count, written_count
-            FROM ingestion_runs
-            WHERE dataset_id = ?
-              AND status = 'succeeded'
-              AND completed_at IS NOT NULL
+            SELECT * FROM (
+                SELECT run_id, 'succeeded' AS outcome_kind,
+                       completed_at AS recorded_at, 'datetime' AS recorded_precision,
+                       fetched_count, written_count
+                FROM ingestion_runs
+                WHERE dataset_id = ?
+                  AND status = 'succeeded'
+                  AND completed_at IS NOT NULL
+                ORDER BY completed_at DESC, run_id COLLATE BINARY DESC
+                LIMIT 1
+            )
             UNION ALL
-            SELECT run_id, status AS outcome_kind,
-                   completed_at AS recorded_at, 'datetime' AS recorded_precision,
-                   fetched_count, NULL AS written_count
-            FROM ingestion_run_failures
-            WHERE dataset_id = ?
+            SELECT * FROM (
+                SELECT run_id, status AS outcome_kind,
+                       completed_at AS recorded_at, 'datetime' AS recorded_precision,
+                       fetched_count, NULL AS written_count
+                FROM ingestion_run_failures
+                WHERE dataset_id = ?
+                ORDER BY completed_at DESC, run_id COLLATE BINARY DESC
+                LIMIT 1
+            )
         )
         ORDER BY recorded_at DESC, run_id COLLATE BINARY DESC
         LIMIT 1

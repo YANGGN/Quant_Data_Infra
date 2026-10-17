@@ -82,33 +82,124 @@ def _capture_metadata(row: sqlite3.Row | None, *, target: Any, now: datetime,
             "retention_freshness": freshness}
 
 
-def _generic_capture(connection: sqlite3.Connection, dataset_id: str) -> sqlite3.Row | None:
-    # Split direct and linked captures so the direct branch uses the existing
-    # dataset index. Keep output filtering before shared primary-key lookups:
-    # an unrestricted join otherwise scans runs before checking output links.
-    return connection.execute("""
+def _shared_capture_anchors(
+    connection: sqlite3.Connection, dataset_ids: tuple[str, ...],
+) -> dict[str, tuple[str, ...]]:
+    if not dataset_ids:
+        return {}
+    placeholders = ",".join("?" for _ in dataset_ids)
+    rows = connection.execute(f"""
+        SELECT DISTINCT output.dataset_id, run.dataset_id AS anchor_dataset_id
+        FROM ingestion_run_outputs output
+        CROSS JOIN ingestion_runs run ON run.run_id=output.run_id
+        WHERE output.dataset_id IN ({placeholders}) AND run.status='succeeded'
+          AND output.dataset_id<>run.dataset_id
+        """, dataset_ids).fetchall()
+    anchors: dict[str, list[str]] = defaultdict(list)
+    for row in rows:
+        anchors[row["dataset_id"]].append(row["anchor_dataset_id"])
+    return {dataset: tuple(values) for dataset, values in anchors.items()}
+
+
+def _generic_capture(
+    connection: sqlite3.Connection, dataset_id: str, *,
+    shared_anchors: tuple[str, ...] | None = None,
+) -> sqlite3.Row | None:
+    candidate = connection.execute("""
+        SELECT snapshot_id, run_id FROM ingestion_snapshots
+        WHERE dataset_id=?
+        ORDER BY captured_at DESC, snapshot_id COLLATE BINARY DESC LIMIT 1
+        """, (dataset_id,)).fetchone()
+    run = None if candidate is None else connection.execute(
+        "SELECT status FROM ingestion_runs WHERE run_id=?", (candidate["run_id"],)
+    ).fetchone()
+    # A successful newest raw capture is also the direct branch's winner.
+    # Bind its primary key to avoid joining all older runs on stores without
+    # the company capture-time index. Otherwise keep the original full branch.
+    direct_filter = ""
+    parameters = (dataset_id,)
+    if run is not None and run["status"] == "succeeded":
+        direct_filter = " AND snapshot.snapshot_id=?"
+        parameters = (dataset_id, candidate["snapshot_id"])
+    direct = connection.execute(f"""
         SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
                snapshot.row_count, snapshot.completeness,
                snapshot.dataset_id AS snapshot_dataset_id,
                run.dataset_id AS anchor_dataset_id
         FROM ingestion_snapshots snapshot
         JOIN ingestion_runs run ON run.run_id=snapshot.run_id
-        WHERE snapshot.dataset_id=? AND run.status='succeeded'
-        UNION ALL
-        SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
-               snapshot.row_count, snapshot.completeness,
-               snapshot.dataset_id AS snapshot_dataset_id,
-               run.dataset_id AS anchor_dataset_id
-        FROM ingestion_run_outputs output
-        CROSS JOIN ingestion_runs run ON run.run_id=output.run_id
-        CROSS JOIN ingestion_snapshots snapshot ON snapshot.snapshot_id=run.snapshot_id
-                                               AND snapshot.run_id=run.run_id
-        WHERE output.dataset_id=? AND run.status='succeeded'
-          AND snapshot.dataset_id=run.dataset_id
-          AND output.dataset_id<>run.dataset_id
+        WHERE snapshot.dataset_id=? AND run.status='succeeded'{direct_filter}
         ORDER BY snapshot.captured_at DESC, snapshot.snapshot_id COLLATE BINARY DESC
         LIMIT 1
-        """, (dataset_id, dataset_id)).fetchone()
+        """, parameters).fetchone()
+    if shared_anchors is None:
+        shared_anchors = _shared_capture_anchors(connection, (dataset_id,)).get(dataset_id, ())
+    winners = [] if direct is None else [direct]
+    # Rare historical output links can sit behind a large, newer capture history.
+    # Probe at most 65 links through the dataset index. If there are at most 64,
+    # start from those links; otherwise retain the capture-time seek. This only
+    # selects a query plan: neither branch truncates eligible capture history.
+    sparse_outputs = False
+    if shared_anchors and connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='index' "
+        "AND name='ingestion_run_outputs_dataset' AND tbl_name='ingestion_run_outputs'"
+    ).fetchone() is not None:
+        sparse_outputs = connection.execute("""
+            SELECT COUNT(*) FROM (
+                SELECT 1 FROM ingestion_run_outputs WHERE dataset_id=? LIMIT 65
+            )
+            """, (dataset_id,)).fetchone()[0] <= 64
+    # Output membership identifies possible anchors, not valid captures. Seek
+    # each anchor's newest eligible snapshot with every original shared check
+    # inside LIMIT, so an ineligible newer row cannot hide an older valid one.
+    for anchor in shared_anchors:
+        if sparse_outputs:
+            shared = connection.execute("""
+                SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
+                       snapshot.row_count, snapshot.completeness,
+                       snapshot.dataset_id AS snapshot_dataset_id,
+                       run.dataset_id AS anchor_dataset_id
+                FROM ingestion_run_outputs output
+                CROSS JOIN ingestion_runs run ON run.run_id=output.run_id
+                CROSS JOIN ingestion_snapshots snapshot ON snapshot.snapshot_id=run.snapshot_id
+                WHERE output.dataset_id=? AND run.dataset_id=? AND run.status='succeeded'
+                  AND snapshot.run_id=run.run_id
+                  AND snapshot.dataset_id=run.dataset_id
+                  AND output.dataset_id<>run.dataset_id
+                ORDER BY snapshot.captured_at DESC, snapshot.snapshot_id COLLATE BINARY DESC
+                LIMIT 1
+                """, (dataset_id, anchor)).fetchone()
+        else:
+            shared = connection.execute("""
+            SELECT snapshot.snapshot_id, snapshot.captured_at, snapshot.captured_precision,
+                   snapshot.row_count, snapshot.completeness,
+                   snapshot.dataset_id AS snapshot_dataset_id,
+                   run.dataset_id AS anchor_dataset_id
+            FROM ingestion_snapshots snapshot
+            CROSS JOIN ingestion_runs run ON run.run_id=snapshot.run_id
+            CROSS JOIN ingestion_run_outputs output
+              ON output.run_id=run.run_id AND output.dataset_id=?
+            WHERE snapshot.dataset_id=? AND run.status='succeeded'
+              AND run.snapshot_id=snapshot.snapshot_id
+              AND snapshot.dataset_id=run.dataset_id
+              AND output.dataset_id<>run.dataset_id
+            ORDER BY snapshot.captured_at DESC, snapshot.snapshot_id COLLATE BINARY DESC
+            LIMIT 1
+                """, (dataset_id, anchor)).fetchone()
+        if shared is not None:
+            winners.append(shared)
+    if len(winners) < 2:
+        return winners[0] if winners else None
+    # Select only among branch winners, retaining SQLite's raw-value ordering
+    # and binary ID tie-break even when winning metadata is malformed.
+    columns = ("snapshot_id", "captured_at", "captured_precision", "row_count",
+               "completeness", "snapshot_dataset_id", "anchor_dataset_id")
+    branch = "SELECT " + ",".join(f"? AS {column}" for column in columns)
+    return connection.execute(
+        "SELECT * FROM (" + " UNION ALL ".join(branch for _ in winners)
+        + ") ORDER BY captured_at DESC,snapshot_id COLLATE BINARY DESC LIMIT 1",
+        tuple(row[column] for row in winners for column in columns),
+    ).fetchone()
 
 
 def _official_capture(connection: sqlite3.Connection) -> sqlite3.Row | None:
@@ -159,10 +250,19 @@ def read_inspector_retention(stores: StoreMap, registry: Registry, *,
             with quiet_immutable_read_connection(stores, role, expected_anchor=_anchor_for(registry, role)) as connection:
                 deadline = time.monotonic() + 3.0
                 connection.set_progress_handler(lambda: int(time.monotonic() > deadline), 10_000)
+                try:
+                    anchors = _shared_capture_anchors(connection, tuple(
+                        target.dataset_id for target in targets if target.id not in _OFFICIAL
+                    ))
+                except sqlite3.Error:
+                    anchors = None
                 for target in targets:
                     try:
                         native = target.id in _OFFICIAL
-                        row = _official_capture(connection) if native else _generic_capture(connection, target.dataset_id)
+                        row = _official_capture(connection) if native else _generic_capture(
+                            connection, target.dataset_id,
+                            shared_anchors=None if anchors is None else anchors.get(target.dataset_id, ()),
+                        )
                         resolved[target.id] = _capture_metadata(row, target=target, now=now, native=native)
                         if target.id in _OLD_NEWS:
                             resolved[target.id].update(_old_news_outcome(connection))

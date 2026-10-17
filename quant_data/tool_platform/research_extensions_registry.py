@@ -13,6 +13,14 @@ PREDECESSOR_CATALOG = {"resource":"quant_data/generated/tool_contract_schemas_v2
     "sha256":"e6e62f830d79c91ffb0fe2a9afc652fecb2a24e63aa8c2096297e994b4599629"}
 
 def predecessor_profile(registry):
+    from ..status_market_lookup_registry import predecessor_profile as market_lookup_predecessor
+    registry = market_lookup_predecessor(registry)
+    from ..status_evidence_lookup_registry import predecessor_profile as evidence_lookup_predecessor
+    registry = evidence_lookup_predecessor(registry)
+    from ..status_run_lookup_registry import predecessor_profile as run_lookup_predecessor
+    registry = run_lookup_predecessor(registry)
+    from ..status_lookup_registry import predecessor_profile as status_lookup_predecessor
+    registry = status_lookup_predecessor(registry)
     if (registry.schema_version, registry.registry_version) != ("1.9.0", "2.98.0"): return registry
     from .generate import _REVIEWED_REGISTRY_SOURCE_SHA256
     render = lambda value: (json.dumps(value, ensure_ascii=True, indent=1, sort_keys=True)+chr(10)).encode()

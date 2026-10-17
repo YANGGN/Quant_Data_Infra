@@ -137,12 +137,36 @@ ORDER BY outcome.recorded_at DESC, outcome.outcome_id COLLATE BINARY DESC
 LIMIT 1
 """
 
+# SQLite prefers the unique attempt-id index even when that requires loading
+# every historical outcome row. Pin the covering index on upgraded stores,
+# materialize only the winner, and load its full metadata once.
+_MULTI_LATEST_OUTCOME_INDEXED_SQL = """
+WITH latest AS MATERIALIZED (
+    SELECT outcome.outcome_id
+    FROM current_multi_source_attempts AS attempt
+    CROSS JOIN current_multi_source_outcomes AS outcome
+      INDEXED BY current_multi_source_outcomes_status
+      ON outcome.attempt_id=attempt.attempt_id
+    WHERE attempt.feed_id=?
+    ORDER BY outcome.recorded_at DESC, outcome.outcome_id COLLATE BINARY DESC
+    LIMIT 1
+)
+SELECT outcome.outcome_id, outcome.outcome_kind, outcome.http_status,
+       outcome.provider_row_count, outcome.accepted_row_count,
+       outcome.rejected_row_count, outcome.recorded_at, outcome.recorded_precision
+FROM latest
+JOIN current_multi_source_outcomes AS outcome
+  ON outcome.outcome_id=latest.outcome_id
+"""
+
 _FMP_LATEST_CAPTURE_SQL = """
 SELECT capture.capture_id, capture.captured_at, capture.captured_precision,
        capture.provider_row_count, capture.accepted_row_count,
        capture.rejected_row_count
 FROM fmp_stock_latest_current_captures AS capture
-JOIN fmp_stock_latest_current_outcomes AS outcome
+-- Keep captures as the outer loop so the time index can stop at the latest
+-- successful capture instead of scanning outcomes and sorting their history.
+CROSS JOIN fmp_stock_latest_current_outcomes AS outcome
   ON outcome.outcome_id=capture.outcome_id
  AND outcome.outcome_kind='succeeded'
 ORDER BY capture.captured_at DESC, capture.capture_id COLLATE BINARY DESC
@@ -490,7 +514,14 @@ def _source_latest_outcome(
 ) -> Mapping[str, object] | None:
     if source.family == "fmp_stock_latest":
         return _one(connection, _FMP_LATEST_OUTCOME_SQL)
-    return _one(connection, _MULTI_LATEST_OUTCOME_SQL, (source.source_id,))
+    has_covering_index = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='index' "
+        "AND name='current_multi_source_outcomes_status' "
+        "AND tbl_name='current_multi_source_outcomes'"
+    ).fetchone() is not None
+    sql = (_MULTI_LATEST_OUTCOME_INDEXED_SQL if has_covering_index
+           else _MULTI_LATEST_OUTCOME_SQL)
+    return _one(connection, sql, (source.source_id,))
 
 
 def _source_latest_capture(

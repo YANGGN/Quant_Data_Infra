@@ -12847,6 +12847,78 @@
    "semantic_scope": "Add FMP-only versioned classifications for production instrument identities from retained company profile evidence; preserve fixture classifications and all earlier migrations.",
    "sha256": "658c3a409b0350aa0b8ce38c74411484edd2499703ff87784f71fd8b9aa66810",
    "store": "market"
+  },
+  {
+   "dependencies": [
+    "company:0019_short_descriptions"
+   ],
+   "id": "company:0020_status_capture_lookup",
+   "ordinal": 20,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/company/0020_status_capture_lookup.sql",
+   "semantic_scope": "Add retained-data status metadata lookup indexes; preserve evidence, successful-capture selection, outcome ordering and all existing migrations.",
+   "sha256": "25fdbc80be45fa2fee13f792c0189d05552b2f6b04e67cda27cea81181976e66",
+   "store": "company"
+  },
+  {
+   "dependencies": [
+    "news:0010_current_news_capture_lookup"
+   ],
+   "id": "news:0011_status_evidence_lookup",
+   "ordinal": 11,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/news/0011_status_evidence_lookup.sql",
+   "semantic_scope": "Add retained-data status metadata lookup indexes; preserve evidence, successful-capture selection, outcome ordering and all existing migrations.",
+   "sha256": "726c42f0d6b175d808a83116ab16f46fd74a73c4386a3b13fd5035d219413fbf",
+   "store": "news"
+  },
+  {
+   "dependencies": [
+    "company:0020_status_capture_lookup"
+   ],
+   "id": "company:0021_status_run_lookup",
+   "ordinal": 21,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/company/0021_status_run_lookup.sql",
+   "semantic_scope": "Cover retained-data run metadata for Inspector capture attribution; preserve evidence, output membership, capture ordering and all existing migrations.",
+   "sha256": "623be6c2743ae1af812682c81d4cc218b1265d12c1d3638a0d796ca567a64943",
+   "store": "company"
+  },
+  {
+   "dependencies": [
+    "company:0021_status_run_lookup"
+   ],
+   "id": "company:0022_status_output_lookup",
+   "ordinal": 22,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/company/0022_status_output_lookup.sql",
+   "semantic_scope": "Cover dataset output membership and news outcome metadata for retained-data readers; preserve evidence, capture ordering and all existing migrations.",
+   "sha256": "e9c1435ce5f26bf9a913e1c522088a1c20b70af565d5a0adfbc5db778a225cb2",
+   "store": "company"
+  },
+  {
+   "dependencies": [
+    "news:0011_status_evidence_lookup"
+   ],
+   "id": "news:0012_status_outcome_lookup",
+   "ordinal": 12,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/news/0012_status_outcome_lookup.sql",
+   "semantic_scope": "Cover dataset output membership and news outcome metadata for retained-data readers; preserve evidence, capture ordering and all existing migrations.",
+   "sha256": "8c967d7e5b1e169554be23e90b55020c3d1f4c998e7021fe6e1f12abd456f653",
+   "store": "news"
+  },
+  {
+   "dependencies": [
+    "market:0013_fmp_classifications"
+   ],
+   "id": "market:0014_status_capture_lookup",
+   "ordinal": 14,
+   "reconstruction_state": "fixture_validated",
+   "resource": "quant_data/migrations/market/0014_status_capture_lookup.sql",
+   "semantic_scope": "Index market capture time, run metadata and dataset output membership for retained-data readers; preserve facts, capture ordering and all existing migrations.",
+   "sha256": "e98595ddc9a5f6f65875311452023a30af932ac10a298e04e85c69a6ddd74d93",
+   "store": "market"
   }
  ],
  "presentation_order": {
@@ -12961,7 +13033,7 @@
    "company.compare_peers"
   ]
  },
- "registry_version": "2.98.0",
+ "registry_version": "2.102.0",
  "schema_id": "quant_data.system_registry",
  "schema_version": "1.9.0",
  "status": "validated",
@@ -13005,7 +13077,8 @@
     "market:0010_stage10_market_history",
     "market:0011_option_raw_evidence",
     "market:0012_collection_universes",
-    "market:0013_fmp_classifications"
+    "market:0013_fmp_classifications",
+    "market:0014_status_capture_lookup"
    ],
    "path_env": "QUANT_MARKET_DB_PATH",
    "write_coordination": {
@@ -13114,7 +13187,10 @@
     "company:0016_fmp_research_lookup_indexes",
     "company:0017_sharadar_direct",
     "company:0018_structured_transcripts",
-    "company:0019_short_descriptions"
+    "company:0019_short_descriptions",
+    "company:0020_status_capture_lookup",
+    "company:0021_status_run_lookup",
+    "company:0022_status_output_lookup"
    ],
    "path_env": "QUANT_COMPANY_DB_PATH",
    "write_coordination": {
@@ -13160,7 +13236,9 @@
     "news:0007_current_multi_source",
     "news:0008_adopt_fmp_news_legacy",
     "news:0009_website_source_extension",
-    "news:0010_current_news_capture_lookup"
+    "news:0010_current_news_capture_lookup",
+    "news:0011_status_evidence_lookup",
+    "news:0012_status_outcome_lookup"
    ],
    "path_env": "QUANT_NEWS_DB_PATH",
    "write_coordination": {
